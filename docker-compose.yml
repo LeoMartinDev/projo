@@ -1,5 +1,6 @@
-# projo, ready to install (README.md "Installation"): copy this file into an empty folder, adapt
-# the media paths, then `docker compose up -d` (or a Container Manager project on a Synology).
+# projo, ready to install (README.md "Installation"): copy this file into an empty folder, add
+# your media folders below, then `docker compose up -d` (or a Container Manager project on a
+# Synology).
 # To build the image from the sources instead: docker build -f runtime/Dockerfile -t projo:dev .
 services:
   projo:
@@ -12,9 +13,12 @@ services:
     volumes:
       # Everything projo writes (database, images, caches, app versions): the folder to back up.
       - ./projo-data:/data
-      # Your media, read-only, one line per folder (Synology USB disk: /volumeUSB1/usbshare).
-      - /path/to/your/movies:/media/movies:ro
-      - /path/to/your/shows:/media/shows:ro
+      # Your media, read-only: uncomment and fill in one line per folder, `<on this machine>:<in
+      # projo>:ro`. You pick them under /media in the setup wizard.
+      #   Linux:              /srv/videos:/media/videos:ro
+      #   Synology folder:    /volume1/video:/media/video:ro
+      #   Synology USB disk:  /volumeUSB1/usbshare:/media/usb:ro
+      # - :/media/videos:ro
     environment:
       - TRUST_PROXY=false # true behind a reverse proxy (Caddy, Traefik, NPM, DSM)
     # The supervisor gives the app 25 s to stop before killing it.
