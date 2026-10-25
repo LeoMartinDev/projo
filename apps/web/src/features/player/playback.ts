@@ -92,6 +92,9 @@ export const endSessionOnce = sessionEnds.endOnce
 /** The session is gone server side (stopped by the admin, expired): nothing to end. */
 export const forgetSession = sessionEnds.forget
 
+/** This page ended the session itself (track change, part, next episode): see `isLetGo`. */
+export const isSessionLetGo = sessionEnds.isLetGo
+
 /** A (re)mounted player owns the session again: cancels a pending end (StrictMode remount). */
 export const retainSession = sessionEnds.retain
 

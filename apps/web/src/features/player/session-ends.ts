@@ -11,6 +11,11 @@ export type SessionEnds = {
   endOnce: (sessionId: string, last: PlaybackHeartbeatBody) => Promise<void>
   /** The session is gone server side (stopped by the admin, expired): nothing to end. */
   forget: (sessionId: string) => void
+  /**
+   * The page already ended (or forgot) the session: a `playback.session_terminated` for it is the
+   * echo of its own `DELETE`, which can arrive before the next session replaces it on screen.
+   */
+  isLetGo: (sessionId: string) => boolean
   /** A (re)mounted player owns the session again: cancels a pending release (StrictMode). */
   retain: (sessionId: string) => void
   /**
@@ -81,6 +86,7 @@ export const createSessionEnds = ({
     forget: (sessionId) => {
       ended.add(sessionId)
     },
+    isLetGo: (sessionId) => ended.has(sessionId),
     retain,
     release,
     settled: async () => {

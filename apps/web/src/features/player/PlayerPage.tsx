@@ -49,6 +49,7 @@ import {
   endSessionOnce,
   fetchTrickplayIndex,
   forgetSession,
+  isSessionLetGo,
   playbackTransport,
   preloadImages,
   putTrackPreferences,
@@ -479,6 +480,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   useServerEvent('playback.session_terminated', (payload) => {
     if (session === undefined || payload.playbackSessionId !== session.id) return
+    // The echo of our own DELETE during a switch (the next session is not on screen yet): not an
+    // interruption, or the new session plays under a "session expired" screen.
+    if (isSessionLetGo(session.id)) return
     forgetSession(session.id)
     teardownRef.current?.()
     setInterruption({ kind: 'terminated', reason: payload.reason })

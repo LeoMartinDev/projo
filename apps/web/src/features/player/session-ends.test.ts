@@ -93,4 +93,16 @@ describe('session ends', () => {
     await flush()
     expect(log).toEqual(['end a'])
   })
+
+  test('a session is let go from its DELETE on: its terminated event is our own echo', () => {
+    const { ends } = world()
+    expect(ends.isLetGo('a')).toBe(false)
+    // The server publishes `session_terminated` while the DELETE is still in flight.
+    void ends.endOnce('a', last)
+    expect(ends.isLetGo('a')).toBe(true)
+    ends.forget('b')
+    expect(ends.isLetGo('b')).toBe(true)
+    // Stopped by the admin while playing: not let go, the player shows it.
+    expect(ends.isLetGo('c')).toBe(false)
+  })
 })
