@@ -2,7 +2,7 @@ import { appError, err, ok } from '@projo/shared'
 
 import type { MediaDecoder } from '../../core/media/probe.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { runProcess, stderrTail } from './process.ts'
+import { type ProcessPriority, runProcess, stderrTail } from './process.ts'
 
 const decodedFrames = (progress: string): number => {
   const matches = [...progress.matchAll(/^frame=(\d+)$/gmu)]
@@ -32,7 +32,12 @@ const decodingErrors = (stderr: string): string =>
 export const createFfmpegDecoder = ({
   binary = 'ffmpeg',
   timeoutMs = 60_000,
-}: { binary?: string; timeoutMs?: number } = {}): MediaDecoder => ({
+  processPriority = 'normal',
+}: {
+  binary?: string
+  timeoutMs?: number
+  processPriority?: ProcessPriority
+} = {}): MediaDecoder => ({
   decodeSample: async ({ path, startSeconds, durationSeconds, signal }) => {
     const run = await runProcess({
       command: binary,
@@ -60,6 +65,7 @@ export const createFfmpegDecoder = ({
         '-',
       ],
       timeoutMs,
+      priority: processPriority,
       ...(signal === undefined ? {} : { signal }),
     })
     if (!run.ok) return run

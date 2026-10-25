@@ -11,7 +11,7 @@ import {
   type SubtitleInput,
 } from '../../core/playback/media-assets.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { runProcess, stderrTail } from '../media/process.ts'
+import { type ProcessPriority, runProcess, stderrTail } from '../media/process.ts'
 import {
   assetName,
   attemptFs,
@@ -40,6 +40,8 @@ const webVttOutput = (path: string): string[] => ['-c:s', 'webvtt', '-f', 'webvt
  * `/data/cache/subtitles/<source>/<track>.vtt` (§10.4), next to `<track>.json`: the size and
  * mtime of the input it was converted from (the external file, or the video file for an embedded
  * track). External text files are re-encoded to UTF-8 first when they are not (Latin-1…).
+ * `ensure` (a player waits for it) runs ffmpeg at normal priority, `ensureEmbedded` (the
+ * `extract_subtitles` pre-extraction job) at background priority (§18).
  */
 export const createSubtitleCache = ({
   subtitlesDir,
@@ -81,11 +83,13 @@ export const createSubtitleCache = ({
   const runFfmpeg = async (
     args: string[],
     signal: AbortSignal | undefined,
+    priority: ProcessPriority,
   ): Promise<Result<void, SubtitleCacheError>> => {
     const run = await runProcess({
       command: ffmpeg,
       args: ['-nostdin', '-hide_banner', '-v', 'error', '-y', ...args],
       timeoutMs: conversionTimeoutMs,
+      priority,
       ...(signal === undefined ? {} : { signal }),
     })
     if (!run.ok) return run
@@ -154,6 +158,7 @@ export const createSubtitleCache = ({
         ...webVttOutput(output),
       ],
       signal,
+      'normal',
     )
     if (source.value.copy) removePath(source.value.path)
     if (!converted.ok) {
@@ -221,6 +226,7 @@ export const createSubtitleCache = ({
           ]),
         ],
         signal,
+        'background',
       ).then((result): Result<void, SubtitleCacheError> => {
         if (result.ok) {
           for (const { trackId, output } of outputs) {

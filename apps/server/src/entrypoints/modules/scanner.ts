@@ -76,8 +76,9 @@ export const buildScannerModule = (
   const localItems = createSqliteLocalItemRepository({ db })
   const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const directoryCache = createInMemoryDirectoryCache()
-  const prober = createFfprobeProber()
-  const decoder = createFfmpegDecoder()
+  // §18: only jobs use them (`scan_library`, `probe_source`): lowest CPU priority.
+  const prober = createFfprobeProber({ processPriority: 'background' })
+  const decoder = createFfmpegDecoder({ processPriority: 'background' })
   const requestScan = requestScanFactory({ jobQueue, jobRepository, clock, eventBus })
   const linkSourceItems = linkSourceItemsFactory({ localItems, playbackSessions, ids, clock })
 

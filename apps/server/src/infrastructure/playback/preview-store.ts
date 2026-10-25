@@ -7,7 +7,7 @@ import { appError, err, ok } from '@projo/shared'
 
 import { previewSpec, type PreviewStore } from '../../core/playback/media-assets.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { runProcess, stderrTail } from '../media/process.ts'
+import { type ProcessPriority, runProcess, stderrTail } from '../media/process.ts'
 import {
   assetName,
   attemptFs,
@@ -35,9 +35,12 @@ const encodeTimeoutMs = 10 * 60_000
 export const createPreviewStore = ({
   previewsDir,
   ffmpeg = 'ffmpeg',
+  processPriority = 'normal',
 }: {
   previewsDir: string
   ffmpeg?: string
+  /** Of the ffmpeg of `generate`. */
+  processPriority?: ProcessPriority
 }): PreviewStore => {
   const clipPath = (itemId: string) => join(previewsDir, `${assetName(itemId)}.mp4`)
   const metaPath = (itemId: string) => join(previewsDir, `${assetName(itemId)}.json`)
@@ -112,6 +115,7 @@ export const createPreviewStore = ({
           `file:${temporary}`,
         ],
         timeoutMs: encodeTimeoutMs,
+        priority: processPriority,
         ...(signal === undefined ? {} : { signal }),
       })
       if (!run.ok) {

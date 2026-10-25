@@ -199,6 +199,7 @@ const runQueuedKeyframeJobs = async () => {
   for (const job of jobs.enqueued.filter((entry) => entry.type === 'index_keyframes')) {
     const result = await handler.run(job.payload, {
       signal: new AbortController().signal,
+      job: { priority: job.priority ?? 0 },
     } as unknown as JobContext)
     expect(result.ok).toBe(true)
   }

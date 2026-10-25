@@ -83,12 +83,14 @@ export const generateTrickplayFactory =
     }
     if (isFresh(trickplayStore, source)) return ok('skipped')
     const video = source.media?.video[0]
-    if (video === undefined || !((source.media?.durationMs ?? 0) > 0)) return ok('skipped')
+    const durationMs = source.media?.durationMs ?? 0
+    if (video === undefined || !(durationMs > 0)) return ok('skipped')
     const generated = await trickplayStore.generate({
       sourceId,
       path: source.path,
       videoStreamIndex: video.index,
       height: trickplayHeight(video),
+      durationMs,
       fingerprint: sourceFingerprint(source),
       ...(signal === undefined ? {} : { signal }),
     })

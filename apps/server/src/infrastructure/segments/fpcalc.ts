@@ -8,7 +8,12 @@ import { appError, err, ok } from '@projo/shared'
 
 import type { AudioFingerprinter, FingerprintError } from '../../core/segments/fingerprint.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { type ProcessError, runProcess, stderrTail } from '../media/process.ts'
+import {
+  type ProcessError,
+  type ProcessPriority,
+  runProcess,
+  stderrTail,
+} from '../media/process.ts'
 
 const fpcalcOutput = z.object({
   duration: z.number().optional(),
@@ -50,12 +55,15 @@ export const createFpcalcFingerprinter = ({
   fpcalcBinary = 'fpcalc',
   extractTimeoutMs = 5 * 60_000,
   fpcalcTimeoutMs = 2 * 60_000,
+  processPriority = 'normal',
 }: {
   tempDir: string
   ffmpegBinary?: string
   fpcalcBinary?: string
   extractTimeoutMs?: number
   fpcalcTimeoutMs?: number
+  /** Of both ffmpeg and fpcalc. */
+  processPriority?: ProcessPriority
 }): AudioFingerprinter => ({
   fingerprint: async ({ path, startSeconds, durationSeconds, signal }) => {
     for (const binary of [ffmpegBinary, fpcalcBinary]) {
@@ -79,7 +87,7 @@ export const createFpcalcFingerprinter = ({
       )
     }
     const wav = join(tempDir, `${randomUUID()}.wav`)
-    const withSignal = signal === undefined ? {} : { signal }
+    const options = { priority: processPriority, ...(signal === undefined ? {} : { signal }) }
     try {
       const extract = await runProcess({
         command: ffmpegBinary,
@@ -112,7 +120,7 @@ export const createFpcalcFingerprinter = ({
           `file:${wav}`,
         ],
         timeoutMs: extractTimeoutMs,
-        ...withSignal,
+        ...options,
       })
       if (!extract.ok) return err(fromProcessError(ffmpegBinary, extract.error))
       if (extract.value.exitCode !== 0) {
@@ -129,7 +137,7 @@ export const createFpcalcFingerprinter = ({
         command: fpcalcBinary,
         args: ['-raw', '-json', '-length', String(Math.ceil(durationSeconds)), wav],
         timeoutMs: fpcalcTimeoutMs,
-        ...withSignal,
+        ...options,
       })
       if (!run.ok) return err(fromProcessError(fpcalcBinary, run.error))
       const { exitCode, stdout, stderr } = run.value

@@ -12,7 +12,7 @@ import {
   type TrickplayStore,
 } from '../../core/playback/media-assets.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { runProcess, stderrTail } from '../media/process.ts'
+import { type ProcessPriority, runProcess, stderrTail } from '../media/process.ts'
 import {
   assetName,
   attemptFs,
@@ -37,8 +37,10 @@ const indexSchema = z.object({
 })
 
 /**
- * Version of the sheet content, stored in `source.json`. 2: every frame is decoded, so thumbnail
- * `i` is the picture at `i × interval` (version 1 kept the last keyframe before it).
+ * Version of the sheet layout, stored in `source.json`. 2: thumbnail `i` stands for
+ * `i × interval` (`start_time=0`) and the last started interval gets one. The sheets of 2 were
+ * first built from every frame, now from the keyframes only: both stay valid, the older ones are
+ * only more exact.
  */
 const generationVersion = 2
 const generationSchema = z.object({ generation: z.literal(generationVersion) })
@@ -54,9 +56,12 @@ const generationTimeoutMs = 3 * 60 * 60_000
 export const createTrickplayStore = ({
   trickplayDir,
   ffmpeg = 'ffmpeg',
+  processPriority = 'normal',
 }: {
   trickplayDir: string
   ffmpeg?: string
+  /** Of the ffmpeg of `generate`. */
+  processPriority?: ProcessPriority
 }): TrickplayStore => {
   const dirOf = (sourceId: string) => join(trickplayDir, assetName(sourceId))
 
@@ -77,6 +82,7 @@ export const createTrickplayStore = ({
       path,
       videoStreamIndex,
       height,
+      durationMs,
       fingerprint,
       signal,
     }): Promise<Result<TrickplayIndex, MediaError>> => {
@@ -88,6 +94,7 @@ export const createTrickplayStore = ({
       const created = attemptFs(() => ensureDir(temporary), { sourceId })
       if (!created.ok) return created
       const { intervalS, width, columns, rows } = trickplaySpec
+      const durationS = (durationMs / 1000).toFixed(3)
       const run = await runProcess({
         command: ffmpeg,
         args: [
@@ -96,9 +103,12 @@ export const createTrickplayStore = ({
           '-v',
           'error',
           '-y',
-          // Every frame is decoded: keeping only keyframes would make thumbnail `i` the last
-          // keyframe before `i × interval`, several seconds off with a long GOP. The loop filter
-          // is useless for a 320 px thumbnail and costs a fair share of the decoding.
+          // Keyframes only (§10.5): decoding every frame of every file kept the NAS at 100% CPU for
+          // a whole resync. The price: thumbnail `i` is the last keyframe at or before
+          // `i × interval`, up to a GOP early (a few seconds with a long one). The loop filter
+          // still costs a share of each keyframe, for nothing visible at 320 px.
+          '-skip_frame',
+          'nokey',
           '-skip_loop_filter',
           'all',
           '-i',
@@ -109,10 +119,13 @@ export const createTrickplayStore = ({
           '-sn',
           '-dn',
           '-vf',
-          // `start_time=0`: thumbnail `i` is the picture at `i × interval` (without it the first
-          // one is at `interval`, or none at all for a file shorter than that); `round=up`: one
-          // for the last started interval; full-range YUV is what the JPEG encoder expects.
-          `fps=1/${intervalS}:round=up:start_time=0,scale=${width}:${height},tile=${columns}x${rows},format=yuvj420p`,
+          // `fps` repeats the last keyframe over the instants without one, but stops at the end
+          // of the last keyframe: `tpad` clones it up to the end of the file (at most `duration`
+          // more), `trim` cuts there, so the count is the duration's, not the last keyframe's.
+          // `start_time=0`: thumbnail `i` stands for `i × interval` (without it the first one is
+          // at `interval`, or none at all for a file shorter than that); `round=up`: one for the
+          // last started interval; full-range YUV is what the JPEG encoder expects.
+          `tpad=stop_mode=clone:stop_duration=${durationS},trim=end=${durationS},fps=1/${intervalS}:round=up:start_time=0,scale=${width}:${height},tile=${columns}x${rows},format=yuvj420p`,
           '-q:v',
           '5',
           '-f',
@@ -122,6 +135,7 @@ export const createTrickplayStore = ({
           join(temporary, '%d.jpg'),
         ],
         timeoutMs: generationTimeoutMs,
+        priority: processPriority,
         ...(signal === undefined ? {} : { signal }),
       })
       const fail = (error: MediaError) => {

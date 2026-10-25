@@ -32,7 +32,11 @@ export const buildFingerprintModule = (
   { db, ids, clock, logger, paths, jobQueue }: Platform,
   {
     cores = availableParallelism(),
-    fingerprinter = createFpcalcFingerprinter({ tempDir: `${paths.cache.dir}/fingerprint` }),
+    fingerprinter = createFpcalcFingerprinter({
+      tempDir: `${paths.cache.dir}/fingerprint`,
+      // §18: `fingerprint_season` only, lowest CPU priority.
+      processPriority: 'background',
+    }),
   }: FingerprintModuleOptions = {},
 ) => {
   const moduleLogger = logger.child({ module: 'fingerprint' })
@@ -56,8 +60,9 @@ export const buildFingerprintModule = (
     jobHandlers: {
       fingerprint_season: defineJobHandler({
         payload: seasonPayload,
-        // §18: one at a time (heavy ffmpeg), priority 10 (`jobDefaults`).
+        // §18: one heavy ffmpeg job at a time (shared with trickplay, preview_clip), priority 10.
         concurrency: 1,
+        group: 'heavy_ffmpeg',
         isRunnable: heavyJobsAllowed,
         run: async ({ seasonId }, { signal, reportProgress }) => {
           const result = await fingerprintSeason({ seasonId, signal, reportProgress })

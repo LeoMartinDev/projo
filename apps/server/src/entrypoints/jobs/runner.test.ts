@@ -126,6 +126,88 @@ describe('createJobRunner', () => {
     expect(maxActive).toBe(2)
   })
 
+  describe('heavy ffmpeg group (§18)', () => {
+    /** Each job runs until `finish(key)` (or an abort); `running` lists the jobs in flight. */
+    const heavySetup = () => {
+      const running = new Set<string>()
+      const started: string[] = []
+      const gates = new Map<string, ReturnType<typeof deferred>>()
+      const handler = (type: string, group?: 'heavy_ffmpeg') =>
+        defineJobHandler({
+          payload,
+          concurrency: 1,
+          ...(group === undefined ? {} : { group }),
+          run: async ({ n }, { signal }) => {
+            const key = `${type}:${n}`
+            const gate = deferred()
+            gates.set(key, gate)
+            signal.addEventListener('abort', gate.resolve)
+            running.add(key)
+            started.push(key)
+            await gate.promise
+            running.delete(key)
+            return ok()
+          },
+        })
+      const world = setup({
+        trickplay: handler('trickplay', 'heavy_ffmpeg'),
+        preview_clip: handler('preview_clip', 'heavy_ffmpeg'),
+        fingerprint_season: handler('fingerprint_season', 'heavy_ffmpeg'),
+        extract_subtitles: handler('extract_subtitles'),
+      })
+      const finish = async (key: string) => {
+        gates.get(key)?.resolve()
+        while (running.has(key)) await Bun.sleep(1)
+        // The next claim waits for a macrotask after the job settles (`schedulePump`).
+        await Bun.sleep(5)
+      }
+      return { ...world, running, started, finish }
+    }
+
+    test('runs one heavy job at a time across types, the next one when it finishes', async () => {
+      const { queue, runner, running, started, finish } = heavySetup()
+      queue.enqueue({ type: 'trickplay', payload: { n: 1 } })
+      queue.enqueue({ type: 'preview_clip', payload: { n: 1 } })
+      queue.enqueue({ type: 'fingerprint_season', payload: { n: 1 } })
+      runner.start()
+      await Bun.sleep(5)
+      for (const runningCount of [1, 1, 1]) {
+        expect(running.size).toBe(runningCount)
+        const current = started.at(-1)
+        if (current !== undefined) await finish(current)
+      }
+      await runner.idle()
+      expect(running.size).toBe(0)
+      expect(started).toHaveLength(3)
+    })
+
+    test('does not hold back the other types', async () => {
+      const { queue, runner, running } = heavySetup()
+      queue.enqueue({ type: 'trickplay', payload: { n: 1 } })
+      queue.enqueue({ type: 'preview_clip', payload: { n: 1 } })
+      queue.enqueue({ type: 'extract_subtitles', payload: { n: 1 } })
+      runner.start()
+      await Bun.sleep(5)
+      expect(running.has('extract_subtitles:1')).toBe(true)
+      expect(running.size).toBe(2)
+    })
+
+    test('claims the heavy job of highest priority first', async () => {
+      const { queue, runner, started, finish } = heavySetup()
+      queue.enqueue({ type: 'trickplay', payload: { n: 1 }, priority: 5 })
+      queue.enqueue({ type: 'preview_clip', payload: { n: 1 }, priority: 20 })
+      queue.enqueue({ type: 'fingerprint_season', payload: { n: 1 }, priority: 10 })
+      runner.start()
+      await Bun.sleep(5)
+      for (let n = 0; n < 3; n++) {
+        const current = started.at(-1)
+        if (current !== undefined) await finish(current)
+      }
+      await runner.idle()
+      expect(started).toEqual(['preview_clip:1', 'fingerprint_season:1', 'trickplay:1'])
+    })
+  })
+
   test('never runs two jobs sharing a dedupe key at the same time', async () => {
     const gate = deferred()
     let calls = 0

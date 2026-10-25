@@ -17,9 +17,19 @@ export type JobContext = {
 
 export type JobRunResult = Result<void, AppError>
 
+/**
+ * Limits shared by several job types, on top of each type's own `concurrency` (§18): one
+ * "heavy ffmpeg" job at a time across `fingerprint_season`, `trickplay` and `preview_clip`,
+ * each ffmpeg already using every core.
+ */
+export const concurrencyGroups = { heavy_ffmpeg: 1 } as const
+export type ConcurrencyGroup = keyof typeof concurrencyGroups
+
 export type JobHandler = {
   /** Max jobs of this type running at once (§18 "Concurrence"). */
   concurrency: number
+  /** Shared limit with the other types of the group (`concurrencyGroups`). */
+  group?: ConcurrencyGroup
   /** Optional gate, e.g. "no heavy ffmpeg job while transcoding on < 4 cores" (§18). */
   isRunnable?: () => boolean
   run: (payload: unknown, context: JobContext) => Promise<JobRunResult>
@@ -35,10 +45,12 @@ export type JobHandlers = Partial<Record<JobType, JobHandler>>
 export const defineJobHandler = <S extends z.ZodType>(definition: {
   payload: S
   concurrency: number
+  group?: ConcurrencyGroup
   isRunnable?: () => boolean
   run: (payload: z.infer<S>, context: JobContext) => Promise<JobRunResult>
 }): JobHandler => ({
   concurrency: definition.concurrency,
+  ...(definition.group === undefined ? {} : { group: definition.group }),
   ...(definition.isRunnable === undefined ? {} : { isRunnable: definition.isRunnable }),
   run: async (payload, context) => {
     const parsed = definition.payload.safeParse(payload)

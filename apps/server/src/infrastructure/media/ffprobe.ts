@@ -14,7 +14,7 @@ import {
 } from '../../core/media/probe.ts'
 import type { DynamicRange } from '../../core/media/version.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-import { runProcess, stderrTail } from './process.ts'
+import { type ProcessPriority, runProcess, stderrTail } from './process.ts'
 
 // ffprobe prints numbers as strings in many places: accept both.
 const numeric = z.union([z.number(), z.string()]).transform((value, ctx) => {
@@ -219,7 +219,12 @@ export const parseProbeOutput = (stdout: string): Result<MediaProbe, MediaError>
 export const createFfprobeProber = ({
   binary = 'ffprobe',
   timeoutMs = 60_000,
-}: { binary?: string; timeoutMs?: number } = {}): MediaProber => ({
+  processPriority = 'normal',
+}: {
+  binary?: string
+  timeoutMs?: number
+  processPriority?: ProcessPriority
+} = {}): MediaProber => ({
   probe: async ({ path, signal }) => {
     const run = await runProcess({
       command: binary,
@@ -236,6 +241,7 @@ export const createFfprobeProber = ({
         `file:${toHostPath(path)}`,
       ],
       timeoutMs,
+      priority: processPriority,
       ...(signal === undefined ? {} : { signal }),
     })
     if (!run.ok) return run

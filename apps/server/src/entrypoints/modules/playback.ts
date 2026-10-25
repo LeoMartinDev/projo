@@ -64,6 +64,9 @@ export const buildPlaybackModule = (
   const profileRepository = createSqliteProfileRepository({ db })
   const playbackSettings = createSqlitePlaybackSettings({ db })
   const ffprobe = createFfprobe()
+  // §18: background `index_keyframes` (after a scan) at the lowest CPU priority; the one a
+  // player waits for (priority `interactive`) keeps the normal one.
+  const backgroundFfprobe = createFfprobe({ processPriority: 'background' })
   const keyframeStore = createFileKeyframeStore({ keyframesDir: paths.cache.keyframes })
   const segmenter = createHlsSegmenter({ transcodeDir: paths.cache.transcode, logger })
   const transcodeCache = createTranscodeCache({ transcodeDir: paths.cache.transcode })
@@ -104,6 +107,13 @@ export const buildPlaybackModule = (
     keyframeStore,
     keyframeExtractor: ffprobe,
     mediaProber: ffprobe,
+    logger,
+  })
+  const indexKeyframesInBackground = indexKeyframesFactory({
+    catalogRepository,
+    keyframeStore,
+    keyframeExtractor: backgroundFfprobe,
+    mediaProber: backgroundFfprobe,
     logger,
   })
   const sweep = sweepPlaybackSessionsFactory({
@@ -203,8 +213,13 @@ export const buildPlaybackModule = (
       index_keyframes: defineJobHandler({
         payload: z.object({ sourceId: z.string().min(1) }),
         concurrency: 1,
-        run: async ({ sourceId }, { signal }) => {
-          const indexed = await indexKeyframes({ sourceId, signal })
+        run: async ({ sourceId }, { signal, job }) => {
+          // A queued job takes the highest priority of its requests (`enqueue`).
+          const index =
+            job.priority >= keyframePriority.interactive
+              ? indexKeyframes
+              : indexKeyframesInBackground
+          const indexed = await index({ sourceId, signal })
           // A source gone since the job was queued: nothing left to do.
           if (indexed.ok || indexed.error.code === 'playback/source_unavailable') return ok()
           return indexed

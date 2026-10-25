@@ -1,3 +1,5 @@
+import { constants, setPriority } from 'node:os'
+
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 const isAborted = (signal: AbortSignal | undefined): boolean => signal?.aborted === true
@@ -9,6 +11,29 @@ export type ProcessError = AppError<
 >
 
 /**
+ * CPU priority of a subprocess (§18): `normal` for what a viewer waits for (transcode, probe at
+ * session start, subtitles asked by the player), `background` for job work (scan, trickplay,
+ * previews, fingerprints…), which then only gets the CPU the rest leaves.
+ */
+export type ProcessPriority = 'normal' | 'background'
+
+/**
+ * Lowest priority for a child process: nice 19 on Linux, `IDLE_PRIORITY_CLASS` on Windows.
+ * Called right after the spawn, before the binary has loaded its libraries and started its
+ * worker threads, which inherit it (Linux nice is per thread). Best effort: lowering one's own
+ * child is always allowed, so the only failure is a child that already exited (`ESRCH`); the
+ * work never fails because of its priority. Returns whether the priority was applied.
+ */
+export const lowerProcessPriority = (pid: number): boolean => {
+  try {
+    setPriority(pid, constants.priority.PRIORITY_LOW)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Runs a binary with an argument array, never through a shell (§20). File paths are plain
  * arguments: nothing is interpreted. Killed on timeout or abort.
  */
@@ -17,11 +42,14 @@ export const runProcess = async ({
   args,
   timeoutMs,
   signal,
+  priority = 'normal',
 }: {
   command: string
   args: readonly string[]
   timeoutMs: number
   signal?: AbortSignal
+  /** Default `normal`: callers on a job path pass `background` explicitly. */
+  priority?: ProcessPriority
 }): Promise<Result<ProcessOutput, ProcessError>> => {
   if (signal?.aborted === true) {
     return err(appError('media/ffmpeg_failed', 'aborted before start', { context: { command } }))
@@ -34,6 +62,7 @@ export const runProcess = async ({
       appError('media/binary_missing', `cannot run ${command}`, { context: { command }, cause }),
     )
   }
+  if (priority === 'background') lowerProcessPriority(child.pid)
   let timedOut = false
   const timer = setTimeout(() => {
     timedOut = true

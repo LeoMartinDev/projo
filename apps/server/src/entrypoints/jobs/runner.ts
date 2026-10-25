@@ -5,7 +5,14 @@ import type { EventBus } from '../../core/events.ts'
 import { type Job, type JobError, type JobType, retryDelayMs } from '../../core/jobs/job.ts'
 import type { JobRepository } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
-import type { JobContext, JobHandler, JobHandlers, JobRunResult } from './handler.ts'
+import {
+  type ConcurrencyGroup,
+  concurrencyGroups,
+  type JobContext,
+  type JobHandler,
+  type JobHandlers,
+  type JobRunResult,
+} from './handler.ts'
 
 type Deps = {
   jobRepository: JobRepository
@@ -80,11 +87,24 @@ export const createJobRunner = ({
     return count
   }
 
+  const groupRunningCount = (group: ConcurrencyGroup): number => {
+    let count = 0
+    for (const entry of running.values()) if (handlers[entry.job.type]?.group === group) count += 1
+    return count
+  }
+
+  // `execute` adds the claimed job to `running` synchronously: the next turn of `pump`'s loop
+  // already sees it, so a type or a group at its limit is not claimed twice in one pass.
   const availableTypes = (): JobType[] =>
     registeredTypes.filter((type) => {
       const handler = handlers[type]
       if (handler === undefined) return false
       if (runningCount(type) >= handler.concurrency) return false
+      if (
+        handler.group !== undefined &&
+        groupRunningCount(handler.group) >= concurrencyGroups[handler.group]
+      )
+        return false
       return handler.isRunnable?.() ?? true
     })
 

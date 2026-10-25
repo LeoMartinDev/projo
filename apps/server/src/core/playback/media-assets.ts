@@ -85,9 +85,9 @@ export const trickplayHeight = (video: { width?: number; height?: number }): num
 export type TrickplayFrame = { sheet: number; column: number; row: number }
 
 /**
- * The thumbnail nearest to stream second `seconds` (thumbnail `i` is the picture at
- * `i × interval`; the last one past the end), `undefined` when the index has no sheet. Same
- * arithmetic as the player's `thumbnailAt` (the web).
+ * The thumbnail nearest to stream second `seconds` (thumbnail `i` stands for `i × interval`;
+ * the last one past the end), `undefined` when the index has no sheet. Same arithmetic as the
+ * player's `thumbnailAt` (the web).
  */
 export const trickplayFrameAt = (
   index: TrickplayIndex,
@@ -114,6 +114,8 @@ export type TrickplayStore = {
     path: string
     videoStreamIndex: number
     height: number
+    /** Probed duration of the file: one thumbnail per started interval of it. */
+    durationMs: number
     fingerprint: FileFingerprint
     signal?: AbortSignal
   }) => Promise<Result<TrickplayIndex, MediaError>>

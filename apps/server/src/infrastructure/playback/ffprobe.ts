@@ -6,6 +6,7 @@ import type { MediaInfo, MediaProber } from '../../core/playback/media-info.ts'
 import type { KeyframeExtractor } from '../../core/playback/ports.ts'
 import type { KeyframeIndex } from '../../core/playback/hls-playlist.ts'
 import { toHostPath } from '../fs/host-paths.ts'
+import { lowerProcessPriority, type ProcessPriority } from '../media/process.ts'
 import { matroskaKeyframesOf } from './matroska-cues.ts'
 import { readMediaInfo } from './probe-reader.ts'
 
@@ -20,6 +21,7 @@ const failure = (message: string, context: Record<string, unknown>, cause?: unkn
 /** Runs ffprobe (arguments as an array, never a shell: §20) and returns its stdout. */
 const run = async (
   binary: string,
+  priority: ProcessPriority,
   args: string[],
   signal?: AbortSignal,
 ): Promise<Result<string, ProbeError>> => {
@@ -31,6 +33,7 @@ const run = async (
       stderr: 'pipe',
       ...(signal === undefined ? {} : { signal }),
     })
+    if (priority === 'background') lowerProcessPriority(proc.pid)
     const [stdout, stderr, code] = await Promise.all([
       new Response(proc.stdout).text(),
       new Response(proc.stderr).text(),
@@ -97,10 +100,17 @@ const readFormat = (value: unknown): { startS: number; durationS?: number } => {
 /** `file:` keeps ffmpeg from reading a path as a protocol or an option (§20). */
 export const fileInput = (path: string): string => `file:${toHostPath(path)}`
 
-export const createFfprobe = ({ binary = 'ffprobe' }: { binary?: string } = {}): MediaProber &
+/**
+ * `processPriority`: `background` for the instance of the background `index_keyframes` jobs
+ * (§18), `normal` (default) for what a player waits for.
+ */
+export const createFfprobe = ({
+  binary = 'ffprobe',
+  processPriority = 'normal',
+}: { binary?: string; processPriority?: ProcessPriority } = {}): MediaProber &
   KeyframeExtractor => ({
   probe: async (path): Promise<Result<MediaInfo, ProbeError>> => {
-    const output = await run(binary, [
+    const output = await run(binary, processPriority, [
       '-v',
       'error',
       '-show_format',
@@ -128,6 +138,7 @@ export const createFfprobe = ({ binary = 'ffprobe' }: { binary?: string } = {}):
   }): Promise<Result<KeyframeIndex, ProbeError>> => {
     const format = await run(
       binary,
+      processPriority,
       [
         '-v',
         'error',
@@ -148,6 +159,7 @@ export const createFfprobe = ({ binary = 'ffprobe' }: { binary?: string } = {}):
     }
     const packets = await run(
       binary,
+      processPriority,
       [
         '-v',
         'error',
