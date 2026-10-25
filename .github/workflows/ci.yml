@@ -85,8 +85,14 @@ jobs:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
-      # ffmpeg of the host: the fixtures only. The servers run in the runtime image (serve.ts).
+      # A stalled mirror makes apt wait forever: retry each download, give up on a silent one.
+      - name: Retry stalled apt downloads
+        run: >-
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n'
+          | sudo tee /etc/apt/apt.conf.d/80-ci-retries
+      # ffmpeg of the host: the fixtures only. The server runs in the runtime image (serve.ts).
       - name: Install ffmpeg and ffprobe
+        timeout-minutes: 5
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - name: Build the runtime image
         run: docker build --file runtime/Dockerfile --target runtime --tag projo-runtime .
@@ -97,7 +103,9 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
       # Browsers (cached) and their system libraries, including GStreamer's libav for WebKit's
       # H.264/AAC playback. The iPhone project is WebKit with an iPhone viewport: no other browser.
+      # 20 s when it goes well: a stuck download fails here, not at the job's timeout.
       - name: Install Playwright browsers
+        timeout-minutes: 5
         working-directory: e2e
         run: ./node_modules/.bin/playwright install --with-deps chromium webkit
       - run: bun run e2e
