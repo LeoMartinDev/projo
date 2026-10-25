@@ -30,7 +30,7 @@ Transcoding is done in software: a file the browser cannot play directly uses th
 
 ## Installation
 
-1. Create a folder for projo and put this `docker-compose.yml` in it:
+1. Create a folder for projo and put this `docker-compose.yml` in it (also at the root of the repository: [docker-compose.yml](docker-compose.yml)):
 
    ```yaml
    services:

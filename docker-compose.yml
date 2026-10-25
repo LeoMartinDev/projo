@@ -1,18 +1,22 @@
-# Reference compose (see README.md). `docker compose up -d --build` builds the image locally;
-# without --build, the published image is pulled.
+# projo, ready to install (README.md "Installation"): copy this file into an empty folder, adapt
+# the media paths, then `docker compose up -d` (or a Container Manager project on a Synology).
+# To build the image from the sources instead: docker build -f runtime/Dockerfile -t projo:dev .
 services:
   projo:
     image: ghcr.io/leomartindev/projo:latest
-    build:
-      context: .
-      dockerfile: runtime/Dockerfile
+    # Optional: run as the user that owns your media (`id` gives it; Synology: often 1026:100).
+    # The data folder must then belong to that user.
+    # user: '1026:100'
     ports:
       - '8080:8080'
     volumes:
+      # Everything projo writes (database, images, caches, app versions): the folder to back up.
       - ./projo-data:/data
-      - ${MEDIA_DIR:-./media}:/media:ro
+      # Your media, read-only, one line per folder (Synology USB disk: /volumeUSB1/usbshare).
+      - /path/to/your/movies:/media/movies:ro
+      - /path/to/your/shows:/media/shows:ro
     environment:
-      - TRUST_PROXY=false # true behind a reverse proxy (Caddy, Traefik, NPM)
+      - TRUST_PROXY=false # true behind a reverse proxy (Caddy, Traefik, NPM, DSM)
     # The supervisor gives the app 25 s to stop before killing it.
     stop_grace_period: 30s
     restart: unless-stopped
