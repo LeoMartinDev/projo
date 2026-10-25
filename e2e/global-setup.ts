@@ -1,8 +1,8 @@
 import { generateLibraries } from './support/library.ts'
-import { generatePlaybackLibraries } from './support/playback-library.ts'
+import { generatePlaybackLibrary } from './support/playback-library.ts'
 
-/** Runs after the servers are up (Playwright starts `webServer` first): they never read it. */
+/** Runs after the server is up (Playwright starts `webServer` first): it never reads it. */
 export default function globalSetup(): void {
   generateLibraries()
-  generatePlaybackLibraries()
+  generatePlaybackLibrary()
 }

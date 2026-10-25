@@ -8,12 +8,13 @@ import {
   fixtureFiles,
   identifiedTitles,
 } from '../support/library.ts'
-import { currentTime, expectPoster, playbackStart, wakePlayer } from '../support/media.ts'
+import { expectPoster } from '../support/media.ts'
 
 /**
- * §4 parcours 1: first launch, library added through the folder explorer, TMDB key set from the
- * administration, films and series with clean titles and their posters, playback and resume.
- * Then login / logout and parcours 2 (invitation). The UI runs in French (`locale`).
+ * §4 journey 1: first launch, library added through the folder explorer, TMDB key set from the
+ * administration, movies and shows with clean titles and their posters (playback and resume:
+ * `playback.e2e.ts`). Then login / logout and journey 2 (invitation). The UI runs in French
+ * (`locale`).
  */
 test.describe.configure({ mode: 'serial' })
 
@@ -77,6 +78,12 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
 
   await test.step('settings: no quiet period, the fixtures are complete files', async () => {
     await expect(page).toHaveURL(/\/admin\/libraries$/)
+    // No timeline thumbnails for the whole run: the sprites are covered by the server's
+    // integration tests, and their jobs only queue the identification of the other journeys.
+    const settings = await page.request.patch('/api/v1/admin/settings', {
+      data: { playback: { trickplayEnabled: false } },
+    })
+    expect(settings.ok(), `settings: ${await settings.text()}`).toBe(true)
     const row = page.getByRole('row').filter({ hasText: libraryDir })
     await row.getByRole('button', { name: startsWith(fr.admin.libraries.more) }).click()
     await row.getByRole('link', { name: fr.admin.libraries.edit }).click()
@@ -90,7 +97,7 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     const row = page.getByRole('row').filter({ hasText: libraryDir })
     await expect(row).toContainText(
       tr(fr.admin.counts.ready_other, { formatted: fixtureFiles.length }),
-      { timeout: 90_000 },
+      { timeout: 60_000 },
     )
     // "À jour" only once the quiet period, the probes and the sample decodes are all done.
     await expect(row.getByRole('status')).toContainText(fr.admin.status.ok)
@@ -112,7 +119,7 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     ).toBeVisible()
   })
 
-  await test.step('identification: what TMDB does not know waits in "À vérifier"', async () => {
+  await test.step('identification: what TMDB does not know waits in "To review"', async () => {
     await page
       .getByRole('navigation', { name: fr.admin.title })
       .getByRole('link', { name: startsWith(fr.admin.review.title) })
@@ -125,7 +132,7 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     await expect(queue).toContainText(fr.admin.review.reason.no_match)
   })
 
-  await test.step('catalog: Films and Séries show clean titles and their posters', async () => {
+  await test.step('catalog: Movies and Shows show clean titles and their posters', async () => {
     await page.getByRole('link', { name: fr.admin.backToCatalog }).click()
     const nav = page.getByRole('navigation', { name: fr.shell.mainNavigation })
     await nav.getByRole('link', { name: fr.nav.movies }).click()
@@ -148,42 +155,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
       // Unidentified: the title on its tone, never a broken image.
       else await expect(tile.locator('img')).toHaveCount(0)
     }
-
-    await nav.getByRole('link', { name: fr.nav.movies }).click()
-    await movieTiles.filter({ hasText: 'Inception' }).click()
-    await expect(page.getByRole('heading', { name: 'Inception', level: 1 })).toBeVisible()
-  })
-
-  const video = page.locator('video')
-  let pausedAt = 0
-
-  await test.step('playback: the MKV really plays', async () => {
-    await page.getByRole('link', { name: fr.item.play, exact: true }).click()
-    await expect(page).toHaveURL(/\/watch\//)
-    await expect
-      .poll(() => currentTime(video), { intervals: [50], timeout: 30_000 })
-      .toBeGreaterThan(0.3)
-
-    await wakePlayer(page)
-    await page.getByRole('button', { name: fr.player.pause }).click()
-    await expect(page.getByRole('button', { name: fr.player.play }).first()).toBeVisible()
-    pausedAt = await currentTime(video)
-    expect(pausedAt).toBeGreaterThan(0.3)
-
-    await page.getByRole('button', { name: fr.player.quit }).click()
-  })
-
-  await test.step('resume: the page offers "Reprendre", playback restarts near the position', async () => {
-    await expect(page.getByRole('heading', { name: 'Inception', level: 1 })).toBeVisible()
-    const resume = page.getByRole('link', { name: startsWith(fr.item.resumeAt) })
-    await expect(resume).toBeVisible()
-    await resume.click()
-    await expect
-      .poll(() => playbackStart(video), { intervals: [50], timeout: 30_000 })
-      .toBeGreaterThan(0)
-    const resumedAt = await playbackStart(video)
-    expect(resumedAt).toBeGreaterThanOrEqual(pausedAt - 0.5)
-    expect(resumedAt).toBeLessThan(pausedAt + 1.5)
   })
 })
 
@@ -212,7 +183,7 @@ test('login and logout, wrong password shows a translated message', async ({ pag
   await expect(page).toHaveURL(/\/login/)
 })
 
-test('invitation: a new member chooses a password and lands on the home (§4 parcours 2)', async ({
+test('invitation: a new member chooses a password and lands on the home (§4 journey 2)', async ({
   page,
   browser,
 }) => {

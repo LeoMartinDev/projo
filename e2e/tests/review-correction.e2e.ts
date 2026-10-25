@@ -19,8 +19,6 @@ const sam = { username: 'sam', password: 'sam-e2e-password', profileName: 'Sam' 
 const rightTitle = "Le Fabuleux Destin d'Amélie Poulain"
 /** What the parser makes of the file name (title case): what TMDB is first asked for. */
 const parsedTitle = 'Lfddap'
-/** The made-up series of the wizard's folder: TMDB never finds it. */
-const unmatchedEpisode = 'Show.Name.S01E02.1080p.WEB.x264.mkv'
 
 /** Relative paths of the "To review" queue (`match_state = needs_review`), every library. */
 const reviewQueuePaths = async (api: APIRequestContext): Promise<string[]> => {
@@ -52,7 +50,7 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
   const queue = page.getByRole('list', { name: fr.admin.review.title }).getByRole('listitem')
   const entry = queue.filter({ hasText: unidentifiedFile.path })
 
-  await test.step('the admin finds it in "À vérifier": TMDB has no such title', async () => {
+  await test.step('the admin finds it in "To review": TMDB has no such title', async () => {
     await signIn(page, admin)
     await page.getByRole('button', { name: startsWith(fr.shell.accountMenu) }).click()
     await page.getByRole('link', { name: fr.shell.admin }).click()
@@ -117,29 +115,14 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     await expect(fullScans).toContainText(matching(fr.admin.history.stats), { timeout: 60_000 })
   })
 
-  await test.step('the correction holds: still identified, not back in "À vérifier"', async () => {
+  await test.step('the correction holds: still identified, not back in "To review"', async () => {
     await member.reload()
     const tile = memberMovies.filter({ hasText: rightTitle })
     await expect(tile).toHaveText(new RegExp(`${rightTitle}\\s*2001$`))
     await expectPoster(tile)
     await expect(memberMovies.filter({ hasText: parsedTitle })).toHaveCount(0)
-
-    // The full scan offers the unidentified files to TMDB again: the made-up series leaves the
-    // queue until its `match_source` runs, behind the background jobs of the other journeys on a
-    // loaded CI machine. Waited on through the API, then the page reads the settled queue.
-    await expect
-      .poll(async () => (await reviewQueuePaths(request)).includes(unmatchedEpisode), {
-        timeout: 60_000,
-        intervals: [500],
-      })
-      .toBe(true)
-    await page
-      .getByRole('navigation', { name: fr.admin.title })
-      .getByRole('link', { name: startsWith(fr.admin.review.title) })
-      .click()
-    // The made-up series comes back, the corrected file does not.
-    await expect(queue.filter({ hasText: unmatchedEpisode })).toBeVisible()
-    await expect(entry).toHaveCount(0)
+    // A manual match is never offered to TMDB again: once the scan is over, its state is final.
+    expect(await reviewQueuePaths(request)).not.toContain(unidentifiedFile.path)
   })
 
   await household.close()

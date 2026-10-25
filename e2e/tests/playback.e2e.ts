@@ -1,8 +1,8 @@
 import type { Response } from '@playwright/test'
 
 import { expect, test } from '../support/fixtures.ts'
-import { fr, matching } from '../support/i18n.ts'
-import { currentTime, wakePlayer } from '../support/media.ts'
+import { fr, matching, startsWith } from '../support/i18n.ts'
+import { currentTime, playbackStart, wakePlayer } from '../support/media.ts'
 import {
   adminSessions,
   barSeconds,
@@ -19,14 +19,50 @@ import {
 import { englishCues, frenchCues } from '../support/playback-library.ts'
 
 /**
- * M3 "Complete playback" (§10, §11, §23 M3): every file plays, with the expected audio and
- * subtitles without touching anything, and thumbnails over the bar. Fixtures of the "Playback"
- * library (`support/playback-library.ts`), one household member per journey, French profile.
+ * Journey 3 and M3 "Complete playback" (§4, §10, §11, §23 M3): every file plays and resumes, with
+ * the expected audio and subtitles without touching anything (timeline thumbnails: the server's
+ * integration tests). Fixtures of the "Playback" library (`support/playback-library.ts`), one
+ * household member per journey and project, French profile.
  */
 
 const isSessionEnd = (sessionId: string) => (response: Response) =>
   response.request().method() === 'DELETE' &&
   new URL(response.url()).pathname === `/api/v1/playback/sessions/${sessionId}`
+
+test(
+  'movie: a MKV plays from its page, pauses, and "Resume" restarts near the position (§4 journey 3)',
+  { tag: '@webkit' },
+  async ({ page, adminRequest, playbackLibrary }) => {
+    await signInMember(page, adminRequest, 'Hugo')
+    const video = playerVideo(page)
+    const title = 'Kestrel Dawn'
+    let pausedAt = 0
+
+    await test.step('play from the page, then pause and quit', async () => {
+      await page.goto(`/items/${playbackLibrary.englishAudio.itemId}`)
+      await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
+      await page.getByRole('link', { name: fr.item.play, exact: true }).click()
+      await expect(page).toHaveURL(/\/watch\//)
+      await expectPlayingPast(video, 1)
+      await wakePlayer(page)
+      await page.getByRole('button', { name: fr.player.pause }).click()
+      await expect(page.getByRole('button', { name: fr.player.play }).first()).toBeVisible()
+      pausedAt = await currentTime(video)
+      await page.getByRole('button', { name: fr.player.quit }).click()
+    })
+
+    await test.step('the page offers "Resume", playback restarts near the position', async () => {
+      await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
+      await page.getByRole('link', { name: startsWith(fr.item.resumeAt) }).click()
+      await expect
+        .poll(() => playbackStart(video), { intervals: [50], timeout: 20_000 })
+        .toBeGreaterThan(0)
+      const resumedAt = await playbackStart(video)
+      expect(resumedAt).toBeGreaterThanOrEqual(pausedAt - 0.5)
+      expect(resumedAt).toBeLessThan(pausedAt + 1.5)
+    })
+  },
+)
 
 test('transcode: H.264 High 10 + AC-3 plays, progresses and seeks to the middle', async ({
   page,
@@ -178,54 +214,6 @@ test('quality: 480p from the menu transcodes at the same position, the old sessi
   const ids = (await adminSessions(adminRequest)).map((session) => session.id)
   expect(ids).toContain(second.id)
   expect(ids).not.toContain(first.id)
-})
-
-test('trickplay: hovering the bar shows a thumbnail from the sprites', async ({
-  page,
-  adminRequest,
-  playbackLibrary,
-}) => {
-  await signInMember(page, adminRequest, 'Rosa')
-  const { sourceId, itemId } = playbackLibrary.quality
-  const indexUrl = `/api/v1/trickplay/${sourceId}/index.json`
-
-  await test.step('the trickplay job produced the sprites', async () => {
-    await expect
-      .poll(async () => (await page.request.get(indexUrl)).status(), {
-        timeout: 90_000,
-        intervals: [1000],
-      })
-      .toBe(200)
-  })
-
-  const session = await openPlayer(page, itemId)
-  expect(session.trickplayUrl).toBe(indexUrl)
-  await expectPlayingPast(playerVideo(page), 0.5)
-
-  await test.step('hover: a thumbnail whose sprite sheet is really loaded', async () => {
-    await wakePlayer(page)
-    const box = (await seekBar(page).boundingBox()) ?? undefined
-    if (box === undefined) throw new Error('the playback bar has no box')
-    const y = box.y + box.height / 2
-    await page.mouse.move(box.x + box.width * 0.4, y)
-    await page.mouse.move(box.x + box.width * 0.6, y, { steps: 4 })
-    const thumbnail = page.locator('.timeline__thumb')
-    await expect(thumbnail).toBeVisible()
-    const background = await thumbnail.evaluate(
-      (element) => getComputedStyle(element).backgroundImage,
-    )
-    const sheet = /url\("?([^")]+)"?\)/.exec(background)?.[1] ?? ''
-    expect(new URL(sheet).pathname).toMatch(
-      new RegExp(`^/api/v1/trickplay/${sourceId}/\\d+\\.jpg$`),
-    )
-    const decodedWidth = await page.evaluate(async (url) => {
-      const image = new Image()
-      image.src = url
-      await image.decode()
-      return image.naturalWidth
-    }, sheet)
-    expect(decodedWidth).toBeGreaterThan(0)
-  })
 })
 
 test('parts: a movie in two parts shows their total and chains them without a click', async ({

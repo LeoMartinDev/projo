@@ -5,22 +5,19 @@ import { type APIRequestContext, test as base } from '@playwright/test'
 
 import { admin, apiSignIn } from './accounts.ts'
 import { ensurePlaybackLibrary, type PlaybackLibrary } from './playback.ts'
-import { e2eRoot, incomingDirOf, libraryDirOf, playbackDirOf, type ServerName } from './paths.ts'
+import { e2eRoot, incomingDir, libraryDir, playbackDir } from './paths.ts'
 
-/** Set per project in the Playwright config: which server (and folders) a browser works on. */
-export type ServerOptions = { serverName: ServerName }
-
-type ServerFolders = {
-  /** The library folder this server's admin added in the wizard (parcours 1). */
+type ServerFixtures = {
+  /** The library folder the admin added in the wizard (journey 1). */
   libraryDir: string
   /** Files staged outside the library, moved in by a journey (journey 5). */
   incomingDir: string
-  /** Root of the "Playback" library of the M3 journeys. */
+  /** Root of the "Playback" library of the M3 and M4 journeys. */
   playbackDir: string
   /**
-   * Storage state (file) of an admin session of this server, signed in once and shared by the
-   * journeys and projects that use it: the server allows 10 logins per 15 min per IP (§20), and
-   * every journey comes from 127.0.0.1.
+   * Storage state (file) of an admin session, signed in once and shared by the journeys and
+   * projects: the server allows 10 logins per 15 min per IP (§20), and every journey comes from
+   * 127.0.0.1.
    */
   adminState: string
   /** An API context signed in as the admin (`adminState`). */
@@ -32,13 +29,12 @@ type ServerFolders = {
   playbackLibrary: PlaybackLibrary
 }
 
-export const test = base.extend<ServerFolders, ServerOptions>({
-  serverName: ['chromium', { option: true, scope: 'worker' }],
-  libraryDir: async ({ serverName }, provide) => provide(libraryDirOf(serverName)),
-  incomingDir: async ({ serverName }, provide) => provide(incomingDirOf(serverName)),
-  playbackDir: async ({ serverName }, provide) => provide(playbackDirOf(serverName)),
-  adminState: async ({ playwright, baseURL, serverName }, provide) => {
-    const file = join(e2eRoot, `admin-${serverName}.json`)
+export const test = base.extend<ServerFixtures>({
+  libraryDir: async ({}, provide) => provide(libraryDir),
+  incomingDir: async ({}, provide) => provide(incomingDir),
+  playbackDir: async ({}, provide) => provide(playbackDir),
+  adminState: async ({ playwright, baseURL }, provide) => {
+    const file = join(e2eRoot, 'admin.json')
     const options = baseURL === undefined ? {} : { baseURL }
     // A file from a previous run holds a session of a data dir that no longer exists.
     const stillSignedIn = async () => {
@@ -66,7 +62,7 @@ export const test = base.extend<ServerFolders, ServerOptions>({
   },
   // Its first use waits for the scan of the library: its own timeout, not the test's.
   playbackLibrary: [
-    async ({ adminRequest, playbackDir }, provide) => {
+    async ({ adminRequest }, provide) => {
       await provide(await ensurePlaybackLibrary(adminRequest, playbackDir))
     },
     { timeout: 120_000 },

@@ -1,13 +1,13 @@
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import { runFfmpeg } from './ffmpeg.ts'
-import { mediaDir, playbackDirOf, type ServerName, servers } from './paths.ts'
+import { mediaDir, playbackDir } from './paths.ts'
 
 /**
  * The "Playback" library of the M3 journeys (§10, §11, §23 M3), generated with ffmpeg at every run
- * (nothing committed), one folder per browser, added by the journeys themselves
- * (`ensurePlaybackLibrary`) so the first-launch catalog stays as it is. Titles TMDB does not
+ * (nothing committed), added by the journeys themselves (`ensurePlaybackLibrary`) so the
+ * first-launch catalog stays as it is. Titles TMDB does not
  * know: the items keep their parsed titles and no original language, the track cascade only
  * depends on the profile (French, `when_audio_differs`) and the files.
  */
@@ -135,7 +135,7 @@ export const playbackFixtures = {
   /** Parcours M3-3: two episodes of one series, English audio, French and English subtitles. */
   episode1: episode(1),
   episode2: episode(2),
-  /** Parcours M3-4 and 5: 480p H.264 + AAC MP4 (`direct`, 480p offered), 3 trickplay thumbnails. */
+  /** Parcours M3-4 and 5: 480p H.264 + AAC MP4 (`direct`, 480p offered). */
   quality: {
     path: 'Heron Lake (2022)/Heron Lake (2022).mp4',
     durationS: 30,
@@ -284,14 +284,9 @@ const generate = (fixture: PlaybackFixture, root: string, scratch: string): void
   }
 }
 
-/** Generates the library once into `mediaDir/playback`, then copies it for each browser. */
-export const generatePlaybackLibraries = (): void => {
-  const source = join(mediaDir, 'playback')
+/** Generates the library into `playbackDir`, its temporary inputs into `mediaDir`. */
+export const generatePlaybackLibrary = (): void => {
+  rmSync(playbackDir, { recursive: true, force: true })
   const scratch = join(mediaDir, 'playback-subtitles')
-  for (const fixture of Object.values(playbackFixtures)) generate(fixture, source, scratch)
-  for (const name of Object.keys(servers) as ServerName[]) {
-    const target = playbackDirOf(name)
-    rmSync(target, { recursive: true, force: true })
-    cpSync(source, target, { recursive: true })
-  }
+  for (const fixture of Object.values(playbackFixtures)) generate(fixture, playbackDir, scratch)
 }

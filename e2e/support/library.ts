@@ -1,8 +1,8 @@
-import { cpSync, mkdirSync, rmSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { rmSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { runFfmpeg } from './ffmpeg.ts'
-import { incomingDirOf, libraryDirOf, mediaDir, type ServerName, servers } from './paths.ts'
+import { incomingDir, libraryDir } from './paths.ts'
 
 /**
  * The "dossier en vrac" of the first-launch journey (§4, parcours 1), generated with ffmpeg at
@@ -81,22 +81,12 @@ const ffmpegArgs = ({ container, durationS }: FixtureFile): string[] => [
 const generate = (file: FixtureFile, output: string): void => runFfmpeg(ffmpegArgs(file), output)
 
 /**
- * Generates every video once into `mediaDir`, then gives each browser its own library folder
- * (the wizard's "dossier en vrac") and its staging folder with the file journey 5 drops in.
+ * Generates every video into the library folder (the wizard's "messy folder") and the staging
+ * folder with the file journey 5 drops in.
  */
 export const generateLibraries = (): void => {
-  rmSync(mediaDir, { recursive: true, force: true })
-  for (const file of [...fixtureFiles, unidentifiedFile]) generate(file, join(mediaDir, file.path))
-  for (const name of Object.keys(servers) as ServerName[]) {
-    const library = libraryDirOf(name)
-    const incoming = incomingDirOf(name)
-    rmSync(library, { recursive: true, force: true })
-    rmSync(incoming, { recursive: true, force: true })
-    for (const file of fixtureFiles) {
-      mkdirSync(dirname(join(library, file.path)), { recursive: true })
-      cpSync(join(mediaDir, file.path), join(library, file.path))
-    }
-    mkdirSync(incoming, { recursive: true })
-    cpSync(join(mediaDir, unidentifiedFile.path), join(incoming, unidentifiedFile.path))
-  }
+  rmSync(libraryDir, { recursive: true, force: true })
+  rmSync(incomingDir, { recursive: true, force: true })
+  for (const file of fixtureFiles) generate(file, join(libraryDir, file.path))
+  generate(unidentifiedFile, join(incomingDir, unidentifiedFile.path))
 }

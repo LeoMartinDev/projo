@@ -1,4 +1,4 @@
-// `webServer` command of the Playwright config: `bun scripts/serve.ts <chromium|webkit>`.
+// `webServer` command of the Playwright config: `bun scripts/serve.ts`.
 // Starts the built bundle (same origin for the API and the web app, as in production) on a
 // brand-new DATA_DIR, and forwards the stop signal Playwright sends at the end of the run.
 // TMDB is the recorded one of the server tests, preloaded in the server process
@@ -9,13 +9,7 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import { appDir, dataDirOf, e2eRoot, isServerName, servers } from '../support/paths.ts'
-
-const name = process.argv[2] ?? ''
-if (!isServerName(name)) {
-  console.error(`usage: bun scripts/serve.ts <${Object.keys(servers).join('|')}>`)
-  process.exit(2)
-}
+import { appDir, dataDir, e2eRoot, port } from '../support/paths.ts'
 
 const entry = join(appDir, 'server.js')
 if (!existsSync(entry)) {
@@ -23,14 +17,13 @@ if (!existsSync(entry)) {
   process.exit(1)
 }
 
-const dataDir = dataDirOf(name)
 rmSync(dataDir, { recursive: true, force: true })
 mkdirSync(dataDir, { recursive: true })
 
 const tmdbRedirect = resolve(import.meta.dir, '../support/tmdb-redirect.ts')
 
 const serverEnv = {
-  PORT: String(servers[name].port),
+  PORT: String(port),
   DATA_DIR: dataDir,
   LOG_LEVEL: process.env['PROJO_E2E_LOG_LEVEL'] ?? 'warn',
 }

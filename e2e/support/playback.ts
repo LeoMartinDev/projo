@@ -78,8 +78,8 @@ export const ensurePlaybackLibrary = async (
  * A member of the household with a single profile `profileName` (French interface, so French
  * audio and subtitles, `when_audio_differs`: the defaults of §11.1), signed in on `page`. Through
  * an invitation, which signs the new account in: logins are limited to 10 per 15 min per IP
- * (§20), invitations to 20 per hour. One per journey and project: projects share a server
- * (iPhone runs on the WebKit one). `adminApi` is signed in as the admin.
+ * (§20), invitations to 20 per hour. One per journey and project: every project runs on the
+ * same server. `adminApi` is signed in as the admin.
  */
 export const signInMember = async (
   page: Page,
