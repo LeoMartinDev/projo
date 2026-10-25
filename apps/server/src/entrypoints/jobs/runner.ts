@@ -58,6 +58,7 @@ export const createJobRunner = ({
   let started = false
   let stopping = false
   let pollTimer: ReturnType<typeof setInterval> | undefined
+  let pumpScheduled: Promise<void> | undefined
   const registeredTypes = Object.keys(handlers) as JobType[]
 
   const publish = (job: Job): void => {
@@ -168,7 +169,7 @@ export const createJobRunner = ({
       .then((outcome) => settle(job, controller, outcome.ok ? outcome.value : outcome))
       .finally(() => {
         running.delete(job.id)
-        pump()
+        schedulePump()
       })
     running.set(job.id, { job, controller, done })
   }
@@ -184,6 +185,22 @@ export const createJobRunner = ({
       if (handler === undefined) throw new Error(`claimed a job without handler: ${job.type}`)
       execute(job, handler)
     }
+  }
+
+  /**
+   * The next claim after a job settles waits for a macrotask: jobs that finish without awaiting
+   * any I/O (thousands of `probe_source` skipped once their library is deleted) would otherwise
+   * chain in microtasks and starve HTTP, SSE and timers until the queue is empty.
+   */
+  const schedulePump = (): void => {
+    if (pumpScheduled !== undefined) return
+    pumpScheduled = new Promise((resolve) => {
+      setTimeout(() => {
+        pumpScheduled = undefined
+        pump()
+        resolve()
+      }, 0)
+    })
   }
 
   return {
@@ -224,8 +241,8 @@ export const createJobRunner = ({
       return cancelled
     },
     idle: async () => {
-      while (running.size > 0) {
-        await Promise.all([...running.values()].map((entry) => entry.done))
+      while (running.size > 0 || pumpScheduled !== undefined) {
+        await Promise.all([...[...running.values()].map((entry) => entry.done), pumpScheduled])
       }
     },
   }

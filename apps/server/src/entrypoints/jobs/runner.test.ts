@@ -374,6 +374,25 @@ describe('createJobRunner', () => {
     expect(jobRepository.findById(job.id)?.state).toBe('cancelled')
   })
 
+  test('lets timers and I/O run between jobs that finish without awaiting anything', async () => {
+    // A library deleted mid-scan leaves thousands of `probe_source` that skip at once: drained
+    // in one microtask chain, they kept HTTP (and /health) waiting for minutes.
+    let handled = 0
+    const { queue, runner } = setup({
+      probe_source: { concurrency: 2, run: async () => (handled++, ok()) },
+    })
+    for (let n = 0; n < 200; n++) queue.enqueue({ type: 'probe_source', payload: {} })
+    let handledWhenTimerFired = -1
+    setTimeout(() => {
+      handledWhenTimerFired = handled
+    }, 0)
+    runner.start()
+    await runner.idle()
+    expect(handled).toBe(200)
+    expect(handledWhenTimerFired).toBeGreaterThanOrEqual(0)
+    expect(handledWhenTimerFired).toBeLessThan(200)
+  })
+
   test('only claims types that have a handler', async () => {
     const { queue, runner, jobRepository } = setup({})
     runner.start()
