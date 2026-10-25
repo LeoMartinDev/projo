@@ -9,6 +9,7 @@ import { ArrowUpIcon, ChevronRightIcon, FolderIcon } from '../../shared/ui/icons
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { parentOf } from './folder-paths.ts'
+import './folder-browser.css'
 
 const browseQuery = (path: string) => ({
   queryKey: ['admin', 'fs', path],
