@@ -767,10 +767,6 @@
       "empty": "Rien à vérifier",
       "identify": "Identifier",
       "identifyTitle": "Identifier le fichier",
-      "reject": "Rejeter",
-      "rejectNamed": "Rejeter {{name}}",
-      "rejectTitle": "Rejeter « {{name}} » ?",
-      "rejectText": "Il ne sera plus proposé, sauf après un scan complet.",
       "more": "Afficher plus",
       "classification": {
         "movie": "Film",
@@ -971,6 +967,16 @@
       "purgeAllTitle_one": "Purger {{formatted}} fichier manquant ?",
       "purgeAllTitle_other": "Purger les {{formatted}} fichiers manquants ?",
       "purgeText": "Les fichiers sur le disque ne sont pas touchés. Les titres qui n’ont plus aucun fichier disparaissent, sauf ceux corrigés à la main."
+    },
+    "hidden": {
+      "title": "Masqués",
+      "empty": "Aucun fichier masqué",
+      "hide": "Masquer",
+      "hideNamed": "Masquer {{name}}",
+      "hideTitle": "Masquer « {{name}} » ?",
+      "hideText": "Il n’apparaîtra plus nulle part, même après un scan complet. Vous pourrez l’afficher à nouveau depuis « Masqués ».",
+      "restore": "Afficher à nouveau",
+      "restoreNamed": "Afficher à nouveau {{name}}"
     },
     "jobs": {
       "title": "Jobs",
@@ -1316,6 +1322,7 @@
     "source/decode_failed": "Le fichier semble endommagé.",
     "source/unsupported_extension": "Type de fichier non pris en charge.",
     "source/not_missing": "Seul un fichier manquant peut être purgé.",
+    "source/not_rejected": "Ce fichier n’est pas masqué.",
     "update/disabled": "Les mises à jour depuis l’administration ne sont pas disponibles sur cette installation.",
     "update/check_failed": "Impossible de vérifier les mises à jour : GitHub ne répond pas.",
     "update/invalid_release": "Cette version publiée est incomplète ou invalide.",

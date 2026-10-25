@@ -14,8 +14,11 @@ import {
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { itemWithSeriesLabel } from '../../../shared/i18n/item-titles.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { EyeIcon, EyeOffIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
+import { reviewQueryKey } from '../identify/queries.ts'
+import { HideSourceDialog } from '../review/HideSourceDialog.tsx'
 import { fileName } from '../review/parsed.ts'
 import {
   sourcesByStateQuery,
@@ -89,7 +92,8 @@ const MoreButton = ({
 /**
  * `/admin/pending` (§7.3, §15 "Fichiers en attente"): the files not ready yet, why (still
  * written, unreadable, damaged, too small), their size, since when they wait and when they last
- * changed; "Check again" probes one again now. Follows the pipeline live.
+ * changed; "Check again" probes one again now, "Hide" takes it out of every list (§7.8).
+ * Follows the pipeline live.
  */
 export const PendingPage = () => {
   const { t } = useTranslation()
@@ -97,6 +101,7 @@ export const PendingPage = () => {
   const queryClient = useQueryClient()
   const list = useInfiniteQuery(sourcesByStateQuery('pending'))
   const [requested, setRequested] = useState<ReadonlySet<string>>(() => new Set())
+  const [hiding, setHiding] = useState<SourceDto>()
   useLiveSources()
   const recheck = useMutation({
     mutationFn: (id: string) =>
@@ -182,6 +187,16 @@ export const PendingPage = () => {
                     {busy ? <span className="spinner" aria-hidden="true" /> : undefined}
                     {asked ? t('admin.pending.rechecking') : t('admin.pending.recheck')}
                   </button>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label={t('admin.hidden.hideNamed', {
+                      name: fileName(source.relativePath),
+                    })}
+                    onClick={() => setHiding(source)}
+                  >
+                    <EyeOffIcon />
+                  </button>
                 </div>
               </div>
             )
@@ -194,6 +209,10 @@ export const PendingPage = () => {
         fetching={list.isFetchingNextPage}
         onMore={() => void list.fetchNextPage()}
       />
+
+      {hiding === undefined ? undefined : (
+        <HideSourceDialog key={hiding.id} source={hiding} onClose={() => setHiding(undefined)} />
+      )}
     </div>
   )
 }
@@ -348,6 +367,97 @@ export const MissingPage = () => {
       {purging === undefined ? undefined : (
         <PurgeDialog purging={purging} onClose={() => setPurging(undefined)} />
       )}
+    </div>
+  )
+}
+
+// ── Masqués ──────────────────────────────────────────────────────────────────
+
+/**
+ * `/admin/hidden` (§7.8, §15 "Masqués"): the files hidden from "To review" or "Fichiers en
+ * attente"; "Show again" sends one through the pipeline again (probe, then matching).
+ */
+export const HiddenPage = () => {
+  const { t } = useTranslation()
+  const locale = currentLocale()
+  const queryClient = useQueryClient()
+  const list = useInfiniteQuery(sourcesByStateQuery('rejected'))
+  const restore = useMutation({
+    mutationFn: (id: string) =>
+      request(() => api.admin.sources[':id'].restore.$post({ param: { id } })),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: sourcesByStateQueryKey })
+      void queryClient.invalidateQueries({ queryKey: reviewQueryKey })
+      void queryClient.invalidateQueries({ queryKey: statsQueryKey })
+    },
+  })
+  const sources = list.data?.pages.flatMap((page) => page.items) ?? []
+  const total = list.data?.pages[0]?.total ?? 0
+
+  return (
+    <div className="admin-page">
+      <div className="admin-page__header">
+        <div className="admin-page__heading">
+          <h1 className="admin-page__title">{t('admin.hidden.title')}</h1>
+          {total > 0 ? (
+            <p className="admin-page__summary">
+              {t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })}
+            </p>
+          ) : undefined}
+        </div>
+      </div>
+
+      {restore.isError ? <ErrorAlert error={restore.error} /> : undefined}
+
+      <div className="adm-table" role="table" aria-label={t('admin.hidden.title')}>
+        <div className="adm-tr hidden-tr adm-tr--head" role="row">
+          <span role="columnheader">{t('admin.pending.columns.file')}</span>
+          <span role="columnheader" className="adm-optional">
+            {t('admin.pending.columns.size')}
+          </span>
+          <span role="columnheader" />
+        </div>
+        <div className="adm-table__body">
+          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isError && sources.length === 0 ? (
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+          ) : undefined}
+          {list.isSuccess && sources.length === 0 ? (
+            <EmptyState title={t('admin.hidden.empty')} />
+          ) : undefined}
+          {sources.map((source) => {
+            const busy = restore.isPending && restore.variables === source.id
+            return (
+              <div key={source.id} className="adm-tr hidden-tr" role="row">
+                <FileCell source={source} />
+                <div className="adm-cell adm-optional" role="cell">
+                  <span className="adm-mono">{formatBytes(source.sizeBytes, locale)}</span>
+                </div>
+                <div className="adm-actions" role="cell">
+                  <button
+                    type="button"
+                    className="button button--glass button--small"
+                    disabled={busy}
+                    aria-label={t('admin.hidden.restoreNamed', {
+                      name: fileName(source.relativePath),
+                    })}
+                    onClick={() => restore.mutate(source.id)}
+                  >
+                    {busy ? <span className="spinner" aria-hidden="true" /> : <EyeIcon size={16} />}
+                    {t('admin.hidden.restore')}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <MoreButton
+        hasMore={list.hasNextPage}
+        fetching={list.isFetchingNextPage}
+        onMore={() => void list.fetchNextPage()}
+      />
     </div>
   )
 }

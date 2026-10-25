@@ -182,18 +182,37 @@ describe('planScan: states (§7.3–7.5)', () => {
     })
   })
 
-  test('rejected sources stay rejected, except on a full scan; full scans verify ready ones', () => {
-    const rejected = snapshot({ id: 'r', relativePath: 'R.mkv', state: 'rejected' })
+  test('hidden sources stay hidden, full scans included; full scans verify ready ones', () => {
+    const name = 'Naruto - 101.mkv'
+    const rejected = snapshot({
+      id: 'r',
+      relativePath: name,
+      state: 'rejected',
+      classification: 'unknown',
+      parsed: analyzeMediaPath({ relativePath: name, hint: 'auto' }).parsed,
+    })
     const ready = snapshot({ id: 'a', relativePath: 'A.mkv' })
     const found = [
-      file({ relativePath: 'R.mkv', inode: '1:r' }),
+      file({ relativePath: name, inode: '1:r', sizeBytes: 6 * MB }),
       file({ relativePath: 'A.mkv', inode: '1:a' }),
     ]
     expect(plan({ known: [rejected, ready], found }).patches).toEqual([])
     const full = plan({ known: [rejected, ready], found, full: true })
-    expect(patchOf(full, 'r')).toMatchObject({ state: 'pending', pendingSince: now })
+    expect(patchOf(full, 'r')).toBeUndefined()
     expect(full.verify).toEqual(['a'])
     expect(plan({ known: [rejected], found: [] }).patches).toEqual([])
+  })
+
+  test('a hidden source moved under a name to review stays hidden, out of "To review"', () => {
+    const rejected = snapshot({ id: 'r', relativePath: 'R.mkv', state: 'rejected' })
+    const result = plan({
+      known: [rejected],
+      found: [file({ relativePath: 'Naruto - 101.mkv', inode: '1:r' })],
+    })
+    const patch = patchOf(result, 'r')
+    expect(patch).toMatchObject({ relativePath: 'Naruto - 101.mkv', matchState: 'unmatched' })
+    expect(patch?.state).toBeUndefined()
+    expect(patch?.reviewReason).toBeUndefined()
   })
 })
 

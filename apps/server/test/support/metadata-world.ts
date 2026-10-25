@@ -57,7 +57,7 @@ export const createMetadataWorld = ({
 
   /** Admin API: libraries, sources (scanner world), then the metadata routes. */
   const ours =
-    /^\/(settings|tmdb\/|items\/|sources\/[^/]+\/(assign|reject)|libraries\/[^/]+\/refresh-metadata)/u
+    /^\/(settings|tmdb\/|items\/|sources\/[^/]+\/(assign|reject|restore)|libraries\/[^/]+\/refresh-metadata)/u
   const request = async (path: string, init: RequestInit & { json?: unknown } = {}) => {
     if (!ours.test(path)) return scanner.request(path, init)
     const { json, ...rest } = init

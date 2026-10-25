@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import { eventHub } from '../../shared/events/events.ts'
 import { setupStatusQuery } from '../../shared/session/session.ts'
-import { AlertIcon, BackIcon, LayersIcon, TvIcon } from '../../shared/ui/icons.tsx'
+import { AlertIcon, BackIcon, EyeOffIcon, LayersIcon, TvIcon } from '../../shared/ui/icons.tsx'
 import { Logo } from '../shell/Logo.tsx'
 import {
   BellIcon,
@@ -184,6 +184,14 @@ export const AdminLayout = () => {
           >
             <MissingIcon />
             <span className="admin__nav-label">{t('admin.missing.title')}</span>
+          </Link>
+          <Link
+            to="/admin/hidden"
+            className="admin__nav-link"
+            activeProps={{ 'aria-current': 'page' }}
+          >
+            <EyeOffIcon />
+            <span className="admin__nav-label">{t('admin.hidden.title')}</span>
           </Link>
           <span className="admin__nav-separator" aria-hidden="true" />
           <Link

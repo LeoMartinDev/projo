@@ -10,7 +10,9 @@ import type {
   MetadataSettings,
 } from '../../core/metadata/ports.ts'
 import type { TmdbApi, TmdbError, TmdbSearchHit } from '../../core/metadata/tmdb.ts'
+import { analyzeMediaPath, MIN_VIDEO_SIZE_BYTES } from '../../core/naming/index.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
+import { matchStateFor } from '../../core/scanner/scan-plan.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
 import type { ApplyMatch } from './apply-match.ts'
 import { requestImages } from './match-source.ts'
@@ -246,7 +248,7 @@ export const reviewFactory = ({
       return ok({ sourceIds: [source.id], itemIds: applied.itemIds, needsReview: [] })
     },
 
-    /** `POST /admin/sources/:id/reject` (§7.8): never shown again, except by a full scan. */
+    /** `POST /admin/sources/:id/reject` (§7.8 "Hide"): out of every list and scan until restored. */
     rejectSource: ({
       sourceId,
     }: {
@@ -269,6 +271,52 @@ export const reviewFactory = ({
       })
       settle()
       logger.info('source rejected', { sourceId })
+      return ok()
+    },
+
+    /**
+     * `POST /admin/sources/:id/restore` (§7.8 "Show again"): a hidden source goes through the
+     * pipeline again, checked now: its name is read again (a name to review is back in "To
+     * review"), then the probe, then the matching (a remembered correction applies again).
+     */
+    restoreSource: ({
+      sourceId,
+    }: {
+      sourceId: string
+    }): Result<void, AppError<'source/not_found' | 'source/not_rejected'>> => {
+      const source = sourceRepository.findById(sourceId)
+      if (source === undefined) return sourceNotFound(sourceId)
+      if (source.state !== 'rejected') {
+        return err(
+          appError('source/not_rejected', 'only a hidden source can be shown again', {
+            context: { id: sourceId, state: source.state },
+          }),
+        )
+      }
+      const analysis = analyzeMediaPath({
+        relativePath: source.relativePath,
+        hint: libraryRepository.findById(source.libraryId)?.hint ?? 'auto',
+      })
+      const matchState = matchStateFor(undefined, analysis.reviewReason)
+      const now = clock.now()
+      sourceRepository.patch(sourceId, {
+        state: 'pending',
+        pendingReason: source.sizeBytes < MIN_VIDEO_SIZE_BYTES ? 'too_small' : 'growing',
+        pendingSince: now,
+        unchangedSince: now,
+        stableSince: undefined,
+        classification: analysis.classification,
+        parsed: analysis.parsed,
+        matchState,
+        reviewReason: matchState === 'needs_review' ? analysis.reviewReason : undefined,
+      })
+      jobQueue.enqueue({
+        type: 'probe_source',
+        payload: { sourceId, mode: 'recheck' },
+        dedupeKey: `source:${sourceId}`,
+        priority: 80,
+      })
+      logger.info('source restored', { sourceId })
       return ok()
     },
 

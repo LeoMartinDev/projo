@@ -11,4 +11,5 @@ export const sourceErrorStatus = {
   'source/decode_failed': 422,
   'source/unsupported_extension': 422,
   'source/not_missing': 409,
+  'source/not_rejected': 409,
 } satisfies ErrorStatusMap<SourceErrorCode>

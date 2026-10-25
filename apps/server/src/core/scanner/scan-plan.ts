@@ -97,18 +97,21 @@ export const matchStateFor = (
 /**
  * Naming columns of a (re-)parsed path. An identified source keeps its state and has no review
  * reason; a manual correction also keeps its classification (§7.8: "it's a movie" survives
- * every later scan).
+ * every later scan); a hidden source never goes back to "To review".
  */
 const namingFields = (
   analysis: MediaPathAnalysis,
-  current: Pick<SourceSnapshot, 'matchState' | 'classification'> | undefined,
+  current: Pick<SourceSnapshot, 'state' | 'matchState' | 'classification'> | undefined,
 ): {
   classification: Classification
   parsed: ParsedName
   matchState: MatchState
   reviewReason: NamingReviewReason | undefined
 } => {
-  const matchState = matchStateFor(current?.matchState, analysis.reviewReason)
+  const matchState =
+    current?.state === 'rejected'
+      ? 'unmatched'
+      : matchStateFor(current?.matchState, analysis.reviewReason)
   return {
     classification:
       current?.matchState === 'manual' ? current.classification : analysis.classification,
@@ -230,14 +233,7 @@ export const planScan = ({
         }
         break
       case 'rejected':
-        // §7.8: never presented again, except by a full scan.
-        if (full) {
-          plan.patches.push({
-            id: source.id,
-            patch: { ...quarantine(source, file, now), pendingSince: now },
-          })
-          plan.stats.pending += 1
-        }
+        // §7.8: hidden until the admin shows it again, full scans included.
         break
     }
     // A full scan re-reads names too: a new hint or a better parser re-classifies (§7.4).

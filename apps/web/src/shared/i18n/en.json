@@ -767,10 +767,6 @@
       "empty": "Nothing to review",
       "identify": "Identify",
       "identifyTitle": "Identify the file",
-      "reject": "Reject",
-      "rejectNamed": "Reject {{name}}",
-      "rejectTitle": "Reject “{{name}}”?",
-      "rejectText": "It won’t be offered again, except after a full scan.",
       "more": "Show more",
       "classification": {
         "movie": "Movie",
@@ -971,6 +967,16 @@
       "purgeAllTitle_one": "Purge {{formatted}} missing file?",
       "purgeAllTitle_other": "Purge the {{formatted}} missing files?",
       "purgeText": "Files on the disk are not touched. Titles left without any file go away, except those corrected by hand."
+    },
+    "hidden": {
+      "title": "Hidden",
+      "empty": "No hidden files",
+      "hide": "Hide",
+      "hideNamed": "Hide {{name}}",
+      "hideTitle": "Hide “{{name}}”?",
+      "hideText": "It won’t show up anywhere again, even after a full scan. You can show it again from “Hidden”.",
+      "restore": "Show again",
+      "restoreNamed": "Show {{name}} again"
     },
     "jobs": {
       "title": "Jobs",
@@ -1316,6 +1322,7 @@
     "source/decode_failed": "The file seems damaged.",
     "source/unsupported_extension": "Unsupported file type.",
     "source/not_missing": "Only a missing file can be purged.",
+    "source/not_rejected": "This file is not hidden.",
     "update/disabled": "Updates from the admin are not available on this installation.",
     "update/check_failed": "Could not check for updates: GitHub does not answer.",
     "update/invalid_release": "This published version is incomplete or invalid.",

@@ -63,8 +63,8 @@ export const notificationsQuery = (status: NotificationStatus | undefined) =>
     getNextPageParam: (page) => page.nextCursor,
   })
 
-/** Sources of one state, all libraries ("Fichiers en attente", "Manquants"), by pages. */
-export const sourcesByStateQuery = (state: 'pending' | 'missing') =>
+/** Sources of one state, all libraries ("Fichiers en attente", "Manquants", "Masqués"), by pages. */
+export const sourcesByStateQuery = (state: 'pending' | 'missing' | 'rejected') =>
   infiniteQueryOptions({
     queryKey: [...sourcesByStateQueryKey, state],
     initialPageParam: '',

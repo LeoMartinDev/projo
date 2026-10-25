@@ -9,11 +9,12 @@ import { api, request } from '../../../shared/api/client.ts'
 import { formatNumber } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
-import { CloseIcon, FilmIcon, LayersIcon, TvIcon } from '../../../shared/ui/icons.tsx'
-import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { EyeOffIcon, FilmIcon, LayersIcon, TvIcon } from '../../../shared/ui/icons.tsx'
+import { EmptyState, ErrorState } from '../../../shared/ui/states.tsx'
 import { SearchIcon } from '../admin-icons.tsx'
 import { IdentifyForm, IdentifySubmit } from '../identify/IdentifyForm.tsx'
-import { invalidateAfterIdentify, reviewQueryKey } from '../identify/queries.ts'
+import { invalidateAfterIdentify } from '../identify/queries.ts'
+import { HideSourceDialog } from './HideSourceDialog.tsx'
 import { fileName, initialFromSource, parsedSummary, reviewReason } from './parsed.ts'
 import { reviewQuery } from './queries.ts'
 import '../admin.css'
@@ -70,46 +71,6 @@ const IdentifySourceDialog = ({ source, onClose }: { source: SourceDto; onClose:
   )
 }
 
-/** Rejection (§7.8): `state = rejected`, never offered again except after a full scan. */
-const RejectDialog = ({ source, onClose }: { source: SourceDto; onClose: () => void }) => {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const reject = useMutation({
-    mutationFn: () =>
-      request(() => api.admin.sources[':id'].reject.$post({ param: { id: source.id } })),
-    onSuccess: async () => {
-      onClose()
-      await queryClient.invalidateQueries({ queryKey: reviewQueryKey })
-    },
-  })
-  return (
-    <Dialog
-      open
-      title={t('admin.review.rejectTitle', { name: fileName(source.relativePath) })}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={reject.isPending}
-            onClick={() => reject.mutate()}
-          >
-            {reject.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.review.reject')}
-          </button>
-        </>
-      }
-    >
-      <p className="dialog__text">{t('admin.review.rejectText')}</p>
-      {reject.isError ? <ErrorAlert error={reject.error} /> : undefined}
-    </Dialog>
-  )
-}
-
 const SkeletonRows = () => (
   <>
     {[0, 1, 2, 3].map((index) => (
@@ -121,14 +82,14 @@ const SkeletonRows = () => (
   </>
 )
 
-/** `/admin/review`: the "To review" queue (§7.8, §15, journey 5). */
+/** `/admin/review`: the "To review" queue (§7.8, §15, journey 5); a file can be hidden. */
 export const ReviewPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const queue = useInfiniteQuery(reviewQuery)
   const sources = queue.data?.pages.flatMap((page) => page.items) ?? []
   const [identifying, setIdentifying] = useState<SourceDto>()
-  const [rejecting, setRejecting] = useState<SourceDto>()
+  const [hiding, setHiding] = useState<SourceDto>()
   const total = queue.data?.pages[0]?.total ?? 0
   const hasMore = queue.hasNextPage
 
@@ -194,13 +155,14 @@ export const ReviewPage = () => {
                   </button>
                   <button
                     type="button"
-                    className="icon-button"
-                    aria-label={t('admin.review.rejectNamed', {
+                    className="button button--glass button--small"
+                    aria-label={t('admin.hidden.hideNamed', {
                       name: fileName(source.relativePath),
                     })}
-                    onClick={() => setRejecting(source)}
+                    onClick={() => setHiding(source)}
                   >
-                    <CloseIcon />
+                    <EyeOffIcon size={16} />
+                    {t('admin.hidden.hide')}
                   </button>
                 </div>
               </li>
@@ -228,12 +190,8 @@ export const ReviewPage = () => {
           onClose={() => setIdentifying(undefined)}
         />
       )}
-      {rejecting === undefined ? undefined : (
-        <RejectDialog
-          key={rejecting.id}
-          source={rejecting}
-          onClose={() => setRejecting(undefined)}
-        />
+      {hiding === undefined ? undefined : (
+        <HideSourceDialog key={hiding.id} source={hiding} onClose={() => setHiding(undefined)} />
       )}
     </div>
   )

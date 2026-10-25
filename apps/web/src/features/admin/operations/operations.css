@@ -214,6 +214,10 @@
     minmax(max-content, 0.8fr);
 }
 
+.hidden-tr {
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 0.6fr) minmax(max-content, 0.8fr);
+}
+
 .missing-tr {
   grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(0, 0.9fr) minmax(
       max-content,
@@ -346,7 +350,8 @@
     grid-row: 1 / span 2;
   }
 
-  .missing-tr {
+  .missing-tr,
+  .hidden-tr {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 

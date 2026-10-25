@@ -10,7 +10,7 @@
 
 .review-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(0, 1.1fr) auto;
+  grid-template-columns: 40px minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(max-content, 1.1fr) auto;
   align-items: center;
   gap: 16px;
   padding: 16px 12px;

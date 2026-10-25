@@ -122,6 +122,10 @@ const MissingPage = lazyRouteComponent(
   () => import('../features/admin/operations/SourceStatePages.tsx'),
   'MissingPage',
 )
+const HiddenPage = lazyRouteComponent(
+  () => import('../features/admin/operations/SourceStatePages.tsx'),
+  'HiddenPage',
+)
 
 const NotFound = () => {
   const { t } = useTranslation()
@@ -437,6 +441,12 @@ const adminMissingRoute = createRoute({
   component: MissingPage,
 })
 
+const adminHiddenRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/hidden',
+  component: HiddenPage,
+})
+
 const jobFilterValues = ['running', 'queued', 'failed'] as const
 type JobFilterSearch = (typeof jobFilterValues)[number]
 
@@ -501,6 +511,7 @@ export const routeTree = rootRoute.addChildren([
       adminServerRoute,
       adminPendingRoute,
       adminMissingRoute,
+      adminHiddenRoute,
       adminJobsRoute,
       adminNotificationsRoute,
     ]),

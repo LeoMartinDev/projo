@@ -428,9 +428,15 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(rejected.status).toBe(204)
     expect(sourceRow('Rushes.mkv')?.state).toBe('rejected')
     expect(linksOf(rushes?.id ?? '')).toEqual([])
+
+    // Shown again: back in "To review".
+    await world.request(`/sources/${rushes?.id}/restore`, { method: 'POST' })
+    await world.runJobs(['probe_source'])
+    await world.runJobs(['match_source'])
+    expect(sourceRow('Rushes.mkv')).toMatchObject({ state: 'ready', match_state: 'needs_review' })
   })
 
-  test('a rejected file comes back with a full scan, its correction applied again', async () => {
+  test('a hidden file stays hidden through full scans, shown again with its correction', async () => {
     await world.setKey()
     place('Dune.mkv')
     const library = await createLibrary('movies')
@@ -442,13 +448,25 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     })
     await world.request(`/sources/${dune?.id}/reject`, { method: 'POST' })
     expect(sourceRow('Dune.mkv')).toMatchObject({ state: 'rejected', match_state: 'unmatched' })
-    // An incremental scan leaves it alone, a full one presents it again.
+    // Scans leave it alone, full ones included; only the admin shows it again.
     await world.request(`/libraries/${library.id}/scan`, { method: 'POST', json: {} })
     await world.runJobs(['scan_library'])
     expect(sourceRow('Dune.mkv')?.state).toBe('rejected')
     await fullScan(library.id)
     await settle()
+    expect(sourceRow('Dune.mkv')).toMatchObject({ state: 'rejected', match_state: 'unmatched' })
+    const hidden = await world.request('/sources?state=rejected')
+    const page = (await hidden.json()) as SourcesPage
+    expect(page.items.map((item) => item.id)).toEqual([dune?.id ?? ''])
+
+    const restored = await world.request(`/sources/${dune?.id}/restore`, { method: 'POST' })
+    expect(restored.status).toBe(204)
+    // Checked now, without waiting for a quiet period.
+    await world.runJobs(['probe_source'])
+    await world.runJobs(['match_source'])
     expect(sourceRow('Dune.mkv')).toMatchObject({ state: 'ready', match_state: 'manual' })
+    const again = await world.request(`/sources/${dune?.id}/restore`, { method: 'POST' })
+    expect(again.status).toBe(409)
     const linked = items().find((row) => row.id === linksOf(dune?.id ?? '')[0])
     expect(linked?.tmdb_id).toBe(841)
   })

@@ -103,7 +103,8 @@ export type AdminSourcesRoutes = ReturnType<typeof adminSourcesRoutes>
  * - `POST /sources/:id/assign`: "it's a movie" (`{ kind: 'movie', tmdbId }`) or "it's an episode
  *   of…" (`{ kind: 'episode', seriesTmdbId, seasonNumber?, episodeNumber? }`), remembered in
  *   `manual_matches`;
- * - `POST /sources/:id/reject`: `state = rejected`, until a full scan.
+ * - `POST /sources/:id/reject`: hides it (`state = rejected`), scans included;
+ * - `POST /sources/:id/restore`: shows a hidden source again (204; 409 `source/not_rejected`).
  */
 export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
   new Hono<AppEnv>()
@@ -121,6 +122,10 @@ export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
     })
     .post('/sources/:id/reject', (c) => {
       const result = review.rejectSource({ sourceId: c.req.param('id') })
+      return result.ok ? noContent(c) : respondError(c, result.error)
+    })
+    .post('/sources/:id/restore', (c) => {
+      const result = review.restoreSource({ sourceId: c.req.param('id') })
       return result.ok ? noContent(c) : respondError(c, result.error)
     })
 
