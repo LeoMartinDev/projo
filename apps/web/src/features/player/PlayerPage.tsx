@@ -1,6 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
-import { type PointerEvent, useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import {
+  type PointerEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
@@ -49,12 +57,25 @@ import {
   type StreamFailure,
 } from './playback.ts'
 import {
+  ChaptersIcon,
   CornersIcon,
   CornersInIcon,
   EpisodesIcon,
   NextEpisodeIcon,
+  PictureInPictureIcon,
+  QualityIcon,
+  SpeedIcon,
   SubtitlesIcon,
 } from './player-icons.tsx'
+import {
+  ChaptersMenu,
+  hasQualityChoice,
+  LanguagesMenu,
+  type LanguagesTab,
+  type PlayerMenu,
+  QualityMenu,
+  SpeedMenu,
+} from './PlayerMenus.tsx'
 import {
   loadSubtitleSettings,
   saveSubtitleSettings,
@@ -124,7 +145,6 @@ import {
   undoActionFor,
 } from './track-memory.ts'
 import { TrackToast } from './TrackToast.tsx'
-import { type MenuTab, TracksMenu } from './TracksMenu.tsx'
 import { sheetUrls, thumbnailAt } from './trickplay.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import {
@@ -161,7 +181,7 @@ type Interruption =
   | { kind: 'network'; failure: ApiFailure }
   | { kind: 'terminated'; reason: 'admin' | 'timeout' | 'ended' }
 
-type Overlay = 'menu' | 'episodes'
+type Overlay = PlayerMenu | 'episodes'
 
 const useTitle = (item: ItemDetailDto | undefined) => {
   const { t } = useTranslation()
@@ -186,10 +206,10 @@ const inOverlay = (target: EventTarget | undefined) =>
 /**
  * Player (§10.7, artboards `Player` and `PlayerNext`): full-frame video, top (quit) and bottom
  * chrome fading after 3 s, the bar (buffer, segments, trickplay, remaining time), the controls
- * row, the "Subtitles and audio" menu, the episodes panel; parts chained on the item timeline,
- * track changes as new sessions (the old one deleted first), the memory toast of §11.3,
- * shortcuts and touch gestures; loading, buffering, network loss (resumed at the position),
- * transcode limit, admin stop, end of the item.
+ * row and its menus (chapters, speed, quality, subtitles and audio), the episodes panel; parts
+ * chained on the item timeline, track changes as new sessions (the old one deleted first), the
+ * memory toast of §11.3, shortcuts and touch gestures; loading, buffering, network loss (resumed
+ * at the position), transcode limit, admin stop, end of the item.
  */
 export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: boolean }) => {
   const { t } = useTranslation()
@@ -211,7 +231,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [switching, setSwitching] = useState<{ positionMs: number; totalMs: number }>()
   const [idle, setIdle] = useState(false)
   const [overlay, setOverlay] = useState<Overlay>()
-  const [menuTab, setMenuTab] = useState<MenuTab>('subtitles')
+  const [languagesTab, setLanguagesTab] = useState<LanguagesTab>('subtitles')
   const [subtitleChoice, setSubtitleChoice] = useState<{
     sessionId: string
     id: string | undefined
@@ -246,7 +266,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const lastPositionRef = useRef<number | undefined>(undefined)
   /** Audio changed with the subtitles left to the cascade: remembered once that session opens. */
   const pendingAudioMemoryRef = useRef<{ attempt: number } | undefined>(undefined)
-  const menuButtonRef = useRef<HTMLButtonElement | undefined>(undefined)
   const gestureRef = useRef<{
     pointer: string
     start?: { x: number; y: number; volume: number; height: number; dragging: boolean } | undefined
@@ -662,9 +681,13 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   }, [])
 
   const closeOverlay = () => {
-    const wasMenu = overlay === 'menu'
+    // The button that opened a menu gets the focus back.
+    const opener =
+      overlay === undefined
+        ? undefined
+        : container?.querySelector<HTMLButtonElement>(`[data-menu="${overlay}"]`)
     setOverlay(undefined)
-    if (wasMenu) menuButtonRef.current?.focus()
+    opener?.focus()
   }
 
   // ── Commands ────────────────────────────────────────────────────────────────
@@ -991,10 +1014,31 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     profileDefaultsFor(toast.kind, toast.current, profile) !== undefined
   const limitReached = failure?.code === 'playback/transcode_limit_reached'
 
+  const menuTitles: Record<PlayerMenu, string> = {
+    languages: t('player.menu.title'),
+    speed: t('player.menu.speed'),
+    quality: t('player.menu.quality'),
+    chapters: t('player.menu.chapters'),
+  }
+  const menuButton = (menu: PlayerMenu, icon: ReactNode) => (
+    <button
+      data-menu={menu}
+      type="button"
+      className="player__control"
+      aria-label={menuTitles[menu]}
+      aria-expanded={overlay === menu}
+      aria-haspopup="dialog"
+      disabled={session === undefined}
+      onClick={() => setOverlay((open) => (open === menu ? undefined : menu))}
+    >
+      {icon}
+    </button>
+  )
+
   return (
     <div
       ref={containerRef}
-      className={`player${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'menu' ? ' player--menu' : ''}`}
+      className={`player${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'languages' ? ' player--menu' : ''}`}
       onPointerMove={(event) => {
         if (event.pointerType === 'mouse') wake()
       }}
@@ -1218,41 +1262,45 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         </div>
       ) : undefined}
 
-      {overlay === 'menu' && session !== undefined ? (
+      {overlay !== undefined && overlay !== 'episodes' && session !== undefined ? (
         <div
-          className="player-menu"
+          className={`player-menu player-menu--${overlay}`}
           data-player-overlay
           role="dialog"
-          aria-label={t('player.menu.title')}
+          aria-label={menuTitles[overlay]}
         >
-          <TracksMenu
-            session={session}
-            audioIndex={audioIndex}
-            subtitleId={subtitleId}
-            tab={menuTab}
-            onTab={setMenuTab}
-            onClose={closeOverlay}
-            onAudio={chooseAudio}
-            onSubtitle={chooseSubtitle}
-            onQuality={(quality: PlaybackQuality) => {
-              if (quality !== session.quality) void switchSession({ type: 'quality', quality })
-            }}
-            onVersion={(sourceId) => void switchSession({ type: 'version', sourceId })}
-            rate={rate}
-            onRate={changeRate}
-            pip={{
-              supported: pictureInPictureSupported(video),
-              active: pip,
-              toggle: () => {
-                if (video !== undefined) togglePictureInPicture(video)
-              },
-            }}
-            subtitleSettings={subtitleSettings}
-            onSubtitleSettings={changeSubtitleSettings}
-            chapters={chapters}
-            chapterIndex={chapterIndexAt(chapters, positionMs)}
-            onChapter={(startMs) => seekToItem(startMs)}
-          />
+          {overlay === 'languages' ? (
+            <LanguagesMenu
+              session={session}
+              audioIndex={audioIndex}
+              subtitleId={subtitleId}
+              tab={languagesTab}
+              onTab={setLanguagesTab}
+              onClose={closeOverlay}
+              onAudio={chooseAudio}
+              onSubtitle={chooseSubtitle}
+              subtitleSettings={subtitleSettings}
+              onSubtitleSettings={changeSubtitleSettings}
+            />
+          ) : overlay === 'speed' ? (
+            <SpeedMenu rate={rate} onRate={changeRate} onClose={closeOverlay} />
+          ) : overlay === 'quality' ? (
+            <QualityMenu
+              session={session}
+              onQuality={(quality: PlaybackQuality) => {
+                if (quality !== session.quality) void switchSession({ type: 'quality', quality })
+              }}
+              onVersion={(sourceId) => void switchSession({ type: 'version', sourceId })}
+              onClose={closeOverlay}
+            />
+          ) : (
+            <ChaptersMenu
+              chapters={chapters}
+              chapterIndex={chapterIndexAt(chapters, positionMs)}
+              onChapter={(startMs) => seekToItem(startMs)}
+              onClose={closeOverlay}
+            />
+          )}
         </div>
       ) : undefined}
 
@@ -1391,20 +1439,25 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               <EpisodesIcon size={22} />
             </button>
           ) : undefined}
-          <button
-            ref={(node) => {
-              menuButtonRef.current = node ?? undefined
-            }}
-            type="button"
-            className="player__control"
-            aria-label={t('player.menu.title')}
-            aria-expanded={overlay === 'menu'}
-            aria-haspopup="dialog"
-            disabled={session === undefined}
-            onClick={() => setOverlay((open) => (open === 'menu' ? undefined : 'menu'))}
-          >
-            <SubtitlesIcon size={22} />
-          </button>
+          {chapters.length > 0 ? menuButton('chapters', <ChaptersIcon size={22} />) : undefined}
+          {menuButton('speed', <SpeedIcon size={22} />)}
+          {session !== undefined && hasQualityChoice(session)
+            ? menuButton('quality', <QualityIcon size={22} />)
+            : undefined}
+          {menuButton('languages', <SubtitlesIcon size={22} />)}
+          {pictureInPictureSupported(video) ? (
+            <button
+              type="button"
+              className="player__control player__control--pip"
+              aria-label={t('player.menu.pip')}
+              aria-pressed={pip}
+              onClick={() => {
+                if (video !== undefined) togglePictureInPicture(video)
+              }}
+            >
+              <PictureInPictureIcon size={21} />
+            </button>
+          ) : undefined}
           <button
             type="button"
             className="player__control"

@@ -35,6 +35,29 @@ export const SubtitlesIcon = ({ size = 22 }: IconProps) => (
   </svg>
 )
 
+export const SpeedIcon = ({ size = 22 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.6}>
+    <path d="M4.2 17.5a8.5 8.5 0 1 1 15.6 0" />
+    <path d="M12 14l3.5-4.5" />
+    <circle cx="12" cy="14" r="1.2" fill="currentColor" stroke="none" />
+  </svg>
+)
+
+export const QualityIcon = ({ size = 22 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.6}>
+    <path d="M4 7.5h8.5M16.5 7.5H20M4 16.5h3.5M11.5 16.5H20" />
+    <circle cx="14.5" cy="7.5" r="2" />
+    <circle cx="9.5" cy="16.5" r="2" />
+  </svg>
+)
+
+export const ChaptersIcon = ({ size = 22 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.6}>
+    <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+    <path d="M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" strokeWidth={2.4} />
+  </svg>
+)
+
 /** Fullscreen corners of the artboard (stroke 1.75). */
 export const CornersIcon = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)} strokeWidth={1.75}>

@@ -400,7 +400,7 @@
 
 .player__heading {
   display: flex;
-  flex: 1 1 200px;
+  flex: 1 1 120px;
   justify-content: center;
   gap: 10px;
   min-width: 0;
@@ -733,8 +733,9 @@
   opacity: 0.5;
 }
 
-/* ── Menu "Subtitles and audio" and episodes panel ─────────────────────── */
+/* ── Menus of the controls row and episodes panel ──────────────────────── */
 
+/* Nearly opaque: the video behind (often bright) must not show through the text. */
 .player-menu,
 .episodes-panel {
   position: absolute;
@@ -744,22 +745,18 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: 22px;
-  background: rgba(24, 24, 27, 0.94);
-  -webkit-backdrop-filter: blur(30px) saturate(160%);
-  backdrop-filter: blur(30px) saturate(160%);
+  background: rgba(20, 20, 23, 0.97);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
   box-shadow: var(--shadow-panel);
   animation: menu-in 0.35s var(--ease) both;
 }
 
-/* Compact by default (tabs Audio, Sous-titres…); two columns from `wideQuery` of TracksMenu.tsx. */
+/* Each menu keeps to its content: a short list is a small menu. */
 .player-menu {
   bottom: 112px;
-  width: min(400px, calc(100% - 2 * var(--player-gutter)));
-  height: min(440px, calc(100% - 180px));
-  border-radius: 22px;
-  background: rgba(18, 18, 21, 0.88);
-  -webkit-backdrop-filter: blur(40px) saturate(170%);
-  backdrop-filter: blur(40px) saturate(170%);
+  width: min(var(--menu-width, 320px), calc(100% - 2 * var(--player-gutter)));
+  max-height: calc(100% - 180px);
   box-shadow:
     inset 0 0 0 1px var(--color-border),
     inset 0 1px 0 var(--color-border-subtle),
@@ -768,20 +765,40 @@
   animation: tracks-menu-in 0.38s var(--ease) both;
 }
 
+.player-menu--speed {
+  --menu-width: 300px;
+}
+
+.player-menu--quality {
+  --menu-width: 280px;
+}
+
+.player-menu--chapters {
+  --menu-width: 360px;
+  max-height: min(440px, calc(100% - 180px));
+}
+
+/* Compact (tabs Audio, Sous-titres) by default; two columns from `wideQuery`. */
+.player-menu--languages {
+  --menu-width: 400px;
+}
+
 @media (min-width: 760px) and (min-height: 561px) {
   .player-menu {
     bottom: 108px;
-    width: min(600px, calc(100% - 2 * var(--player-gutter)));
-    height: min(420px, calc(100% - 156px));
+  }
+
+  .player-menu--languages {
+    --menu-width: 560px;
+    max-height: min(420px, calc(100% - 156px));
     border-radius: var(--radius-panel);
-    background: rgba(18, 18, 21, 0.82);
   }
 }
 
 /* Where there is room, the subtitles stay visible beside the menu while their size changes. */
 @media (min-width: 1200px) and (min-height: 561px) {
   .player--menu .captions {
-    right: min(660px, 52%);
+    right: min(620px, 52%);
   }
 }
 
@@ -908,29 +925,28 @@
   transform: none;
 }
 
-/* Tracks menu: segmented tabs, close, then the tab's panel. */
-.tracks-menu {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.tracks-menu__header {
+/* Header of a menu: its title (or the Audio / Sous-titres tabs) and close. */
+.menu-header {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 10px 8px;
+  padding: 8px 8px 4px 18px;
 }
 
-.tracks-menu--compact .tracks-menu__header {
+.menu-header--tabs {
   gap: 6px;
   padding: 8px 6px 6px 8px;
 }
 
-.tracks-menu__close {
+.menu-header__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.menu-close {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -947,18 +963,33 @@
     transform 0.2s ease;
 }
 
-.tracks-menu--compact .tracks-menu__close {
+.menu-header--tabs .menu-close {
   width: 40px;
   height: 40px;
 }
 
-.tracks-menu__close:hover {
+.menu-close:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--color-text);
 }
 
-.tracks-menu__close:active {
+.menu-close:active {
   transform: scale(0.94);
+}
+
+/* "Subtitles and audio": tabs and the tab's panel, or two columns with close at the top right. */
+.tracks-menu {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tracks-menu--wide > .menu-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
 }
 
 /* Segmented control: the tabs, the subtitle size. The indicator slides under the selection. */
@@ -1018,30 +1049,34 @@
   cursor: default;
 }
 
-.tracks-menu--wide .tracks-menu__tabs {
-  flex: 0 1 auto;
-  grid-auto-columns: 92px;
-}
-
-.tracks-menu--compact .tracks-menu__tabs {
+.tracks-menu__tabs {
   flex: 1 1 auto;
 }
 
-.tracks-menu--compact .tracks-menu__tabs .menu-segments__item {
+.tracks-menu__tabs .menu-segments__item {
   padding: 0 2px;
   font-size: 13px;
 }
 
-.tracks-menu__panel {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
+/* The two tabs share one grid cell; the hidden one still sizes it. */
+.tracks-menu__panels {
+  display: grid;
+  flex: 0 1 auto;
+  grid-template-rows: minmax(0, 1fr);
   min-height: 0;
-  animation: tracks-view-in 0.32s var(--ease) both;
 }
 
-.tracks-menu--wide .tracks-menu__panel {
-  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+.tracks-menu__panel {
+  display: flex;
+  flex-direction: column;
+  grid-area: 1 / 1;
+  min-height: 0;
+  visibility: hidden;
+}
+
+.tracks-menu__panel[data-active] {
+  visibility: visible;
+  animation: tracks-view-in 0.32s var(--ease) both;
 }
 
 .tracks-menu__columns {
@@ -1051,7 +1086,8 @@
   min-height: 0;
 }
 
-.tracks-menu__scroll,
+/* The list of a menu: scrolls inside once the menu reaches its maximum height. */
+.menu-list,
 .menu-section--column .menu-section__options {
   flex: 1 1 auto;
   min-height: 0;
@@ -1061,27 +1097,13 @@
   scrollbar-width: thin;
 }
 
-.tracks-menu__scroll {
+.menu-list {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin: 0;
   padding: 2px 8px 8px;
   list-style: none;
-}
-
-.tracks-menu--wide .tracks-menu__scroll {
-  padding: 8px 6px;
-}
-
-.tracks-menu .tracks-menu__scroll--padded {
-  gap: 18px;
-  padding: 14px 16px;
-}
-
-.tracks-menu--compact .tracks-menu__scroll--padded {
-  gap: 16px;
-  padding: 8px 14px 14px;
 }
 
 .menu-section--column {
@@ -1103,8 +1125,9 @@
   letter-spacing: 0.01em;
 }
 
+/* Level with the close button at the top right. */
 .menu-section--column .menu-section__title {
-  padding: 12px 18px 6px;
+  padding: 16px 48px 8px 18px;
 }
 
 .menu-section__options {
@@ -1356,59 +1379,119 @@
   border-radius: 12px;
 }
 
-.menu-speed {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* Speed: a slider held on its detents, their values under it, the speed in the header. */
+.speed-slider {
+  padding: 2px 24px 12px;
 }
 
-.menu-speed .menu-section__title {
-  padding: 0;
-}
-
-.menu-speed__rates {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-}
-
-.menu-speed__rate {
-  height: 38px;
-  padding: 0;
-  border: 0;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-  color: var(--color-text-bright);
-  font-size: 13px;
+.speed-slider__value {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 15px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  white-space: nowrap;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
 }
 
-.menu-speed__rate:hover {
-  background: rgba(255, 255, 255, 0.1);
+.speed-slider__control {
+  position: relative;
+  height: 36px;
+  outline: none;
+  cursor: pointer;
+  touch-action: none;
 }
 
-.menu-speed__rate[aria-checked='true'] {
+.speed-slider__track {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  height: 4px;
+  margin-top: -2px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.speed-slider__fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: inherit;
   background: var(--color-accent);
-  color: var(--color-on-accent);
+  transition: width 0.18s var(--ease);
 }
 
-.menu-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 42px;
+/* While dragging the thumb follows the pointer (held back by its step), only softened. */
+.speed-slider__control[data-dragging] .speed-slider__fill {
+  transition: width 0.1s ease-out;
 }
 
-.menu-toggle__label {
-  font-size: 14px;
-  font-weight: 500;
+.speed-slider__detent {
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* On the filled part the band speaks for itself. */
+.speed-slider__detent[data-passed] {
+  opacity: 0;
+}
+
+.speed-slider__thumb {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition:
+    left 0.18s var(--ease),
+    transform 0.2s ease;
+}
+
+.speed-slider__control[data-dragging] .speed-slider__thumb {
+  transform: scale(1.2);
+  transition:
+    left 0.1s ease-out,
+    transform 0.2s ease;
+}
+
+.speed-slider__control:focus-visible .speed-slider__thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.speed-slider__labels {
+  position: relative;
+  height: 20px;
+}
+
+.speed-slider__label {
+  position: absolute;
+  top: 0;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  transform: translateX(-50%);
+  transition: color 0.2s ease;
+}
+
+.speed-slider__label:hover,
+.speed-slider__label[data-current] {
+  color: var(--color-text);
+}
+
+.speed-slider__label[data-current] {
+  font-weight: 600;
 }
 
 .menu-chapter {
@@ -2023,7 +2106,7 @@
 
 @media (max-width: 560px) {
   .player {
-    --player-chrome-bottom: 128px;
+    --player-chrome-bottom: 168px;
   }
 
   .player__bottom {
@@ -2031,19 +2114,23 @@
     padding-top: 56px;
   }
 
+  /* The title gets a line of its own above the buttons, which no longer leave it any room. */
   .player__controls {
-    flex-wrap: nowrap;
-    gap: 2px;
+    gap: 4px 2px;
   }
 
   .player__heading {
+    order: -1;
+    flex: 1 0 100%;
     flex-direction: column;
-    flex-basis: 0;
     align-items: flex-start;
-    justify-content: center;
     gap: 0;
     padding: 0 6px;
     font-size: 14px;
+  }
+
+  .player__controls .volume {
+    margin-right: auto;
   }
 
   .player__title,
@@ -2066,7 +2153,7 @@
   }
 
   .player-menu {
-    height: min(70%, 520px);
+    max-height: min(70%, 520px);
   }
 
   .episodes-panel {
@@ -2077,20 +2164,28 @@
     flex-basis: 112px;
   }
 
-  .menu-speed__rates {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Every menu has its button: narrower ones, and Picture-in-Picture left to the system. */
+  .player__controls > .player__control:not(.player__control--play) {
+    width: 40px;
+    height: 40px;
+  }
+
+  .player__control--pip {
+    display: none;
   }
 }
 
-/* Phone in landscape: the menu is a sheet on the right, the subtitles stay visible beside it. */
+/* Phone in landscape: the menus are sheets on the right, the subtitles stay visible beside. */
 @media (max-height: 560px) and (min-width: 561px) {
   .player-menu {
-    top: max(8px, env(safe-area-inset-top));
     right: max(8px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
-    width: min(360px, calc(100% - 16px));
-    height: auto;
+    max-height: calc(100% - 16px);
     animation-name: tracks-sheet-in;
+  }
+
+  .player-menu--languages {
+    width: min(360px, calc(100% - 16px));
   }
 
   .player--menu .captions {

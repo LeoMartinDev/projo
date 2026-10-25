@@ -447,14 +447,10 @@
     },
     "menu": {
       "title": "Sous-titres et audio",
-      "tabs": {
-        "languages": "Langues",
-        "audio": "Audio",
-        "subtitles": "Sous-titres",
-        "quality": "Qualité",
-        "playback": "Lecture",
-        "chapters": "Chapitres"
-      },
+      "audio": "Audio",
+      "subtitles": "Sous-titres",
+      "quality": "Qualité",
+      "chapters": "Chapitres",
       "off": "Désactivés",
       "unsupported": "Non supporté",
       "image": "Image",

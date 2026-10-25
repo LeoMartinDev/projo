@@ -10,8 +10,9 @@ import {
   clickBarAt,
   expectPlayingPast,
   nextSession,
+  openLanguagesMenu,
   openPlayer,
-  openTracksMenu,
+  openQualityMenu,
   playerVideo,
   seekBar,
   signInMember,
@@ -149,7 +150,7 @@ test('memory: a subtitle change applies to the whole series, the next episode ke
   })
 
   await test.step('switching to English from the menu: "Appliqué à toute la série"', async () => {
-    const menu = await openTracksMenu(page, 'subtitles')
+    const menu = await openLanguagesMenu(page, 'subtitles')
     const saved = page.waitForResponse(
       (response) =>
         response.request().method() === 'PUT' &&
@@ -194,7 +195,7 @@ test('quality: 480p from the menu transcodes at the same position, the old sessi
   expect(first.availableQualities).toEqual(['original', '480p'])
   await expectPlayingPast(video, 5)
 
-  const menu = await openTracksMenu(page, 'quality')
+  const menu = await openQualityMenu(page)
   const ended = page.waitForResponse(isSessionEnd(first.id))
   const next = nextSession(page)
   const before = await currentTime(video)

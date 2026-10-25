@@ -165,28 +165,33 @@ export const clickBarAt = async (page: Page, ratio: number) => {
   await page.mouse.click(box.x + box.width * ratio, box.y + box.height / 2)
 }
 
-type TracksTab = Exclude<keyof typeof fr.player.menu.tabs, 'languages'>
+type LanguagesTab = 'audio' | 'subtitles'
 
 /**
- * Shows `tab` in the open "Subtitles and audio" menu. Audio and subtitles are columns of the
- * "Langues" tab on wide screens, tabs of their own else: for them, the list of radios is returned.
+ * The list of radios of `tab` in the open "Subtitles and audio" menu: a column on wide screens, a
+ * tab of its own (shown first) else.
  */
-export const showTracksTab = async (menu: Locator, tab: TracksTab) => {
-  const own = menu.getByRole('tab', { name: fr.player.menu.tabs[tab] })
-  const languages = menu.getByRole('tab', { name: fr.player.menu.tabs.languages })
-  await expect(own.or(languages).first()).toBeVisible()
+export const showLanguagesTab = async (menu: Locator, tab: LanguagesTab) => {
+  await expect(menu).toBeVisible()
+  const own = menu.getByRole('tab', { name: fr.player.menu[tab], exact: true })
   if (await own.isVisible()) await own.click()
-  else await languages.click()
-  return tab === 'audio' || tab === 'subtitles'
-    ? menu.getByRole('radiogroup', { name: fr.player.menu.tabs[tab], exact: true })
-    : menu
+  return menu.getByRole('radiogroup', { name: fr.player.menu[tab], exact: true })
 }
 
-/** Opens the "Subtitles and audio" menu on `tab` (see `showTracksTab`). */
-export const openTracksMenu = async (page: Page, tab: TracksTab) => {
+/** Opens the "Subtitles and audio" menu on `tab` (see `showLanguagesTab`). */
+export const openLanguagesMenu = async (page: Page, tab: LanguagesTab) => {
   await wakePlayer(page)
-  await page.getByRole('button', { name: fr.player.menu.title }).click()
-  return showTracksTab(page.getByRole('dialog', { name: fr.player.menu.title }), tab)
+  await page.getByRole('button', { name: fr.player.menu.title, exact: true }).click()
+  return showLanguagesTab(page.getByRole('dialog', { name: fr.player.menu.title }), tab)
+}
+
+/** Opens the quality menu (shown when the item has several qualities or versions). */
+export const openQualityMenu = async (page: Page) => {
+  await wakePlayer(page)
+  await page.getByRole('button', { name: fr.player.menu.quality, exact: true }).click()
+  const menu = page.getByRole('dialog', { name: fr.player.menu.quality })
+  await expect(menu).toBeVisible()
+  return menu
 }
 
 /** The subtitles drawn over the video by the player (`SubtitleOverlay`, hidden from ARIA). */

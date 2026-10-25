@@ -1,4 +1,13 @@
-import { type KeyboardEvent, type ReactNode, useId, useSyncExternalStore } from 'react'
+import {
+  type KeyboardEvent,
+  type PointerEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type {
@@ -13,10 +22,16 @@ import { formatClock } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { versionLabels } from '../../shared/i18n/versions.ts'
 import { CheckIcon, CloseIcon } from '../../shared/ui/icons.tsx'
-import { Switch } from '../../shared/ui/controls.tsx'
 import { audioCodecLabel, languageName } from '../item/media-labels.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'
-import { playbackRates, type SubtitleSettings } from './player-settings.ts'
+import {
+  playbackRates,
+  rateAtRatio,
+  rateStepFrom,
+  ratioOfRate,
+  type SubtitleSettings,
+  thumbRatioWhileDragging,
+} from './player-settings.ts'
 import {
   canChoose,
   clampDelay,
@@ -24,11 +39,19 @@ import {
   subtitleDelayStepMs,
   subtitleSizes,
 } from './subtitles.ts'
+import { ratioAtPointer } from './timeline.ts'
 
-/** `languages` (audio and subtitles side by side) on wide screens, `audio` and `subtitles` else. */
-export type MenuTab = 'languages' | 'audio' | 'subtitles' | 'quality' | 'playback' | 'chapters'
+/** The menus of the controls row (§10.7), each behind its own button. */
+export type PlayerMenu = 'languages' | 'speed' | 'quality' | 'chapters'
 
-/** Same breakpoint as `.player-menu` in `player.css`. */
+/** Tabs of the "Subtitles and audio" menu on narrow screens (two columns from `wideQuery`). */
+export type LanguagesTab = 'audio' | 'subtitles'
+
+/** Quality and version only appear when there is a choice to make. */
+export const hasQualityChoice = (session: PlaybackSessionDto) =>
+  session.availableQualities.length > 1 || session.versions.length > 1
+
+/** Same breakpoint as `.player-menu--languages` in `player.css`. */
 const wideQuery = '(min-width: 760px) and (min-height: 561px)'
 const subscribeWide = (notify: () => void) => {
   const query = window.matchMedia(wideQuery)
@@ -52,6 +75,32 @@ const SegmentIndicator = ({ index, count }: { index: number; count: number }) =>
       transform: `translateX(${Math.max(index, 0) * 100}%)`,
     }}
   />
+)
+
+const CloseButton = ({ onClose }: { onClose: () => void }) => {
+  const { t } = useTranslation()
+  return (
+    <button type="button" className="menu-close" aria-label={t('common.close')} onClick={onClose}>
+      <CloseIcon size={18} />
+    </button>
+  )
+}
+
+/** Title (and what is chosen, beside it) and close: speed, quality, chapters. */
+const MenuHeader = ({
+  title,
+  detail,
+  onClose,
+}: {
+  title: string
+  detail?: ReactNode
+  onClose: () => void
+}) => (
+  <header className="menu-header">
+    <h2 className="menu-header__title">{title}</h2>
+    {detail}
+    <CloseButton onClose={onClose} />
+  </header>
 )
 
 const Option = ({
@@ -98,7 +147,7 @@ const Option = ({
   </button>
 )
 
-/** A titled radio list: a column of the `languages` tab, a group of the `quality` tab. */
+/** A titled radio list: a column of the wide languages menu, a group of the quality menu. */
 const Section = ({
   title,
   className,
@@ -128,12 +177,11 @@ const Section = ({
 }
 
 /**
- * Menu "Subtitles and audio" (§10.7, canvas "Subtitles and audio menu"). Wide screens: tabs
- * Languages (audio and subtitles in two columns, size and delay under the subtitles), Quality (with
- * the versions), Lecture (speed, Picture-in-Picture), Chapitres. Narrow screens split Langues
- * into Audio and Sous-titres. Same size on every tab (AGENTS.md): the lists scroll inside.
+ * Menu "Subtitles and audio" (§10.7, canvas "Subtitles and audio menu"). Wide screens: audio and
+ * subtitles in two columns, size and delay under the subtitles. Narrow screens: tabs Audio and
+ * Sous-titres, the height of the longer tab on both (AGENTS.md): the lists scroll inside.
  */
-export const TracksMenu = ({
+export const LanguagesMenu = ({
   session,
   audioIndex,
   subtitleId,
@@ -142,59 +190,26 @@ export const TracksMenu = ({
   onClose,
   onAudio,
   onSubtitle,
-  onQuality,
-  onVersion,
-  rate,
-  onRate,
-  pip,
   subtitleSettings,
   onSubtitleSettings,
-  chapters,
-  chapterIndex,
-  onChapter,
 }: {
   session: PlaybackSessionDto
   audioIndex: number | undefined
   subtitleId: string | undefined
-  tab: MenuTab
-  onTab: (tab: MenuTab) => void
+  tab: LanguagesTab
+  onTab: (tab: LanguagesTab) => void
   onClose: () => void
   onAudio: (track: AudioTrackDto) => void
   onSubtitle: (choice: SubtitleChoice) => void
-  onQuality: (quality: PlaybackQuality) => void
-  onVersion: (sourceId: string) => void
-  rate: number
-  onRate: (rate: number) => void
-  pip: { supported: boolean; active: boolean; toggle: () => void }
   subtitleSettings: SubtitleSettings
   onSubtitleSettings: (update: (settings: SubtitleSettings) => SubtitleSettings) => void
-  chapters: readonly ChapterDto[]
-  chapterIndex: number
-  onChapter: (positionMs: number) => void
 }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const wide = useWideMenu()
   const baseId = useId()
-  const pipLabelId = useId()
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 })
-  const versionNames = versionLabels(
-    t,
-    session.versions.map((version) => version.version),
-  )
-  const tabs: MenuTab[] = [
-    ...(wide ? (['languages'] as const) : (['audio', 'subtitles'] as const)),
-    'quality',
-    'playback',
-    ...(chapters.length > 0 ? (['chapters'] as const) : []),
-  ]
-  const shownTab: MenuTab = tabs.includes(tab)
-    ? tab
-    : wide && (tab === 'audio' || tab === 'subtitles')
-      ? 'languages'
-      : tab === 'languages'
-        ? 'subtitles'
-        : (tabs[0] ?? 'quality')
+  const tabs: LanguagesTab[] = ['audio', 'subtitles']
 
   const channels = (count: number | undefined) =>
     count === undefined
@@ -259,7 +274,7 @@ export const TracksMenu = ({
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0
     if (step === 0) return
     event.preventDefault()
-    const next = tabs[(tabs.indexOf(shownTab) + step + tabs.length) % tabs.length] ?? shownTab
+    const next = tabs[(tabs.indexOf(tab) + step + tabs.length) % tabs.length] ?? tab
     onTab(next)
     event.currentTarget.querySelector<HTMLElement>(`[data-tab="${next}"]`)?.focus()
   }
@@ -303,17 +318,6 @@ export const TracksMenu = ({
       ))}
     </>
   )
-
-  const qualityOptions = (
-    session.availableQualities.length > 0 ? session.availableQualities : (['original'] as const)
-  ).map((quality) => (
-    <Option
-      key={quality}
-      checked={quality === session.quality}
-      label={quality === 'original' ? t('player.menu.original') : quality}
-      onSelect={() => onQuality(quality)}
-    />
-  ))
 
   const sizeIndex = subtitleSizes.indexOf(subtitleSettings.size)
   const subtitleStyle = (
@@ -374,16 +378,35 @@ export const TracksMenu = ({
     </div>
   )
 
+  if (wide)
+    return (
+      <div className="tracks-menu tracks-menu--wide">
+        <div className="tracks-menu__columns">
+          <Section title={t('player.menu.audio')} className="menu-section--column">
+            {audioOptions}
+          </Section>
+          <Section
+            title={t('player.menu.subtitles')}
+            className="menu-section--column"
+            footer={subtitleStyle}
+          >
+            {subtitleOptions}
+          </Section>
+        </div>
+        <CloseButton onClose={onClose} />
+      </div>
+    )
+
   return (
-    <div className={`tracks-menu tracks-menu--${wide ? 'wide' : 'compact'}`}>
-      <header className="tracks-menu__header">
+    <div className="tracks-menu tracks-menu--compact">
+      <header className="menu-header menu-header--tabs">
         <div
           className="menu-segments tracks-menu__tabs"
           role="tablist"
           aria-label={t('player.menu.title')}
           onKeyDown={onTabKey}
         >
-          <SegmentIndicator index={tabs.indexOf(shownTab)} count={tabs.length} />
+          <SegmentIndicator index={tabs.indexOf(tab)} count={tabs.length} />
           {tabs.map((name) => (
             <button
               key={name}
@@ -392,152 +415,244 @@ export const TracksMenu = ({
               id={`${baseId}-tab-${name}`}
               data-tab={name}
               className="menu-segments__item"
-              aria-selected={name === shownTab}
-              aria-controls={`${baseId}-panel`}
-              tabIndex={name === shownTab ? 0 : -1}
+              aria-selected={name === tab}
+              aria-controls={`${baseId}-panel-${name}`}
+              tabIndex={name === tab ? 0 : -1}
               onClick={() => onTab(name)}
             >
-              {t(`player.menu.tabs.${name}`)}
+              {t(`player.menu.${name}`)}
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className="tracks-menu__close"
-          aria-label={t('common.close')}
-          onClick={onClose}
-        >
-          <CloseIcon size={18} />
-        </button>
+        <CloseButton onClose={onClose} />
       </header>
 
-      <div
-        key={shownTab}
-        id={`${baseId}-panel`}
-        className="tracks-menu__panel"
-        role="tabpanel"
-        aria-labelledby={`${baseId}-tab-${shownTab}`}
-      >
-        {shownTab === 'languages' ? (
-          <div className="tracks-menu__columns">
-            <Section title={t('player.menu.tabs.audio')} className="menu-section--column">
-              {audioOptions}
-            </Section>
-            <Section
-              title={t('player.menu.tabs.subtitles')}
-              className="menu-section--column"
-              footer={subtitleStyle}
-            >
-              {subtitleOptions}
-            </Section>
-          </div>
-        ) : undefined}
-
-        {shownTab === 'audio' ? (
+      {/* Both panels in one cell: the menu takes the height of the longer one, on either tab. */}
+      <div className="tracks-menu__panels">
+        {tabs.map((name) => (
           <div
-            className="tracks-menu__scroll"
-            role="radiogroup"
-            aria-label={t('player.menu.tabs.audio')}
+            key={name}
+            id={`${baseId}-panel-${name}`}
+            className="tracks-menu__panel"
+            role="tabpanel"
+            aria-labelledby={`${baseId}-tab-${name}`}
+            data-active={name === tab ? '' : undefined}
+            inert={name !== tab}
           >
-            {audioOptions}
-          </div>
-        ) : undefined}
-
-        {shownTab === 'subtitles' ? (
-          <>
-            <div
-              className="tracks-menu__scroll"
-              role="radiogroup"
-              aria-label={t('player.menu.tabs.subtitles')}
-            >
-              {subtitleOptions}
+            <div className="menu-list" role="radiogroup" aria-label={t(`player.menu.${name}`)}>
+              {name === 'audio' ? audioOptions : subtitleOptions}
             </div>
-            {subtitleStyle}
-          </>
-        ) : undefined}
-
-        {shownTab === 'quality' && session.versions.length > 1 ? (
-          <div className="tracks-menu__scroll">
-            <Section title={t('player.menu.version')}>
-              {session.versions.map((version, position) => (
-                <Option
-                  key={version.sourceId}
-                  checked={version.selected}
-                  label={versionNames[position] ?? ''}
-                  onSelect={() => onVersion(version.sourceId)}
-                />
-              ))}
-            </Section>
-            <Section title={t('player.menu.tabs.quality')}>{qualityOptions}</Section>
+            {name === 'subtitles' ? subtitleStyle : undefined}
           </div>
-        ) : undefined}
-
-        {shownTab === 'quality' && session.versions.length <= 1 ? (
-          <div
-            className="tracks-menu__scroll"
-            role="radiogroup"
-            aria-label={t('player.menu.tabs.quality')}
-          >
-            {qualityOptions}
-          </div>
-        ) : undefined}
-
-        {shownTab === 'playback' ? (
-          <div className="tracks-menu__scroll tracks-menu__scroll--padded">
-            <section className="menu-speed">
-              <h3 className="menu-section__title" id={`${baseId}-speed`}>
-                {t('player.menu.speed')}
-              </h3>
-              <div
-                className="menu-speed__rates"
-                role="radiogroup"
-                aria-labelledby={`${baseId}-speed`}
-              >
-                {playbackRates.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    className="menu-speed__rate"
-                    aria-checked={rate === value}
-                    onClick={() => onRate(value)}
-                  >
-                    {number.format(value)}×
-                  </button>
-                ))}
-              </div>
-            </section>
-            {pip.supported ? (
-              <div className="menu-toggle">
-                <span id={pipLabelId} className="menu-toggle__label">
-                  {t('player.menu.pip')}
-                </span>
-                <Switch checked={pip.active} labelId={pipLabelId} onChange={() => pip.toggle()} />
-              </div>
-            ) : undefined}
-          </div>
-        ) : undefined}
-
-        {shownTab === 'chapters' ? (
-          <ol className="tracks-menu__scroll menu-chapters">
-            {chapters.map((chapter, position) => (
-              <li key={chapter.startMs}>
-                <button
-                  type="button"
-                  className="menu-chapter"
-                  aria-current={position === chapterIndex ? 'true' : undefined}
-                  onClick={() => onChapter(chapter.startMs)}
-                >
-                  <span className="menu-chapter__title">
-                    {chapter.title ?? t('player.menu.chapterNumber', { number: position + 1 })}
-                  </span>
-                  <span className="menu-chapter__time">{formatClock(chapter.startMs)}</span>
-                </button>
-              </li>
-            ))}
-          </ol>
-        ) : undefined}
+        ))}
       </div>
     </div>
+  )
+}
+
+/** Speed (0.5× to 2×, §10.7). */
+export const SpeedMenu = ({
+  rate,
+  onRate,
+  onClose,
+}: {
+  rate: number
+  onRate: (rate: number) => void
+  onClose: () => void
+}) => {
+  const { t } = useTranslation()
+  /** Where the thumb is drawn while dragging (it resists between steps), else on the speed. */
+  const [drag, setDrag] = useState<number>()
+  const number = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 2 })
+  const percent = (value: number) => `${ratioOfRate(value) * 100}%`
+  const thumbRatio = drag ?? ratioOfRate(rate)
+  const thumb = `${thumbRatio * 100}%`
+  const label = `${number.format(rate)}×`
+
+  /** Each step passed while dragging gives a short tap where the device can vibrate. */
+  const dragTo = (event: PointerEvent<HTMLDivElement>) => {
+    const ratio = ratioAtPointer(event.clientX, event.currentTarget.getBoundingClientRect())
+    setDrag(thumbRatioWhileDragging(ratio))
+    const next = rateAtRatio(ratio)
+    if (next === rate) return
+    if ('vibrate' in navigator) navigator.vibrate(8)
+    onRate(next)
+  }
+
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const next =
+      event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'PageUp'
+        ? rateStepFrom(rate, 1)
+        : event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'PageDown'
+          ? rateStepFrom(rate, -1)
+          : event.key === 'Home'
+            ? playbackRates[0]
+            : event.key === 'End'
+              ? playbackRates[playbackRates.length - 1]
+              : undefined
+    if (next === undefined) return
+    event.preventDefault()
+    onRate(next)
+  }
+
+  return (
+    <>
+      <MenuHeader
+        title={t('player.menu.speed')}
+        detail={<span className="speed-slider__value">{label}</span>}
+        onClose={onClose}
+      />
+      <div className="speed-slider">
+        <div
+          className="speed-slider__control"
+          role="slider"
+          tabIndex={0}
+          aria-label={t('player.menu.speed')}
+          aria-valuemin={playbackRates[0]}
+          aria-valuemax={playbackRates[playbackRates.length - 1]}
+          aria-valuenow={rate}
+          aria-valuetext={label}
+          data-dragging={drag === undefined ? undefined : ''}
+          onKeyDown={onKeyDown}
+          onPointerDown={(event) => {
+            if (event.button !== 0) return
+            event.currentTarget.setPointerCapture(event.pointerId)
+            dragTo(event)
+          }}
+          onPointerMove={(event) => {
+            if (drag !== undefined) dragTo(event)
+          }}
+          onPointerUp={() => setDrag(undefined)}
+          onPointerCancel={() => setDrag(undefined)}
+        >
+          <span className="speed-slider__track" aria-hidden="true">
+            <span className="speed-slider__fill" style={{ width: thumb }} />
+            {playbackRates.map((value) => (
+              <span
+                key={value}
+                className="speed-slider__detent"
+                data-passed={ratioOfRate(value) <= thumbRatio ? '' : undefined}
+                style={{ left: percent(value) }}
+              />
+            ))}
+          </span>
+          <span className="speed-slider__thumb" aria-hidden="true" style={{ left: thumb }} />
+        </div>
+        <div className="speed-slider__labels" aria-hidden="true">
+          {playbackRates.map((value) => (
+            <button
+              key={value}
+              type="button"
+              tabIndex={-1}
+              className="speed-slider__label"
+              data-current={value === rate ? '' : undefined}
+              style={{ left: percent(value) }}
+              onClick={() => onRate(value)}
+            >
+              {number.format(value)}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+/** Quality, with the versions of the item when it has several (§7.7). */
+export const QualityMenu = ({
+  session,
+  onQuality,
+  onVersion,
+  onClose,
+}: {
+  session: PlaybackSessionDto
+  onQuality: (quality: PlaybackQuality) => void
+  onVersion: (sourceId: string) => void
+  onClose: () => void
+}) => {
+  const { t } = useTranslation()
+  const versionNames = versionLabels(
+    t,
+    session.versions.map((version) => version.version),
+  )
+  const qualityOptions = (
+    session.availableQualities.length > 0 ? session.availableQualities : (['original'] as const)
+  ).map((quality) => (
+    <Option
+      key={quality}
+      checked={quality === session.quality}
+      label={quality === 'original' ? t('player.menu.original') : quality}
+      onSelect={() => onQuality(quality)}
+    />
+  ))
+  return (
+    <>
+      <MenuHeader title={t('player.menu.quality')} onClose={onClose} />
+      {session.versions.length > 1 ? (
+        <div className="menu-list">
+          <Section title={t('player.menu.version')}>
+            {session.versions.map((version, position) => (
+              <Option
+                key={version.sourceId}
+                checked={version.selected}
+                label={versionNames[position] ?? ''}
+                onSelect={() => onVersion(version.sourceId)}
+              />
+            ))}
+          </Section>
+          <Section title={t('player.menu.quality')}>{qualityOptions}</Section>
+        </div>
+      ) : (
+        <div className="menu-list" role="radiogroup" aria-label={t('player.menu.quality')}>
+          {qualityOptions}
+        </div>
+      )}
+    </>
+  )
+}
+
+/** The file's chapters, the current one scrolled into view on opening. */
+export const ChaptersMenu = ({
+  chapters,
+  chapterIndex,
+  onChapter,
+  onClose,
+}: {
+  chapters: readonly ChapterDto[]
+  chapterIndex: number
+  onChapter: (positionMs: number) => void
+  onClose: () => void
+}) => {
+  const { t } = useTranslation()
+  const listRef = useRef<HTMLOListElement | undefined>(undefined)
+  useEffect(() => {
+    listRef.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest' })
+  }, [])
+  return (
+    <>
+      <MenuHeader title={t('player.menu.chapters')} onClose={onClose} />
+      <ol
+        ref={(node) => {
+          listRef.current = node ?? undefined
+        }}
+        className="menu-list menu-chapters"
+      >
+        {chapters.map((chapter, position) => (
+          <li key={chapter.startMs}>
+            <button
+              type="button"
+              className="menu-chapter"
+              aria-current={position === chapterIndex ? 'true' : undefined}
+              onClick={() => onChapter(chapter.startMs)}
+            >
+              <span className="menu-chapter__title">
+                {chapter.title ?? t('player.menu.chapterNumber', { number: position + 1 })}
+              </span>
+              <span className="menu-chapter__time">{formatClock(chapter.startMs)}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </>
   )
 }

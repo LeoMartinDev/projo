@@ -447,14 +447,10 @@
     },
     "menu": {
       "title": "Subtitles and audio",
-      "tabs": {
-        "languages": "Languages",
-        "audio": "Audio",
-        "subtitles": "Subtitles",
-        "quality": "Quality",
-        "playback": "Playback",
-        "chapters": "Chapters"
-      },
+      "audio": "Audio",
+      "subtitles": "Subtitles",
+      "quality": "Quality",
+      "chapters": "Chapters",
       "off": "Off",
       "unsupported": "Not supported",
       "image": "Image",

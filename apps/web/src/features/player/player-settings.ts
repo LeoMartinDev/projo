@@ -26,5 +26,37 @@ export const loadSubtitleSettings = (): SubtitleSettings =>
 export const saveSubtitleSettings = (settings: SubtitleSettings): void =>
   writeStoredJson(key, settings)
 
-/** Speeds of the menu (§10.7: 0,5× to 2×). */
-export const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const
+/** The only speeds of the slider (§10.7: 0,5×, 1×, 1,5×, 2×). */
+export const playbackRates = [0.5, 1, 1.5, 2] as const
+
+const minRate = playbackRates[0]
+const maxRate = playbackRates[playbackRates.length - 1] ?? 2
+/** Share of the pointer's distance from its step that the thumb follows while dragging. */
+const dragGive = 0.35
+
+export const ratioOfRate = (rate: number): number =>
+  Math.min(1, Math.max(0, (rate - minRate) / (maxRate - minRate)))
+
+/** The speed at `ratio` of the slider: the nearest step. */
+export const rateAtRatio = (ratio: number): number => {
+  const raw = minRate + Math.min(1, Math.max(0, ratio)) * (maxRate - minRate)
+  return playbackRates.reduce((best, rate) =>
+    Math.abs(rate - raw) < Math.abs(best - raw) ? rate : best,
+  )
+}
+
+/**
+ * Where the thumb is drawn while dragging: pulled back towards the step it is on, so it resists
+ * until the pointer is halfway to the next one, then jumps to it.
+ */
+export const thumbRatioWhileDragging = (ratio: number): number => {
+  const clamped = Math.min(1, Math.max(0, ratio))
+  const step = ratioOfRate(rateAtRatio(clamped))
+  return step + (clamped - step) * dragGive
+}
+
+/** The next step above (`1`) or below (`-1`) `rate`. */
+export const rateStepFrom = (rate: number, direction: 1 | -1): number =>
+  direction === 1
+    ? (playbackRates.find((step) => step > rate) ?? maxRate)
+    : (playbackRates.findLast((step) => step < rate) ?? minRate)

@@ -12,10 +12,10 @@ import {
   expectPlayingPast,
   nextSession,
   nextSessionFor,
+  openLanguagesMenu,
   openPlayer,
-  openTracksMenu,
-  showTracksTab,
   playerVideo,
+  showLanguagesTab,
   signInMember,
 } from '../support/playback.ts'
 import { seriesTimeline } from '../support/playback-library.ts'
@@ -97,7 +97,7 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
   })
 
   await test.step('English subtitles, then English audio, from the menu', async () => {
-    const subtitles = await openTracksMenu(page, 'subtitles')
+    const subtitles = await openLanguagesMenu(page, 'subtitles')
     const subtitlesSaved = page.waitForResponse(isTrackMemoryWrite(first))
     const englishSubtitles = subtitles.getByRole('radio', { name: /^anglais/i })
     await englishSubtitles.click()
@@ -105,7 +105,7 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
     expect((await subtitlesSaved).ok()).toBe(true)
 
     const menu = page.getByRole('dialog', { name: fr.player.menu.title })
-    const audio = await showTracksTab(menu, 'audio')
+    const audio = await showLanguagesTab(menu, 'audio')
     const audioSaved = page.waitForResponse(isTrackMemoryWrite(first))
     const switched = nextSession(page)
     await audio.getByRole('radio', { name: /^anglais/i }).click()
