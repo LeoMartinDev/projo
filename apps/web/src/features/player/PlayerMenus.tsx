@@ -86,19 +86,10 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => {
   )
 }
 
-/** Title (and what is chosen, beside it) and close: speed, quality, chapters. */
-const MenuHeader = ({
-  title,
-  detail,
-  onClose,
-}: {
-  title: string
-  detail?: ReactNode
-  onClose: () => void
-}) => (
+/** Title and close: speed, quality, chapters. */
+const MenuHeader = ({ title, onClose }: { title: string; onClose: () => void }) => (
   <header className="menu-header">
     <h2 className="menu-header__title">{title}</h2>
-    {detail}
     <CloseButton onClose={onClose} />
   </header>
 )
@@ -142,7 +133,7 @@ const Option = ({
       )}
     </span>
     <span className="menu-option__dot" aria-hidden="true">
-      {checked ? <CheckIcon size={13} stroke={3} /> : undefined}
+      {checked ? <CheckIcon size={18} stroke={2.4} /> : undefined}
     </span>
   </button>
 )
@@ -467,7 +458,8 @@ export const SpeedMenu = ({
   const percent = (value: number) => `${ratioOfRate(value) * 100}%`
   const thumbRatio = drag ?? ratioOfRate(rate)
   const thumb = `${thumbRatio * 100}%`
-  const label = `${number.format(rate)}×`
+  const value = number.format(rate)
+  const label = `${value}×`
 
   /** Each step passed while dragging gives a short tap where the device can vibrate. */
   const dragTo = (event: PointerEvent<HTMLDivElement>) => {
@@ -497,11 +489,11 @@ export const SpeedMenu = ({
 
   return (
     <>
-      <MenuHeader
-        title={t('player.menu.speed')}
-        detail={<span className="speed-slider__value">{label}</span>}
-        onClose={onClose}
-      />
+      <MenuHeader title={t('player.menu.speed')} onClose={onClose} />
+      <div className="speed-value" aria-hidden="true">
+        {value}
+        <span className="speed-value__unit">×</span>
+      </div>
       <div className="speed-slider">
         <div
           className="speed-slider__control"

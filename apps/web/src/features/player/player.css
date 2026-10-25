@@ -735,7 +735,10 @@
 
 /* ── Menus of the controls row and episodes panel ──────────────────────── */
 
-/* Nearly opaque: the video behind (often bright) must not show through the text. */
+/*
+ * Smoked glass: the video shows through, darkened before it is blurred (`brightness`), so a
+ * bright scene stays behind the text instead of washing it out.
+ */
 .player-menu,
 .episodes-panel {
   position: absolute;
@@ -745,11 +748,19 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: 22px;
-  background: rgba(20, 20, 23, 0.97);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  backdrop-filter: blur(24px) saturate(160%);
+  background: linear-gradient(180deg, rgba(34, 34, 40, 0.66), rgba(18, 18, 22, 0.74));
+  -webkit-backdrop-filter: blur(44px) saturate(180%) brightness(0.58);
+  backdrop-filter: blur(44px) saturate(180%) brightness(0.58);
   box-shadow: var(--shadow-panel);
   animation: menu-in 0.35s var(--ease) both;
+}
+
+/* Without the filter nothing darkens the video: back to an opaque surface. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .player-menu,
+  .episodes-panel {
+    background: rgba(20, 20, 23, 0.97);
+  }
 }
 
 /* Each menu keeps to its content: a short list is a small menu. */
@@ -758,9 +769,9 @@
   width: min(var(--menu-width, 320px), calc(100% - 2 * var(--player-gutter)));
   max-height: calc(100% - 180px);
   box-shadow:
-    inset 0 0 0 1px var(--color-border),
-    inset 0 1px 0 var(--color-border-subtle),
-    0 30px 80px rgba(0, 0, 0, 0.55);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 24px 70px rgba(0, 0, 0, 0.5);
   transform-origin: 85% 100%;
   animation: tracks-menu-in 0.38s var(--ease) both;
 }
@@ -955,7 +966,7 @@
   height: 36px;
   border: 0;
   border-radius: var(--radius-pill);
-  background: transparent;
+  background: rgba(255, 255, 255, 0.07);
   color: var(--color-text-secondary);
   transition:
     background-color 0.2s ease,
@@ -969,7 +980,7 @@
 }
 
 .menu-close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
   color: var(--color-text);
 }
 
@@ -1112,15 +1123,11 @@
   min-height: 0;
 }
 
-.menu-section--column + .menu-section--column {
-  box-shadow: inset 1px 0 0 var(--color-border-subtle);
-}
-
 .menu-section__title {
   margin: 0;
   padding: 8px 12px 4px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
+  color: var(--color-text-bright);
+  font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -1144,7 +1151,7 @@
   margin-top: 10px;
 }
 
-/* A track: name and tags, what tells it apart below, the radio dot on the right. */
+/* A track: name and tags, what tells it apart below, a check on the right when chosen. */
 .menu-option {
   display: flex;
   flex: 0 0 auto;
@@ -1162,11 +1169,11 @@
 }
 
 .menu-option:hover:not([aria-disabled='true']) {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .menu-option[aria-checked='true'] {
-  background: rgba(255, 255, 255, 0.085);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .menu-option[aria-disabled='true'] {
@@ -1229,31 +1236,24 @@
   justify-content: center;
   width: 20px;
   height: 20px;
-  border-radius: var(--radius-pill);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22);
-  color: var(--color-on-accent);
-  transition:
-    background-color 0.25s ease,
-    box-shadow 0.25s ease;
-}
-
-.menu-option[aria-checked='true'] .menu-option__dot {
-  background: var(--color-accent);
-  box-shadow: none;
+  color: var(--color-text-strong);
 }
 
 .menu-option[aria-checked='true'] .menu-option__dot svg {
   animation: tracks-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Subtitle size and delay, under the subtitles; dimmed while they are off. */
+/* Subtitle size and delay, a card under the subtitles; dimmed while they are off. */
 .menu-style {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 10px 10px 18px;
-  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+  margin: 4px 8px 8px;
+  padding: 10px 10px 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
   transition: opacity 0.3s ease;
 }
 
@@ -1365,7 +1365,7 @@
 .tracks-menu--compact .menu-style {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 8px;
+  padding: 6px;
 }
 
 .tracks-menu--compact .menu-setting__label {
@@ -1379,17 +1379,28 @@
   border-radius: 12px;
 }
 
-/* Speed: a slider held on its detents, their values under it, the speed in the header. */
-.speed-slider {
-  padding: 2px 24px 12px;
-}
-
-.speed-slider__value {
-  margin-left: auto;
-  color: var(--color-text-secondary);
-  font-size: 15px;
+/* Speed: the speed in large, then a card with the slider held on its detents, their values under it. */
+.speed-value {
+  padding: 0 0 12px;
+  font-size: 34px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.speed-value__unit {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.speed-slider {
+  margin: 0 8px 8px;
+  padding: 6px 26px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .speed-slider__control {
@@ -1469,29 +1480,37 @@
 
 .speed-slider__labels {
   position: relative;
-  height: 20px;
+  height: 28px;
+  margin-top: 4px;
 }
 
 .speed-slider__label {
   position: absolute;
   top: 0;
-  padding: 0 2px;
+  min-width: 44px;
+  height: 28px;
+  padding: 0 8px;
   border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
   transform: translateX(-50%);
-  transition: color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
-.speed-slider__label:hover,
-.speed-slider__label[data-current] {
+.speed-slider__label:hover {
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text);
 }
 
 .speed-slider__label[data-current] {
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text-strong);
 }
 
 .menu-chapter {
@@ -1513,11 +1532,11 @@
 }
 
 .menu-chapter:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .menu-chapter[aria-current='true'] {
-  background: rgba(255, 255, 255, 0.085);
+  background: rgba(255, 255, 255, 0.12);
   font-weight: 600;
 }
 
@@ -2149,7 +2168,6 @@
     left: 8px;
     width: auto;
     border-radius: 22px;
-    background: var(--color-surface-menu);
   }
 
   .player-menu {
