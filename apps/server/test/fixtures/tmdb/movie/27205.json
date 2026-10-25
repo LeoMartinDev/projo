@@ -1,0 +1,289 @@
+{
+  "adult": false,
+  "backdrop_path": "/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg",
+  "belongs_to_collection": null,
+  "budget": 160000000,
+  "genres": [
+    {
+      "id": 28,
+      "name": "Action"
+    },
+    {
+      "id": 878,
+      "name": "Science-Fiction"
+    },
+    {
+      "id": 12,
+      "name": "Aventure"
+    }
+  ],
+  "homepage": "https://www.warnerbros.com/movies/inception",
+  "id": 27205,
+  "imdb_id": "tt1375666",
+  "origin_country": ["US", "GB"],
+  "original_language": "en",
+  "original_title": "Inception",
+  "overview": "Dom Cobb est un voleur expérimenté dans l'art périlleux de l'extraction : sa spécialité consiste à s'approprier les secrets les plus précieux d'un individu, enfouis au plus profond de son subconscient.",
+  "popularity": 83.952,
+  "poster_path": "/aej3LRUga5rhgkmRP6XMFw3ejbl.jpg",
+  "production_companies": [
+    {
+      "id": 923,
+      "logo_path": "/8M99Dkt23MjQMTTWukq4m5XsEuo.png",
+      "name": "Legendary Pictures",
+      "origin_country": "US"
+    }
+  ],
+  "production_countries": [
+    {
+      "iso_3166_1": "GB",
+      "name": "United Kingdom"
+    },
+    {
+      "iso_3166_1": "US",
+      "name": "United States of America"
+    }
+  ],
+  "release_date": "2010-07-15",
+  "revenue": 825532764,
+  "runtime": 148,
+  "spoken_languages": [
+    {
+      "english_name": "English",
+      "iso_639_1": "en",
+      "name": "English"
+    }
+  ],
+  "status": "Released",
+  "tagline": "Votre esprit est la scène du crime.",
+  "title": "Inception",
+  "video": false,
+  "vote_average": 8.369,
+  "vote_count": 37315,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 6193,
+        "known_for_department": "Acting",
+        "name": "Leonardo DiCaprio",
+        "original_name": "Leonardo DiCaprio",
+        "popularity": 40.1,
+        "profile_path": "/wo2hJpn04vbtmh0B9utCFdsQhxM.jpg",
+        "cast_id": 1,
+        "character": "Dom Cobb",
+        "credit_id": "52fe4534c3a368484e04de03",
+        "order": 0
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 24045,
+        "known_for_department": "Acting",
+        "name": "Joseph Gordon-Levitt",
+        "original_name": "Joseph Gordon-Levitt",
+        "popularity": 18.3,
+        "profile_path": "/z2FA8js799xqtfiFjBTicFYdfk.jpg",
+        "cast_id": 3,
+        "character": "Arthur",
+        "credit_id": "52fe4534c3a368484e04de0b",
+        "order": 1
+      },
+      {
+        "adult": false,
+        "gender": 1,
+        "id": 27578,
+        "known_for_department": "Acting",
+        "name": "Elliot Page",
+        "original_name": "Elliot Page",
+        "popularity": 20.1,
+        "profile_path": "/eCeFgzS8dYHnMfWQT0oQitCrsSz.jpg",
+        "cast_id": 2,
+        "character": "Ariadne",
+        "credit_id": "52fe4534c3a368484e04de07",
+        "order": 2
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 2524,
+        "known_for_department": "Acting",
+        "name": "Tom Hardy",
+        "original_name": "Tom Hardy",
+        "popularity": 30.5,
+        "profile_path": null,
+        "cast_id": 4,
+        "character": "Eames",
+        "credit_id": "52fe4534c3a368484e04de0f",
+        "order": 3
+      }
+    ],
+    "crew": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 525,
+        "known_for_department": "Directing",
+        "name": "Christopher Nolan",
+        "original_name": "Christopher Nolan",
+        "popularity": 20.0,
+        "profile_path": "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg",
+        "credit_id": "52fe4534c3a368484e04de25",
+        "department": "Directing",
+        "job": "Director"
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 525,
+        "known_for_department": "Directing",
+        "name": "Christopher Nolan",
+        "original_name": "Christopher Nolan",
+        "popularity": 20.0,
+        "profile_path": "/xuAIuYSmsUzKlUMBFGVZaWsY3DZ.jpg",
+        "credit_id": "52fe4534c3a368484e04de2b",
+        "department": "Writing",
+        "job": "Screenplay"
+      },
+      {
+        "adult": false,
+        "gender": 1,
+        "id": 556,
+        "known_for_department": "Production",
+        "name": "Emma Thomas",
+        "original_name": "Emma Thomas",
+        "popularity": 5.0,
+        "profile_path": "/fdtmhgvbP6dH2BElR2YjFXvVyF.jpg",
+        "credit_id": "52fe4534c3a368484e04de31",
+        "department": "Production",
+        "job": "Producer"
+      }
+    ]
+  },
+  "images": {
+    "backdrops": [
+      {
+        "aspect_ratio": 1.778,
+        "height": 2160,
+        "iso_639_1": null,
+        "file_path": "/s3TBrRGB1iav7gFOCNx3H31MoES.jpg",
+        "vote_average": 5.6,
+        "vote_count": 10,
+        "width": 3840
+      },
+      {
+        "aspect_ratio": 1.778,
+        "height": 1080,
+        "iso_639_1": "en",
+        "file_path": "/ztZ4vw151mw04Bg6rqJLQGBAmvn.jpg",
+        "vote_average": 5.4,
+        "vote_count": 10,
+        "width": 1920
+      }
+    ],
+    "logos": [
+      {
+        "aspect_ratio": 4.505,
+        "height": 222,
+        "iso_639_1": "en",
+        "file_path": "/hVeQbeCeLwLWaF6ZLpbu26ZaHfA.svg",
+        "vote_average": 5.5,
+        "vote_count": 10,
+        "width": 1000
+      },
+      {
+        "aspect_ratio": 4.505,
+        "height": 333,
+        "iso_639_1": "en",
+        "file_path": "/nN5fOxSdBVvJBrDmMglxqeDP3H5.png",
+        "vote_average": 5.3,
+        "vote_count": 10,
+        "width": 1500
+      },
+      {
+        "aspect_ratio": 4.0,
+        "height": 300,
+        "iso_639_1": "fr",
+        "file_path": "/fr0aWVvRcIdlpmeXHVZxk8f1Q5E.png",
+        "vote_average": 5.2,
+        "vote_count": 10,
+        "width": 1200
+      }
+    ],
+    "posters": [
+      {
+        "aspect_ratio": 0.667,
+        "height": 3000,
+        "iso_639_1": "en",
+        "file_path": "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg",
+        "vote_average": 5.9,
+        "vote_count": 10,
+        "width": 2000
+      },
+      {
+        "aspect_ratio": 0.667,
+        "height": 1500,
+        "iso_639_1": "fr",
+        "file_path": "/aej3LRUga5rhgkmRP6XMFw3ejbl.jpg",
+        "vote_average": 5.3,
+        "vote_count": 10,
+        "width": 1000
+      },
+      {
+        "aspect_ratio": 0.667,
+        "height": 3000,
+        "iso_639_1": null,
+        "file_path": "/edv5CZvWj09upOsy2Y6IwDhK8bt.jpg",
+        "vote_average": 5.1,
+        "vote_count": 10,
+        "width": 2000
+      }
+    ]
+  },
+  "external_ids": {
+    "imdb_id": "tt1375666",
+    "wikidata_id": "Q25188",
+    "facebook_id": "inceptionmovie",
+    "instagram_id": null,
+    "twitter_id": null
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2010-07-21T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "PG-13",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2010-07-16T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2010-12-07T00:00:00.000Z",
+            "type": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Composants</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/00ccc6c7bfab1fbb6e69fcb0922c4361">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; padding: 64px clamp(16px, 4vw, 72px) 96px; overflow: hidden;">
+  <div class="cover img-mountains" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 720px; opacity: 0.28; filter: blur(2px); -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, transparent 100%);"></div>
+
+  <div style="position: relative; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px;">
+    <header class="rise" style="display: flex; flex-direction: column; gap: 10px;">
+      <span class="eyebrow">projo · kit d'interface v2</span>
+      <h1 style="margin: 0; font-size: 56px; line-height: 1; font-weight: 700; letter-spacing: -0.045em;">Composants</h1>
+      <p style="margin: 0; max-width: 560px; font-size: 16px; line-height: 1.55; color: #A1A1AA;">Monochrome, en verre et en relief. Chaque état a son mouvement : reflet au survol, halo au focus, ressort sur les interrupteurs.</p>
+    </header>
+
+    <section class="rise r1" aria-labelledby="c-buttons" style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="c-buttons" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">Boutons</h2>
+      <div class="panel" style="display: flex; flex-direction: column; gap: 28px; padding: 32px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px;">
+          <button class="btn btn-primary btn-lg" type="button">Commencer
+            <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </button>
+          <button class="btn btn-primary" type="button">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+            Reprendre
+          </button>
+          <button class="btn btn-glass" type="button">Plus d'infos</button>
+          <button class="btn btn-ghost" type="button">Retour</button>
+          <button class="btn btn-danger" type="button">Supprimer</button>
+          <button class="btn btn-glass btn-icon btn-round" type="button" aria-label="Ajouter à Ma liste">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+          <button class="btn btn-primary" type="button" aria-busy="true"><span class="spinner" aria-hidden="true"></span>Analyse…</button>
+          <button class="btn btn-primary is-disabled" type="button" disabled>Continuer</button>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+          <button class="btn btn-primary btn-sm" type="button">Petit</button>
+          <button class="btn btn-glass btn-sm" type="button">Petit verre</button>
+          <button class="btn btn-ghost btn-sm" type="button">Petit discret</button>
+          <button class="btn btn-glass btn-sm btn-icon" type="button" aria-label="Resynchroniser">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
+          </button>
+        </div>
+        <div class="cover img-city" style="position: relative; border-radius: 20px; overflow: hidden; min-height: 180px; display: flex; align-items: flex-end; padding: 24px;">
+          <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.75) 0%, rgba(10,10,11,0) 70%);"></div>
+          <div style="position: relative; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+            <button class="btn btn-primary btn-lg" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+              Lecture
+            </button>
+            <button class="btn btn-glass btn-lg" type="button">Sur une image, le verre reste lisible</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="rise r2" aria-labelledby="c-fields" style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="c-fields" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">Champs</h2>
+      <div class="panel" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 20px; padding: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="field">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20a8 8 0 0 1 16 0"></path></svg></span>
+            <span class="stack"><span class="lbl">Prénom</span><input type="text" placeholder="Comment vous appelle-t-on ?"></span>
+          </label>
+          <span class="hint">État par défaut, avec texte d'aide.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="field is-focus">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M4 7l8 6 8-6"></path></svg></span>
+            <span class="stack"><span class="lbl">E-mail</span><input type="email" value="leo@maison.fr"></span>
+          </label>
+          <span class="hint">Focus : contour clair et halo doux.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <label class="field">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span>
+            <span class="stack"><span class="lbl">Mot de passe</span><input type="{{pwType}}" value="{{pw}}" onInput="{{setPw}}" placeholder="Au moins 10 caractères" autocomplete="new-password"></span>
+            <span class="trail">
+              <button class="peek" type="button" onClick="{{togglePeek}}" aria-label="{{peekLabel}}" aria-pressed="{{peek}}">
+                <sc-if value="{{peek}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18"></path><path d="M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-3.2 3.9M6.6 6.6C4 8.3 2.5 12 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.3-1"></path></svg></sc-if>
+                <sc-if value="{{noPeek}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"></path><circle cx="12" cy="12" r="2.8"></circle></svg></sc-if>
+              </button>
+            </span>
+          </label>
+          <div class="meter" aria-hidden="true">
+            <span class="{{m1}}"><i></i></span><span class="{{m2}}"><i></i></span><span class="{{m3}}"><i></i></span><span class="{{m4}}"><i></i></span>
+          </div>
+          <span class="hint" aria-live="polite">Solidité : <span style="color: #F4F4F5; font-weight: 500;">{{strength}}</span></span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="field">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2.5"></rect><path d="M8 20h8M12 16v4"></path></svg></span>
+            <span class="stack"><span class="lbl">Nom du serveur</span><input type="text" value="Maison"></span>
+            <span class="ok" aria-label="Valide"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+          </label>
+          <span class="hint">Valide : la coche se dessine.</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="field is-error">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span>
+            <span class="stack"><span class="lbl">Dossier</span><input type="text" value="/mnt/nas/perso" style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px;"></span>
+          </label>
+          <span class="hint err">Ce dossier ne répond pas. Le NAS est-il allumé ?</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label class="field">
+            <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></span>
+            <span class="stack"><span class="lbl">Langue</span>
+              <select>
+                <option>Français</option>
+                <option>English</option>
+                <option>Español</option>
+              </select>
+            </span>
+            <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+          </label>
+          <span class="hint">Liste déroulante, même gabarit.</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="rise r3" aria-labelledby="c-controls" style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="c-controls" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">Contrôles</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 20px;">
+        <div class="panel" style="padding: 12px 28px;">
+          <sc-for list="{{settings}}" as="o" hint-placeholder-count="3">
+            <div class="setting">
+              <div><div class="t" id="{{o.id}}">{{o.label}}</div><div class="d">{{o.desc}}</div></div>
+              <button class="switch" type="button" role="switch" aria-checked="{{o.on}}" aria-labelledby="{{o.id}}" onClick="{{o.toggle}}"><span class="trk"><span class="knob"></span></span></button>
+            </div>
+          </sc-for>
+        </div>
+        <div class="panel" style="padding: 28px; display: flex; flex-direction: column; gap: 24px;">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span id="seg-label" style="font-size: 13px; font-weight: 500; color: #8B8B94;">Contrôle segmenté</span>
+            <div class="seg" role="radiogroup" aria-labelledby="seg-label">
+              <span class="ind" aria-hidden="true" style="width: calc((100% - 8px) / 3); transform: {{segShift}};"></span>
+              <sc-for list="{{segItems}}" as="s" hint-placeholder-count="3">
+                <button type="button" role="radio" aria-checked="{{s.on}}" onClick="{{s.pick}}">{{s.label}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font-size: 13px; font-weight: 500; color: #8B8B94;">Puces de profil</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+                <button class="chip" type="button" aria-pressed="{{c.on}}" onClick="{{c.toggle}}"><span class="av" aria-hidden="true" style="background: {{c.color}};">{{c.initial}}</span>{{c.name}}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <span style="font-size: 13px; font-weight: 500; color: #8B8B94;">Progression d'étapes</span>
+            <div class="steps" aria-label="Étape 3 sur 5"><span class="done"></span><span class="done"></span><span class="cur"></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="padding: 12px;">
+        <sc-for list="{{folders}}" as="f" hint-placeholder-count="3">
+          <button class="checkrow" type="button" role="checkbox" aria-checked="{{f.on}}" onClick="{{f.toggle}}">
+            <span class="box" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+            <span style="flex: 1 1 auto; min-width: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 14px; color: #E4E4E7;">{{f.path}}</span>
+            <span style="font-size: 13px; color: #8B8B94; white-space: nowrap;">{{f.count}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+
+    <section class="rise r4" aria-labelledby="c-choice" style="display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="c-choice" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">Cartes de choix</h2>
+      <div role="radiogroup" aria-labelledby="c-choice" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 16px;">
+        <sc-for list="{{choices}}" as="c" hint-placeholder-count="3">
+          <button class="choice" type="button" role="radio" aria-checked="{{c.on}}" onClick="{{c.pick}}">
+            <span class="media"><span class="cover {{c.img}}"></span></span>
+            <span class="badge" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+            <span class="body">
+              <span style="font-size: 18px; font-weight: 600; letter-spacing: -0.02em;">{{c.label}}</span>
+              <span style="font-size: 13px; line-height: 1.45; color: #A1A1AA;">{{c.desc}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      pw: 'Marée-112',
+      peek: false,
+      settings: { watch: true, markers: true, remote: false },
+      seg: 0,
+      chips: { leo: true, camille: true, sam: false, kids: true },
+      folders: { a: true, b: true, c: false },
+      choice: 'show'
+    };
+  }
+  renderVals() {
+    const pw = this.state.pw || '';
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12 || /[^A-Za-z0-9]/.test(pw)) score++;
+    if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+    if (/\d/.test(pw)) score++;
+    if (!pw) score = 0;
+    const labels = ['À saisir', 'Faible', 'Moyen', 'Bon', 'Robuste'];
+    const peek = this.state.peek;
+    const setDefs = [
+      ['watch', 'Surveiller les dossiers', 'Les nouveaux fichiers apparaissent tout seuls.'],
+      ['markers', 'Détecter intros et génériques', 'Active « Passer l’intro » et l’épisode suivant.'],
+      ['remote', 'Accès hors de la maison', 'Regarder depuis n’importe où, chiffré de bout en bout.']
+    ];
+    const settings = setDefs.map(([k, label, desc]) => {
+      const on = !!this.state.settings[k];
+      return { id: 'set-' + k, label, desc, on, toggle: () => this.setState({ settings: { ...this.state.settings, [k]: !on } }) };
+    });
+    const segLabels = ['Films', 'Séries', 'Vidéos perso'];
+    const segItems = segLabels.map((label, i) => ({ label, on: this.state.seg === i, pick: () => this.setState({ seg: i }) }));
+    const chipDefs = [['leo', 'Léo', 'L', '#5B7FA6'], ['camille', 'Camille', 'C', '#A86A55'], ['sam', 'Sam', 'S', '#5E8C72'], ['kids', 'Enfants', 'E', '#7D6AA6']];
+    const chips = chipDefs.map(([k, name, initial, color]) => {
+      const on = !!this.state.chips[k];
+      return { name, initial, color, on, toggle: () => this.setState({ chips: { ...this.state.chips, [k]: !on } }) };
+    });
+    const folderDefs = [['a', '/media/films', '1 284 vidéos'], ['b', '/media/series', '2 341 vidéos'], ['c', '/home/leo/Téléchargements', '12 vidéos']];
+    const folders = folderDefs.map(([k, path, count]) => {
+      const on = !!this.state.folders[k];
+      return { path, count, on, toggle: () => this.setState({ folders: { ...this.state.folders, [k]: !on } }) };
+    });
+    const choiceDefs = [
+      ['film', 'Films', 'Affiches, fiches et bandes-annonces.', 'img-dunes'],
+      ['show', 'Séries', 'Saisons, épisodes, intros détectées.', 'img-lighthouse'],
+      ['home', 'Vidéos perso', 'Classées par date, sans métadonnées.', 'img-forest']
+    ];
+    const choices = choiceDefs.map(([k, label, desc, img]) => ({ label, desc, img, on: this.state.choice === k, pick: () => this.setState({ choice: k }) }));
+    return {
+      pw,
+      pwType: peek ? 'text' : 'password',
+      setPw: (e) => this.setState({ pw: e && e.target ? e.target.value : '' }),
+      peek,
+      noPeek: !peek,
+      peekLabel: peek ? 'Masquer le mot de passe' : 'Afficher le mot de passe',
+      togglePeek: () => this.setState({ peek: !this.state.peek }),
+      m1: score >= 1 ? 'on' : '', m2: score >= 2 ? 'on' : '', m3: score >= 3 ? 'on' : '', m4: score >= 4 ? 'on' : '',
+      strength: labels[score],
+      settings,
+      segItems,
+      segShift: 'translateX(' + (this.state.seg * 100) + '%)',
+      chips,
+      folders,
+      choices
+    };
+  }
+}
+</script>
+</body>
+</html>

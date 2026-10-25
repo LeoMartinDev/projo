@@ -1,0 +1,282 @@
+/* Metadata editor (§9.3). Fixed-height dialog (`dialog--fill`): the tabs stay, each tab's content
+   scrolls inside its own region (AGENTS.md, UI layout). */
+
+.edit-item {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.edit-item__tabs {
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.edit-item__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.edit-item__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* Room for the focus ring of the fields. */
+  padding: 6px;
+  margin: -6px;
+}
+
+.edit-item__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 12px;
+}
+
+/* Genres (§9.3): the whole fixed list, a pressed toggle = picked. Same well as a field. */
+.edit-item__genres {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 8px 14px 16px;
+  border-radius: var(--radius-field);
+  background: var(--color-field);
+  box-shadow:
+    inset 0 0 0 1px var(--color-border-field),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.edit-item__genres-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 36px;
+}
+
+.edit-item__genre-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.edit-item__genre[aria-pressed='true'],
+.edit-item__genre[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.edit-item__overview {
+  align-items: flex-start;
+  padding-top: 0;
+}
+
+.edit-item__overview .edit-item__lock {
+  margin-top: 12px;
+}
+
+.edit-item__textarea {
+  min-height: 150px;
+  resize: none;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.edit-item__lock {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-text-muted);
+}
+
+.edit-item__lock-icon {
+  display: flex;
+}
+
+.edit-item__revert {
+  width: 36px;
+  height: 36px;
+}
+
+.edit-item__skeleton {
+  display: block;
+  height: 100%;
+}
+
+/* ── Images ──────────────────────────────────────────────────────────────── */
+
+.edit-item__images {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.edit-item__image-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edit-item__upload {
+  cursor: pointer;
+}
+
+.edit-item__upload[data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.edit-item__upload:has(input:focus-visible) {
+  box-shadow: var(--ring-focus);
+}
+
+.edit-item__images .alert {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.edit-item__grid {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 10px;
+}
+
+.edit-item__grid--poster {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+
+.edit-item__grid--backdrop {
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
+}
+
+.edit-item__tile {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  aspect-ratio: 2 / 3;
+  transition: box-shadow 0.25s var(--ease);
+}
+
+.edit-item__grid--backdrop .edit-item__tile {
+  aspect-ratio: 16 / 9;
+}
+
+.edit-item__tile img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+button.edit-item__tile {
+  cursor: pointer;
+}
+
+button.edit-item__tile:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.35);
+}
+
+button.edit-item__tile:disabled {
+  cursor: default;
+}
+
+.edit-item__tile[aria-pressed='true'],
+.edit-item__tile[aria-current='true'] {
+  box-shadow:
+    0 0 0 2px var(--color-text),
+    0 0 0 5px rgba(255, 255, 255, 0.08);
+}
+
+.edit-item__tile-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(10, 10, 11, 0.72);
+  color: var(--color-text-muted-strong);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.edit-item__tile-busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 10, 11, 0.55);
+  color: var(--color-text);
+}
+
+.edit-item__grid-state {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.edit-item__refresh {
+  margin-right: auto;
+}
+
+/* "Metadata" page: library and button on one line. */
+.settings-block.refresh-library {
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-block.refresh-library > .field {
+  flex: 1 1 260px;
+}
+
+.settings-block.refresh-library > .alert {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .edit-item__row {
+    grid-template-columns: minmax(0, 1fr) 96px;
+  }
+
+  .edit-item__grid--poster {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .edit-item__grid--backdrop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Its own row: "Undo" and "Enregistrer" (or "Fermer") stay together below it. */
+  .edit-item__refresh {
+    flex: 1 0 100%;
+    margin-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .edit-item__tile {
+    transition: none;
+  }
+}

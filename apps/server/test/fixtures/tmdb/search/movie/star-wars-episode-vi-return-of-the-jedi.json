@@ -1,0 +1,24 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "id": 1892,
+      "title": "Le Retour du Jedi",
+      "original_language": "en",
+      "original_title": "Return of the Jedi",
+      "overview": "",
+      "popularity": 15.8373,
+      "poster_path": "/tEQlCGiiWvMvfD7Sz8d99Pouy39.jpg",
+      "release_date": "1983-05-25",
+      "softcore": false,
+      "video": false,
+      "vote_average": 7.911,
+      "vote_count": 17478,
+      "genre_ids": [12, 28, 878],
+      "backdrop_path": null
+    }
+  ],
+  "total_pages": 1,
+  "total_results": 1
+}

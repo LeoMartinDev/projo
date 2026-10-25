@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — C'est prêt</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/00ccc6c7bfab1fbb6e69fcb0922c4361">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+.col{animation:pj-drift 80s linear infinite}
+.col.rev{animation-direction:reverse}
+.wall{animation:pj-fade 1.6s ease both}
+.done-mark{animation:pj-pop .7s cubic-bezier(.34,1.56,.64,1) .3s both}
+.done-mark path{stroke-dasharray:24;animation:pj-draw .6s cubic-bezier(.2,.7,.2,1) .75s both}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; overflow: hidden;">
+  <div class="wall" aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div style="position: absolute; left: -18%; right: -18%; top: -40%; bottom: -40%; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 18px; transform: rotate(-9deg);">
+      <sc-for list="{{columns}}" as="c" hint-placeholder-count="7">
+        <div class="col {{c.dir}}" style="display: flex; flex-direction: column; gap: 18px; margin-top: {{c.offset}};">
+          <sc-for list="{{c.tiles}}" as="t" hint-placeholder-count="8">
+            <div style="position: relative; aspect-ratio: 2 / 3; border-radius: 18px; overflow: hidden; box-shadow: 0 20px 40px -20px rgba(0,0,0,.9);">
+              <div class="cover {{t.img}}" style="position: absolute; inset: 0; background-position: {{t.pos}};"></div>
+              <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,0) 50%);"></div>
+              <span style="position: absolute; left: 14px; right: 14px; bottom: 16px; font-size: 20px; line-height: 1; font-weight: 700; letter-spacing: -0.035em;">{{t.title}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div style="position: absolute; inset: 0; background: radial-gradient(58% 62% at 50% 50%, rgba(10,10,11,.9) 0%, rgba(10,10,11,.72) 55%, rgba(10,10,11,.5) 100%);"></div>
+  </div>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px clamp(16px, 4vw, 56px);">
+    <span style="font-size: 24px; font-weight: 700; letter-spacing: -0.04em;">projo<span>.</span></span>
+  </header>
+
+  <main style="position: relative; z-index: 2; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 112px 16px 56px; text-align: center;">
+    <span class="done-mark" aria-hidden="true" style="width: 72px; height: 72px; border-radius: 999px; background: linear-gradient(180deg, #FFFFFF, #E4E4E8); color: #0A0A0B; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 10px rgba(255,255,255,.06), 0 20px 50px -10px rgba(255,255,255,.35);">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>
+    </span>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+      <h1 class="rise r2" style="margin: 0; font-size: clamp(52px, 7vw, 96px); line-height: 0.94; font-weight: 700; letter-spacing: -0.055em;">C'est prêt, Léo.</h1>
+      <p class="rise r3" style="margin: 0; max-width: 520px; font-size: 18px; line-height: 1.55; color: #D4D4D8;">On analyse vos vidéos en arrière-plan. Vous pouvez commencer à regarder tout de suite, le catalogue se remplit au fur et à mesure.</p>
+    </div>
+
+    <section class="panel rise r4" aria-label="Analyse en cours" style="width: min(520px, 100%); box-sizing: border-box; padding: 22px 24px; display: flex; flex-direction: column; gap: 16px; text-align: left;">
+      <sc-for list="{{tasks}}" as="t" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 14px;">
+            <span style="display: inline-flex; align-items: center; gap: 8px; font-weight: 500;">
+              <sc-if value="{{t.done}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+              {{t.label}}
+            </span>
+            <span style="font-size: 13px; color: #A1A1AA; font-variant-numeric: tabular-nums;">{{t.status}}</span>
+          </div>
+          <div class="{{t.barClass}}" role="progressbar" aria-label="{{t.label}}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{t.pct}}"><i style="width: {{t.width}};"></i></div>
+        </div>
+      </sc-for>
+    </section>
+
+    <div class="rise r5" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;">
+      <a class="btn btn-primary btn-lg" href="Main.dc.html">Ouvrir projo
+        <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+      </a>
+      <a class="btn btn-glass btn-lg" href="AdminLibraries.dc.html">Aller à l'administration</a>
+    </div>
+    <span class="rise r6" style="font-size: 13px; color: #8B8B94;">Sur la télé, ouvrez l'app projo et choisissez «&#8239;Maison&#8239;».</span>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { scanned: 412, meta: 260, markers: 0 };
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      const total = 1696;
+      const s = this.state;
+      if (s.scanned >= total && s.meta >= total && s.markers >= 38) return;
+      this.setState({
+        scanned: Math.min(total, s.scanned + 19),
+        meta: Math.min(total, s.meta + 14),
+        markers: s.scanned >= total ? Math.min(38, s.markers + 1) : s.markers
+      });
+    }, 300);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+  }
+  renderVals() {
+    const total = 1696;
+    const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const s = this.state;
+    const mk = (label, value, max, unit, waiting) => {
+      const pct = Math.round(value / max * 100);
+      const done = value >= max;
+      return {
+        label,
+        done,
+        pct,
+        width: pct + '%',
+        status: done ? 'Terminé' : (waiting ? 'En attente' : fmt(value) + ' / ' + fmt(max) + (unit ? ' ' + unit : '')),
+        barClass: done || waiting ? 'bar' : 'bar live'
+      };
+    };
+    const tiles = [
+      ['Le Dernier Ferry', 'img-ocean', '60% 50%'], ['Les Marées basses', 'img-lighthouse', '78% 40%'], ['Sable', 'img-dunes', '62% 50%'],
+      ['Nord', 'img-mountains', '40% 50%'], ['Néons', 'img-city', '50% 60%'], ['La Clairière', 'img-forest', '72% 40%'],
+      ['Basse mer', 'img-ocean', '30% 50%'], ['Minuit', 'img-city', '20% 60%'], ['Le Col', 'img-mountains', '75% 50%'],
+      ['Sirocco', 'img-dunes', '30% 60%'], ['Le Phare', 'img-lighthouse', '85% 30%'], ['Sous les pins', 'img-forest', '20% 60%']
+    ];
+    const columns = Array.from({ length: 7 }, (_, ci) => {
+      const four = [0, 1, 2, 3].map((k) => {
+        const t = tiles[(ci * 5 + k * 3) % tiles.length];
+        return { title: t[0], img: t[1], pos: t[2] };
+      });
+      return { dir: ci % 2 ? 'rev' : '', offset: (ci % 3) * -90 + 'px', tiles: four.concat(four) };
+    });
+    return {
+      columns,
+      tasks: [
+        mk('Recherche des vidéos', s.scanned, total, 'fichiers', false),
+        mk('Affiches et fiches', s.meta, total, '', false),
+        mk('Intros et génériques', s.markers, 38, 'séries', s.scanned < total)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

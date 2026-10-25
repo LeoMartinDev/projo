@@ -1,0 +1,8 @@
+- There is an offset between the image shown in the timeline and the scene when clicking
+- When switching from the shows page to the movies page there is a very quick visual glitch on the image thumbnails
+- On a movie's "More info" page the cast section does not look good with its large horizontal scrollbar
+- On the profile page the first name, last name, colour and PIN code are in a separate dialog when they should be directly in the page
+- The accent colour on the admin dashboard does not look good (the yellow-orange)
+- The shine effect when hovering a movie card should be removed
+- In the admin the "Version" subtitle sticks to the cards right below it
+- For shows and movies in Continue watching, show the image of the frame where playback stopped

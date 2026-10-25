@@ -1,0 +1,98 @@
+{
+  "adult": false,
+  "backdrop_path": "/jYEW5xZkZk2WTrdbMGAPFuBqbDc.jpg",
+  "belongs_to_collection": null,
+  "budget": 0,
+  "genres": [
+    {
+      "id": 878,
+      "name": "Science-Fiction"
+    },
+    {
+      "id": 12,
+      "name": "Aventure"
+    }
+  ],
+  "homepage": "",
+  "id": 438631,
+  "imdb_id": "tt1160419",
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_title": "Dune",
+  "overview": "L'histoire de Paul Atreides, jeune homme aussi doué que brillant, voué à connaître un destin hors du commun.",
+  "popularity": 30.0,
+  "poster_path": "/qpyaW4xUPeIiYA5ckg5zAZFHvsb.jpg",
+  "production_companies": [],
+  "production_countries": [],
+  "release_date": "2021-09-15",
+  "revenue": 0,
+  "runtime": 155,
+  "spoken_languages": [],
+  "status": "Released",
+  "tagline": "",
+  "title": "Dune",
+  "video": false,
+  "vote_average": 7.8,
+  "vote_count": 12000,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 1190668,
+        "known_for_department": "Acting",
+        "name": "Timothée Chalamet",
+        "original_name": "Timothée Chalamet",
+        "popularity": 60.0,
+        "profile_path": "/BE2sdjpgsa2rNTFa66f7upkaOP.jpg",
+        "cast_id": 1,
+        "character": "Paul Atreides",
+        "credit_id": "5b4f8f6e9251410e5a00a6f1",
+        "order": 0
+      }
+    ],
+    "crew": []
+  },
+  "images": {
+    "backdrops": [],
+    "logos": [],
+    "posters": []
+  },
+  "external_ids": {
+    "imdb_id": "tt1160419",
+    "wikidata_id": null,
+    "facebook_id": null,
+    "instagram_id": null,
+    "twitter_id": null
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "12",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2021-09-15T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "PG-13",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2021-09-15T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      }
+    ]
+  }
+}

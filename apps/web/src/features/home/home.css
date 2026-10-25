@@ -1,0 +1,484 @@
+/* Accueil (§13.3, artboards `Home`, `MobileHome`): hero under the header, rows overlapping it. */
+
+.home {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 96px;
+}
+
+.home--no-hero {
+  padding-top: calc(var(--header-height) + 8px);
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  z-index: 1;
+  height: clamp(560px, 88vh, 820px);
+}
+
+.hero__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(55% 60% at 74% 32%, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, var(--tone, #2b4560) 0%, #0c141e 70%, var(--color-bg) 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%);
+}
+
+.hero__img {
+  transform-origin: 70% 40%;
+  animation: ken-burns 26s ease-out both;
+}
+
+/* §13.3 video preview: fades in over the backdrop once it plays (desktop only, see Hero). */
+.hero__video {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s var(--ease);
+  pointer-events: none;
+}
+
+.hero__video[data-visible='true'] {
+  opacity: 1;
+}
+
+.hero__sound {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 210px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  animation: fade-in 0.8s var(--ease) both;
+}
+
+.hero__sound[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hero__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 11, 0.82) 0%,
+    rgba(10, 10, 11, 0.4) 38%,
+    rgba(10, 10, 11, 0) 68%
+  );
+}
+
+.hero__content {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 210px;
+  left: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 560px;
+}
+
+/* The logo sizes the title: the text waits for it (entrance paused, still hidden) rather than being
+   pushed up when it arrives. The loader has usually decoded it already. */
+.hero__content:has(.hero__logo[data-pending]) > * {
+  animation-play-state: paused;
+}
+
+.hero__eyebrow {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.hero__title {
+  font-size: clamp(44px, 6vw, 76px);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+.hero__logo {
+  display: block;
+  max-width: min(480px, 100%);
+  max-height: clamp(84px, 11vw, 150px);
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.hero__meta-part + .hero__meta-part::before,
+.rating-badge + .hero__meta-part::before {
+  content: '·';
+  margin-right: 10px;
+}
+
+.rating-badge + .hero__meta-part::before {
+  content: '';
+  margin-right: 0;
+}
+
+.hero__overview {
+  display: -webkit-box;
+  max-width: 480px;
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+}
+
+.hero__actions .button--large {
+  height: 50px;
+  border-radius: var(--radius-button);
+}
+
+.hero__list {
+  width: 50px;
+  padding: 0;
+  border-radius: var(--radius-pill) !important;
+}
+
+.hero__list-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.hero__list[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hero__progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.hero__episode {
+  color: var(--color-text-soft);
+}
+
+.hero__bar {
+  width: 120px;
+  height: 3px;
+}
+
+.hero--skeleton {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(10, 10, 11, 0) 100%);
+}
+
+.hero__skeleton-eyebrow {
+  width: 120px;
+}
+
+.hero__skeleton-title {
+  width: min(420px, 80%);
+  height: 64px;
+}
+
+.hero__skeleton-meta {
+  width: 240px;
+}
+
+.hero__skeleton-button {
+  width: 180px;
+  height: 50px;
+  border-radius: var(--radius-button);
+}
+
+/* ── Rows ───────────────────────────────────────────────────────────────── */
+
+.home__rows {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  margin-top: -150px;
+  padding: 0 var(--gutter);
+}
+
+.home--no-hero .home__rows {
+  margin-top: 0;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* The track is a stacking context (its paging transform): the row of the hovered card must rise
+   above the next rows, or the card preview is painted under them. */
+.row:hover,
+.row:focus-within {
+  z-index: 2;
+}
+
+.row__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 34px;
+}
+
+.row__title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.row__see {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.row__see:hover {
+  color: var(--color-text-strong);
+}
+
+.row__spacer {
+  flex: 1 1 auto;
+}
+
+.row__viewport {
+  min-width: 0;
+}
+
+/* Mouse: pages slide, previews grow over the neighbours (nothing clips them vertically). */
+.row__viewport--paged {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.row__track {
+  --card-width: max(260px, calc((100% - 42px) / 4));
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 12px 0 8px;
+  transition: transform 0.7s var(--ease);
+}
+
+.row__track--poster {
+  --card-width: max(150px, calc((100% - 84px) / 7));
+}
+
+/* Touch: the row scrolls natively from edge to edge (artboard `MobileHome`). */
+.row__viewport:not(.row__viewport--paged) {
+  margin: 0 calc(-1 * var(--gutter));
+  overflow-x: auto;
+  scroll-padding: 0 var(--gutter);
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.row__viewport:not(.row__viewport--paged)::-webkit-scrollbar {
+  display: none;
+}
+
+.row__viewport:not(.row__viewport--paged) .row__track {
+  --card-width: clamp(220px, 42vw, 320px);
+  width: max-content;
+  padding: 6px var(--gutter) 4px;
+}
+
+.row__viewport:not(.row__viewport--paged) .row__track--poster {
+  --card-width: clamp(112px, 24vw, 170px);
+}
+
+.row__viewport:not(.row__viewport--paged) .cw {
+  scroll-snap-align: start;
+}
+
+.row__skeleton-title {
+  width: 180px;
+  height: 18px;
+}
+
+.card__skeleton {
+  display: block;
+  aspect-ratio: 16 / 9;
+}
+
+.cw--poster .card__skeleton {
+  aspect-ratio: 2 / 3;
+}
+
+/* The room of the next batch of category rows: skeletons spaced like the rows, under a sentinel
+   covering them all (out of the flow: nothing moves when it goes), so a jump past their top (End
+   key) still asks for the batch. */
+.home__pending {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+
+.home__sentinel {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* One caption line (`1lh`) holding a 14 px bar. */
+.card__skeleton-caption {
+  width: 55%;
+  margin-block: calc((1lh - 14px) / 2);
+}
+
+/* ── Phone (artboard `MobileHome`) ──────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .home {
+    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+  }
+
+  .hero {
+    height: auto;
+    margin: calc(var(--header-height) + 4px) 16px 0;
+    aspect-ratio: 4 / 5;
+    max-height: 72dvh;
+    overflow: hidden;
+    border-radius: 22px;
+    box-shadow: 0 30px 60px -24px rgba(0, 0, 0, 0.9);
+  }
+
+  .hero__media {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .hero__shade {
+    background: linear-gradient(0deg, rgba(10, 10, 11, 0.92) 0%, rgba(10, 10, 11, 0) 55%);
+  }
+
+  .hero__content {
+    right: 20px;
+    bottom: 20px;
+    left: 20px;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .hero__eyebrow,
+  .hero__overview,
+  .hero__progress {
+    display: none;
+  }
+
+  .hero__title {
+    font-size: 36px;
+  }
+
+  .hero__logo {
+    max-height: 90px;
+    margin: 0 auto;
+    object-position: center bottom;
+  }
+
+  .hero__meta {
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .hero__actions {
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 10px;
+    padding-top: 0;
+  }
+
+  .hero__actions .button--large {
+    height: 48px;
+    padding: 0 14px;
+    font-size: 15px;
+  }
+
+  .hero__play {
+    flex: 1 1 0;
+  }
+
+  .hero__list {
+    flex: 1 1 0;
+    width: auto;
+    border-radius: var(--radius-button) !important;
+  }
+
+  .hero__list-label {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .hero__info {
+    flex: 0 0 48px;
+    padding: 0 !important;
+  }
+
+  .hero__info-label {
+    display: none;
+  }
+
+  .home__rows {
+    gap: 28px;
+    margin-top: 28px;
+    padding: 0 16px;
+  }
+
+  .row__title {
+    font-size: 17px;
+  }
+}
+
+.hero__actions svg {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .hero__info {
+    order: 3;
+  }
+}

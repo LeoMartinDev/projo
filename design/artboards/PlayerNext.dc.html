@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Épisode suivant</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#000000}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes cardIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes roll{from{transform:translateY(0)}to{transform:translateY(-38%)}}
+@keyframes shrink{from{transform:scale(1);border-radius:0}to{transform:scale(.62);border-radius:10px}}
+.frame{transform-origin:6% 10%;animation:shrink 1s cubic-bezier(.2,.7,.2,1) .2s both}
+.credits{animation:roll 40s linear both}
+.next{animation:cardIn .7s cubic-bezier(.2,.7,.2,1) .7s both}
+.ctl{transition:background-color .2s ease}
+.ctl:hover{background:rgba(255,255,255,.1)}
+.btn-primary{transition:background-color .25s ease,transform .25s ease}
+.btn-primary:hover{background:#FFFFFF}.btn-primary:active{transform:scale(.98)}
+.btn-ghost{transition:background-color .25s ease,color .25s ease}
+.btn-ghost:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
+.ring{transition:stroke-dashoffset 1s linear}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; height: 100vh; min-height: 560px; overflow: hidden; background: #000000; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif;">
+
+  <a class="frame" href="Player.dc.html" aria-label="Agrandir et regarder le générique" style="position: absolute; inset: 0; display: block; overflow: hidden; background: #050506; box-shadow: 0 30px 80px rgba(0,0,0,.6);">
+    <span class="credits" aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 30%; display: flex; flex-direction: column; align-items: center; gap: 28px; color: #D4D4D8; text-align: center;">
+      <span style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8B8B94;">Réalisation</span><span style="font-size: 20px;">Anne Rivière</span></span>
+      <span style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8B8B94;">Scénario</span><span style="font-size: 20px;">Anne Rivière · Paul Mercier</span></span>
+      <span style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8B8B94;">Avec</span><span style="font-size: 20px;">Inès Kerbrat</span><span style="font-size: 20px;">Tom Le Goff</span><span style="font-size: 20px;">Marion Diallo</span></span>
+      <span style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8B8B94;">Image</span><span style="font-size: 20px;">Hugo Lemaire</span></span>
+      <span style="display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: #8B8B94;">Musique originale</span><span style="font-size: 20px;">Clara Joubert</span></span>
+    </span>
+  </a>
+
+  <a class="ctl" href="Series.dc.html" aria-label="Quitter la lecture" style="position: absolute; left: clamp(16px, 3vw, 40px); top: 24px; width: 44px; height: 44px; border-radius: 999px; color: #F4F4F5; display: flex; align-items: center; justify-content: center;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+  </a>
+
+  <section class="next" aria-labelledby="next-title" style="position: absolute; right: clamp(16px, 4vw, 64px); bottom: clamp(24px, 6vh, 64px); width: min(440px, calc(100% - 32px)); box-sizing: border-box; padding: 20px; border-radius: 26px; background: rgba(28,28,31,.6); backdrop-filter: blur(30px) saturate(160%); -webkit-backdrop-filter: blur(30px) saturate(160%); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 40px 80px -24px rgba(0,0,0,.9); display: flex; flex-direction: column; gap: 18px;">
+    <span style="font-size: 12px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #A1A1AA;">Épisode suivant</span>
+    <span aria-hidden="true" style="position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: linear-gradient(180deg, #5E7487 0%, #3A4F60 48%, #1A2733 48.5%, #0C141E 100%); box-shadow: 0 20px 50px -10px rgba(0,0,0,.7);"></span>
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <span style="font-size: 13px; color: #8B8B94;">S2 · É5 · 50 min</span>
+      <h1 id="next-title" style="margin: 0; font-size: 28px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em;">Estran</h1>
+      <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #A1A1AA;">L'épave porte un nom que Lena connaît.</p>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+      <a class="btn-primary" href="Player.dc.html" style="display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 22px 0 14px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-weight: 600; font-size: 15px;">
+        <span style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+          <sc-if value="{{autoplay}}" hint-placeholder-val="{{true}}">
+            <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" style="position: absolute; inset: 0; transform: rotate(-90deg);"><circle cx="14" cy="14" r="12" fill="none" stroke="rgba(10,10,11,.15)" stroke-width="2.5"></circle><circle class="ring" cx="14" cy="14" r="12" fill="none" stroke="#0A0A0B" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="75.4" stroke-dashoffset="{{ringOffset}}"></circle></svg>
+          </sc-if>
+          <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true" style="position: relative;"><path d="M6 3v18l15-9z" fill="currentColor"></path></svg>
+        </span>
+        {{playLabel}}
+      </a>
+      <sc-if value="{{autoplay}}" hint-placeholder-val="{{true}}">
+        <button class="btn-ghost" type="button" onClick="{{cancel}}" style="height: 48px; padding: 0 18px; border-radius: 14px; border: 0; background: transparent; color: #D4D4D8; font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;">Annuler</button>
+      </sc-if>
+      <sc-if value="{{manual}}" hint-placeholder-val="{{false}}">
+        <a class="btn-ghost" href="Player.dc.html" style="display: inline-flex; align-items: center; height: 48px; padding: 0 18px; border-radius: 14px; color: #D4D4D8; text-decoration: none; font-size: 15px; font-weight: 500;">Regarder le générique</a>
+      </sc-if>
+    </div>
+  </section>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.12);"><span style="display: block; width: 96.5%; height: 100%; background: {{accent}};"></span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"countdown":{"editor":"int","default":10,"min":3,"max":30,"unit":"s"},"$preview":{"width":1440,"height":810}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { autoplay: true, left: props.countdown ?? 10 };
+  }
+  componentDidMount() {
+    this.timer = setInterval(() => {
+      if (!this.state.autoplay) return;
+      if (this.state.left <= 0) return;
+      this.setState({ left: this.state.left - 1 });
+    }, 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.timer);
+  }
+  renderVals() {
+    const total = this.props.countdown ?? 10;
+    const left = Math.max(0, this.state.left);
+    const autoplay = this.state.autoplay;
+    const circumference = 75.4;
+    return {
+      accent: this.props.accent ?? '#F4F4F5',
+      autoplay,
+      manual: !autoplay,
+      ringOffset: String((circumference * left / total).toFixed(1)),
+      playLabel: autoplay ? (left > 0 ? 'Lecture dans ' + left + ' s' : 'Lancement…') : 'Lire l’épisode',
+      cancel: () => this.setState({ autoplay: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

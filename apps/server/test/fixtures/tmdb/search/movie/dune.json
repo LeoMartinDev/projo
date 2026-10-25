@@ -1,0 +1,55 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "backdrop_path": null,
+      "genre_ids": [878],
+      "id": 438631,
+      "original_language": "en",
+      "original_title": "Dune",
+      "overview": "L'histoire de Paul Atreides, jeune homme aussi doué que brillant.",
+      "popularity": 101.7,
+      "poster_path": "/qpyaW4xUPeIiYA5ckg5zAZFHvsb.jpg",
+      "release_date": "2021-09-15",
+      "title": "Dune",
+      "video": false,
+      "vote_average": 7.5,
+      "vote_count": 1000
+    },
+    {
+      "adult": false,
+      "backdrop_path": null,
+      "genre_ids": [878],
+      "id": 841,
+      "original_language": "en",
+      "original_title": "Dune",
+      "overview": "En l'an 10191, l'Épice est la substance la plus précieuse de l'univers.",
+      "popularity": 31.4,
+      "poster_path": "/gdNsNaEFIBbtVHtrNOTJKJ9LmlG.jpg",
+      "release_date": "1984-12-14",
+      "title": "Dune",
+      "video": false,
+      "vote_average": 7.5,
+      "vote_count": 1000
+    },
+    {
+      "adult": false,
+      "backdrop_path": null,
+      "genre_ids": [878],
+      "id": 1028703,
+      "original_language": "en",
+      "original_title": "Dune: The Making-of",
+      "overview": "",
+      "popularity": 1.2,
+      "poster_path": null,
+      "release_date": "2021-10-21",
+      "title": "Dune: The Making-of",
+      "video": false,
+      "vote_average": 7.5,
+      "vote_count": 1000
+    }
+  ],
+  "total_pages": 1,
+  "total_results": 3
+}

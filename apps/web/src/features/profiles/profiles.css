@@ -1,0 +1,534 @@
+/* Profiles (§13.6, artboard `Main`), PIN, editor, profile settings. */
+
+/* ── "Who's watching?" ────────────────────────────────────────────────────── */
+
+.who {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 28px var(--gutter);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.who__ambient {
+  position: absolute;
+  inset: 0;
+  background: var(--color-surface-2);
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.who__header {
+  position: relative;
+}
+
+.who__header .logo__word {
+  font-size: 26px;
+}
+
+.who__main {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  padding: 64px 0;
+}
+
+.who__title {
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.who__profiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(20px, 3vw, 40px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.who__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-avatar);
+  background: transparent;
+  color: var(--color-text-secondary);
+  transition: opacity 0.35s ease;
+}
+
+.who__profile:focus-visible {
+  outline-offset: 6px;
+}
+
+/* The others dim while one is pointed at (artboard `Main`). */
+.who__profiles:hover .who__profile:not(:hover) {
+  opacity: 0.45;
+}
+
+.who__avatar {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: clamp(22px, 5vw, 30px);
+  transition:
+    box-shadow 0.35s ease,
+    transform 0.45s var(--ease);
+}
+
+.who__avatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.22) 50%,
+    rgba(255, 255, 255, 0) 65%
+  );
+  transform: translateX(-110%);
+  transition: transform 1s var(--ease);
+  pointer-events: none;
+}
+
+.who__profile:hover .who__avatar,
+.who__profile:focus-visible .who__avatar {
+  box-shadow: 0 24px 50px -16px rgba(0, 0, 0, 0.9);
+  transform: translateY(-6px) scale(1.04);
+}
+
+.who__profile:hover .who__avatar::after {
+  transform: translateX(110%);
+}
+
+.who__avatar--add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(96px, 22vw, 132px);
+  height: clamp(96px, 22vw, 132px);
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.who__lock {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 10, 11, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  color: #ffffff;
+}
+
+.who__edit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 11, 0.45);
+  color: #ffffff;
+}
+
+.who__name {
+  font-size: 16px;
+  font-weight: 500;
+  transition: color 0.25s ease;
+}
+
+.who__profile:hover .who__name {
+  color: var(--color-text-strong);
+}
+
+.who__ghost {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  color: var(--color-text-soft);
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.who__ghost:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-text-strong);
+}
+
+.button--primary-ghost {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.button--primary-ghost:hover {
+  background: #ffffff;
+  color: var(--color-on-accent);
+}
+
+@media (max-width: 640px) {
+  .who {
+    padding: 20px 16px;
+  }
+
+  .who__main {
+    gap: 40px;
+    padding: 32px 0;
+  }
+
+  .who__profiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, auto));
+    gap: 28px 36px;
+  }
+}
+
+/* ── PIN ────────────────────────────────────────────────────────────────── */
+
+.dialog:has(.pin) {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 0 12px;
+  text-align: center;
+}
+
+.pin__label {
+  color: var(--color-text-secondary);
+  font-size: 15px;
+}
+
+.pin__feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+}
+
+.pin__boxes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 56px);
+  gap: 12px;
+}
+
+.pin__boxes[data-error='true'] {
+  animation: shake 0.45s var(--ease) both;
+}
+
+/* One real field over the four boxes: paste, autofill and the numeric keypad keep working. */
+.pin__input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 1px;
+  letter-spacing: 0;
+}
+
+.pin__box {
+  position: relative;
+  height: 64px;
+  border-radius: var(--radius-field);
+  background: var(--color-field);
+  box-shadow: inset 0 0 0 1px var(--color-border-field);
+  transition: box-shadow 0.25s ease;
+}
+
+.pin__box::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  transform: scale(0);
+  transition: transform 0.35s var(--spring);
+}
+
+.pin__box[data-filled='true']::after {
+  transform: scale(1);
+}
+
+.pin__input:focus ~ .pin__box[data-current='true'] {
+  box-shadow:
+    inset 0 0 0 1px var(--color-border-focus),
+    var(--ring-focus);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* ── Editor ─────────────────────────────────────────────────────────────── */
+
+.profile-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-editor__preview {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+}
+
+.profile-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.profile-editor__delete {
+  margin-right: auto;
+}
+
+.swatches {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.swatches__legend {
+  margin-bottom: 10px;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.swatches__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform 0.35s var(--spring);
+}
+
+.swatch:hover {
+  transform: scale(1.06);
+}
+
+.swatch__check {
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.2s ease,
+    transform 0.35s var(--spring);
+}
+
+.swatch:has(input:checked) {
+  box-shadow:
+    0 0 0 2px var(--color-bg),
+    0 0 0 4px var(--color-accent);
+}
+
+.swatch:has(input:checked) .swatch__check {
+  opacity: 1;
+  transform: none;
+}
+
+.swatch:has(input:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 6px;
+}
+
+.link-button {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link-button:hover {
+  color: var(--color-text-strong);
+}
+
+/* ── Settings pages ─────────────────────────────────────────────────────── */
+
+.settings {
+  gap: 24px;
+}
+
+.settings__head {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 8px;
+}
+
+.settings__who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settings__who .page__title {
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 24px;
+  border-radius: var(--radius-panel);
+  background: var(--color-well);
+  box-shadow: var(--shadow-well);
+}
+
+.settings-panel__title {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.settings-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-panel__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 12px;
+  padding: 10px 0 6px;
+}
+
+.settings-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 6px;
+}
+
+.settings-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-facts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+
+.settings-facts__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 15px;
+}
+
+.settings-facts__row dt {
+  color: var(--color-text-muted-strong);
+}
+
+.settings-facts__row dd {
+  margin: 0;
+  color: var(--color-text);
+  font-weight: 500;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .settings-panel {
+    padding: 18px 16px;
+    border-radius: 22px;
+  }
+
+  .settings-panel .setting {
+    gap: 12px;
+  }
+}
+
+.field:has(input:disabled) {
+  opacity: 0.45;
+}

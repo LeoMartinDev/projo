@@ -1,0 +1,129 @@
+/* Compte et appareils (§14). */
+
+.account__username {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 10px;
+}
+
+.account-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Same height loading, empty or full: the list scrolls inside. */
+.devices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 320px;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.devices__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: var(--radius-button);
+}
+
+.device:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.device__icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-card);
+  background: var(--color-glass);
+  color: var(--color-text-muted-strong);
+}
+
+.device__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.device__name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device__current {
+  border-color: rgba(61, 214, 140, 0.4);
+  color: var(--color-success);
+}
+
+.device__meta {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device--skeleton {
+  display: block;
+  height: 64px;
+  flex: 0 0 auto;
+}
+
+/* "À propos": version, then the attributions. */
+.about {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.about__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.about__row dt {
+  color: var(--color-text-muted);
+}
+
+.about__row dd {
+  margin: 0;
+}
+
+.about__credits {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}

@@ -1,0 +1,1 @@
+DROP TABLE `item_manual_matches`;

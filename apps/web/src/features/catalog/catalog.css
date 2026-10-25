@@ -1,0 +1,110 @@
+/* Movies, Shows, My list (§13.4): title, sort, filters, the poster grid. */
+
+.catalog__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.catalog__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.seg--4 .seg__indicator {
+  width: calc((100% - 8px) / 4);
+}
+
+.seg[data-active='3'] .seg__indicator {
+  transform: translateX(300%);
+}
+
+.catalog__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: -8px;
+}
+
+.catalog__filters .field {
+  flex: 0 1 200px;
+  min-width: 150px;
+  min-height: 44px;
+  padding-left: 14px;
+}
+
+.catalog__filters .field__input {
+  font-size: 14px;
+}
+
+.catalog__filters-button {
+  display: none;
+}
+
+.catalog__sheet-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.catalog__sheet-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Columns, gaps and reserved space come from `VirtualGrid` (style), the rest from here. */
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(168px, calc(50% - 8px)), 1fr));
+  gap: 24px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.poster-grid__cell {
+  min-width: 0;
+}
+
+/* Phone: one compact sort control, the filters move into the sheet. */
+@media (max-width: 720px) {
+  .catalog__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .catalog__controls {
+    flex-wrap: nowrap;
+  }
+
+  .catalog__controls .seg {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .catalog__controls .seg__option {
+    padding: 0 6px;
+    font-size: 13px;
+  }
+
+  .catalog__filters {
+    display: none;
+  }
+
+  .catalog__filters-button {
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 48px;
+    padding: 0 14px;
+  }
+}
+
+.field:has(select:disabled) {
+  opacity: 0.45;
+}

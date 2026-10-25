@@ -1,0 +1,18 @@
+# Reference compose (see README.md). `docker compose up -d --build` builds the image locally;
+# without --build, the published image is pulled.
+services:
+  projo:
+    image: ghcr.io/leomartindev/projo:latest
+    build:
+      context: .
+      dockerfile: runtime/Dockerfile
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./projo-data:/data
+      - ${MEDIA_DIR:-./media}:/media:ro
+    environment:
+      - TRUST_PROXY=false # true behind a reverse proxy (Caddy, Traefik, NPM)
+    # The supervisor gives the app 25 s to stop before killing it.
+    stop_grace_period: 30s
+    restart: unless-stopped

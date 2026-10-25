@@ -1,0 +1,804 @@
+/*
+ * Spectator cards (artboards `Home`, `MobileHome`, kit v2 tokens): 16:9 cards with their hover
+ * preview, 2:3 posters, the long-press sheet, round icon buttons, tones for missing pictures.
+ */
+
+/* The panel colour of a preview, from its artwork (MediaCard, artwork-tint.ts). Registered so it
+   transitions when the sample arrives instead of flashing. */
+@property --card-tint {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #161619;
+}
+
+/* ── Previous / next arrows of a horizontal row (home rows, casting) ───── */
+
+.row__pager {
+  display: flex;
+  gap: 14px;
+}
+
+.row__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-muted-strong);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.row__arrow:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-strong);
+}
+
+.row__arrow:disabled {
+  color: var(--color-text-faint);
+  cursor: default;
+}
+
+/* ── Tones: the colour of a card without picture (§13.5 "repli") ────────── */
+
+.tone-0 {
+  --tone: #2b4560;
+}
+.tone-1 {
+  --tone: #6b4529;
+}
+.tone-2 {
+  --tone: #2f4a3a;
+}
+.tone-3 {
+  --tone: #3a2f5a;
+}
+.tone-4 {
+  --tone: #5a4422;
+}
+.tone-5 {
+  --tone: #3a3f47;
+}
+
+.cover-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Round icon buttons (artboard `Home`, `.round`) ─────────────────────── */
+
+.round-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text);
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.round-button:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-strong);
+}
+
+.round-button:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.round-button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.round-button--solid {
+  border-color: transparent;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.round-button--solid:hover:not(:disabled) {
+  border-color: transparent;
+  background: #ffffff;
+  color: var(--color-on-accent);
+}
+
+.round-button--soft {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-muted-strong);
+}
+
+.round-button:disabled {
+  opacity: 0.5;
+}
+
+/* ── Rating badge, progress line ────────────────────────────────────────── */
+
+.rating-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-badge);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.progress-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.progress-line .bar {
+  flex: 1 1 auto;
+  height: 3px;
+}
+
+/* ── Card of a home row ─────────────────────────────────────────────────── */
+
+.cw {
+  position: relative;
+  flex: 0 0 var(--card-width);
+  min-width: 0;
+}
+
+.cw:hover,
+.cw:focus-within {
+  z-index: 30;
+}
+
+/* Its own layer from the start (`will-change`): without it Firefox repaints the card at every frame
+   of the hover zoom, which judders. */
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text);
+  text-decoration: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.45s var(--ease);
+  will-change: transform;
+}
+
+/* The hover shadow of the picture, faded in: a transitioned `box-shadow` is repainted at every
+   frame. Outside `.card__art`, which clips. */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-card);
+  box-shadow: 0 20px 40px -14px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  transition: opacity 0.45s var(--ease);
+  pointer-events: none;
+}
+
+.cw--poster .card::before {
+  aspect-ratio: 2 / 3;
+}
+
+.card:hover {
+  color: var(--color-text);
+}
+
+.card__art {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(70% 60% at 75% 25%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(160deg, var(--tone, #2b3445) 0%, #0e1014 100%);
+  isolation: isolate;
+}
+
+.cw--poster .card__art {
+  aspect-ratio: 2 / 3;
+}
+
+.card__shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0) 55%);
+}
+
+.card__title {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 2;
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+.cw--poster .card__title {
+  font-size: 18px;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+/* A real poster already carries its title. */
+.cw--poster .card__art:has(.cover-img) .card__title {
+  display: none;
+}
+
+.cw--poster .card__art:has(.cover-img) .card__shade {
+  opacity: 0;
+}
+
+.card__frame {
+  position: absolute;
+}
+
+.card__frame-sheet {
+  position: absolute;
+  max-width: none;
+}
+
+.card__badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-pill);
+  background: rgba(10, 10, 11, 0.45);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--color-text);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.card__progress {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  left: 12px;
+  z-index: 2;
+  width: auto;
+  height: 3px;
+}
+
+.card__caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.card__sub {
+  overflow: hidden;
+  color: var(--color-text-muted-strong);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card__right {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Preview (desktop: hover or keyboard focus) ─────────────────────────── */
+
+/* `left`, `top` and the horizontal `transform-origin` come from MediaCard (preview-placement.ts),
+   which keeps it inside the row and the window; these are its resting place before it measures. */
+.preview {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  width: 150%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 16px;
+  background: #161619;
+  isolation: isolate;
+  box-shadow:
+    0 40px 80px -20px rgba(0, 0, 0, 0.9),
+    0 10px 24px -10px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.9);
+  transform-origin: center center;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    transform 0.25s ease,
+    visibility 0s linear 0.25s;
+}
+
+.cw--poster .preview {
+  top: -6px;
+  width: 230%;
+}
+
+.cw:hover .preview {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition:
+    opacity 0.3s ease 0.45s,
+    transform 0.45s var(--ease) 0.45s,
+    visibility 0s linear 0.45s;
+}
+
+/* Keyboard: at once, so Tab reaches the actions. */
+.cw:focus-within .preview {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+}
+
+.cw:hover .card {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.cw:hover .card::before {
+  opacity: 1;
+}
+
+/* The tint under everything, deepening towards the bottom. Without artwork (none, or it failed),
+   the item's tone darkened. */
+.preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--card-tint) 55%,
+    color-mix(in oklab, var(--card-tint) 72%, #0a0a0b) 100%
+  );
+  transition: --card-tint 0.6s ease;
+}
+
+.preview:not(:has(.preview__img)) {
+  --card-tint: color-mix(in oklab, var(--tone, #2b3445) 35%, #0e1014);
+}
+
+/* Taller than the card's 16:9, behind the title and the actions; fades out into the tint. The fade
+   keeps a two-line title ≥ 3:1 over a white artwork at every width of a paged row; the info lines
+   sit past the artwork, on the tint. */
+.preview__art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background:
+    radial-gradient(70% 60% at 75% 25%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(160deg, var(--tone, #2b3445) 0%, #0e1014 100%);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 30%,
+    rgba(0, 0, 0, 0.72) 45%,
+    rgba(0, 0, 0, 0.42) 56%,
+    rgba(0, 0, 0, 0.24) 70%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 30%,
+    rgba(0, 0, 0, 0.72) 45%,
+    rgba(0, 0, 0, 0.42) 56%,
+    rgba(0, 0, 0, 0.24) 70%,
+    rgba(0, 0, 0, 0.08) 86%,
+    transparent 100%
+  );
+}
+
+.cw:hover .preview__img {
+  animation: ken-burns 10s ease-out 0.45s both;
+}
+
+/* A fixed height (the title grows upwards over the artwork): every preview of a row has the same
+   size, with or without artwork. */
+.preview__head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 32 / 15;
+}
+
+.preview__title {
+  display: -webkit-box;
+  overflow: hidden;
+  padding: 10px 16px 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.55),
+    0 0 10px rgba(0, 0, 0, 0.3);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.preview__body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.preview__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview__spacer {
+  flex: 1 1 auto;
+}
+
+/* Room for its four lines (line, badges, genres, progress) whichever are there. */
+.preview__info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: calc(18px + 20px + 16px + 16px + 3 * 8px);
+  overflow: hidden;
+}
+
+.preview__line {
+  overflow: hidden;
+  color: var(--color-text);
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview__genres {
+  flex: 0 0 auto;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview__meta {
+  display: flex;
+  flex: 0 0 20px;
+  align-items: center;
+  overflow: hidden;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.preview .progress-line {
+  flex: 0 0 16px;
+}
+
+/* A row that scrolls natively (no fine pointer, see Row) would clip the preview: the long press
+   opens the sheet there. */
+.row__viewport:not(.row__viewport--paged) .preview {
+  display: none;
+}
+
+/* Touch screens: no hover, the long press opens the sheet instead. */
+@media (hover: none) {
+  .preview {
+    display: none;
+  }
+
+  .card {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .card:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ── Poster tile (grids, search) ────────────────────────────────────────── */
+
+/* Not clipped (`overflow`), so that its hover shadow can be a faded-in `::after` (see `.card`);
+   the picture is rounded itself. Own layer for the hover zoom, as `.card`. */
+.poster {
+  position: relative;
+  display: flex;
+  aspect-ratio: 2 / 3;
+  min-height: 0;
+  border-radius: var(--radius-thumb);
+  background:
+    radial-gradient(120% 70% at 0% 0%, var(--tone, #2b3445) 0%, rgba(17, 17, 19, 0) 75%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.25) 100%),
+    var(--color-surface);
+  box-shadow: var(--shadow-well);
+  color: var(--color-text);
+  text-decoration: none;
+  isolation: isolate;
+  -webkit-touch-callout: none;
+  transition: transform 0.45s var(--ease);
+  will-change: transform;
+}
+
+.poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    0 24px 48px -24px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+  pointer-events: none;
+}
+
+.poster:hover,
+.poster:focus-visible {
+  transform: translateY(-4px) scale(1.02);
+  color: var(--color-text-strong);
+}
+
+.poster:hover::after,
+.poster:focus-visible::after {
+  opacity: 1;
+}
+
+.poster--skeleton {
+  box-shadow: none;
+}
+
+.poster__img {
+  z-index: 0;
+  border-radius: inherit;
+}
+
+.poster__caption {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 14px 18px;
+}
+
+/* With a poster the caption is only for assistive technologies. */
+.poster:has(.poster__img) .poster__caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.poster__title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: clamp(16px, 1.5vw, 19px);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+}
+
+.poster__year {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.poster__watched {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: var(--color-on-accent);
+}
+
+.poster__progress {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  z-index: 2;
+  width: auto;
+  height: 3px;
+}
+
+/* ── Long-press sheet (artboard `MobileHome`) ───────────────────────────── */
+
+.card-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card-sheet__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: rise 0.5s var(--ease) 0.1s both;
+}
+
+.card-sheet__art {
+  position: relative;
+  flex: 0 0 120px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: linear-gradient(160deg, var(--tone, #2b3445) 0%, #0e1014 100%);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.7);
+}
+
+.card-sheet__who {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.card-sheet__title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.card-sheet__line {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.card-sheet__meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.card-sheet__head .round-button {
+  align-self: flex-start;
+}
+
+.card-sheet__play {
+  width: 100%;
+}
+
+.card-sheet__actions {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+}
+
+.sheet-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 4px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.sheet-tile:active {
+  transform: scale(0.96);
+}
+
+.sheet-tile[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.sheet-lines {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sheet-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 50px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 15px;
+  text-align: left;
+}
+
+.sheet-line + .sheet-line {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.sheet-line--danger {
+  color: var(--color-error-soft);
+}

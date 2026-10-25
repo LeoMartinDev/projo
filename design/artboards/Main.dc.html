@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Qui regarde ?</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .8s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.06s}.d2{animation-delay:.12s}.d3{animation-delay:.18s}.d4{animation-delay:.24s}.d5{animation-delay:.30s}.d6{animation-delay:.42s}
+.profiles .p{transition:opacity .35s ease}
+.profiles:hover .p:not(:hover){opacity:.45}
+.p .av{position:relative;overflow:hidden;transition:box-shadow .35s ease,transform .45s cubic-bezier(.2,.7,.2,1)}
+.p .av::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.22) 50%,rgba(255,255,255,0) 65%);transform:translateX(-110%);transition:transform 1s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.p:hover .av,.p:focus-visible .av{transform:translateY(-6px) scale(1.04);box-shadow:0 24px 50px -16px rgba(0,0,0,.9)}
+.p:hover .av::after{transform:translateX(110%)}
+.p .nm{transition:color .25s ease}
+.p:hover .nm{color:#FFFFFF}
+.ghost{transition:background-color .25s ease,border-color .25s ease,color .25s ease}
+.ghost:hover{background:rgba(255,255,255,.14);color:#FFFFFF}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; display: flex; flex-direction: column; padding: 28px clamp(16px, 4vw, 56px); overflow: hidden;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background-color: {{ambient}}; transition: background-color 1s ease; -webkit-mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%); mask-image: radial-gradient(70% 60% at 50% 45%, #000 0%, transparent 100%); pointer-events: none;"></div>
+
+  <header style="position: relative; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+    <span style="font-size: 26px; font-weight: 700; letter-spacing: -0.04em;">projo<span style="color: {{accent}};">.</span></span>
+  </header>
+
+  <main style="position: relative; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 56px; padding: 64px 0;">
+    <h1 class="fu" style="margin: 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; font-weight: 600; letter-spacing: -0.03em; text-align: center;">Qui regarde&#8239;?</h1>
+
+    <nav class="profiles" aria-label="Profils" onMouseLeave="{{reset}}" style="display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(20px, 3vw, 40px);">
+      <a class="p fu d1" href="Home.dc.html" onMouseEnter="{{hoverLeo}}" style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; color: #A1A1AA;">
+        <span class="av" style="width: 132px; height: 132px; border-radius: 30px; background: #5B7FA6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 600; letter-spacing: -0.03em;">L</span>
+        <span class="nm" style="font-size: 16px; font-weight: 500;">Léo</span>
+      </a>
+      <a class="p fu d2" href="Home.dc.html" onMouseEnter="{{hoverCamille}}" style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; color: #A1A1AA;">
+        <span class="av" style="width: 132px; height: 132px; border-radius: 30px; background: #A86A55; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 600; letter-spacing: -0.03em;">C</span>
+        <span class="nm" style="font-size: 16px; font-weight: 500;">Camille</span>
+      </a>
+      <a class="p fu d3" href="Home.dc.html" onMouseEnter="{{hoverSam}}" style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; color: #A1A1AA;">
+        <span class="av" style="width: 132px; height: 132px; border-radius: 30px; background: #5E8C72; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 600; letter-spacing: -0.03em;">S</span>
+        <span class="nm" style="font-size: 16px; font-weight: 500;">Sam</span>
+      </a>
+      <a class="p fu d4" href="Home.dc.html" onMouseEnter="{{hoverKids}}" aria-label="Enfants — profil protégé par code PIN" style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; color: #A1A1AA;">
+        <span class="av" style="width: 132px; height: 132px; border-radius: 30px; background: #7D6AA6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 600; letter-spacing: -0.03em;">E
+          <span style="position: absolute; right: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 999px; background: rgba(10,10,11,.4); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+          </span>
+        </span>
+        <span class="nm" style="font-size: 16px; font-weight: 500;">Enfants</span>
+      </a>
+      <a class="p fu d5" href="AdminAccounts.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; color: #A1A1AA;">
+        <span class="av" style="width: 132px; height: 132px; box-sizing: border-box; border-radius: 30px; background: rgba(255,255,255,.06); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.1); color: #A1A1AA; display: flex; align-items: center; justify-content: center;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        </span>
+        <span class="nm" style="font-size: 16px; font-weight: 500;">Ajouter</span>
+      </a>
+    </nav>
+
+    <a class="ghost fu d6" href="AdminAccounts.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.07); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #C4C4CC; text-decoration: none; font-size: 14px; font-weight: 500;">Gérer les profils</a>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ambient: '#141416' };
+  }
+  renderVals() {
+    const set = (c) => () => { if (this.state.ambient !== c) this.setState({ ambient: c }); };
+    return {
+      accent: this.props.accent ?? '#F4F4F5',
+      ambient: this.state.ambient,
+      hoverLeo: set('#1B2A3B'),
+      hoverCamille: set('#2E1D17'),
+      hoverSam: set('#182A20'),
+      hoverKids: set('#231D33'),
+      reset: set('#141416')
+    };
+  }
+}
+</script>
+</body>
+</html>

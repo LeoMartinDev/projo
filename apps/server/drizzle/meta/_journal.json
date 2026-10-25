@@ -1,0 +1,111 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1792761017712,
+      "tag": "0000_init",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792770504254,
+      "tag": "0001_tmdb_responses",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792770643283,
+      "tag": "0002_search",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792774272567,
+      "tag": "0003_manual_matches_by_path",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792774277989,
+      "tag": "0004_copy_manual_matches",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792774285073,
+      "tag": "0005_drop_item_manual_matches",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1792777489164,
+      "tag": "0006_content_rating_country",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792777924203,
+      "tag": "0007_invitations_created_by_set_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792778821499,
+      "tag": "0008_playback_subtitle_track",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792796683403,
+      "tag": "0009_segments_m4",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1792858674712,
+      "tag": "0010_m5_contract",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792864680074,
+      "tag": "0011_jobs_state_finished_at_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792867847078,
+      "tag": "0012_genre_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1792869564014,
+      "tag": "0013_edition_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1792870622236,
+      "tag": "0014_item_metadata_language",
+      "breakpoints": true
+    }
+  ]
+}

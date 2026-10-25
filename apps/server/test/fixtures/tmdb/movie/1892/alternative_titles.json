@@ -1,0 +1,55 @@
+{
+  "id": 1892,
+  "titles": [
+    {
+      "iso_3166_1": "US",
+      "title": "Star Wars: Return of the Jedi",
+      "type": "new title"
+    },
+    {
+      "iso_3166_1": "US",
+      "title": "Star Wars: Episode VI - Return of the Jedi",
+      "type": "former title"
+    },
+    {
+      "iso_3166_1": "US",
+      "title": "Star Wars: Revenge of the Jedi",
+      "type": "working title"
+    },
+    {
+      "iso_3166_1": "FR",
+      "title": "Star Wars - Episode VI - Le Retour du Jedi",
+      "type": ""
+    },
+    {
+      "iso_3166_1": "DE",
+      "title": "Star Wars: Episode VI - Die Rückkehr der Jedi-Ritter",
+      "type": ""
+    },
+    {
+      "iso_3166_1": "DE",
+      "title": "Krieg der Sterne: Episode VI - Die Rückkehr der Jedi-Ritter",
+      "type": ""
+    },
+    {
+      "iso_3166_1": "US",
+      "title": "Revenge of the Jedi",
+      "type": "working title"
+    },
+    {
+      "iso_3166_1": "US",
+      "title": "Blue Harvest",
+      "type": "ruse title"
+    },
+    {
+      "iso_3166_1": "FR",
+      "title": "Star Wars - Episode 6 - Le Retour du Jedi",
+      "type": ""
+    },
+    {
+      "iso_3166_1": "US",
+      "title": "Star Wars VI Despecialized",
+      "type": "despecialized edition"
+    }
+  ]
+}

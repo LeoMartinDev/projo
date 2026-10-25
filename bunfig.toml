@@ -1,0 +1,133 @@
+[install]
+exact = true
+
+[test]
+root = "."
+
+[fmt]
+printWidth = 100
+semi = false
+singleQuote = true
+trailingComma = "all"
+ignorePatterns = [
+  "apps/server/drizzle/meta/",
+  "design/",
+  "bun.lock",
+  "PRODUCT.md",
+  "README.md",
+  "e2e/tmp/",
+  "e2e/test-results/",
+  "e2e/playwright-report/",
+]
+
+# bun lint enforces PRODUCT.md §5.3. See CLAUDE.md for the rules in prose.
+# Overrides apply in order: a later matching override replaces a rule set earlier.
+[lint]
+ignorePatterns = [
+  "dist/",
+  ".data/",
+  "apps/server/drizzle/",
+  "design/",
+  "**/*.d.ts",
+  "e2e/tmp/",
+  "e2e/test-results/",
+  "e2e/playwright-report/",
+]
+
+[lint.rules]
+"no-restricted-syntax" = [
+  "error",
+  { selector = "ClassDeclaration", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = 'Literal[raw="null"]', message = "No null (§5.3): use undefined. NULL only in infrastructure/sqlite/." },
+  { selector = "TSNullKeyword", message = "No null type (§5.3): use T | undefined or an optional property." },
+]
+"typescript/no-unused-vars" = [
+  "error",
+  { argsIgnorePattern = "^_", varsIgnorePattern = "^_", caughtErrors = "none" },
+]
+"typescript/consistent-type-imports" = ["error", { fixStyle = "inline-type-imports" }]
+"eqeqeq" = ["error", "always"]
+"import/no-restricted-paths" = [
+  "error",
+  { zones = [
+    { target = "./apps/server/src/core", from = "./apps/server/src/application", message = "core/ imports nothing but core/ and @projo/shared." },
+    { target = "./apps/server/src/core", from = "./apps/server/src/infrastructure", message = "core/ imports nothing but core/ and @projo/shared." },
+    { target = "./apps/server/src/core", from = "./apps/server/src/entrypoints", message = "core/ imports nothing but core/ and @projo/shared." },
+    { target = "./apps/server/src/application", from = "./apps/server/src/infrastructure", message = "application/ depends on ports (core/), never on adapters." },
+    { target = "./apps/server/src/application", from = "./apps/server/src/entrypoints", message = "application/ never imports entrypoints/." },
+    { target = "./apps/server/src/infrastructure", from = "./apps/server/src/application", message = "infrastructure/ implements core/ ports; it never imports application/." },
+    { target = "./apps/server/src/infrastructure", from = "./apps/server/src/entrypoints", message = "infrastructure/ never imports entrypoints/." },
+    { target = "./packages/shared", from = "./apps", message = "packages/shared never imports an app." },
+  ] },
+]
+
+# ── Server layers ────────────────────────────────────────────────────────────
+
+# core/ and application/: only relative imports, @projo/shared and bun:test (tests).
+[[lint.overrides]]
+files = ["apps/server/src/core/**/*.ts", "apps/server/src/application/**/*.ts"]
+rules = { "no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { regex = '^(?!\.{1,2}/|@projo/shared(?:/|$)|bun:test$)', message = "core/ and application/ import only core/, @projo/shared (and application/ → core/). No package, no node:/bun: module (§5.3)." },
+  ] },
+] }
+
+[[lint.overrides]]
+files = ["apps/server/**/*.ts"]
+rules = { "no-restricted-syntax" = [
+  "error",
+  { selector = "ClassDeclaration", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = 'Literal[raw="null"]', message = "No null (§5.3): use undefined. NULL only in infrastructure/sqlite/." },
+  { selector = "TSNullKeyword", message = "No null type (§5.3): use T | undefined or an optional property." },
+  { selector = "TryStatement", message = "try/catch only in infrastructure/ (§5.3): return a Result (or use fromPromise)." },
+] }
+
+[[lint.overrides]]
+files = ["apps/server/src/infrastructure/**/*.ts"]
+rules = { "no-restricted-syntax" = [
+  "error",
+  { selector = "ClassDeclaration", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = 'Literal[raw="null"]', message = "No null (§5.3): use undefined. NULL only in infrastructure/sqlite/." },
+  { selector = "TSNullKeyword", message = "No null type (§5.3): use T | undefined or an optional property." },
+] }
+
+[[lint.overrides]]
+files = ["apps/server/src/infrastructure/sqlite/**/*.ts"]
+rules = { "no-restricted-syntax" = [
+  "error",
+  { selector = "ClassDeclaration", message = "No classes (§5.3): use curried factories and closures." },
+  { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
+] }
+
+# ── Web ──────────────────────────────────────────────────────────────────────
+
+[[lint.overrides]]
+files = ["apps/web/**/*.ts", "apps/web/**/*.tsx"]
+[lint.overrides.rules]
+"no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { group = ["@projo/server", "@projo/server/*"], allowTypeImports = true, message = "The web app only imports types from the server (AppType)." },
+  ] },
+]
+"react/rules-of-hooks" = "error"
+"react/exhaustive-deps" = "warn"
+"react/static-components" = "error"
+"react/use-memo" = "error"
+"react/void-use-memo" = "error"
+"react/preserve-manual-memoization" = "error"
+"react/incompatible-library" = "warn"
+"react/immutability" = "error"
+"react/globals" = "error"
+"react/refs" = "error"
+"react/set-state-in-effect" = "error"
+"react/error-boundaries" = "error"
+"react/purity" = "error"
+"react/set-state-in-render" = "error"
+"react/unsupported-syntax" = "warn"
+"react/config" = "error"
+"react/gating" = "error"

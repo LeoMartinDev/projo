@@ -1,0 +1,254 @@
+/* Markers dialog (§12.5): a fixed-size dialog whose body scrolls; the timeline on top, one row per
+   segment type (type and origin, start, end, "Pas d'…", delete), the lookups last. */
+
+.dialog:has(.markers) {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.markers {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  margin: 0 -28px;
+  padding: 4px 28px 8px;
+  overflow-y: auto;
+}
+
+.markers__span--intro {
+  --marker-color: #7dd3fc;
+}
+
+.markers__span--recap {
+  --marker-color: #c4b5fd;
+}
+
+.markers__span--credits {
+  --marker-color: #fcd34d;
+}
+
+.markers__span--preview {
+  --marker-color: #86efac;
+}
+
+.markers__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.markers__bar {
+  position: relative;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.markers__span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-pill);
+  background: var(--marker-color);
+}
+
+.markers__scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.markers__table {
+  display: flex;
+  flex-direction: column;
+}
+
+.markers__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 120px 196px;
+  gap: 12px;
+  align-items: center;
+  min-height: 72px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.markers__row--head {
+  min-height: 0;
+  padding: 0 0 10px;
+  border-bottom-color: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.markers__type {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.markers__swatch {
+  flex: 0 0 auto;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--marker-color);
+}
+
+.markers__row[data-absent='true'] .markers__swatch {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--marker-color);
+}
+
+.markers__type-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.markers__type-label {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markers__origin,
+.markers__error {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markers__origin {
+  color: var(--color-text-muted);
+}
+
+.markers__origin[data-origin='manual'] {
+  color: var(--color-text-soft);
+}
+
+.markers__error {
+  color: var(--color-error-soft);
+}
+
+.markers__input {
+  font-variant-numeric: tabular-nums;
+}
+
+.markers__input:disabled {
+  opacity: 0.4;
+}
+
+.markers__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.markers__absent {
+  min-width: 150px;
+}
+
+.markers__absent[aria-pressed='true'],
+.markers__absent[aria-pressed='true']:hover:not(:disabled) {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.markers__remove:disabled {
+  visibility: hidden;
+}
+
+.markers__lookups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.markers__lookups-label {
+  font-weight: 500;
+}
+
+.markers__lookup-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.markers__lookup {
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.markers__lookup[data-outcome='found'] {
+  color: var(--color-text-soft);
+}
+
+.markers__lookup[data-outcome='error'] {
+  color: var(--color-error-soft);
+}
+
+/* Footer: "Apply to the whole season" on the left, the dialog buttons on the right. */
+.markers__season {
+  margin-right: auto;
+}
+
+@media (max-width: 640px) {
+  .markers__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'type actions'
+      'start end';
+    gap: 8px 10px;
+    padding: 12px 0;
+  }
+
+  .markers__row--head {
+    display: none;
+  }
+
+  .markers__type {
+    grid-area: type;
+  }
+
+  .markers__row > :nth-child(2) {
+    grid-area: start;
+  }
+
+  .markers__row > :nth-child(3) {
+    grid-area: end;
+  }
+
+  .markers__actions {
+    grid-area: actions;
+  }
+
+  .markers__absent {
+    min-width: 0;
+  }
+
+  .markers__season {
+    width: 100%;
+    margin-right: 0;
+  }
+}

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Bienvenue</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/00ccc6c7bfab1fbb6e69fcb0922c4361">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; overflow: hidden;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="cover img-dunes kb" style="position: absolute; inset: 0; transform-origin: 62% 56%;"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,10,11,.92) 0%, rgba(10,10,11,.35) 45%, rgba(10,10,11,.1) 100%);"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.55) 0%, rgba(10,10,11,0) 60%);"></div>
+  </div>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px clamp(16px, 4vw, 56px);">
+    <span class="rise" style="font-size: 26px; font-weight: 700; letter-spacing: -0.04em;">projo<span>.</span></span>
+    <label class="field rise r1" style="min-height: 44px; padding: 0 6px 0 14px; border-radius: 999px; background: rgba(20,20,23,.35); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);">
+      <span class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></span>
+      <span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Langue</span>
+      <select style="font-size: 14px; padding-right: 4px;">
+        <option>Français</option>
+        <option>English</option>
+        <option>Español</option>
+        <option>Deutsch</option>
+      </select>
+      <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+    </label>
+  </header>
+
+  <main style="position: relative; z-index: 2; min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-end; gap: 40px; padding: 140px clamp(16px, 6vw, 96px) 56px;">
+    <div style="display: flex; flex-direction: column; gap: 22px; max-width: 760px;">
+      <span class="eyebrow rise r1">Installation terminée</span>
+      <h1 class="rise r2" style="margin: 0; font-size: clamp(56px, 8vw, 112px); line-height: 0.92; font-weight: 700; letter-spacing: -0.055em;">Bienvenue<br>sur projo.</h1>
+      <p class="rise r3" style="margin: 0; max-width: 520px; font-size: 18px; line-height: 1.55; color: #D4D4D8;">Votre serveur tourne. On le configure ensemble&#8239;: un compte, vos dossiers de vidéos, les profils de la maison. Comptez cinq minutes.</p>
+      <div class="rise r4" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 8px;">
+        <a class="btn btn-primary btn-lg" href="OnbAccount.dc.html">Commencer
+          <svg class="arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+        <a class="btn btn-glass btn-lg" href="OnbAccount.dc.html">Restaurer une sauvegarde</a>
+      </div>
+    </div>
+
+    <div class="rise r6" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+      <div class="panel" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 14px 20px; border-radius: 18px; font-size: 13px; color: #A1A1AA;">
+        <span style="display: inline-flex; align-items: center; gap: 8px; color: #F4F4F5; font-weight: 500;"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 999px; background: #3DDC97; box-shadow: 0 0 0 4px rgba(61,220,151,.15);"></span>Serveur en ligne</span>
+        <span>projo 1.0.0</span>
+        <span style="font-family: 'Geist Mono', ui-monospace, monospace;">192.168.1.20:8420</span>
+        <span>Intel Quick Sync détecté</span>
+        <span>6,2 To libres</span>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="OnbAccount.dc.html">Documentation</a>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

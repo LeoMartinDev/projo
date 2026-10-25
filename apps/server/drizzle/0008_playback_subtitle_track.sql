@@ -1,0 +1,1 @@
+ALTER TABLE `playback_sessions` ADD `subtitle_track_id` text;

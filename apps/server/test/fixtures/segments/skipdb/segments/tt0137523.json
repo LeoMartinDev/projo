@@ -1,0 +1,19 @@
+{
+  "imdb_id": "tt0137523",
+  "season": null,
+  "episode": null,
+  "segments": {
+    "intro": null,
+    "recap": null,
+    "outro": {
+      "start_ms": 8146800,
+      "end_ms": 8342300,
+      "adjusted": false,
+      "offset_ms": 5700,
+      "match": "shifted",
+      "confidence": 0.82
+    },
+    "preview": null
+  },
+  "intro_length_estimate_ms": null
+}

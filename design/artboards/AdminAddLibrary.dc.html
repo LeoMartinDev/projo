@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Ajouter une bibliothèque</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}.d5{animation-delay:.25s}
+.side a{transition:background-color .2s ease,color .2s ease}
+.side a:hover{background:rgba(255,255,255,.05);color:#FFFFFF}
+.opt{transition:border-color .25s ease,background-color .25s ease}
+.opt:hover{border-color:rgba(255,255,255,.3)}
+.opt .tick{transition:opacity .25s ease,transform .25s cubic-bezier(.2,.7,.2,1)}
+.field{transition:border-color .2s ease,background-color .2s ease}
+.field:hover{border-color:rgba(255,255,255,.22)}
+.field:focus{outline:none;border-color:rgba(255,255,255,.6);background:#141416}
+.ctl{transition:background-color .2s ease,color .2s ease}
+.ctl:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
+.sw .knob{transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.sw .trk{transition:background-color .3s ease}
+.chip{transition:background-color .25s ease,border-color .25s ease,color .25s ease}
+.chip:hover{border-color:rgba(255,255,255,.35)}
+.path{animation:rowIn .35s cubic-bezier(.2,.7,.2,1) both}
+.btn-primary{transition:background-color .25s ease,transform .2s ease}
+.btn-primary:hover{background:#FFFFFF}.btn-primary:active{transform:scale(.98)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+
+  <aside class="side" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; padding: 24px 16px; border-right: 1px solid rgba(255,255,255,.06); display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 12px;">
+      <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.04em;">projo<span style="color: {{accent}};">.</span></span>
+      <span style="font-size: 12px; color: #8B8B94;">Administration · Serveur Maison</span>
+    </div>
+    <nav aria-label="Administration" style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>
+        Vue d'ensemble
+      </a>
+      <a href="AdminLibraries.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; background: rgba(255,255,255,.07); color: #F4F4F5; font-weight: 500; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        Bibliothèques
+      </a>
+      <a href="AdminAccounts.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20a6 6 0 0 1 12 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M17.5 14.5A6 6 0 0 1 21 20"></path></svg>
+        Comptes
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M10 9.5v5l4-2.5z"></path></svg>
+        Lecture et transcodage
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+        Appareils
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+        Journal
+      </a>
+    </nav>
+    <a href="Home.dc.html" style="margin-top: auto; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none; font-size: 14px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+      Retour au catalogue
+    </a>
+  </aside>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px clamp(16px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 36px;">
+    <div class="fu" style="display: flex; flex-direction: column; gap: 10px;">
+      <nav aria-label="Fil d'Ariane" style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8B8B94;">
+        <a href="AdminLibraries.dc.html" style="color: #A1A1AA; text-decoration: none;">Bibliothèques</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Nouvelle</span>
+      </nav>
+      <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.03em;">Ajouter une bibliothèque</h1>
+    </div>
+
+    <form style="display: flex; flex-direction: column; gap: 0; max-width: 720px;">
+
+      <fieldset class="fu d1" style="margin: 0; padding: 0 0 32px; border: 0; display: flex; flex-direction: column; gap: 14px;">
+        <legend style="padding: 0 0 14px; font-size: 15px; font-weight: 600;">Type de contenu</legend>
+        <div role="radiogroup" aria-label="Type de contenu" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 12px;">
+          <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
+            <button class="opt" type="button" role="radio" aria-checked="{{t.selected}}" onClick="{{t.pick}}" style="position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 16px; border-radius: 16px; border: 1px solid {{t.border}}; background: {{t.bg}}; color: #F4F4F5; font-family: inherit; text-align: left; cursor: pointer;">
+              <span style="font-size: 15px; font-weight: 600;">{{t.label}}</span>
+              <span style="font-size: 13px; line-height: 1.45; color: #A1A1AA;">{{t.desc}}</span>
+              <span class="tick" aria-hidden="true" style="position: absolute; right: 12px; top: 12px; width: 20px; height: 20px; border-radius: 999px; background: #F4F4F5; color: #0A0A0B; display: flex; align-items: center; justify-content: center; opacity: {{t.tickOpacity}}; transform: {{t.tickScale}};"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+            </button>
+          </sc-for>
+        </div>
+      </fieldset>
+
+      <div class="fu d2" style="display: flex; flex-direction: column; gap: 20px; padding: 32px 0; border-top: 1px solid rgba(255,255,255,.07);">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="lib-name" style="font-size: 15px; font-weight: 600;">Nom</label>
+          <input class="field" id="lib-name" type="text" value="Animation" style="height: 44px; box-sizing: border-box; padding: 0 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #111113; color: #F4F4F5; font-family: inherit; font-size: 15px;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <span id="folders-label" style="font-size: 15px; font-weight: 600;">Dossiers</span>
+          <span style="font-size: 13px; color: #8B8B94;">Projo analyse ces dossiers et leurs sous-dossiers. Un même titre présent dans deux dossiers n'apparaît qu'une fois.</span>
+          <ul aria-labelledby="folders-label" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px;">
+            <sc-for list="{{paths}}" as="p" hint-placeholder-count="2">
+              <li class="path" style="display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 6px 0 14px; border-radius: 12px; background: #111113; border: 1px solid rgba(255,255,255,.08);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B8B94" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                <span style="flex: 1 1 auto; min-width: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: #D4D4D8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{p.path}}</span>
+                <span style="font-size: 12px; color: #8B8B94; white-space: nowrap;">{{p.size}}</span>
+                <button class="ctl" type="button" onClick="{{p.remove}}" aria-label="Retirer {{p.path}}" style="width: 32px; height: 32px; border-radius: 10px; border: 0; background: transparent; color: #8B8B94; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+                </button>
+              </li>
+            </sc-for>
+          </ul>
+          <button class="ctl" type="button" onClick="{{addPath}}" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 14px 0 10px; border-radius: 12px; border: 1px dashed rgba(255,255,255,.2); background: transparent; color: #D4D4D8; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            Ajouter un dossier
+          </button>
+        </div>
+      </div>
+
+      <div class="fu d3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 16px; padding: 32px 0; border-top: 1px solid rgba(255,255,255,.07);">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="lib-lang" style="font-size: 15px; font-weight: 600;">Langue des métadonnées</label>
+          <select class="field" id="lib-lang" style="height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #111113; color: #F4F4F5; font-family: inherit; font-size: 15px;">
+            <option>Français</option>
+            <option>English</option>
+            <option>Español</option>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="lib-country" style="font-size: 15px; font-weight: 600;">Pays pour les classifications</label>
+          <select class="field" id="lib-country" style="height: 44px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #111113; color: #F4F4F5; font-family: inherit; font-size: 15px;">
+            <option>France</option>
+            <option>Belgique</option>
+            <option>Canada</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="fu d4" style="display: flex; flex-direction: column; padding: 16px 0; border-top: 1px solid rgba(255,255,255,.07);">
+        <sc-for list="{{options}}" as="o" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 0;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span id="{{o.id}}" style="font-size: 15px; font-weight: 500;">{{o.label}}</span>
+              <span style="font-size: 13px; line-height: 1.45; color: #8B8B94;">{{o.desc}}</span>
+            </div>
+            <button class="sw" type="button" role="switch" aria-checked="{{o.on}}" aria-labelledby="{{o.id}}" onClick="{{o.toggle}}" style="flex: 0 0 auto; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+              <span class="trk" style="position: relative; display: block; width: 40px; height: 24px; border-radius: 999px; background: {{o.track}};">
+                <span class="knob" style="position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: {{o.knob}}; transform: {{o.shift}};"></span>
+              </span>
+            </button>
+          </div>
+        </sc-for>
+      </div>
+
+      <fieldset class="fu d5" style="margin: 0; padding: 32px 0; border: 0; border-top: 1px solid rgba(255,255,255,.07); display: flex; flex-direction: column; gap: 14px;">
+        <legend style="float: left; padding: 0; font-size: 15px; font-weight: 600;">Profils ayant accès</legend>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          <sc-for list="{{profiles}}" as="p" hint-placeholder-count="4">
+            <button class="chip" type="button" aria-pressed="{{p.on}}" onClick="{{p.toggle}}" style="display: inline-flex; align-items: center; gap: 10px; height: 40px; padding: 0 14px 0 6px; border-radius: 999px; border: 1px solid {{p.border}}; background: {{p.bg}}; color: {{p.fg}}; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">
+              <span aria-hidden="true" style="width: 28px; height: 28px; border-radius: 999px; background: {{p.color}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; opacity: {{p.avOpacity}};">{{p.initial}}</span>
+              {{p.name}}
+            </button>
+          </sc-for>
+        </div>
+      </fieldset>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.07);">
+        <a class="ctl" href="AdminLibraries.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 12px; color: #D4D4D8; text-decoration: none; font-size: 14px; font-weight: 500;">Annuler</a>
+        <a class="btn-primary" href="AdminLibraries.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 20px; border-radius: 12px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-size: 14px; font-weight: 600;">Créer et lancer l'analyse</a>
+      </div>
+    </form>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      type: 'film',
+      paths: [
+        { path: '/media/animation', size: '412 Go' },
+        { path: '/mnt/nas/films/animation', size: '1,1 To' }
+      ],
+      opts: { watch: true, markers: true, chapters: true, subs: false },
+      profiles: { leo: true, camille: true, sam: true, kids: true }
+    };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const typeDefs = [
+      { id: 'film', label: 'Films', desc: 'Un titre par fichier, affiches et fiches complètes.' },
+      { id: 'show', label: 'Séries', desc: 'Regroupe par saison et épisode, détecte les intros.' },
+      { id: 'home', label: 'Vidéos perso', desc: 'Classées par dossier et par date, sans métadonnées.' }
+    ];
+    const types = typeDefs.map((t) => {
+      const sel = this.state.type === t.id;
+      return {
+        ...t,
+        selected: sel,
+        border: sel ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.1)',
+        bg: sel ? 'rgba(255,255,255,.05)' : 'transparent',
+        tickOpacity: sel ? '1' : '0',
+        tickScale: sel ? 'scale(1)' : 'scale(.6)',
+        pick: () => this.setState({ type: t.id })
+      };
+    });
+    const extra = ['/media/animation-jeunesse', '/mnt/usb/archives'];
+    const paths = this.state.paths.map((p, i) => ({
+      ...p,
+      remove: () => this.setState({ paths: this.state.paths.filter((_, j) => j !== i) })
+    }));
+    const optDefs = [
+      { key: 'watch', label: 'Surveiller les dossiers', desc: 'Les nouveaux fichiers apparaissent sans relancer d’analyse.' },
+      { key: 'markers', label: 'Détecter l’intro et le générique', desc: 'Active « Passer l’intro » et l’enchaînement automatique des épisodes.' },
+      { key: 'chapters', label: 'Générer les aperçus de la barre de lecture', desc: 'Une image toutes les 10 secondes. Utilise environ 2 % d’espace en plus.' },
+      { key: 'subs', label: 'Extraire les sous-titres intégrés', desc: 'Plus rapide à la lecture, plus long à l’analyse.' }
+    ];
+    const options = optDefs.map((o) => {
+      const on = !!this.state.opts[o.key];
+      return {
+        id: 'opt-' + o.key,
+        label: o.label,
+        desc: o.desc,
+        on,
+        track: on ? accent : 'rgba(255,255,255,.16)',
+        knob: on ? '#0A0A0B' : '#D4D4D8',
+        shift: on ? 'translateX(16px)' : 'translateX(0)',
+        toggle: () => this.setState({ opts: { ...this.state.opts, [o.key]: !on } })
+      };
+    });
+    const profDefs = [
+      { key: 'leo', name: 'Léo', initial: 'L', color: '#5B7FA6' },
+      { key: 'camille', name: 'Camille', initial: 'C', color: '#A86A55' },
+      { key: 'sam', name: 'Sam', initial: 'S', color: '#5E8C72' },
+      { key: 'kids', name: 'Enfants', initial: 'E', color: '#7D6AA6' }
+    ];
+    const profiles = profDefs.map((p) => {
+      const on = !!this.state.profiles[p.key];
+      return {
+        ...p,
+        on,
+        border: on ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.12)',
+        bg: on ? 'rgba(255,255,255,.06)' : 'transparent',
+        fg: on ? '#F4F4F5' : '#8B8B94',
+        avOpacity: on ? '1' : '.4',
+        toggle: () => this.setState({ profiles: { ...this.state.profiles, [p.key]: !on } })
+      };
+    });
+    return {
+      accent,
+      types,
+      paths,
+      addPath: () => {
+        const next = extra.find((e) => !this.state.paths.some((p) => p.path === e));
+        if (next) this.setState({ paths: [...this.state.paths, { path: next, size: '—' }] });
+      },
+      options,
+      profiles
+    };
+  }
+}
+</script>
+</body>
+</html>

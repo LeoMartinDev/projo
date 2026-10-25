@@ -1,0 +1,26 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "server",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:server"],
+      "port": 8080,
+      "autoPort": false
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:web"],
+      "port": 5173,
+      "autoPort": false
+    },
+    {
+      "name": "web-build",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/web", "preview", "--port", "4173", "--strictPort"],
+      "port": 4173,
+      "autoPort": false
+    }
+  ]
+}

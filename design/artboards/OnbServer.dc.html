@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Votre serveur</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/00ccc6c7bfab1fbb6e69fcb0922c4361">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; overflow: hidden;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="cover img-city kb" style="position: absolute; inset: 0;"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.6) 0%, rgba(10,10,11,.15) 45%, rgba(10,10,11,.72) 100%);"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,10,11,.75) 0%, rgba(10,10,11,0) 45%);"></div>
+  </div>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px clamp(16px, 4vw, 56px);">
+    <span style="flex: 1 1 0; font-size: 24px; font-weight: 700; letter-spacing: -0.04em;">projo<span>.</span></span>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div class="steps" aria-hidden="true"><span class="done"></span><span class="cur"></span><span></span><span></span></div>
+      <span style="font-size: 12px; color: #A1A1AA;">Étape 2 sur 4 · Serveur</span>
+    </div>
+    <div style="flex: 1 1 0; display: flex; justify-content: flex-end;"><a class="btn btn-ghost btn-sm" href="OnbWelcome.dc.html">Aide</a></div>
+  </header>
+
+  <main style="position: relative; z-index: 2; min-height: 100vh; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px; padding: 128px clamp(16px, 6vw, 96px) 56px;">
+    <div style="flex: 1 1 360px; max-width: 520px; display: flex; flex-direction: column; gap: 18px;">
+      <span class="eyebrow rise">Votre serveur</span>
+      <h1 class="rise r1" style="margin: 0; font-size: clamp(44px, 5vw, 68px); line-height: 0.96; font-weight: 700; letter-spacing: -0.05em;">Un nom,<br>une langue.</h1>
+      <p class="rise r2" style="margin: 0; max-width: 440px; font-size: 17px; line-height: 1.55; color: #D4D4D8;">Le nom s'affiche sur vos téléviseurs et téléphones. On a déjà vérifié le matériel pour vous.</p>
+    </div>
+
+    <section class="panel rise r2" aria-labelledby="srv-title" style="flex: 0 1 500px; min-width: 0; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="srv-title" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.025em;">Réglages du serveur</h2>
+      <label class="field">
+        <span class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"></path></svg></span>
+        <span class="stack"><span class="lbl">Nom du serveur</span><input type="text" value="Maison"></span>
+        <span class="ok" aria-label="Valide"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+      </label>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr)); gap: 12px;">
+        <label class="field">
+          <span class="stack"><span class="lbl">Langue de l'interface</span>
+            <select><option>Français</option><option>English</option><option>Español</option></select>
+          </span>
+          <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </label>
+        <label class="field">
+          <span class="stack"><span class="lbl">Fiches et affiches</span>
+            <select><option>Français (France)</option><option>Français (Canada)</option><option>English</option></select>
+          </span>
+          <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+        </label>
+      </div>
+
+      <div class="tile" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px;">
+        <span aria-hidden="true" style="flex: 0 0 44px; height: 44px; border-radius: 12px; background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.06)); box-shadow: inset 0 1px 0 rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4F4F5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect><rect x="9.5" y="9.5" width="5" height="5" rx="1"></rect><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"></path></svg>
+        </span>
+        <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px;">
+          <span id="hw" style="font-size: 15px; font-weight: 500;">Transcodage matériel</span>
+          <span style="font-size: 13px; color: #8B8B94;">Intel UHD 770 · Quick Sync · jusqu'à 4 flux 4K</span>
+        </div>
+        <button class="switch" type="button" role="switch" aria-checked="{{hw}}" aria-labelledby="hw" onClick="{{toggleHw}}"><span class="trk"><span class="knob"></span></span></button>
+      </div>
+
+      <div style="display: flex; flex-direction: column;">
+        <div class="setting">
+          <div><div class="t" id="remote">Accès hors de la maison</div><div class="d">Regarder depuis n'importe où, connexion chiffrée.</div></div>
+          <button class="switch" type="button" role="switch" aria-checked="{{remote}}" aria-labelledby="remote" onClick="{{toggleRemote}}"><span class="trk"><span class="knob"></span></span></button>
+        </div>
+        <sc-if value="{{remote}}" hint-placeholder-val="{{false}}">
+          <div class="rise" style="display: flex; align-items: center; gap: 10px; margin: -2px 0 10px; padding: 10px 14px; border-radius: 12px; background: rgba(255,255,255,.05); font-size: 13px; color: #C4C4CC;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+            Adresse publique&#8239;: <span style="font-family: 'Geist Mono', ui-monospace, monospace; color: #F4F4F5;">maison.projo.app</span>
+          </div>
+        </sc-if>
+        <div class="setting">
+          <div><div class="t" id="updates">Mises à jour automatiques</div><div class="d">La nuit, quand personne ne regarde.</div></div>
+          <button class="switch" type="button" role="switch" aria-checked="{{updates}}" aria-labelledby="updates" onClick="{{toggleUpdates}}"><span class="trk"><span class="knob"></span></span></button>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px;">
+        <a class="btn btn-ghost" href="OnbAccount.dc.html">Retour</a>
+        <a class="btn btn-primary" href="OnbLibrary.dc.html">Continuer
+          <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+        </a>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { hw: true, remote: false, updates: true };
+  }
+  renderVals() {
+    const t = (k) => () => this.setState({ [k]: !this.state[k] });
+    return {
+      hw: this.state.hw, remote: this.state.remote, updates: this.state.updates,
+      toggleHw: t('hw'), toggleRemote: t('remote'), toggleUpdates: t('updates')
+    };
+  }
+}
+</script>
+</body>
+</html>

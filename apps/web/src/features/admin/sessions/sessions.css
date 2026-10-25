@@ -1,0 +1,176 @@
+/* Sessions actives (§10.6, §15): the accounts table's look (`AdminAccounts`), one row per session. */
+
+.ses-table {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Loading, empty, error and filled share one fixed frame (AGENTS.md): six rows, then it scrolls. */
+.ses-table__body {
+  display: flex;
+  flex-direction: column;
+  height: 456px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ses-table__body > .state {
+  flex: 1;
+}
+
+.ses-tr {
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr)
+    auto;
+  gap: 16px;
+  align-items: center;
+  min-height: 76px;
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background-color 0.25s ease;
+}
+
+.ses-tr:not(.ses-tr--head):hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ses-tr--head {
+  min-height: 0;
+  padding: 0 12px 12px;
+  border-bottom-color: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ses-tr--skeleton {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.ses-tr__skeleton-avatar {
+  width: 44px;
+  height: 44px;
+}
+
+.ses-tr__skeleton-text {
+  width: 50%;
+}
+
+.ses-tr__who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.ses-tr__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ses-tr__lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ses-tr__strong,
+.ses-tr__muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ses-tr__strong {
+  color: var(--color-text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ses-tr__muted {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.ses-tr__mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.ses-tr__position .ses-tr__mono {
+  color: var(--color-text-secondary);
+}
+
+.ses-tr__bar {
+  max-width: 140px;
+  height: 3px;
+}
+
+.ses-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ses-tr__action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1100px) {
+  .ses-tr {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
+  }
+
+  .ses-tr__device {
+    display: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .ses-tr--head {
+    display: none;
+  }
+
+  .ses-tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'who action'
+      'title title'
+      'playback position';
+    gap: 10px 12px;
+    padding: 14px 4px;
+  }
+
+  .ses-tr--skeleton {
+    grid-template-areas: none;
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .ses-tr__who {
+    grid-area: who;
+  }
+
+  .ses-tr > .ses-tr__cell:nth-child(2) {
+    grid-area: title;
+  }
+
+  .ses-tr__playback {
+    grid-area: playback;
+  }
+
+  .ses-tr__position {
+    grid-area: position;
+    align-items: flex-end;
+  }
+
+  .ses-tr__action {
+    grid-area: action;
+  }
+}

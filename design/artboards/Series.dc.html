@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Les Marées basses</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.06)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fu{animation:fadeUp .9s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}.d4{animation-delay:.32s}
+.kb{animation:kenburns 26s ease-out both;transform-origin:70% 40%}
+.nav a{transition:color .25s ease,background-color .25s ease}.nav a:hover{color:#FFFFFF}
+.pillnav a:not([aria-current]):hover{background:rgba(255,255,255,.08)}
+.iconbtn{transition:background-color .25s ease,color .25s ease}
+.iconbtn:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
+.btn-primary{transition:background-color .25s ease,transform .25s ease}
+.btn-primary:hover{background:#FFFFFF}.btn-primary:active{transform:scale(.98)}
+.btn-glass{transition:background-color .25s ease,border-color .25s ease}
+.btn-glass:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4)}
+.tab{transition:color .25s ease}
+.tab:hover{color:#FFFFFF}
+.tab .bar{transition:transform .35s cubic-bezier(.2,.7,.2,1),opacity .35s ease}
+.ep{transition:background-color .3s ease}
+.ep:hover{background:rgba(255,255,255,.04)}
+.ep .thumb{transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.ep:hover .thumb{transform:scale(1.03)}
+.ep .reveal{opacity:0;transition:opacity .3s ease}
+.ep:hover .reveal,.ep a:focus-visible .reveal{opacity:1}
+.list{animation:fadeIn .4s ease both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: linear-gradient(180deg, #13283B 0px, #101D2A 700px, #0A0A0B 1500px); color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; padding-bottom: 96px; overflow-x: hidden;">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px clamp(16px, 4vw, 56px); background: linear-gradient(180deg, rgba(10,10,11,.55) 0%, rgba(10,10,11,0) 100%);">
+    <a href="Main.dc.html" aria-label="Projo — changer de profil" style="flex: 1 1 0; font-size: 24px; font-weight: 700; letter-spacing: -0.04em; text-decoration: none;">projo<span style="color: {{accent}};">.</span></a>
+    <nav class="nav pillnav" aria-label="Navigation principale" style="display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(40,40,44,.42); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); font-size: 14px;">
+      <a href="Home.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Accueil</a>
+      <a href="Series.dc.html" aria-current="page" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; background: rgba(255,255,255,.16); color: #FFFFFF; font-weight: 600; text-decoration: none;">Séries</a>
+      <a href="Home.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Films</a>
+      <a href="Home.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Ma liste</a>
+    </nav>
+    <div style="flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+      <button class="iconbtn" type="button" aria-label="Rechercher" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #D4D4D8; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      </button>
+      <a href="Main.dc.html" aria-label="Profil de Léo — changer de profil" style="margin-left: 8px; width: 32px; height: 32px; border-radius: 10px; background: #5B7FA6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600;">L</a>
+    </div>
+  </header>
+
+  <section aria-labelledby="show-title" style="position: relative; height: 640px; overflow: hidden;">
+    <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+      <div class="kb" style="position: absolute; inset: 0; background: radial-gradient(55% 60% at 74% 32%, rgba(242,181,68,.55) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #16263A 55%, #0C141E 100%);">
+        <svg viewBox="0 0 1440 300" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 42%;"><path d="M0 120 C 200 80, 360 150, 560 115 S 900 70, 1100 110 S 1340 140, 1440 105 L 1440 300 L 0 300 Z" fill="#0F1A26" fill-opacity="0.7"></path><path d="M0 190 C 240 160, 420 220, 700 185 S 1160 150, 1440 190 L 1440 300 L 0 300 Z" fill="#0A1119" fill-opacity="0.9"></path></svg>
+      </div>
+      <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.9) 0%, rgba(10,10,11,.5) 40%, rgba(10,10,11,0) 70%);"></div>
+      <div style="position: absolute; inset: 0; background: linear-gradient(0deg, #101E2B 0%, rgba(16,30,43,0) 45%);"></div>
+    </div>
+
+    <div style="position: absolute; left: clamp(16px, 4vw, 56px); right: clamp(16px, 4vw, 56px); bottom: 48px; max-width: 600px; display: flex; flex-direction: column; gap: 18px;">
+      <a href="Home.dc.html" class="fu" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #A1A1AA; text-decoration: none;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+        Retour
+      </a>
+      <h1 id="show-title" class="fu d1" style="margin: 0; font-size: clamp(44px, 6vw, 72px); line-height: 0.95; font-weight: 700; letter-spacing: -0.045em;">Les Marées basses</h1>
+      <div class="fu d2" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: #A1A1AA;">
+        <span>2023 – 2025</span><span aria-hidden="true">·</span>
+        <span style="padding: 1px 6px; border: 1px solid rgba(255,255,255,.28); border-radius: 4px; font-size: 12px;">12+</span><span aria-hidden="true">·</span>
+        <span>2 saisons</span><span aria-hidden="true">·</span>
+        <span>Drame, policier</span><span aria-hidden="true">·</span>
+        <span style="padding: 1px 6px; border: 1px solid rgba(255,255,255,.28); border-radius: 4px; font-size: 12px;">4K HDR</span>
+      </div>
+      <p class="fu d2" style="margin: 0; font-size: 16px; line-height: 1.55; color: #C4C4CC;">Sur l'île de Noirmoutier, une garde-côte enquête sur la disparition d'un pêcheur à pied, surpris par une marée d'équinoxe.</p>
+      <p class="fu d3" style="margin: 0; font-size: 13px; line-height: 1.6; color: #8B8B94;">Avec <span style="color: #C4C4CC;">Inès Kerbrat, Tom Le Goff, Marion Diallo</span> · Créée par <span style="color: #C4C4CC;">Anne Rivière</span></p>
+      <div class="fu d4" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 4px;">
+        <a class="btn-primary" href="Player.dc.html" style="display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 26px 0 22px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+          Reprendre S2 · É4
+        </a>
+        <button class="btn-glass" type="button" onClick="{{toggleList}}" aria-pressed="{{inList}}" style="display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 20px 0 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #F4F4F5; font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;">
+          <sc-if value="{{inList}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+          <sc-if value="{{notInList}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+          Ma liste
+        </button>
+        <a class="btn-glass" href="Player.dc.html" style="display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 20px 0 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #F4F4F5; text-decoration: none; font-size: 15px; font-weight: 500;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4v4h4"></path></svg>
+          Depuis le début
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="episodes-title" style="display: flex; flex-direction: column; gap: 20px; padding: 24px clamp(16px, 4vw, 56px) 0; max-width: 1180px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; border-bottom: 1px solid rgba(255,255,255,.08);">
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 32px;">
+        <h2 id="episodes-title" style="margin: 0; padding-bottom: 14px; font-size: 22px; font-weight: 600; letter-spacing: -0.02em;">Épisodes</h2>
+        <div role="tablist" aria-label="Saisons" style="display: flex; gap: 24px;">
+          <sc-for list="{{seasons}}" as="s" hint-placeholder-count="2">
+            <button class="tab" type="button" role="tab" aria-selected="{{s.selected}}" onClick="{{s.pick}}" style="position: relative; height: 44px; padding: 0 2px 2px; border: 0; background: transparent; color: {{s.fg}}; font-family: inherit; font-size: 15px; font-weight: 500; cursor: pointer;">
+              {{s.label}}
+              <span class="bar" aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: {{accent}}; transform: {{s.barScale}}; opacity: {{s.barOpacity}};"></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 16px; padding-bottom: 8px;">
+        <span style="font-size: 13px; color: #8B8B94;">{{seasonSummary}}</span>
+        <button class="btn-glass" type="button" onClick="{{markAll}}" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.16); background: transparent; color: #D4D4D8; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Tout marquer comme vu</button>
+      </div>
+    </div>
+
+    <ol class="list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column;">
+      <sc-for list="{{episodes}}" as="ep" hint-placeholder-count="8">
+        <li class="ep" style="display: flex; flex-wrap: wrap; align-items: center; gap: 24px; padding: 16px 12px; margin: 0 -12px; border-radius: 14px; background: {{ep.rowBg}};">
+          <span aria-hidden="true" style="flex: 0 0 32px; font-size: 20px; font-weight: 500; color: #71717A; font-variant-numeric: tabular-nums;">{{ep.num}}</span>
+          <a href="Player.dc.html" aria-label="Lire l'épisode {{ep.num}}, {{ep.title}}" style="position: relative; flex: 0 0 184px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; display: block;">
+            <span class="thumb" aria-hidden="true" style="position: absolute; inset: 0; background: {{ep.art}};"></span>
+            <span class="reveal" aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center;">
+              <span style="width: 40px; height: 40px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.9); color: #FFFFFF; display: flex; align-items: center; justify-content: center;"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M7.5 4.5v15l12-7.5z" fill="currentColor"></path></svg></span>
+            </span>
+            <sc-if value="{{ep.hasBar}}" hint-placeholder-val="{{false}}">
+              <span aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.18);"><span style="display: block; height: 100%; width: {{ep.progress}}; background: {{ep.barColor}};"></span></span>
+            </sc-if>
+          </a>
+          <div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
+              <h3 style="margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">{{ep.title}}</h3>
+              <span style="font-size: 13px; color: #8B8B94; white-space: nowrap;">{{ep.duration}}</span>
+            </div>
+            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #A1A1AA;">{{ep.desc}}</p>
+            <sc-if value="{{ep.inProgress}}" hint-placeholder-val="{{false}}">
+              <span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: {{accent}};">En cours · 18 min restantes</span>
+            </sc-if>
+          </div>
+          <span style="flex: 0 0 28px; display: flex; justify-content: flex-end; color: #8B8B94;">
+            <sc-if value="{{ep.watched}}" hint-placeholder-val="{{false}}">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Vu"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.3l2.7 2.7L16 9.5"></path></svg>
+            </sc-if>
+          </span>
+        </li>
+      </sc-for>
+    </ol>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { season: 2, inList: true, allSeen: false };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const arts = [
+      'radial-gradient(60% 70% at 70% 30%, rgba(242,181,68,.45) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #0C141E 100%)',
+      'linear-gradient(180deg, #5E7487 0%, #3A4F60 48%, #1A2733 48.5%, #0C141E 100%)',
+      'radial-gradient(50% 60% at 30% 40%, rgba(200,220,235,.35) 0%, rgba(200,220,235,0) 70%), linear-gradient(160deg, #23384A 0%, #0E1822 100%)',
+      'radial-gradient(40% 50% at 60% 70%, rgba(242,181,68,.3) 0%, rgba(242,181,68,0) 70%), linear-gradient(180deg, #1C2C3C 0%, #0A1118 100%)'
+    ];
+    const s1 = [
+      ['Marée d’équinoxe', '54 min', 'Un pêcheur à pied ne revient pas. Le bateau de la SNSM rentre bredouille.'],
+      ['Le Gois', '49 min', 'Lena remonte la route submersible, carnet de marées à la main.'],
+      ['Bouchots', '51 min', 'Les mytiliculteurs se taisent. Un témoin parle enfin.'],
+      ['L’écluse', '50 min', 'Une vieille dispute de famille refait surface.'],
+      ['Vives-eaux', '56 min', 'Le corps est retrouvé là où personne ne l’attendait.'],
+      ['Basse mer', '58 min', 'Lena choisit entre l’île et la vérité.']
+    ];
+    const s2 = [
+      ['Retour à l’estran', '52 min', 'Un an plus tard, Lena reprend son poste à Noirmoutier.'],
+      ['La digue', '48 min', 'Une brèche, une nuit de tempête et un mensonge de trop.'],
+      ['Pêche à pied', '51 min', 'Les habitués de la plage des Dames ont tous vu la même chose.'],
+      ['Coefficient 112', '47 min', 'La plus grande marée de l’année découvre une épave.'],
+      ['Estran', '50 min', 'L’épave porte un nom que Lena connaît.'],
+      ['Le passage du Gois', '49 min', 'Une course contre la mer remontante.'],
+      ['Brume', '53 min', 'Le phare s’éteint pendant trois minutes.'],
+      ['Grande marée', '58 min', 'Tout se joue à l’étale.']
+    ];
+    const season = this.state.season;
+    const allSeen = this.state.allSeen;
+    const list = season === 1 ? s1 : s2;
+    const episodes = list.map((e, i) => {
+      const watched = season === 1 || allSeen || i < 3;
+      const inProgress = season === 2 && !allSeen && i === 3;
+      return {
+        num: String(i + 1),
+        title: e[0], duration: e[1], desc: e[2],
+        art: arts[i % arts.length],
+        watched, inProgress,
+        hasBar: watched || inProgress,
+        progress: inProgress ? '62%' : '100%',
+        barColor: inProgress ? accent : 'rgba(255,255,255,.45)',
+        rowBg: inProgress ? 'rgba(255,255,255,.05)' : 'transparent'
+      };
+    });
+    const seasons = [1, 2].map((n) => ({
+      label: 'Saison ' + n,
+      selected: season === n,
+      fg: season === n ? '#F4F4F5' : '#8B8B94',
+      barScale: season === n ? 'scaleX(1)' : 'scaleX(0.2)',
+      barOpacity: season === n ? '1' : '0',
+      pick: () => this.setState({ season: n })
+    }));
+    const seen = episodes.filter((e) => e.watched).length;
+    return {
+      accent,
+      seasons,
+      episodes,
+      seasonSummary: seen + ' sur ' + episodes.length + ' vus',
+      inList: this.state.inList,
+      notInList: !this.state.inList,
+      toggleList: () => this.setState({ inList: !this.state.inList }),
+      markAll: () => this.setState({ allSeen: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

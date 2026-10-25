@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo mobile — Les Marées basses</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.fu{animation:fadeUp .7s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}
+.scroll{scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.press{transition:transform .2s ease,background-color .25s ease}
+.press:active{transform:scale(.97)}
+.seg{transition:background-color .3s ease,color .3s ease}
+.eps{animation:fadeIn .35s ease both}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: linear-gradient(180deg, #13283B 0px, #0E1A26 420px, #0A0A0B 900px); color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif;">
+  <div class="scroll" style="position: absolute; inset: 0; overflow-y: auto; padding-bottom: 40px;">
+
+    <div style="position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: radial-gradient(55% 60% at 74% 32%, rgba(242,181,68,.55) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #16263A 55%, #0C141E 100%);">
+      <svg aria-hidden="true" viewBox="0 0 400 200" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 50%;"><path d="M0 70 C 60 50, 120 95, 200 70 S 330 40, 400 65 L 400 200 L 0 200 Z" fill="#0F1A26" fill-opacity="0.75"></path><path d="M0 120 C 80 100, 160 140, 260 118 S 360 105, 400 120 L 400 200 L 0 200 Z" fill="#0A1119"></path></svg>
+      <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, #10202E 0%, rgba(16,32,46,0) 45%);"></div>
+      <a class="press" href="MobileHome.dc.html" aria-label="Retour" style="position: absolute; left: 12px; top: 12px; width: 40px; height: 40px; border-radius: 999px; background: rgba(10,10,11,.5); backdrop-filter: blur(10px); color: #F4F4F5; display: flex; align-items: center; justify-content: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg>
+      </a>
+    </div>
+
+    <section class="fu" aria-labelledby="ms-title" style="display: flex; flex-direction: column; gap: 14px; padding: 4px 16px 0;">
+      <h1 id="ms-title" style="margin: 0; font-size: 32px; line-height: 0.98; font-weight: 700; letter-spacing: -0.045em;">Les Marées basses</h1>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #A1A1AA;">
+        <span>2023 – 2025</span><span aria-hidden="true">·</span>
+        <span style="padding: 0 5px; border: 1px solid rgba(255,255,255,.28); border-radius: 4px; font-size: 11px;">12+</span><span aria-hidden="true">·</span>
+        <span>2 saisons</span><span aria-hidden="true">·</span>
+        <span style="padding: 0 5px; border: 1px solid rgba(255,255,255,.28); border-radius: 4px; font-size: 11px;">4K HDR</span>
+      </div>
+      <a class="press" href="Player.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-size: 15px; font-weight: 600;">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+        Reprendre S2 · É4
+      </a>
+      <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8B8B94;">
+        <span aria-hidden="true" style="flex: 1 1 auto; height: 3px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden;"><span style="display: block; width: 62%; height: 100%; background: {{accent}};"></span></span>
+        <span>18 min restantes</span>
+      </div>
+      <p style="margin: 0; font-size: 14px; line-height: 1.55; color: #C4C4CC;">Sur l'île de Noirmoutier, une garde-côte enquête sur la disparition d'un pêcheur à pied, surpris par une marée d'équinoxe.</p>
+      <div style="display: flex; gap: 8px;">
+        <button class="press" type="button" onClick="{{toggleList}}" aria-pressed="{{inList}}" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-radius: 14px; border: 0; background: transparent; color: #D4D4D8; font-family: inherit; font-size: 12px; cursor: pointer;">
+          <sc-if value="{{inList}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+          <sc-if value="{{notInList}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+          Ma liste
+        </button>
+        <button class="press" type="button" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-radius: 14px; border: 0; background: transparent; color: #D4D4D8; font-family: inherit; font-size: 12px; cursor: pointer;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+          Télécharger
+        </button>
+        <button class="press" type="button" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 0; border-radius: 14px; border: 0; background: transparent; color: #D4D4D8; font-family: inherit; font-size: 12px; cursor: pointer;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4v4h4"></path></svg>
+          Depuis le début
+        </button>
+      </div>
+    </section>
+
+    <section class="fu d1" aria-labelledby="ms-eps" style="display: flex; flex-direction: column; gap: 14px; padding: 20px 16px 0; border-top: 1px solid rgba(255,255,255,.06); margin-top: 8px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <h2 id="ms-eps" style="margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">Épisodes</h2>
+        <div role="tablist" aria-label="Saisons" style="display: flex; padding: 3px; border-radius: 999px; background: #17171A;">
+          <sc-for list="{{seasons}}" as="s" hint-placeholder-count="2">
+            <button class="seg" type="button" role="tab" aria-selected="{{s.selected}}" onClick="{{s.pick}}" style="height: 36px; padding: 0 14px; border-radius: 999px; border: 0; background: {{s.bg}}; color: {{s.fg}}; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">{{s.label}}</button>
+          </sc-for>
+        </div>
+      </div>
+      <ol class="eps" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px;">
+        <sc-for list="{{episodes}}" as="ep" hint-placeholder-count="5">
+          <li style="display: flex; flex-direction: column; gap: 8px;">
+            <a class="press" href="Player.dc.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: #F4F4F5;">
+              <span style="position: relative; flex: 0 0 128px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: {{ep.art}};">
+                <span aria-hidden="true" style="position: absolute; left: 50%; top: 50%; margin: -15px 0 0 -15px; width: 30px; height: 30px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.85); display: flex; align-items: center; justify-content: center;"><svg width="11" height="11" viewBox="0 0 24 24"><path d="M7.5 4.5v15l12-7.5z" fill="#FFFFFF"></path></svg></span>
+                <sc-if value="{{ep.hasBar}}" hint-placeholder-val="{{false}}">
+                  <span aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,.18);"><span style="display: block; height: 100%; width: {{ep.progress}}; background: {{ep.barColor}};"></span></span>
+                </sc-if>
+              </span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                <span style="font-size: 14px; font-weight: 600;">{{ep.num}}. {{ep.title}}</span>
+                <span style="font-size: 12px; color: #8B8B94;">{{ep.meta}}</span>
+              </span>
+            </a>
+            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A1A1AA;">{{ep.desc}}</p>
+          </li>
+        </sc-for>
+      </ol>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { season: 2, inList: true };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const arts = [
+      'radial-gradient(60% 70% at 70% 30%, rgba(242,181,68,.45) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #0C141E 100%)',
+      'linear-gradient(180deg, #5E7487 0%, #3A4F60 48%, #1A2733 48.5%, #0C141E 100%)',
+      'radial-gradient(50% 60% at 30% 40%, rgba(200,220,235,.35) 0%, rgba(200,220,235,0) 70%), linear-gradient(160deg, #23384A 0%, #0E1822 100%)',
+      'radial-gradient(40% 50% at 60% 70%, rgba(242,181,68,.3) 0%, rgba(242,181,68,0) 70%), linear-gradient(180deg, #1C2C3C 0%, #0A1118 100%)'
+    ];
+    const s1 = [
+      ['Marée d’équinoxe', '54 min', 'Un pêcheur à pied ne revient pas. Le bateau de la SNSM rentre bredouille.'],
+      ['Le Gois', '49 min', 'Lena remonte la route submersible, carnet de marées à la main.'],
+      ['Bouchots', '51 min', 'Les mytiliculteurs se taisent. Un témoin parle enfin.'],
+      ['L’écluse', '50 min', 'Une vieille dispute de famille refait surface.'],
+      ['Vives-eaux', '56 min', 'Le corps est retrouvé là où personne ne l’attendait.'],
+      ['Basse mer', '58 min', 'Lena choisit entre l’île et la vérité.']
+    ];
+    const s2 = [
+      ['Retour à l’estran', '52 min', 'Un an plus tard, Lena reprend son poste à Noirmoutier.'],
+      ['La digue', '48 min', 'Une brèche, une nuit de tempête et un mensonge de trop.'],
+      ['Pêche à pied', '51 min', 'Les habitués de la plage des Dames ont tous vu la même chose.'],
+      ['Coefficient 112', '47 min', 'La plus grande marée de l’année découvre une épave.'],
+      ['Estran', '50 min', 'L’épave porte un nom que Lena connaît.'],
+      ['Le passage du Gois', '49 min', 'Une course contre la mer remontante.']
+    ];
+    const season = this.state.season;
+    const list = season === 1 ? s1 : s2;
+    const episodes = list.map((e, i) => {
+      const watched = season === 1 || i < 3;
+      const inProgress = season === 2 && i === 3;
+      return {
+        num: String(i + 1),
+        title: e[0],
+        desc: e[2],
+        meta: inProgress ? e[1] + ' · 18 min restantes' : (watched ? e[1] + ' · vu' : e[1]),
+        art: arts[i % arts.length],
+        hasBar: watched || inProgress,
+        progress: inProgress ? '62%' : '100%',
+        barColor: inProgress ? accent : 'rgba(255,255,255,.45)'
+      };
+    });
+    const seasons = [1, 2].map((n) => ({
+      label: 'Saison ' + n,
+      selected: season === n,
+      bg: season === n ? '#F4F4F5' : 'transparent',
+      fg: season === n ? '#0A0A0B' : '#A1A1AA',
+      pick: () => this.setState({ season: n })
+    }));
+    return {
+      accent,
+      seasons,
+      episodes,
+      inList: this.state.inList,
+      notInList: !this.state.inList,
+      toggleList: () => this.setState({ inList: !this.state.inList })
+    };
+  }
+}
+</script>
+</body>
+</html>

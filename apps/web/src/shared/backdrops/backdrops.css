@@ -1,0 +1,84 @@
+/*
+ * Full-bleed illustrations behind the first-launch and login screens (artboards Onb*, kit
+ * `img-*`). Self-hosted (§20 CSP); a slow Ken Burns that `prefers-reduced-motion` stops.
+ */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.backdrop__image {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  animation: ken-burns 32s ease-out both;
+}
+
+.backdrop__image--dunes {
+  background-image: url('./dunes.webp');
+  transform-origin: 62% 56%;
+}
+.backdrop__image--mountains {
+  background-image: url('./mountains.webp');
+}
+.backdrop__image--ocean {
+  background-image: url('./ocean.webp');
+  transform-origin: 70% 30%;
+}
+.backdrop__image--city {
+  background-image: url('./city.webp');
+}
+.backdrop__image--forest {
+  background-image: url('./forest.webp');
+  transform-origin: 75% 22%;
+}
+.backdrop__image--lighthouse {
+  background-image: url('./lighthouse.webp');
+  transform-origin: 78% 30%;
+}
+
+.backdrop::before,
+.backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+/* Text at the bottom left (welcome). */
+.backdrop--hero::before {
+  background: linear-gradient(
+    0deg,
+    rgba(10, 10, 11, 0.92) 0%,
+    rgba(10, 10, 11, 0.35) 45%,
+    rgba(10, 10, 11, 0.1) 100%
+  );
+}
+
+.backdrop--hero::after {
+  background: linear-gradient(90deg, rgba(10, 10, 11, 0.55) 0%, rgba(10, 10, 11, 0) 60%);
+}
+
+/* Title on the left, panel on the right (steps, login). */
+.backdrop--split::before {
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 11, 0.55) 0%,
+    rgba(10, 10, 11, 0.18) 45%,
+    rgba(10, 10, 11, 0.72) 100%
+  );
+}
+
+.backdrop--split::after {
+  background: linear-gradient(0deg, rgba(10, 10, 11, 0.72) 0%, rgba(10, 10, 11, 0) 45%);
+}
+
+@media (max-width: 720px) {
+  .backdrop--split::before {
+    background: rgba(10, 10, 11, 0.45);
+  }
+}

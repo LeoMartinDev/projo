@@ -1,0 +1,36 @@
+{
+  "v": 3,
+  "attachments": {},
+  "createdOnFiles": {"v": 1, "at": "2026-10-23T09:00:00Z"},
+  "title": "Projo — media server",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 900, "title": "Profils — Qui regarde ?", "expand": "fill", "is_interactive": true},
+    "Home.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1720, "title": "Accueil", "expand": "fill", "is_interactive": true},
+    "Series.dc.html": {"x": 3040, "y": 0, "w": 1440, "h": 1760, "title": "Fiche série", "expand": "fill", "is_interactive": true},
+    "Player.dc.html": {"x": 4560, "y": 0, "w": 1440, "h": 810, "title": "Lecteur — passer l'intro", "expand": "fill", "is_interactive": true},
+    "PlayerNext.dc.html": {"x": 6080, "y": 0, "w": 1440, "h": 810, "title": "Lecteur — épisode suivant", "expand": "fill", "is_interactive": true},
+    "AdminLibraries.dc.html": {"x": 0, "y": 2120, "w": 1440, "h": 1000, "title": "Admin — Bibliothèques", "expand": "fill", "is_interactive": true},
+    "AdminAddLibrary.dc.html": {"x": 1520, "y": 2120, "w": 1440, "h": 1100, "title": "Admin — Ajouter une bibliothèque", "expand": "fill", "is_interactive": true},
+    "AdminAccounts.dc.html": {"x": 3040, "y": 2120, "w": 1440, "h": 1000, "title": "Admin — Comptes", "expand": "fill", "is_interactive": true},
+    "MobileHome.dc.html": {"x": 0, "y": 3620, "w": 390, "h": 844, "title": "Mobile — Accueil", "is_interactive": true},
+    "MobileSeries.dc.html": {"x": 470, "y": 3620, "w": 390, "h": 844, "title": "Mobile — Fiche série", "is_interactive": true},
+    "OnbWelcome.dc.html": {"x": 0, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 1 — Bienvenue", "expand": "fill", "is_interactive": true},
+    "OnbAccount.dc.html": {"x": 1520, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 2 — Compte administrateur", "expand": "fill", "is_interactive": true},
+    "OnbServer.dc.html": {"x": 3040, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 3 — Serveur", "expand": "fill", "is_interactive": true},
+    "OnbLibrary.dc.html": {"x": 4560, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 4 — Première bibliothèque", "expand": "fill", "is_interactive": true},
+    "OnbProfiles.dc.html": {"x": 6080, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 5 — Profils", "expand": "fill", "is_interactive": true},
+    "OnbReady.dc.html": {"x": 7600, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 6 — C'est prêt", "expand": "fill", "is_interactive": true},
+    "Components.dc.html": {"x": 0, "y": 6164, "w": 1440, "h": 2000, "title": "Kit d'interface v2", "expand": "fill", "is_interactive": true}
+  },
+  "order": ["Main.dc.html", "Home.dc.html", "Series.dc.html", "Player.dc.html", "PlayerNext.dc.html", "AdminLibraries.dc.html", "AdminAddLibrary.dc.html", "AdminAccounts.dc.html", "MobileHome.dc.html", "MobileSeries.dc.html", "OnbWelcome.dc.html", "OnbAccount.dc.html", "OnbServer.dc.html", "OnbLibrary.dc.html", "OnbProfiles.dc.html", "OnbReady.dc.html", "Components.dc.html"],
+  "notes": {
+    "rowViewer": {"x": 0, "y": -300, "text": "Côté spectateur", "kind": "title1", "maxW": 7520},
+    "rowAdmin": {"x": 0, "y": 1820, "text": "Administration", "kind": "title1", "maxW": 4480},
+    "rowMobile": {"x": 0, "y": 3320, "text": "Mobile", "kind": "title1", "maxW": 860},
+    "rowOnboarding": {"x": 0, "y": 4564, "text": "Onboarding administrateur", "kind": "title1", "maxW": 9040},
+    "rowKit": {"x": 0, "y": 5864, "text": "Composants", "kind": "title1", "maxW": 1440}
+  },
+  "designSystems": []
+}

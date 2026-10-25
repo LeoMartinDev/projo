@@ -1,0 +1,70 @@
+/* Geist, self-hosted from the `geist` npm package (§20: strict CSP, no external domain). Preloaded
+   by index.html. */
+@font-face {
+  font-family: 'Geist';
+  src: url('../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('../../../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2')
+    format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallbacks drawn to Geist's measurements (advance widths of French UI text per weight, ascent
+   1005 / descent 295 per 1000): while the font loads the text already takes its final room, so the
+   swap moves nothing. Arial Bold is the closer base from 550 up. */
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial'), local('ArialMT');
+  font-weight: 100 449;
+  size-adjust: 101.13%;
+  ascent-override: 99.38%;
+  descent-override: 29.17%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial'), local('ArialMT');
+  font-weight: 450 549;
+  size-adjust: 103.46%;
+  ascent-override: 97.14%;
+  descent-override: 28.51%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  font-weight: 550 649;
+  size-adjust: 99.32%;
+  ascent-override: 101.19%;
+  descent-override: 29.7%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Fallback';
+  src: local('Arial Bold'), local('Arial-BoldMT');
+  font-weight: 650 900;
+  size-adjust: 101.46%;
+  ascent-override: 99.05%;
+  descent-override: 29.08%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: 'Geist Mono Fallback';
+  src: local('Courier New'), local('CourierNewPSMT');
+  font-weight: 100 900;
+  ascent-override: 100.5%;
+  descent-override: 29.5%;
+  line-gap-override: 0%;
+}

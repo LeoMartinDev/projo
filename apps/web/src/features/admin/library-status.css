@@ -1,0 +1,72 @@
+/* State of a library: admin list, library page, onboarding "C'est prêt". */
+
+/* Three slots (state, bar, detail) at a fixed height whatever the state: going from "analyse en
+   cours" to "up to date" never moves the row (AGENTS.md, UI layout). */
+.lib-status {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 56px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.lib-status__line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  color: var(--color-text-muted-strong);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.lib-status__line--strong {
+  color: var(--color-text);
+}
+
+.lib-status__line--error {
+  color: var(--color-error-soft);
+}
+
+.lib-status__progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 14px;
+  max-width: 260px;
+}
+
+.lib-status__progress > .bar,
+.lib-status__progress > .bar-live,
+.lib-status__progress > .indeterminate {
+  flex: 1 1 auto;
+  min-width: 48px;
+}
+
+.lib-status__count {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lib-status__count:empty {
+  display: none;
+}
+
+.lib-status__detail {
+  min-height: 16px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lib-status__failed {
+  color: var(--color-warning);
+}

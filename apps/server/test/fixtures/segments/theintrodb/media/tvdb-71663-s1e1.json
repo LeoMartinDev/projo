@@ -1,0 +1,8 @@
+{
+  "tvdb_id": 71663,
+  "type": "tv",
+  "season": 1,
+  "episode": 1,
+  "group_duration_ms": 1394000,
+  "intro": [{ "start_ms": null, "end_ms": 24716, "confidence": 0.522525, "submission_count": 3 }]
+}

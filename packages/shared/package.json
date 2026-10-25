@@ -1,0 +1,21 @@
+{
+  "name": "@projo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./result": "./result.ts",
+    "./errors": "./errors/index.ts",
+    "./api/*": "./api/*.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4"
+  }
+}

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Lecteur</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#000000}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes drift{from{transform:scale(1.02) translateX(0)}to{transform:scale(1.06) translateX(-1.5%)}}
+.scene{animation:drift 30s ease-in-out infinite alternate}
+.chrome{animation:fadeIn .6s ease both}
+.skip{animation:slideIn .5s cubic-bezier(.2,.7,.2,1) .4s both;transition:background-color .25s ease,border-color .25s ease}
+.skip:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.6)}
+.skip .fill{transform-origin:left;animation:fill 8s linear .9s both}
+.toast{animation:toastIn .4s cubic-bezier(.2,.7,.2,1) both}
+.ctl{transition:background-color .2s ease,transform .2s ease}
+.ctl:hover{background:rgba(255,255,255,.1)}
+.ctl:active{transform:scale(.94)}
+.track{transition:height .2s ease}
+.timeline:hover .track{height:6px}
+.knob{transition:transform .2s ease}
+.timeline:hover .knob{transform:scale(1.25)}
+.bigplay{animation:fadeIn .25s ease both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; height: 100vh; min-height: 560px; overflow: hidden; background: #000000; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif;">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="scene" style="position: absolute; inset: 0; background: radial-gradient(30% 40% at 66% 38%, rgba(242,181,68,.38) 0%, rgba(242,181,68,0) 70%), linear-gradient(180deg, #3A5570 0%, #1D3044 52%, #0C141E 100%);">
+      <svg viewBox="0 0 1440 400" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 50%;"><path d="M0 110 C 220 70, 380 150, 600 112 S 980 60, 1200 100 S 1380 128, 1440 100 L 1440 400 L 0 400 Z" fill="#132232" fill-opacity="0.85"></path><path d="M0 220 C 260 180, 460 250, 760 210 S 1220 170, 1440 214 L 1440 400 L 0 400 Z" fill="#0A1119"></path></svg>
+      <svg viewBox="0 0 60 220" style="position: absolute; left: 22%; bottom: 44%; width: 3.2%; height: auto;"><path d="M22 0 h16 l4 200 h-24 z" fill="#0B141D"></path><rect x="20" y="6" width="20" height="14" fill="#F2D49A"></rect></svg>
+    </div>
+  </div>
+
+  <sc-if value="{{paused}}" hint-placeholder-val="{{false}}">
+    <div class="bigplay" aria-hidden="true" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.25);">
+      <span style="width: 88px; height: 88px; border-radius: 999px; background: rgba(255,255,255,.12); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center;"><svg width="34" height="34" viewBox="0 0 24 24"><path d="M7.5 4.5v15l12-7.5z" fill="#FFFFFF"></path></svg></span>
+    </div>
+  </sc-if>
+
+  <div class="chrome" style="position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 16px; padding: 24px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 100%);">
+    <a class="ctl" href="Series.dc.html" aria-label="Quitter la lecture" style="width: 44px; height: 44px; border-radius: 999px; color: #F4F4F5; display: flex; align-items: center; justify-content: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+    </a>
+  </div>
+
+  <sc-if value="{{showSkip}}" hint-placeholder-val="{{true}}">
+    <button class="skip" type="button" onClick="{{skip}}" style="position: absolute; right: clamp(16px, 3vw, 40px); bottom: 148px; display: inline-flex; flex-direction: column; align-items: stretch; gap: 0; padding: 0; border-radius: 14px; border: 1px solid rgba(255,255,255,.35); background: rgba(20,20,22,.55); backdrop-filter: blur(12px); color: #FFFFFF; font-family: inherit; cursor: pointer; overflow: hidden;">
+      <span style="display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 22px; font-size: 15px; font-weight: 600;">
+        Passer l'intro
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l6 6-6 6M13 6l6 6-6 6"></path></svg>
+      </span>
+      <span aria-hidden="true" style="display: block; height: 2px; background: rgba(255,255,255,.1);"><span class="fill" style="display: block; height: 100%; background: {{accent}};"></span></span>
+    </button>
+  </sc-if>
+
+  <sc-if value="{{skipped}}" hint-placeholder-val="{{false}}">
+    <div class="toast" role="status" style="position: absolute; left: clamp(16px, 3vw, 40px); bottom: 148px; display: inline-flex; align-items: center; gap: 16px; height: 44px; padding: 0 8px 0 18px; border-radius: 14px; background: rgba(20,20,22,.7); backdrop-filter: blur(12px); font-size: 14px; color: #D4D4D8;">
+      Intro passée
+      <button class="ctl" type="button" onClick="{{undo}}" style="height: 32px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #FFFFFF; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">Annuler</button>
+    </div>
+  </sc-if>
+
+  <div class="chrome" style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 14px; padding: 72px clamp(16px, 3vw, 40px) 24px; background: linear-gradient(0deg, rgba(0,0,0,.8) 0%, rgba(0,0,0,0) 100%);">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <div class="timeline" role="slider" tabindex="0" aria-label="Position de lecture" aria-valuemin="0" aria-valuemax="2832" aria-valuenow="{{nowSeconds}}" aria-valuetext="{{now}} sur 47:12" style="position: relative; flex: 1 1 auto; height: 20px; display: flex; align-items: center; cursor: pointer;">
+        <span class="track" style="position: relative; display: block; width: 100%; height: 4px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden;">
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 14%; background: rgba(255,255,255,.22);"></span>
+          <span style="position: absolute; left: 1%; top: 0; bottom: 0; width: 2.5%; background: rgba(255,255,255,.28);"></span>
+          <span style="position: absolute; left: 96%; top: 0; bottom: 0; width: 4%; background: rgba(255,255,255,.28);"></span>
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: {{progress}}; background: {{accent}}; transition: width .5s cubic-bezier(.2,.7,.2,1);"></span>
+        </span>
+        <span class="knob" aria-hidden="true" style="position: absolute; left: {{progress}}; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 6px rgba(0,0,0,.4); transition: left .5s cubic-bezier(.2,.7,.2,1);"></span>
+      </div>
+      <span style="font-size: 13px; font-variant-numeric: tabular-nums; color: #D4D4D8; white-space: nowrap;">{{remaining}}</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+      <button class="ctl" type="button" onClick="{{togglePlay}}" aria-label="{{playLabel}}" style="width: 48px; height: 48px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <sc-if value="{{paused}}" hint-placeholder-val="{{false}}"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4.5v15l12-7.5z" fill="currentColor"></path></svg></sc-if>
+        <sc-if value="{{playing}}" hint-placeholder-val="{{true}}"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"></rect><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"></rect></svg></sc-if>
+      </button>
+      <button class="ctl" type="button" aria-label="Reculer de 10 secondes" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4v4h4"></path><text x="12" y="15.2" text-anchor="middle" font-size="7" font-family="Geist, sans-serif" font-weight="600" fill="currentColor" stroke="none">10</text></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Avancer de 10 secondes" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v4h-4"></path><text x="12" y="15.2" text-anchor="middle" font-size="7" font-family="Geist, sans-serif" font-weight="600" fill="currentColor" stroke="none">10</text></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Volume" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path></svg>
+      </button>
+
+      <div style="flex: 1 1 200px; min-width: 0; display: flex; justify-content: center; gap: 10px; font-size: 15px; white-space: nowrap; overflow: hidden;">
+        <span style="font-weight: 600;">Les Marées basses</span>
+        <span style="color: #A1A1AA; overflow: hidden; text-overflow: ellipsis;">S2 · É4 «&#8239;Coefficient 112&#8239;»</span>
+      </div>
+
+      <a class="ctl" href="PlayerNext.dc.html" aria-label="Épisode suivant" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5v14l10-7z" fill="currentColor"></path><path d="M18.5 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+      </a>
+      <a class="ctl" href="Series.dc.html" aria-label="Liste des épisodes" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="14" height="12" rx="2"></rect><path d="M7 4h12a2 2 0 0 1 2 2v10"></path></svg>
+      </a>
+      <button class="ctl" type="button" aria-label="Sous-titres et audio" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 12.5h3M12.5 12.5H17M7 15.5h6"></path></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Plein écran" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":810}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { skipped: false, paused: false };
+  }
+  renderVals() {
+    const skipped = this.state.skipped;
+    const paused = this.state.paused;
+    return {
+      accent: this.props.accent ?? '#F4F4F5',
+      skipped,
+      showSkip: !skipped,
+      paused,
+      playing: !paused,
+      playLabel: paused ? 'Lecture' : 'Pause',
+      progress: skipped ? '3.5%' : '1.6%',
+      now: skipped ? '01:38' : '00:46',
+      nowSeconds: skipped ? 98 : 46,
+      remaining: skipped ? '−45:34' : '−46:26',
+      skip: () => this.setState({ skipped: true }),
+      undo: () => this.setState({ skipped: false }),
+      togglePlay: () => this.setState({ paused: !this.state.paused })
+    };
+  }
+}
+</script>
+</body>
+</html>

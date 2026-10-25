@@ -1,0 +1,2117 @@
+/*
+ * Player, after artboard `Player` (kit v2 tokens). Layers, bottom to top: video, subtitles,
+ * gesture surface, centre (spinner, big play, touch controls), chrome, toast, menu and panel,
+ * blocking overlays. Positions computed at run time go through the CSSOM (no inline style
+ * attribute, §20 CSP).
+ */
+
+.player {
+  --player-gutter: clamp(16px, 3vw, 40px);
+  --player-chrome-bottom: 148px;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+  color: var(--color-text);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.player--idle {
+  cursor: none;
+}
+
+.player__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000000;
+}
+
+.player__surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── Centre ─────────────────────────────────────────────────────────────── */
+
+.player__center {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  pointer-events: none;
+}
+
+.player__center-text {
+  color: var(--color-text-soft);
+  font-size: 15px;
+}
+
+.player__big-play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  padding: 0 0 0 4px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-strong);
+  transform: translate(-50%, -50%);
+  animation: fade-in 0.25s ease both;
+  transition:
+    background-color 0.25s ease,
+    transform 0.2s ease;
+}
+
+.player__big-play:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.player__big-play:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+/* Touch screens: −10 s, play/pause, +10 s in the middle (the row keeps the rest). */
+.player__touch {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: none;
+  align-items: center;
+  gap: clamp(28px, 10vw, 64px);
+  transform: translate(-50%, -50%);
+  transition: opacity 0.4s ease;
+}
+
+.player__touch-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--color-text-strong);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.player__touch-button--main {
+  width: 76px;
+  height: 76px;
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.player__touch-button:active {
+  transform: scale(0.94);
+}
+
+.player__seek-hud {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 104px;
+  height: 104px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  pointer-events: none;
+  transform: translateY(-50%);
+  animation: fade-in 0.15s ease both;
+}
+
+.player__seek-hud--left {
+  left: 12%;
+}
+
+.player__seek-hud--right {
+  right: 12%;
+}
+
+.player__volume-hud {
+  position: absolute;
+  top: max(24px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(20, 20, 22, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.player__volume-hud-bar {
+  width: 120px;
+  height: 4px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.2);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.player__volume-hud-bar::-webkit-progress-bar {
+  background: transparent;
+}
+
+.player__volume-hud-bar::-webkit-progress-value {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.player__volume-hud-bar::-moz-progress-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+/* ── Subtitles ──────────────────────────────────────────────────────────── */
+
+.captions {
+  --captions-scale: 1;
+  position: absolute;
+  right: var(--player-gutter);
+  bottom: max(6%, 32px);
+  left: var(--player-gutter);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #ffffff;
+  font-size: calc(clamp(17px, 2.5vw, 34px) * var(--captions-scale));
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.9),
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 2px 10px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  transition: bottom 0.4s var(--ease);
+}
+
+.captions--raised {
+  bottom: calc(var(--player-chrome-bottom) + 8px);
+}
+
+/* Above the toast when one is shown. */
+.captions--above-toast {
+  bottom: calc(var(--player-chrome-bottom) + 60px);
+}
+
+.captions--small {
+  --captions-scale: 0.78;
+}
+
+.captions--large {
+  --captions-scale: 1.3;
+}
+
+.captions--xlarge {
+  --captions-scale: 1.6;
+}
+
+.captions__cue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 34em;
+  margin: 0;
+}
+
+.captions__line {
+  white-space: pre-wrap;
+}
+
+.captions__i {
+  font-style: italic;
+}
+
+.captions__b {
+  font-weight: 800;
+}
+
+.captions__u {
+  text-decoration: underline;
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+
+.player__top,
+.player__bottom {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s var(--ease);
+}
+
+.player--idle .player__top,
+.player--idle .player__bottom {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.player--idle .player__top {
+  transform: translateY(-8px);
+}
+
+.player--idle .player__bottom {
+  transform: translateY(8px);
+}
+
+.player__top {
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: max(24px, env(safe-area-inset-top)) var(--player-gutter) 48px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
+  pointer-events: none;
+}
+
+.player__top > * {
+  pointer-events: auto;
+}
+
+.player__badge {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: var(--radius-pill);
+  background: rgba(20, 20, 22, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-muted-strong);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.player__bottom {
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 72px var(--player-gutter) max(24px, env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.player__bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.player__remaining {
+  color: var(--color-text-muted-strong);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.player__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.player__control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-strong);
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.player__control--play {
+  width: 48px;
+  height: 48px;
+}
+
+.player__control--small {
+  width: 36px;
+  height: 36px;
+}
+
+.player__control:hover:not(:disabled),
+.player__control[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.player__control:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.player__control:disabled {
+  opacity: 0.4;
+}
+
+.player__heading {
+  display: flex;
+  flex: 1 1 200px;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.player__title {
+  flex: 0 1 auto;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.player__subtitle {
+  flex: 0 1 auto;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+}
+
+/* ── Timeline ───────────────────────────────────────────────────────────── */
+
+.timeline {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.timeline[aria-disabled='true'] {
+  cursor: default;
+}
+
+.timeline:focus-visible {
+  outline: none;
+}
+
+.timeline__track {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.2);
+  transition: height 0.2s ease;
+}
+
+.timeline:hover .timeline__track,
+.timeline[data-active='true'] .timeline__track {
+  height: 6px;
+}
+
+.timeline__buffer,
+.timeline__zone,
+.timeline__played {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+}
+
+.timeline__buffer {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.timeline__zone {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.timeline__played {
+  background: var(--color-accent);
+  transition: width 0.25s linear;
+}
+
+.timeline__played--dragging,
+.timeline__knob--dragging {
+  transition: none;
+}
+
+.timeline__knob {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: var(--radius-pill);
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+  transition:
+    left 0.25s linear,
+    transform 0.2s ease;
+}
+
+.timeline:hover .timeline__knob,
+.timeline[data-active='true'] .timeline__knob {
+  transform: scale(1.25);
+}
+
+.timeline[aria-disabled='true'] .timeline__knob {
+  opacity: 0;
+}
+
+.timeline:focus-visible .timeline__knob {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.timeline__preview {
+  position: absolute;
+  bottom: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.timeline__thumb {
+  display: block;
+  border-radius: var(--radius-thumb);
+  background-color: #111113;
+  background-repeat: no-repeat;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 20px 50px -10px rgba(0, 0, 0, 0.8);
+}
+
+.timeline__preview-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 10px;
+  border-radius: var(--radius-button-sm);
+  background: rgba(20, 20, 22, 0.75);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+}
+
+.timeline__preview-chapter {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.timeline__preview-time {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ── Volume ─────────────────────────────────────────────────────────────── */
+
+.volume {
+  display: flex;
+  align-items: center;
+}
+
+.volume__slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    width 0.3s var(--ease),
+    opacity 0.2s ease;
+}
+
+.volume:hover .volume__slider,
+.volume:focus-within .volume__slider {
+  width: 88px;
+  margin-right: 4px;
+  opacity: 1;
+}
+
+.volume__level {
+  position: absolute;
+  right: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.22);
+  appearance: none;
+  -webkit-appearance: none;
+  pointer-events: none;
+}
+
+.volume__level::-webkit-progress-bar {
+  background: transparent;
+}
+
+.volume__level::-webkit-progress-value {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.volume__level::-moz-progress-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.volume__input {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.volume__input::-webkit-slider-runnable-track {
+  height: 24px;
+  background: transparent;
+}
+
+.volume__input::-moz-range-track {
+  height: 24px;
+  background: transparent;
+}
+
+.volume__input::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-strong);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.volume__input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-strong);
+}
+
+.volume__input:focus-visible {
+  outline: none;
+}
+
+.volume__input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .volume__slider {
+    display: none;
+  }
+}
+
+/* ── Toast (bottom left, like "Intro skipped · Undo") ─────────────────── */
+
+.player-toast {
+  position: absolute;
+  bottom: var(--player-chrome-bottom);
+  left: var(--player-gutter);
+  z-index: 5;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  max-width: calc(100% - 2 * var(--player-gutter));
+  min-height: 44px;
+  padding: 6px 8px 6px 18px;
+  border-radius: var(--radius-button);
+  background: rgba(20, 20, 22, 0.7);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+  animation: toast-in 0.4s var(--ease) both;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.player-toast__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.player-toast__action {
+  height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-thumb);
+  background: transparent;
+  color: var(--color-text-strong);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.player-toast__action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.player-toast__action:disabled {
+  opacity: 0.5;
+}
+
+/* ── Menu "Subtitles and audio" and episodes panel ─────────────────────── */
+
+.player-menu,
+.episodes-panel {
+  position: absolute;
+  right: var(--player-gutter);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(24, 24, 27, 0.94);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
+  box-shadow: var(--shadow-panel);
+  animation: menu-in 0.35s var(--ease) both;
+}
+
+/* Compact by default (tabs Audio, Sous-titres…); two columns from `wideQuery` of TracksMenu.tsx. */
+.player-menu {
+  bottom: 112px;
+  width: min(400px, calc(100% - 2 * var(--player-gutter)));
+  height: min(440px, calc(100% - 180px));
+  border-radius: 22px;
+  background: rgba(18, 18, 21, 0.88);
+  -webkit-backdrop-filter: blur(40px) saturate(170%);
+  backdrop-filter: blur(40px) saturate(170%);
+  box-shadow:
+    inset 0 0 0 1px var(--color-border),
+    inset 0 1px 0 var(--color-border-subtle),
+    0 30px 80px rgba(0, 0, 0, 0.55);
+  transform-origin: 85% 100%;
+  animation: tracks-menu-in 0.38s var(--ease) both;
+}
+
+@media (min-width: 760px) and (min-height: 561px) {
+  .player-menu {
+    bottom: 108px;
+    width: min(600px, calc(100% - 2 * var(--player-gutter)));
+    height: min(420px, calc(100% - 156px));
+    border-radius: var(--radius-panel);
+    background: rgba(18, 18, 21, 0.82);
+  }
+}
+
+/* Where there is room, the subtitles stay visible beside the menu while their size changes. */
+@media (min-width: 1200px) and (min-height: 561px) {
+  .player--menu .captions {
+    right: min(660px, 52%);
+  }
+}
+
+.episodes-panel {
+  top: max(24px, env(safe-area-inset-top));
+  bottom: 112px;
+  width: min(420px, calc(100% - 2 * var(--player-gutter)));
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tracks-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tracks-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tracks-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tracks-pop {
+  0% {
+    transform: scale(0.6);
+  }
+
+  60% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.episodes-panel__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.episodes-panel__seasons {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Season tabs of the episodes panel. */
+.player-menu__tab {
+  position: relative;
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 2px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.player-menu__tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: scaleX(0.2);
+  transition:
+    transform 0.45s var(--ease),
+    opacity 0.25s ease;
+}
+
+.player-menu__tab:hover,
+.player-menu__tab[aria-selected='true'] {
+  color: var(--color-text);
+}
+
+.player-menu__tab[aria-selected='true']::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* Tracks menu: segmented tabs, close, then the tab's panel. */
+.tracks-menu {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tracks-menu__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 8px;
+}
+
+.tracks-menu--compact .tracks-menu__header {
+  gap: 6px;
+  padding: 8px 6px 6px 8px;
+}
+
+.tracks-menu__close {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-secondary);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tracks-menu--compact .tracks-menu__close {
+  width: 40px;
+  height: 40px;
+}
+
+.tracks-menu__close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text);
+}
+
+.tracks-menu__close:active {
+  transform: scale(0.94);
+}
+
+/* Segmented control: the tabs, the subtitle size. The indicator slides under the selection. */
+.menu-segments {
+  position: relative;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  height: 36px;
+  padding: 3px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+.menu-segments__indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  transition: transform 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.menu-segments__item {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding: 0 4px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.menu-segments__item:hover:not(:disabled) {
+  color: var(--color-text-bright);
+}
+
+.menu-segments__item[aria-selected='true'],
+.menu-segments__item[aria-checked='true'] {
+  color: var(--color-text);
+}
+
+.menu-segments__item:disabled {
+  cursor: default;
+}
+
+.tracks-menu--wide .tracks-menu__tabs {
+  flex: 0 1 auto;
+  grid-auto-columns: 92px;
+}
+
+.tracks-menu--compact .tracks-menu__tabs {
+  flex: 1 1 auto;
+}
+
+.tracks-menu--compact .tracks-menu__tabs .menu-segments__item {
+  padding: 0 2px;
+  font-size: 13px;
+}
+
+.tracks-menu__panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  animation: tracks-view-in 0.32s var(--ease) both;
+}
+
+.tracks-menu--wide .tracks-menu__panel {
+  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+}
+
+.tracks-menu__columns {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 0;
+}
+
+.tracks-menu__scroll,
+.menu-section--column .menu-section__options {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  scrollbar-width: thin;
+}
+
+.tracks-menu__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 2px 8px 8px;
+  list-style: none;
+}
+
+.tracks-menu--wide .tracks-menu__scroll {
+  padding: 8px 6px;
+}
+
+.tracks-menu .tracks-menu__scroll--padded {
+  gap: 18px;
+  padding: 14px 16px;
+}
+
+.tracks-menu--compact .tracks-menu__scroll--padded {
+  gap: 16px;
+  padding: 8px 14px 14px;
+}
+
+.menu-section--column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.menu-section--column + .menu-section--column {
+  box-shadow: inset 1px 0 0 var(--color-border-subtle);
+}
+
+.menu-section__title {
+  margin: 0;
+  padding: 8px 12px 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.menu-section--column .menu-section__title {
+  padding: 12px 18px 6px;
+}
+
+.menu-section__options {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menu-section--column .menu-section__options {
+  padding: 0 6px 8px;
+}
+
+.menu-section:not(.menu-section--column) + .menu-section {
+  margin-top: 10px;
+}
+
+/* A track: name and tags, what tells it apart below, the radio dot on the right. */
+.menu-option {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 6px 10px 6px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.menu-option:hover:not([aria-disabled='true']) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-option[aria-checked='true'] {
+  background: rgba(255, 255, 255, 0.085);
+}
+
+.menu-option[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menu-option__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu-option__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.menu-option__label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-option__tag {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted-strong);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.menu-option__detail {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-option__dot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.22);
+  color: var(--color-on-accent);
+  transition:
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.menu-option[aria-checked='true'] .menu-option__dot {
+  background: var(--color-accent);
+  box-shadow: none;
+}
+
+.menu-option[aria-checked='true'] .menu-option__dot svg {
+  animation: tracks-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Subtitle size and delay, under the subtitles; dimmed while they are off. */
+.menu-style {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 10px 10px 18px;
+  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+  transition: opacity 0.3s ease;
+}
+
+.menu-style--off {
+  opacity: 0.38;
+}
+
+.menu-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-setting__label {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.menu-setting .menu-segments,
+.menu-stepper {
+  width: 164px;
+  height: 34px;
+  border-radius: 11px;
+}
+
+.menu-setting .menu-segments__indicator,
+.menu-setting .menu-segments__item {
+  border-radius: 8px;
+}
+
+.menu-setting .menu-segments__item {
+  font-weight: 600;
+  line-height: 1;
+}
+
+.menu-size--small {
+  font-size: 11px;
+}
+
+.menu-size--medium {
+  font-size: 13px;
+}
+
+.menu-size--large {
+  font-size: 16px;
+}
+
+.menu-size--xlarge {
+  font-size: 19px;
+}
+
+.menu-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+.menu-stepper__button,
+.menu-stepper__value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-text);
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.menu-stepper__button {
+  flex: 0 0 auto;
+  aspect-ratio: 1;
+}
+
+.menu-stepper__value {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.menu-stepper__value--zero {
+  color: var(--color-text-secondary);
+}
+
+.menu-stepper__button:hover:not(:disabled),
+.menu-stepper__value:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-stepper__button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.menu-stepper button:disabled {
+  cursor: default;
+}
+
+/* Compact: size and delay side by side, the controls saying what they are. */
+.tracks-menu--compact .menu-style {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 8px;
+}
+
+.tracks-menu--compact .menu-setting__label {
+  display: none;
+}
+
+.tracks-menu--compact .menu-setting .menu-segments,
+.tracks-menu--compact .menu-stepper {
+  width: 100%;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.menu-speed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.menu-speed .menu-section__title {
+  padding: 0;
+}
+
+.menu-speed__rates {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.menu-speed__rate {
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  color: var(--color-text-bright);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.menu-speed__rate:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.menu-speed__rate[aria-checked='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.menu-toggle__label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.menu-chapter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.menu-chapter:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-chapter[aria-current='true'] {
+  background: rgba(255, 255, 255, 0.085);
+  font-weight: 600;
+}
+
+.menu-chapter__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu-chapter__time {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Episodes */
+
+.episodes-panel__head {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 10px 0 20px;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+.episodes-panel__seasons {
+  min-width: 0;
+}
+
+.episodes-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.episodes-panel__list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  list-style: none;
+  overscroll-behavior: contain;
+}
+
+.episodes-panel__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.episodes-panel__row:hover {
+  background: var(--color-hover);
+}
+
+.episodes-panel__row[aria-current='true'] {
+  background: var(--color-selected);
+}
+
+.episodes-panel__still {
+  position: relative;
+  flex: 0 0 132px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-thumb);
+  background: var(--tone, #1a1a1d);
+}
+
+.episodes-panel__still .cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.episodes-panel__row[aria-current='true'] .episodes-panel__still {
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}
+
+.episodes-panel__bar {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: auto;
+  height: 3px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.25);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.episodes-panel__bar::-webkit-progress-bar {
+  background: transparent;
+}
+
+.episodes-panel__bar::-webkit-progress-value {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.episodes-panel__bar::-moz-progress-bar {
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.episodes-panel__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.episodes-panel__name {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.episodes-panel__duration {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.episodes-panel__row--skeleton {
+  pointer-events: none;
+}
+
+.episodes-panel__line {
+  display: block;
+  width: 80%;
+  height: 12px;
+  border-radius: var(--radius-badge);
+}
+
+.episodes-panel__line--short {
+  width: 40%;
+}
+
+/* ── Segments: "Skip intro", "Next episode" (§12.4) ───────────────── */
+
+.skip-segment {
+  position: absolute;
+  right: var(--player-gutter);
+  bottom: var(--player-chrome-bottom);
+  z-index: 5;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-button);
+  background: rgba(20, 20, 22, 0.55);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--color-text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  animation: skip-in 0.5s var(--ease) both;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+@keyframes skip-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.skip-segment:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.skip-segment__body {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 22px;
+  white-space: nowrap;
+}
+
+.skip-segment__track {
+  display: block;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.skip-segment__fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left;
+  transition: transform 0.3s linear;
+}
+
+/* After 8 s: the icon only, the label kept as the accessible name. */
+.skip-segment--icon .skip-segment__body {
+  width: 48px;
+  padding: 0;
+}
+
+.skip-segment--icon .skip-segment__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-segment--icon .skip-segment__track {
+  display: none;
+}
+
+/* The video shrinks into a thumbnail, top left, under the card (artboard `PlayerNext`). */
+.player__video {
+  transform-origin: 6% 10%;
+  transition:
+    transform 1s var(--ease),
+    border-radius 1s var(--ease),
+    box-shadow 1s var(--ease);
+}
+
+.player--next-up .player__video {
+  border-radius: 10px;
+  background: #050506;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 30px 80px rgba(0, 0, 0, 0.6);
+  transform: scale(0.62);
+}
+
+.player--next-up .player__bottom {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.next-up__frame {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  transform: scale(0.62);
+  transform-origin: 6% 10%;
+}
+
+.next-up__frame:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+.next-up {
+  position: absolute;
+  right: clamp(16px, 4vw, 64px);
+  bottom: max(clamp(24px, 6vh, 64px), env(safe-area-inset-bottom));
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  box-sizing: border-box;
+  width: min(440px, calc(100% - 32px));
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 26px;
+  background: rgba(28, 28, 31, 0.6);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
+  box-shadow: 0 40px 80px -24px rgba(0, 0, 0, 0.9);
+  animation: next-up-in 0.7s var(--ease) 0.4s both;
+}
+
+@keyframes next-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.next-up--none {
+  width: auto;
+}
+
+.next-up__eyebrow {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.next-up__still {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: 14px;
+  background: var(--tone, #1a1a1d);
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7);
+}
+
+.next-up__still .cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.next-up__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.next-up__meta {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.next-up__title {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-title);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.next-up__overview {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.next-up__people {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.next-up__person {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.next-up__person dt {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.next-up__person dd {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.next-up__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.next-up__play {
+  padding: 0 22px 0 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.next-up--none .next-up__play {
+  padding: 0 22px;
+}
+
+.next-up__ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.next-up__ring > svg:last-child {
+  position: relative;
+}
+
+.next-up__ring-svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.next-up__ring-track,
+.next-up__ring-left {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.next-up__ring-track {
+  stroke: rgba(10, 10, 11, 0.15);
+}
+
+.next-up__ring-left {
+  stroke: var(--color-on-accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.25s linear;
+}
+
+.next-up__ghost {
+  color: var(--color-text-muted-strong);
+}
+
+/* The bar of the artboard: where the credits are, the chrome being hidden. */
+.next-up__progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.next-up__progress-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+@media (max-width: 560px) {
+  .next-up {
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 16px;
+    gap: 14px;
+    width: auto;
+    padding: 16px;
+    border-radius: 22px;
+  }
+
+  .next-up__title {
+    font-size: 22px;
+  }
+
+  .next-up__actions > .button {
+    flex: 1 1 auto;
+  }
+
+  /* The shrunk video (centred, above the card) is the picture: no still. */
+  .next-up__still {
+    display: none;
+  }
+
+  .player__video,
+  .next-up__frame {
+    transform-origin: 50% 10%;
+  }
+}
+
+/* Phone in landscape, small windows: the card keeps to its text and buttons. */
+@media (max-height: 560px) {
+  .next-up {
+    gap: 12px;
+    padding: 16px;
+  }
+
+  .next-up__still,
+  .next-up__people {
+    display: none;
+  }
+
+  .next-up__title {
+    font-size: 22px;
+  }
+
+  .next-up__overview {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player__video,
+  .skip-segment__fill,
+  .next-up__ring-left {
+    transition: none;
+  }
+
+  .skip-segment,
+  .next-up {
+    animation: none;
+  }
+}
+
+/* ── Blocking overlays: error, interruption, end of the item ────────────── */
+
+.player__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  background: rgba(10, 10, 11, 0.7);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  text-align: center;
+  animation: fade-in 0.3s ease both;
+}
+
+/* The end screen leaves the chrome usable (quit, bar). */
+.player__overlay--end {
+  z-index: 3;
+}
+
+.player__overlay-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-title);
+}
+
+.player__overlay-text {
+  max-width: 48ch;
+  color: var(--color-text-soft);
+}
+
+.player__overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* ── Small screens ──────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .player {
+    --player-chrome-bottom: 128px;
+  }
+
+  .player__bottom {
+    gap: 8px;
+    padding-top: 56px;
+  }
+
+  .player__controls {
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .player__heading {
+    flex-direction: column;
+    flex-basis: 0;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    padding: 0 6px;
+    font-size: 14px;
+  }
+
+  .player__title,
+  .player__subtitle {
+    max-width: 100%;
+  }
+
+  .player__subtitle {
+    font-size: 13px;
+  }
+
+  .player-menu,
+  .episodes-panel {
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 8px;
+    width: auto;
+    border-radius: 22px;
+    background: var(--color-surface-menu);
+  }
+
+  .player-menu {
+    height: min(70%, 520px);
+  }
+
+  .episodes-panel {
+    top: max(8px, env(safe-area-inset-top));
+  }
+
+  .episodes-panel__still {
+    flex-basis: 112px;
+  }
+
+  .menu-speed__rates {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Phone in landscape: the menu is a sheet on the right, the subtitles stay visible beside it. */
+@media (max-height: 560px) and (min-width: 561px) {
+  .player-menu {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: min(360px, calc(100% - 16px));
+    height: auto;
+    animation-name: tracks-sheet-in;
+  }
+
+  .player--menu .captions {
+    right: calc(min(360px, 100% - 16px) + 16px);
+  }
+}
+
+/* ── Touch screens: the centre cluster replaces play and ±10 s of the row ── */
+
+@media (pointer: coarse) {
+  .player .player__touch {
+    display: flex;
+  }
+
+  .player .player__big-play,
+  .player .player__control--pointer {
+    display: none;
+  }
+
+  .player--idle .player__touch {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

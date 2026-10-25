@@ -1,0 +1,40 @@
+import type { Clock } from '../../core/clock.ts'
+import type { LibraryRepository } from '../../core/library/library.ts'
+import type { ScanRequester, ScanRunRepository } from '../../core/scanner/ports.ts'
+
+type Deps = {
+  libraryRepository: Pick<LibraryRepository, 'list'>
+  scanRunRepository: Pick<ScanRunRepository, 'latest'>
+  requestScan: ScanRequester
+  clock: Clock
+}
+
+/**
+ * §7.4 "Startup" and "Periodic incremental": the first tick (10 s after start) scans every
+ * library; later ticks scan the libraries whose last run started `scan_interval_minutes` ago.
+ */
+export const periodicScansFactory = ({
+  libraryRepository,
+  scanRunRepository,
+  requestScan,
+  clock,
+}: Deps) => {
+  let started = false
+  return (): string[] => {
+    const now = clock.now().getTime()
+    const startup = !started
+    started = true
+    const due = libraryRepository.list().filter((library) => {
+      if (startup) return true
+      const latest = scanRunRepository.latest(library.id)
+      return (
+        latest === undefined ||
+        now - latest.startedAt.getTime() >= library.scanIntervalMinutes * 60_000
+      )
+    })
+    for (const library of due) {
+      requestScan({ libraryId: library.id, kind: startup ? 'startup' : 'periodic' })
+    }
+    return due.map((library) => library.id)
+  }
+}

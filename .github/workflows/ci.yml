@@ -1,0 +1,299 @@
+# CI (PRODUCT.md §22): lint, types, unit + integration tests, dependency audit, Playwright e2e
+# and a build of the Docker image, on every push and pull request.
+# Release (§16.2, §22), once all of the above passed on the tagged commit:
+#   tag vX.Y.Z        runtime image first if runtime/ changed since the previous vX.Y.Z tag, then
+#                     the GitHub release: projo-app-X.Y.Z.tar.gz, manifest.json, SHA256SUMS, and
+#                     notes generated from the Conventional Commits since the previous tag.
+#   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
+# Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
+# Bun comes from npm: packageManager pins a dated canary (bun lint is canary-only), which
+# oven-sh/setup-bun cannot download (it only knows bun-v* tags and the moving `canary`).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: lint, format, types, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun fmt --check
+      - run: bun run typecheck
+      # §20: any advisory on what ships (production dependencies), high and critical everywhere.
+      - name: bun audit (production dependencies)
+        run: bun audit --production
+      - name: bun audit (all dependencies, high and above)
+        run: bun audit --audit-level=high
+
+  # Tests that run ffmpeg, ffprobe or fpcalc depend on their version (Ubuntu 24.04 has ffmpeg 6.1,
+  # the image 7.1): they run in the `runtime` target of the image, with the Bun of production.
+  test:
+    name: unit and integration tests (runtime image)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Build the runtime image
+        run: docker build --file runtime/Dockerfile --target runtime --tag projo-runtime .
+      - name: bun run test, in the runtime image
+        run: >-
+          docker run --rm --network none --user "$(id -u):$(id -g)" --env HOME=/tmp
+          --volume "$PWD:$PWD" --workdir "$PWD" --entrypoint bun projo-runtime run test
+
+  e2e:
+    name: e2e (Chromium, WebKit, iPhone)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      # Playwright runs on Node; the servers it starts run on Bun.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      # ffmpeg of the host: the fixtures only. The servers run in the runtime image (serve.ts).
+      - name: Install ffmpeg and ffprobe
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Build the runtime image
+        run: docker build --file runtime/Dockerfile --target runtime --tag projo-runtime .
+      - run: bun install --frozen-lockfile
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      # Browsers (cached) and their system libraries, including GStreamer's libav for WebKit's
+      # H.264/AAC playback. The iPhone project is WebKit with an iPhone viewport: no other browser.
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: ./node_modules/.bin/playwright install --with-deps chromium webkit
+      - run: bun run e2e
+        env:
+          PROJO_E2E_RUNTIME_IMAGE: projo-runtime
+      - name: Upload Playwright report and traces
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 14
+
+  docker:
+    name: docker image (linux/amd64, linux/arm64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      # A docker-container builder: the default `docker` driver cannot build multi-arch.
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker-container
+      - name: Build the full image (target app), no push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: runtime/Dockerfile
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Release (tags only) ─────────────────────────────────────────────────────────────────────
+
+  release-plan:
+    name: release plan
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/runtime-')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      kind: ${{ steps.plan.outputs.kind }}
+      app-version: ${{ steps.plan.outputs.app-version }}
+      runtime-version: ${{ steps.plan.outputs.runtime-version }}
+      previous-tag: ${{ steps.plan.outputs.previous-tag }}
+      image: ${{ steps.plan.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # tags and history: previous release, runtime/ diff
+      - name: Check the tag and decide what to publish
+        id: plan
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          app_version="$(node -p 'require("./package.json").version')"
+          runtime_version="$(tr -d '[:space:]' < runtime/VERSION)"
+          # Files that end up in the runtime image (runtime/Dockerfile, .dockerignore).
+          image_paths=(runtime ':(exclude)runtime/scripts' ':(exclude)runtime/README.md'
+            ':(exclude)runtime/tsconfig.json' ':(exclude,glob)runtime/**/*.test.ts'
+            ':(exclude)runtime/supervisor/test-support.ts')
+          previous=""
+          case "$TAG" in
+            v*)
+              kind=app
+              # Stable channel only (§16.4): /releases/latest must be this release.
+              [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "release tags are vX.Y.Z, got $TAG"
+              [ "${TAG#v}" = "$app_version" ] ||
+                fail "tag $TAG does not match the version of package.json ($app_version): bump it first"
+              previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' HEAD^ 2>/dev/null || true)"
+              if [ -z "$previous" ]; then
+                image=true # first release: the image does not exist yet
+              elif git diff --quiet "$previous" HEAD -- "${image_paths[@]}"; then
+                image=false
+              else
+                image=true
+                previous_runtime="$(git show "$previous:runtime/VERSION" 2>/dev/null | tr -d '[:space:]' || true)"
+                # An image tag never changes content under the same runtime version.
+                [ "$previous_runtime" != "$runtime_version" ] ||
+                  fail "runtime/ changed since $previous but runtime/VERSION is still $runtime_version: bump it"
+              fi
+              ;;
+            runtime-*)
+              kind=runtime
+              image=true
+              [ "${TAG#runtime-}" = "$runtime_version" ] ||
+                fail "tag $TAG does not match runtime/VERSION ($runtime_version)"
+              # The image embeds this commit's app as its seed (§16.1): it must be a published one.
+              git rev-parse -q --verify "refs/tags/v$app_version" >/dev/null ||
+                fail "the seed app $app_version is not released (no tag v$app_version)"
+              ;;
+          esac
+          {
+            echo "kind=$kind"
+            echo "app-version=$app_version"
+            echo "runtime-version=$runtime_version"
+            echo "previous-tag=$previous"
+            echo "image=$image"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  runtime-image:
+    name: push runtime image (linux/amd64, linux/arm64)
+    needs: [release-plan, checks, test, e2e, docker]
+    if: needs.release-plan.outputs.image == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ghcr.io/leomartindev/projo
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+        with:
+          driver: docker-container
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push the full image (target app)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: runtime/Dockerfile
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            APP_VERSION=${{ needs.release-plan.outputs.app-version }}
+          tags: |
+            ${{ env.IMAGE }}:${{ needs.release-plan.outputs.runtime-version }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ needs.release-plan.outputs.runtime-version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            dev.projo.app.version=${{ needs.release-plan.outputs.app-version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: GitHub release
+    # After the image when there is one (a release may need it: runtimeMin), skipped otherwise.
+    needs: [release-plan, checks, test, e2e, docker, runtime-image]
+    if: ${{ !cancelled() && !failure() && needs.release-plan.outputs.kind == 'app' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.release-plan.outputs.app-version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # commits since the previous tag, for the notes
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Build the bundle (dist/app)
+        run: bun run build:bundle
+      - name: Pack the release files (dist/release)
+        run: bun runtime/scripts/package-release.ts --tag "$TAG"
+      - name: Check SHA256SUMS with sha256sum
+        working-directory: dist/release
+        run: sha256sum --check --strict SHA256SUMS
+      # The real release source and installer of the app, on these very files.
+      - name: Install the release with the updater
+        run: bun test apps/server/test/integration/release-package.test.ts
+        env:
+          PROJO_RELEASE_DIR: dist/release
+      - name: Write the release notes
+        env:
+          PREVIOUS_TAG: ${{ needs.release-plan.outputs.previous-tag }}
+          RUNTIME_IMAGE: ${{ needs.runtime-image.result == 'success' && format('ghcr.io/leomartindev/projo:{0}', needs.release-plan.outputs.runtime-version) || '' }}
+        run: |
+          bun runtime/scripts/release-notes.ts --tag "$TAG" --from "$PREVIOUS_TAG" \
+            --manifest dist/release/manifest.json --runtime-image "$RUNTIME_IMAGE" > dist/release-notes.md
+          cat dist/release-notes.md
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" --verify-tag --title "projo $VERSION" \
+            --notes-file dist/release-notes.md \
+            "dist/release/projo-app-$VERSION.tar.gz" dist/release/manifest.json dist/release/SHA256SUMS

@@ -1,0 +1,188 @@
+/* TMDB identification (§7.8): "To review" and "Fix the match". Fills a fixed-height
+   dialog body; only the result list scrolls (AGENTS.md, UI layout). */
+
+.identify {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.identify__modes {
+  align-self: stretch;
+}
+
+.identify__search,
+.identify__episode {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  gap: 10px;
+}
+
+.identify__episode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.identify__search input[type='search']::-webkit-search-cancel-button {
+  display: none;
+}
+
+.identify__results {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.identify__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.identify__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.25s var(--ease);
+}
+
+.identify__row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.identify__row[aria-checked='true'] {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.55);
+}
+
+.identify__row--skeleton {
+  pointer-events: none;
+}
+
+.identify__poster {
+  flex: 0 0 46px;
+  width: 46px;
+  height: 69px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  object-fit: cover;
+}
+
+.identify__poster--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.identify__text {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.identify__title,
+.identify__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identify__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.identify__meta {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.identify__overview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+.identify__check {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.2s ease,
+    transform 0.4s var(--spring);
+}
+
+.identify__row[aria-checked='true'] .identify__check {
+  opacity: 1;
+  transform: none;
+}
+
+.identify__skeleton-text {
+  width: 55%;
+}
+
+.identify__state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  margin: 0;
+  padding: 24px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.identify__state--error {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.identify--loading {
+  display: flex;
+}
+
+.identify__skeleton-block {
+  flex: 1 1 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identify__row,
+  .identify__check {
+    transition: none;
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "tvdb_id": 247,
+  "type": "movie",
+  "group_duration_ms": 8348382,
+  "intro": [{ "start_ms": null, "end_ms": 119000, "confidence": 0.1, "submission_count": 1 }],
+  "credits": [{ "start_ms": 8177000, "end_ms": 8348000, "confidence": 0.1, "submission_count": 1 }]
+}

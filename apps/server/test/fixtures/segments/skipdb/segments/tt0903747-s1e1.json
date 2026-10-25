@@ -1,0 +1,26 @@
+{
+  "imdb_id": "tt0903747",
+  "season": 1,
+  "episode": 1,
+  "segments": {
+    "intro": {
+      "start_ms": 229500,
+      "end_ms": 246500,
+      "adjusted": false,
+      "offset_ms": 0,
+      "match": "exact",
+      "confidence": 0.9
+    },
+    "recap": null,
+    "outro": {
+      "start_ms": 3434000,
+      "end_ms": 3500000,
+      "adjusted": false,
+      "offset_ms": 0,
+      "match": "exact",
+      "confidence": 0.9
+    },
+    "preview": null
+  },
+  "intro_length_estimate_ms": 17000
+}

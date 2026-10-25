@@ -1,0 +1,105 @@
+/*
+ * Design tokens (PRODUCT.md §19, design/README.md, kit `Components.dc.html` v2). Dark theme only
+ * in v1; every color goes through a variable so a light theme only has to redefine this block.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-bg: #0a0a0b;
+  --color-surface: #111113;
+  --color-surface-2: #141416;
+  --color-surface-3: #17171a;
+  --color-surface-menu: #18181b;
+  --color-glass: rgba(255, 255, 255, 0.06);
+  --color-glass-strong: rgba(255, 255, 255, 0.16);
+  --color-hover: rgba(255, 255, 255, 0.08);
+  --color-selected: rgba(255, 255, 255, 0.07);
+  --color-panel: rgba(18, 18, 21, 0.58);
+  --color-well: rgba(255, 255, 255, 0.04);
+  --color-field: rgba(255, 255, 255, 0.045);
+  --color-field-focus: rgba(255, 255, 255, 0.075);
+
+  /* Borders (drawn as inset shadows in the kit) */
+  --color-border-subtle: rgba(255, 255, 255, 0.06);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-field: rgba(255, 255, 255, 0.09);
+  --color-border-hover: rgba(255, 255, 255, 0.17);
+  --color-border-focus: rgba(255, 255, 255, 0.6);
+  --color-border-strong: rgba(255, 255, 255, 0.28);
+  --ring-focus: 0 0 0 5px rgba(255, 255, 255, 0.07);
+
+  /* Text */
+  --color-text: #f4f4f5;
+  --color-text-strong: #ffffff;
+  --color-text-bright: #e4e4e7;
+  --color-text-secondary: #a1a1aa;
+  --color-text-soft: #c4c4cc;
+  --color-text-muted-strong: #d4d4d8;
+  --color-text-muted: #8b8b94;
+  --color-text-faint: #71717a;
+  --color-text-placeholder: #5f5f68;
+
+  /* Accent and states */
+  --color-accent: #f4f4f5;
+  --color-on-accent: #0a0a0b;
+  --color-success: #3dd68c;
+  --color-error: #ff5a5f;
+  --color-error-soft: #fca5a5;
+  --color-error-tint: rgba(248, 113, 113, 0.08);
+  --color-warning: #e5b567;
+
+  /* Avatars (§14) */
+  --avatar-slate: #5f6670;
+  --avatar-blue: #5b7fa6;
+  --avatar-honey: #b08a3e;
+  --avatar-sage: #5e8c72;
+  --avatar-terracotta: #a86a55;
+  --avatar-violet: #7d6aa6;
+
+  /* Typography */
+  --font-sans: 'Geist', 'Geist Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, 'SF Mono', Menlo, monospace;
+  --tracking-title: -0.03em;
+  --tracking-display: -0.045em;
+  --tracking-hero: -0.055em;
+
+  /* Radii */
+  --radius-pill: 999px;
+  --radius-panel: 28px;
+  --radius-choice: 20px;
+  --radius-well: 18px;
+  --radius-button-lg: 16px;
+  --radius-field: 15px;
+  --radius-button: 14px;
+  --radius-card: 12px;
+  --radius-button-sm: 11px;
+  --radius-thumb: 10px;
+  --radius-check: 7px;
+  --radius-avatar: 30px;
+  --radius-badge: 4px;
+
+  /* Elevation */
+  --shadow-panel:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 60px 120px -40px rgba(0, 0, 0, 0.9);
+  --shadow-well: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --shadow-glass:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --blur-panel: blur(40px) saturate(170%);
+  --blur-glass: blur(20px) saturate(160%);
+
+  /* Sizes */
+  --control-height: 48px;
+  --control-height-lg: 56px;
+  --control-height-sm: 36px;
+  --touch-target: 44px;
+  --gutter: clamp(16px, 4vw, 56px);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-enter: 0.9s;
+  --duration-fast: 0.2s;
+}

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes kenburns{from{transform:scale(1)}to{transform:scale(1.07)}}
+@keyframes pvzoom{from{transform:scale(1.02)}to{transform:scale(1.12)}}
+.fu{animation:fadeUp .9s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.08s}.d2{animation-delay:.16s}.d3{animation-delay:.24s}.d4{animation-delay:.32s}.d5{animation-delay:.40s}
+.kb{animation:kenburns 26s ease-out both;transform-origin:70% 40%}
+.nav a{transition:color .25s ease,background-color .25s ease}.nav a:hover{color:#FFFFFF}
+.pillnav a:not([aria-current]):hover{background:rgba(255,255,255,.08)}
+.card .art::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.16) 50%,rgba(255,255,255,0) 65%);transform:translateX(-110%);transition:transform 1s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.cw:hover .card .art::after{transform:translateX(110%)}
+.iconbtn{transition:background-color .25s ease,color .25s ease}
+.iconbtn:hover{background:rgba(255,255,255,.1);color:#FFFFFF}
+.btn-primary{transition:background-color .25s ease,transform .25s ease}
+.btn-primary:hover{background:#FFFFFF}.btn-primary:active{transform:scale(.98)}
+.btn-glass{transition:background-color .25s ease,border-color .25s ease}
+.btn-glass:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.28)}
+.cw{position:relative}
+.cw:hover,.cw:focus-within,.cw.pin{z-index:30}
+.card{transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.card .art{transition:box-shadow .45s cubic-bezier(.2,.7,.2,1)}
+.cw:hover .card{transform:translateY(-3px) scale(1.02)}
+.cw:hover .card .art{box-shadow:0 20px 40px -14px rgba(0,0,0,.8)}
+.preview{position:absolute;opacity:0;visibility:hidden;transform:scale(.9);pointer-events:none;transition:opacity .18s ease,transform .25s ease,visibility 0s linear .25s}
+.cw:hover .preview,.cw:focus-within .preview,.cw.pin .preview{opacity:1;visibility:visible;transform:none;pointer-events:auto;transition:opacity .3s ease .45s,transform .45s cubic-bezier(.2,.7,.2,1) .45s,visibility 0s linear .45s}
+.cw.pin .preview{transition:none}
+.cw:hover .pv-art,.cw.pin .pv-art{animation:pvzoom 10s ease-out .45s both}
+.round{transition:background-color .2s ease,border-color .2s ease,transform .2s ease}
+.round:hover{border-color:rgba(255,255,255,.7);background:rgba(255,255,255,.1)}
+.round:active{transform:scale(.92)}
+.round-solid{transition:background-color .2s ease,transform .2s ease}
+.round-solid:hover{background:#FFFFFF}.round-solid:active{transform:scale(.92)}
+.see{opacity:0;transform:translateX(-4px);transition:opacity .3s ease,transform .3s ease,color .25s ease}
+.row:hover .see,.see:focus-visible{opacity:1;transform:none}
+.see:hover{color:#FFFFFF}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; padding-bottom: 96px; overflow-x: hidden;">
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 1700px; background-color: {{ambient}}; transition: background-color 1.2s ease; -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 40%, transparent 100%); pointer-events: none;"></div>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 18px clamp(16px, 4vw, 56px); background: linear-gradient(180deg, rgba(10,10,11,.55) 0%, rgba(10,10,11,0) 100%);">
+    <a href="Main.dc.html" aria-label="Projo — changer de profil" style="flex: 1 1 0; font-size: 24px; font-weight: 700; letter-spacing: -0.04em; text-decoration: none;">projo<span style="color: {{accent}};">.</span></a>
+    <nav class="nav pillnav" aria-label="Navigation principale" style="display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(40,40,44,.42); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); font-size: 14px;">
+      <a href="Home.dc.html" aria-current="page" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; background: rgba(255,255,255,.16); color: #FFFFFF; font-weight: 600; text-decoration: none;">Accueil</a>
+      <a href="Series.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Séries</a>
+      <a href="Home.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Films</a>
+      <a href="Home.dc.html" style="display: flex; align-items: center; height: 36px; padding: 0 18px; border-radius: 999px; color: #C4C4CC; font-weight: 500; text-decoration: none;">Ma liste</a>
+    </nav>
+    <div style="flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; gap: 4px;">
+      <button class="iconbtn" type="button" aria-label="Rechercher" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #D4D4D8; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      </button>
+      <a class="iconbtn" href="AdminLibraries.dc.html" aria-label="Administration du serveur" style="width: 44px; height: 44px; border-radius: 999px; color: #D4D4D8; display: flex; align-items: center; justify-content: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>
+      </a>
+      <a href="Main.dc.html" aria-label="Profil de Léo — changer de profil" style="margin-left: 8px; width: 34px; height: 34px; border-radius: 10px; background: #5B7FA6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600;">L</a>
+    </div>
+  </header>
+
+  <section aria-labelledby="hero-title" style="position: relative; z-index: 1; height: 760px;">
+    <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden; -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, #000 60%, transparent 100%);">
+      <div class="kb" style="position: absolute; inset: 0; background: {{heroArt}};">
+        <svg viewBox="0 0 1440 300" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 42%;"><path d="M0 120 C 200 80, 360 150, 560 115 S 900 70, 1100 110 S 1340 140, 1440 105 L 1440 300 L 0 300 Z" fill="#0F1A26" fill-opacity="0.7"></path><path d="M0 190 C 240 160, 420 220, 700 185 S 1160 150, 1440 190 L 1440 300 L 0 300 Z" fill="#0A1119" fill-opacity="0.9"></path></svg>
+      </div>
+      <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.82) 0%, rgba(10,10,11,.4) 38%, rgba(10,10,11,0) 68%);"></div>
+    </div>
+
+    <div style="position: absolute; left: clamp(16px, 4vw, 56px); right: clamp(16px, 4vw, 56px); bottom: 210px; max-width: 560px; display: flex; flex-direction: column; gap: 18px;">
+      <span class="fu" style="font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #A1A1AA;">Série · Saison 2</span>
+      <h1 id="hero-title" class="fu d1" style="margin: 0; font-size: clamp(44px, 6vw, 76px); line-height: 0.95; font-weight: 700; letter-spacing: -0.045em;">Les Marées basses</h1>
+      <div class="fu d2" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 14px; color: #A1A1AA;">
+        <span>2025</span><span aria-hidden="true">·</span>
+        <span style="padding: 1px 7px; border: 1px solid rgba(255,255,255,.28); border-radius: 6px; font-size: 12px;">12+</span><span aria-hidden="true">·</span>
+        <span>2 saisons</span><span aria-hidden="true">·</span>
+        <span>Drame, policier</span>
+      </div>
+      <p class="fu d3" style="margin: 0; font-size: 16px; line-height: 1.55; color: #C4C4CC; max-width: 480px;">Sur l'île de Noirmoutier, une garde-côte enquête sur la disparition d'un pêcheur à pied, surpris par une marée d'équinoxe.</p>
+      <div class="fu d4" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding-top: 6px;">
+        <a class="btn-primary" href="Player.dc.html" style="display: inline-flex; align-items: center; gap: 10px; height: 50px; padding: 0 28px 0 22px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-weight: 600; font-size: 16px; box-shadow: 0 10px 30px -10px rgba(0,0,0,.6);">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+          Reprendre
+        </a>
+        <a class="btn-glass" href="Series.dc.html" style="display: inline-flex; align-items: center; gap: 10px; height: 50px; padding: 0 24px 0 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #F4F4F5; text-decoration: none; font-weight: 600; font-size: 16px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>
+          Plus d'infos
+        </a>
+        <button class="btn-glass" type="button" onClick="{{heroToggle}}" aria-pressed="{{heroInList}}" aria-label="{{heroListLabel}}" style="width: 50px; height: 50px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.08); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #F4F4F5; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <sc-if value="{{heroInList}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+          <sc-if value="{{heroNotInList}}" hint-placeholder-val="{{true}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+        </button>
+      </div>
+      <div class="fu d5" style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8B8B94;">
+        <span style="color: #C4C4CC;">S2 · É4 «&#8239;Coefficient 112&#8239;»</span>
+        <span aria-hidden="true" style="width: 120px; height: 3px; border-radius: 999px; background: rgba(255,255,255,.18); overflow: hidden;"><span style="display: block; width: 62%; height: 100%; background: {{accent}};"></span></span>
+        <span>18 min restantes</span>
+      </div>
+    </div>
+  </section>
+
+  <div onMouseLeave="{{resetAmbient}}" style="position: relative; z-index: 2; margin-top: -150px; display: flex; flex-direction: column; gap: 40px; padding: 0 clamp(16px, 4vw, 56px);">
+    <sc-for list="{{rows}}" as="row" hint-placeholder-count="4">
+      <section class="row" aria-labelledby="{{row.hid}}" style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <h2 id="{{row.hid}}" style="margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -0.01em;">{{row.title}}</h2>
+          <a class="see" href="Home.dc.html" style="font-size: 13px; font-weight: 500; color: #A1A1AA; text-decoration: none;">Tout voir ›</a>
+          <span style="flex: 1 1 auto;"></span>
+          <button class="iconbtn" type="button" aria-label="Précédent" style="width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: #71717A; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+          <button class="iconbtn" type="button" aria-label="Suivant" style="width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: #D4D4D8; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+        </div>
+        <div style="display: flex; gap: 14px; padding: 12px 0 8px;">
+          <sc-for list="{{row.items}}" as="item" hint-placeholder-count="5">
+            <div class="cw {{item.pinClass}}" onMouseEnter="{{item.enter}}" style="flex: {{item.flex}};">
+              <a class="card" href="{{item.href}}" style="display: flex; flex-direction: column; gap: 10px; text-decoration: none; color: #F4F4F5;">
+                <span class="art" style="position: relative; display: block; aspect-ratio: {{item.aspect}}; border-radius: 12px; overflow: hidden; background: {{item.art}};">
+                  <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,0) 55%);"></span>
+                  <sc-if value="{{item.isNew}}" hint-placeholder-val="{{false}}">
+                    <span style="position: absolute; left: 10px; top: 10px; padding: 4px 9px; border-radius: 999px; background: rgba(10,10,11,.45); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.14); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: #F4F4F5;">Nouvel épisode</span>
+                  </sc-if>
+                  <span style="position: absolute; left: 14px; right: 14px; bottom: 14px; font-size: {{item.titleSize}}; line-height: 1.04; font-weight: 700; letter-spacing: -0.03em;">{{item.title}}</span>
+                  <sc-if value="{{item.hasProgress}}" hint-placeholder-val="{{false}}">
+                    <span aria-hidden="true" style="position: absolute; left: 12px; right: 12px; bottom: 6px; height: 3px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden;"><span style="display: block; height: 100%; width: {{item.progress}}; background: {{accent}};"></span></span>
+                  </sc-if>
+                </span>
+                <span style="display: flex; justify-content: space-between; gap: 12px; font-size: 13px;">
+                  <span style="font-weight: 500; color: #D4D4D8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{item.sub}}</span>
+                  <span style="color: #8B8B94; white-space: nowrap;">{{item.right}}</span>
+                </span>
+              </a>
+
+              <div class="preview" role="group" aria-label="Aperçu de {{item.title}}" style="left: {{item.pl}}; right: {{item.pr}}; margin-left: {{item.pml}}; top: {{item.ptop}}; width: {{item.pw}}; transform-origin: {{item.origin}}; border-radius: 16px; overflow: hidden; background: rgba(22,22,25,.88); backdrop-filter: blur(28px) saturate(150%); -webkit-backdrop-filter: blur(28px) saturate(150%); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 40px 80px -20px rgba(0,0,0,.9), 0 10px 24px -10px rgba(0,0,0,.6);">
+                <div style="position: relative; aspect-ratio: 16 / 9; overflow: hidden;">
+                  <div class="pv-art" aria-hidden="true" style="position: absolute; inset: 0; background: {{item.art}};"></div>
+                  <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(22,22,25,.95) 0%, rgba(22,22,25,0) 55%);"></div>
+                  <span style="position: absolute; left: 16px; right: 56px; bottom: 12px; font-size: 22px; line-height: 1.02; font-weight: 700; letter-spacing: -0.035em;">{{item.title}}</span>
+                  <button class="round" type="button" aria-label="Activer le son de l'aperçu" style="position: absolute; right: 12px; bottom: 12px; width: 32px; height: 32px; border-radius: 999px; border: 1px solid rgba(255,255,255,.3); background: rgba(10,10,11,.35); color: #F4F4F5; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"></path><path d="M16 9.5l5 5M21 9.5l-5 5"></path></svg>
+                  </button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px; padding: 4px 16px 16px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <a class="round-solid" href="Player.dc.html" aria-label="Lire {{item.title}}" style="width: 40px; height: 40px; border-radius: 999px; background: #F4F4F5; color: #0A0A0B; display: flex; align-items: center; justify-content: center;">
+                      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4.5v15l12-7.5z" fill="currentColor"></path></svg>
+                    </a>
+                    <button class="round" type="button" onClick="{{item.toggleList}}" aria-pressed="{{item.inList}}" aria-label="{{item.listLabel}}" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(255,255,255,.32); background: transparent; color: #F4F4F5; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                      <sc-if value="{{item.inList}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+                      <sc-if value="{{item.notInList}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+                    </button>
+                    <button class="round" type="button" onClick="{{item.toggleSeen}}" aria-pressed="{{item.seen}}" aria-label="Marquer comme vu" style="width: 40px; height: 40px; border-radius: 999px; border: 1px solid rgba(255,255,255,.32); background: {{item.seenBg}}; color: {{item.seenFg}}; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>
+                    </button>
+                    <span style="flex: 1 1 auto;"></span>
+                    <a class="round" href="Series.dc.html" aria-label="Plus d'infos sur {{item.title}}" style="width: 40px; height: 40px; box-sizing: border-box; border-radius: 999px; border: 1px solid rgba(255,255,255,.32); color: #F4F4F5; display: flex; align-items: center; justify-content: center;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg>
+                    </a>
+                  </div>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <span style="font-size: 14px; font-weight: 600; color: #F4F4F5;">{{item.line}}</span>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: #A1A1AA;">
+                      <span style="padding: 1px 7px; border: 1px solid rgba(255,255,255,.26); border-radius: 6px;">{{item.rating}}</span>
+                      <span>{{item.duration}}</span>
+                      <span style="padding: 1px 7px; border: 1px solid rgba(255,255,255,.26); border-radius: 6px;">{{item.quality}}</span>
+                    </div>
+                    <sc-if value="{{item.hasProgress}}" hint-placeholder-val="{{false}}">
+                      <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8B8B94;">
+                        <span aria-hidden="true" style="flex: 1 1 auto; height: 3px; border-radius: 999px; background: rgba(255,255,255,.16); overflow: hidden;"><span style="display: block; height: 100%; width: {{item.progress}}; background: {{accent}};"></span></span>
+                        <span style="white-space: nowrap;">{{item.left}}</span>
+                      </div>
+                    </sc-if>
+                    <span style="font-size: 13px; color: #A1A1AA;">{{item.genres}}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"pinPreview":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1720}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ambient: null, list: {}, seen: {} };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const pin = this.props.pinPreview ?? false;
+    const cat = {
+      marees: { title: 'Les Marées basses', tint: '#13283B', rating: '12+', quality: '4K HDR', genres: 'Drame · Policier · Insulaire', art: 'radial-gradient(55% 60% at 74% 32%, rgba(242,181,68,.55) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #16263A 55%, #0C141E 100%)' },
+      orbite: { title: 'Orbite basse', tint: '#181B33', rating: '12+', quality: '4K', genres: 'Science-fiction · Huis clos', art: 'radial-gradient(circle at 70% 40%, #D9E2EC 0%, #7C8DA3 9%, #2B3445 16%, rgba(0,0,0,0) 16.5%), linear-gradient(160deg, #0E1020 0%, #1D2238 100%)' },
+      atelier: { title: 'Atelier 7', tint: '#2A1B10', rating: 'Tous publics', quality: 'HD', genres: 'Documentaire · Artisanat', art: 'radial-gradient(70% 60% at 25% 20%, rgba(255,214,160,.45) 0%, rgba(255,214,160,0) 60%), linear-gradient(135deg, #6B4529 0%, #2C1B10 100%)' },
+      minuit: { title: 'Minuit à Fourvière', tint: '#1C1634', rating: '16+', quality: '4K', genres: 'Thriller · Nocturne', art: 'radial-gradient(14% 22% at 78% 26%, #EDE6CC 0%, rgba(237,230,204,0) 100%), linear-gradient(180deg, #241D45 0%, #0E0B1C 100%)' },
+      brigade: { title: 'La Brigade du Rhône', tint: '#2A1212', rating: '16+', quality: 'HD', genres: 'Policier · Action', art: 'radial-gradient(60% 50% at 50% 100%, rgba(229,72,77,.45) 0%, rgba(229,72,77,0) 70%), linear-gradient(180deg, #2A1414 0%, #110808 100%)' },
+      nord: { title: 'Nord', tint: '#1B2833', rating: '12+', quality: '4K HDR', genres: 'Drame · Grand froid', art: 'radial-gradient(70% 50% at 50% 0%, rgba(220,235,245,.5) 0%, rgba(220,235,245,0) 70%), linear-gradient(180deg, #4B6578 0%, #17222C 100%)' },
+      ferry: { title: 'Le Dernier Ferry', tint: '#1C2C38', rating: 'Tous publics', quality: '4K', genres: 'Drame · Mer', art: 'linear-gradient(180deg, #8FA7B8 0%, #6F889A 44%, #2F4656 44.5%, #14212B 100%)' },
+      tilleuls: { title: 'Sous les tilleuls', tint: '#1C2413', rating: 'Tous publics', quality: 'HD', genres: 'Comédie · Été', art: 'radial-gradient(80% 70% at 30% 30%, #7E9A5A 0%, rgba(126,154,90,0) 70%), linear-gradient(160deg, #3C4A2A 0%, #161C10 100%)' },
+      pente: { title: 'Pente douce', tint: '#2B1815', rating: '12+', quality: '4K', genres: 'Drame · Famille', art: 'linear-gradient(165deg, #C98B6B 0%, #B07258 42%, #6E3F3A 42.5%, #2A1717 100%)' },
+      cinq: { title: 'Cinq heures du matin', tint: '#28202F', rating: '12+', quality: '4K HDR', genres: 'Romance · Ville', art: 'linear-gradient(180deg, #2F3B57 0%, #A7746A 68%, #E0A472 100%)' },
+      canuts: { title: 'Les Canuts', tint: '#241D13', rating: 'Tous publics', quality: 'HD', genres: 'Histoire · Documentaire', art: 'radial-gradient(40% 40% at 60% 40%, rgba(242,181,68,.35) 0%, rgba(242,181,68,0) 70%), linear-gradient(180deg, #3A3226 0%, #15120D 100%)' },
+      plateau: { title: 'Plateau Nord', tint: '#202830', rating: '12+', quality: '4K', genres: 'Aventure · Montagne', art: 'linear-gradient(180deg, #A9B4BC 0%, #8E9AA3 55%, #59666E 55.5%, #232A2F 100%)' }
+    };
+    const rowDefs = [
+      { id: 'continue', title: 'Continuer à regarder', kind: 'wide', items: [
+        { k: 'marees', sub: 'S2 · É4 · Coefficient 112', right: '18 min', line: 'S2 · É4 « Coefficient 112 »', duration: '47 min', progress: '62%', left: '18 min restantes', href: 'Player.dc.html' },
+        { k: 'orbite', sub: 'Film · 2024', right: '41 min', line: 'Film · 2024', duration: '1 h 52', progress: '55%', left: '41 min restantes', href: 'Player.dc.html' },
+        { k: 'atelier', sub: 'S1 · É2 · Le grain du bois', right: '9 min', line: 'S1 · É2 « Le grain du bois »', duration: '31 min', progress: '82%', left: '9 min restantes', href: 'Player.dc.html' },
+        { k: 'minuit', sub: 'Film · 2019', right: '1 h 12', line: 'Film · 2019', duration: '1 h 38', progress: '22%', left: '1 h 12 restantes', href: 'Player.dc.html' },
+        { k: 'brigade', sub: 'S3 · É1 · Rive gauche', right: '35 min', line: 'S3 · É1 « Rive gauche »', duration: '44 min', progress: '12%', left: '35 min restantes', href: 'Player.dc.html' }
+      ] },
+      { id: 'next', title: 'À suivre', kind: 'wide', items: [
+        { k: 'nord', sub: 'S1 · É6 · Le phare', right: '52 min', line: 'S1 · É6 « Le phare »', duration: '52 min', isNew: true, href: 'Series.dc.html' },
+        { k: 'marees', sub: 'S2 · É5 · Estran', right: '50 min', line: 'S2 · É5 « Estran »', duration: '50 min', href: 'Series.dc.html' },
+        { k: 'atelier', sub: 'S1 · É3 · Chevilles', right: '31 min', line: 'S1 · É3 « Chevilles »', duration: '31 min', href: 'Series.dc.html' },
+        { k: 'brigade', sub: 'S3 · É2 · Confluence', right: '47 min', line: 'S3 · É2 « Confluence »', duration: '47 min', isNew: true, href: 'Series.dc.html' },
+        { k: 'plateau', sub: 'S1 · É1 · Le col', right: '44 min', line: 'S1 · É1 « Le col »', duration: '44 min', href: 'Series.dc.html' }
+      ] },
+      { id: 'new', title: 'Ajoutés récemment', kind: 'poster', items: [
+        { k: 'ferry', sub: 'Film · 2023', line: 'Film · 2023', duration: '1 h 48' },
+        { k: 'tilleuls', sub: 'Film · 2021', line: 'Film · 2021', duration: '1 h 37' },
+        { k: 'pente', sub: 'Série · 2 saisons', line: 'Série · 2 saisons', duration: '16 épisodes' },
+        { k: 'cinq', sub: 'Film · 2025', line: 'Film · 2025', duration: '1 h 54' },
+        { k: 'canuts', sub: 'Documentaire · 2022', line: 'Documentaire · 2022', duration: '1 h 32' },
+        { k: 'plateau', sub: 'Série · 1 saison', line: 'Série · 1 saison', duration: '8 épisodes' },
+        { k: 'nord', sub: 'Série · 1 saison', line: 'Série · 1 saison', duration: '6 épisodes' },
+        { k: 'orbite', sub: 'Film · 2024', line: 'Film · 2024', duration: '1 h 52' }
+      ] },
+      { id: 'list', title: 'Ma liste', kind: 'wide', items: [
+        { k: 'pente', sub: 'Série · 2 saisons', right: '', line: 'Série · 2 saisons', duration: '16 épisodes' },
+        { k: 'ferry', sub: 'Film', right: '1 h 48', line: 'Film · 2023', duration: '1 h 48' },
+        { k: 'canuts', sub: 'Documentaire', right: '1 h 32', line: 'Documentaire · 2022', duration: '1 h 32' },
+        { k: 'cinq', sub: 'Film', right: '1 h 54', line: 'Film · 2025', duration: '1 h 54' },
+        { k: 'tilleuls', sub: 'Film', right: '1 h 37', line: 'Film · 2021', duration: '1 h 37' }
+      ] }
+    ];
+    const inMyList = (k) => this.state.list[k] ?? (k === 'pente' || k === 'ferry' || k === 'canuts' || k === 'cinq' || k === 'tilleuls');
+    const rows = rowDefs.map((r, ri) => ({
+      hid: 'row-' + r.id,
+      title: r.title,
+      items: r.items.map((it, i) => {
+        const c = cat[it.k];
+        const wide = r.kind === 'wide';
+        const lastVisible = wide ? 3 : 6;
+        const atStart = i === 0;
+        const atEnd = i >= lastVisible;
+        const inList = inMyList(it.k);
+        const seen = !!this.state.seen[it.k];
+        return {
+          ...c, ...it,
+          right: it.right ?? '',
+          isNew: !!it.isNew,
+          hasProgress: !!it.progress,
+          progress: it.progress ?? '0%',
+          left: it.left ?? '',
+          href: it.href ?? 'Series.dc.html',
+          flex: wide ? '0 0 max(260px, calc((100% - 42px) / 4))' : '0 0 max(150px, calc((100% - 84px) / 7))',
+          aspect: wide ? '16 / 9' : '2 / 3',
+          titleSize: wide ? '20px' : '18px',
+          pw: wide ? '150%' : '230%',
+          ptop: wide ? '-30px' : '-6px',
+          pl: atEnd ? 'auto' : '0',
+          pr: atEnd ? '0' : 'auto',
+          pml: atStart || atEnd ? '0' : (wide ? '-25%' : '-65%'),
+          origin: atStart ? 'left center' : (atEnd ? 'right center' : 'center center'),
+          pinClass: pin && ri === 0 && i === 1 ? 'pin' : '',
+          inList,
+          notInList: !inList,
+          listLabel: inList ? 'Retirer de Ma liste' : 'Ajouter à Ma liste',
+          seen,
+          seenBg: seen ? '#F4F4F5' : 'transparent',
+          seenFg: seen ? '#0A0A0B' : '#F4F4F5',
+          enter: () => { if (this.state.ambient !== c.tint) this.setState({ ambient: c.tint }); },
+          toggleList: () => this.setState({ list: { ...this.state.list, [it.k]: !inList } }),
+          toggleSeen: () => this.setState({ seen: { ...this.state.seen, [it.k]: !seen } })
+        };
+      })
+    }));
+    const heroInList = inMyList('marees');
+    return {
+      accent,
+      heroArt: cat.marees.art,
+      ambient: this.state.ambient ?? (pin ? cat.orbite.tint : cat.marees.tint),
+      resetAmbient: () => this.setState({ ambient: null }),
+      heroInList,
+      heroNotInList: !heroInList,
+      heroListLabel: heroInList ? 'Retirer de Ma liste' : 'Ajouter à Ma liste',
+      heroToggle: () => this.setState({ list: { ...this.state.list, marees: !heroInList } }),
+      rows
+    };
+  }
+}
+</script>
+</body>
+</html>

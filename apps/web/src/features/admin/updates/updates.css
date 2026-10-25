@@ -1,0 +1,326 @@
+/* Mises à jour (§15, §16.4): the admin's tables and sections, the release as a tile. */
+
+.upd-notice {
+  max-width: 1180px;
+  padding: 12px 16px;
+  border-radius: var(--radius-button);
+  background: rgba(229, 181, 103, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(229, 181, 103, 0.25);
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+}
+
+/* Running version and last check: two cells, same height loading or filled. */
+.upd-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  max-width: 720px;
+  margin: 0;
+}
+
+.upd-summary__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.upd-summary__item dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.upd-summary__item dd {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 46px;
+  margin: 0;
+}
+
+.upd-summary__value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.upd-summary__value--text {
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+
+.upd-summary__sub {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upd-summary__sub--error {
+  color: var(--color-error-soft);
+}
+
+.upd-summary__skeleton {
+  width: 60%;
+  height: 24px;
+}
+
+.upd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The newer release: version, date and link, the button, the progress, then its notes. */
+.upd-release {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 720px;
+  min-height: 96px;
+  padding: 20px;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.upd-release--current {
+  justify-content: center;
+}
+
+.upd-release__skeleton {
+  display: block;
+  max-width: 720px;
+  height: 96px;
+}
+
+.upd-release__uptodate {
+  color: var(--color-text-muted-strong);
+  font-size: 15px;
+}
+
+.upd-release__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+}
+
+.upd-release__title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.upd-release__version {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.upd-release__meta {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.upd-release__meta a {
+  color: var(--color-text-secondary);
+}
+
+.upd-release__meta a:hover {
+  color: var(--color-text-strong);
+}
+
+/* Release notes: Markdown source shown as text. */
+.upd-release__notes {
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.upd-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.upd-progress__label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+}
+
+.upd-pull {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-warning);
+  font-size: 14px;
+}
+
+.upd-pull__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-button);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.upd-pull__command {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* Versions and log: the admin's tables (`ses-table`), rows flowing with the page. */
+.upd-table {
+  display: flex;
+  flex-direction: column;
+  max-width: 1180px;
+}
+
+/* Loading, empty and filled keep at least the same height. */
+.upd-table__body {
+  display: flex;
+  flex-direction: column;
+  min-height: 168px;
+}
+
+.upd-table__body--versions {
+  min-height: 112px;
+}
+
+.upd-table__body > .state {
+  flex: 1;
+}
+
+.upd-tr {
+  display: grid;
+  gap: 16px;
+  align-items: center;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 14px;
+}
+
+.upd-tr--versions {
+  grid-template-columns:
+    minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr)
+    minmax(max-content, 1.4fr);
+}
+
+.upd-tr--runs {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 2fr);
+}
+
+.upd-tr--head {
+  min-height: 0;
+  padding: 0 12px 12px;
+  border-bottom-color: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.upd-tr--skeleton {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.upd-tr--skeleton .skeleton {
+  width: 50%;
+}
+
+.upd-tr__mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.upd-tr__strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.upd-tr__muted {
+  color: var(--color-text-muted);
+}
+
+.upd-tr__action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.upd-tr__outcome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
+.upd-tr__error {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .upd-tr__optional {
+    display: none;
+  }
+
+  .upd-tr--versions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    row-gap: 10px;
+  }
+
+  /* The button on its own line: the pills keep their room. */
+  .upd-tr--versions .upd-tr__action {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .upd-tr--versions .upd-tr__action:empty,
+  .upd-tr--versions.upd-tr--head > :last-child {
+    display: none;
+  }
+
+  .upd-tr--runs {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .upd-tr--runs > :nth-child(2) {
+    display: none;
+  }
+}

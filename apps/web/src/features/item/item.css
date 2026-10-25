@@ -1,0 +1,1044 @@
+/* Detail pages (§13.5, artboards `Series`, `MobileSeries`). */
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 96px;
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.detail-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: clamp(520px, 74vh, 680px);
+  padding: calc(var(--header-height) + 24px) var(--gutter) 48px;
+  overflow: hidden;
+}
+
+.detail-hero__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(55% 60% at 74% 32%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, var(--tone, #2b4560) 0%, #101a24 60%, var(--color-bg) 100%);
+}
+
+.detail-hero__img {
+  transform-origin: 70% 40%;
+  animation: ken-burns 26s ease-out both;
+}
+
+.detail-hero__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(0deg, var(--color-bg) 0%, rgba(10, 10, 11, 0) 45%),
+    linear-gradient(
+      90deg,
+      rgba(10, 10, 11, 0.9) 0%,
+      rgba(10, 10, 11, 0.5) 40%,
+      rgba(10, 10, 11, 0) 70%
+    );
+}
+
+.detail-hero__top {
+  position: absolute;
+  top: calc(var(--header-height) + 4px);
+  left: var(--gutter);
+  z-index: 2;
+}
+
+.detail-hero__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px 0 6px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
+}
+
+.detail-hero__back:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-strong);
+}
+
+.detail-hero__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 600px;
+}
+
+.detail-hero__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.detail-hero__crumbs a {
+  color: var(--color-text-muted-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detail-hero__crumbs a:hover {
+  color: var(--color-text-strong);
+}
+
+.detail-hero__title {
+  font-size: clamp(44px, 6vw, 72px);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+}
+
+/* The logo sizes the title: the text waits for it (entrance paused, still hidden) rather than being
+   pushed up when it arrives. The route's loader has usually decoded it already. */
+.detail-hero__content:has(.detail-hero__logo[data-pending]) > * {
+  animation-play-state: paused;
+}
+
+.detail-hero__logo {
+  display: block;
+  max-width: min(460px, 100%);
+  max-height: clamp(80px, 10vw, 140px);
+  object-fit: contain;
+  object-position: left bottom;
+}
+
+.detail-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-hero__meta-part + .detail-hero__meta-part::before {
+  content: '·';
+  margin-right: 10px;
+}
+
+.detail-hero__vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted-strong);
+}
+
+.detail-hero__vote svg {
+  color: var(--color-warning);
+}
+
+.detail-hero__overview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-soft);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+}
+
+.detail-hero__credits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.detail-hero__credits > span + span::before {
+  content: '·';
+  margin: 0 8px;
+}
+
+.detail-hero__names {
+  color: var(--color-text-soft);
+}
+
+.detail-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.detail-hero__actions .button--large {
+  height: 48px;
+  padding: 0 20px 0 16px;
+  border-radius: var(--radius-button);
+  font-size: 15px;
+}
+
+.detail-hero__actions .detail-hero__play {
+  padding: 0 26px 0 22px;
+  font-size: 16px;
+}
+
+.detail-action[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.detail-hero__progress {
+  max-width: 420px;
+}
+
+.detail-hero--skeleton {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(10, 10, 11, 0) 100%);
+}
+
+.detail__skeleton-title {
+  width: min(460px, 80%);
+  height: 64px;
+}
+
+.detail__skeleton-meta {
+  width: 260px;
+}
+
+.detail__skeleton-text {
+  width: min(520px, 90%);
+}
+
+.detail__skeleton-button {
+  width: 200px;
+  height: 48px;
+  border-radius: var(--radius-button);
+}
+
+/* ── Body sections ──────────────────────────────────────────────────────── */
+
+.detail__body {
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  max-width: calc(1180px + 2 * var(--gutter));
+  padding: 24px var(--gutter) 0;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.detail-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 34px;
+}
+
+.detail-section__title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* ── Episodes (artboard `Series`) ───────────────────────────────────────── */
+
+.episodes__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.episodes__tabs-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 32px;
+  min-width: 0;
+}
+
+.episodes__title {
+  padding-bottom: 14px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.season-tabs {
+  display: flex;
+  gap: 24px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.season-tabs__tab {
+  position: relative;
+  flex: 0 0 auto;
+  height: 44px;
+  padding: 0 2px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.25s ease;
+}
+
+.season-tabs__tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-accent);
+  opacity: 0;
+  transform: scaleX(0.2);
+  transition:
+    transform 0.45s var(--ease),
+    opacity 0.25s ease;
+}
+
+.season-tabs__tab:hover,
+.season-tabs__tab[aria-selected='true'] {
+  color: var(--color-text);
+}
+
+.season-tabs__tab[aria-selected='true']::after {
+  opacity: 1;
+  transform: none;
+}
+
+.episodes__tabs-skeleton {
+  width: 160px;
+  margin-bottom: 14px;
+}
+
+.episodes__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding-bottom: 8px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.episodes__mark {
+  border-radius: var(--radius-pill);
+}
+
+.bulk {
+  position: relative;
+}
+
+.bulk__button {
+  width: 36px;
+  height: 36px;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.bulk__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 260px;
+  padding: 8px;
+  border-radius: var(--radius-well);
+  background: rgba(24, 24, 27, 0.97);
+  box-shadow: var(--shadow-panel);
+  animation: rise 0.3s var(--ease) both;
+}
+
+.admin-menu {
+  position: relative;
+  align-self: center;
+}
+
+.admin-menu__button {
+  display: grid;
+  width: 32px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.admin-menu__button:hover,
+.admin-menu:has(.admin-menu__menu:popover-open) .admin-menu__button {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+/* Under its button (implicit popover anchor), above it when there is no room below; centered
+   where anchor positioning is unsupported. */
+.admin-menu__menu {
+  inset: 0;
+  width: max-content;
+  height: max-content;
+  margin: auto;
+}
+
+@supports (position-area: bottom) {
+  .admin-menu__menu {
+    inset: auto;
+    margin: 6px 0;
+    position-area: bottom span-right;
+    position-try-fallbacks: flip-block;
+  }
+
+  /* At the right edge of an episode row: opens leftwards. */
+  .admin-menu--end .admin-menu__menu {
+    position-area: bottom span-left;
+  }
+}
+
+.admin-menu__spinner {
+  width: 16px;
+  height: 16px;
+}
+
+/* "Refresh" refused (a local item): said under the item, inside the menu. */
+.admin-menu__error {
+  max-width: 260px;
+  margin: 0;
+  padding: 2px 12px 8px;
+  color: var(--color-error-soft);
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: normal;
+}
+
+/* Several episodes can be in progress: their backgrounds must not touch. */
+.episode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.episode {
+  display: grid;
+  grid-template-areas: 'number still body check';
+  grid-template-columns: 32px 184px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin: 0 -12px;
+  padding: 16px 12px;
+  border-radius: var(--radius-button);
+}
+
+.episode[data-in-progress='true'] {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.episode--skeleton {
+  height: 136px;
+  margin: 8px 0;
+}
+
+.episode__number {
+  grid-area: number;
+  color: var(--color-text-faint);
+  font-size: 20px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "1-2" (multi-episode file, §8.4) stays on one line within the number column. */
+.episode__number[data-range] {
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.episode__still {
+  position: relative;
+  grid-area: still;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-thumb);
+  background: linear-gradient(160deg, var(--tone, #2b3445) 0%, #0e1014 100%);
+}
+
+.episode__still .cover-img {
+  transition: transform 0.6s var(--ease);
+  /* Own layer: Firefox judders on the hover zoom otherwise (see `.card`, media.css). */
+  will-change: transform;
+}
+
+.episode__play {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.episode__play-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: var(--radius-pill);
+  color: #ffffff;
+}
+
+.episode__still:hover .episode__play,
+.episode__still:focus-visible .episode__play {
+  opacity: 1;
+}
+
+.episode__still:hover .cover-img {
+  transform: scale(1.04);
+}
+
+/* Without a still the play ring stays visible: the tile is never an empty box. */
+.episode__still:not(:has(.cover-img)) .episode__play {
+  background: transparent;
+  opacity: 0.8;
+}
+
+.episode__bar {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: block;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.18);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.episode__bar::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.episode__bar::-webkit-progress-value {
+  background: var(--color-accent);
+}
+
+.episode__bar::-moz-progress-bar {
+  background: var(--color-accent);
+}
+
+.episode__bar--done::-webkit-progress-value {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.episode__bar--done::-moz-progress-bar {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.episode__body {
+  grid-area: body;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.episode__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.episode__title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.episode__inline-number {
+  display: none;
+}
+
+.episode__duration {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.episode__overview {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.episode__state {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.episode__actions {
+  grid-area: check;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+}
+
+.episode__actions .admin-menu__button {
+  height: 40px;
+}
+
+.episode__check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.18);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.episode__check:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-muted-strong);
+}
+
+.episode__check[aria-pressed='true'] {
+  color: var(--color-text-muted);
+}
+
+.episode__check[aria-pressed='true']:hover {
+  color: var(--color-text);
+}
+
+/* ── Casting ────────────────────────────────────────────────────────────── */
+
+.cast {
+  display: flex;
+  gap: 20px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 0 var(--gutter) 8px;
+  overflow-x: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.cast::-webkit-scrollbar {
+  display: none;
+}
+
+/* Touch screens swipe the row; the arrows are for mouse and trackpad (as the home rows). */
+@media not ((hover: hover) and (pointer: fine)) {
+  .cast__pager {
+    display: none;
+  }
+}
+
+.cast__person {
+  display: flex;
+  flex: 0 0 112px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.cast__photo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  margin-bottom: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-3);
+  box-shadow: var(--shadow-well);
+}
+
+.cast__initials {
+  color: var(--color-text-muted);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.cast__name {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.cast__role {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* ── Technical details ──────────────────────────────────────────────────── */
+
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+  gap: 16px;
+}
+
+.tech {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 18px 20px;
+  border-radius: var(--radius-well);
+  background: var(--color-well);
+  box-shadow: var(--shadow-well);
+}
+
+.tech__row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 12px;
+  font-size: 14px;
+}
+
+.tech__row dt {
+  color: var(--color-text-muted);
+}
+
+.tech__row dd {
+  margin: 0;
+  color: var(--color-text-bright);
+  overflow-wrap: anywhere;
+}
+
+.tech__tracks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ── Phone (artboard `MobileSeries`) ────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .detail-hero {
+    min-height: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .detail-hero__media {
+    position: relative;
+    inset: auto;
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(180deg, var(--tone, #2b4560) 0%, #101a24 100%);
+  }
+
+  .detail-hero__shade {
+    background: linear-gradient(0deg, var(--color-bg) 0%, rgba(10, 10, 11, 0) 45%);
+  }
+
+  .detail-hero__top {
+    top: calc(var(--header-height) + 4px);
+    left: 12px;
+  }
+
+  .detail-hero__back {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+    background: rgba(10, 10, 11, 0.5);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    color: var(--color-text);
+  }
+
+  .detail-hero__back-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .detail-hero__content {
+    gap: 14px;
+    max-width: none;
+    padding: 4px 16px 0;
+  }
+
+  .detail-hero__title {
+    font-size: 32px;
+    line-height: 0.98;
+  }
+
+  .detail-hero__logo {
+    max-height: 72px;
+  }
+
+  .detail-hero__meta {
+    gap: 6px 8px;
+    font-size: 13px;
+  }
+
+  .detail-hero__overview {
+    font-size: 14px;
+  }
+
+  .detail-hero__actions {
+    gap: 8px;
+  }
+
+  .detail-hero__actions .detail-hero__play {
+    flex: 1 1 100%;
+    height: 46px;
+  }
+
+  .detail-hero__actions .detail-action {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
+    height: auto;
+    padding: 10px 0;
+    border-radius: var(--radius-button);
+    background: transparent;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    color: var(--color-text-muted-strong);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: normal;
+  }
+
+  .detail-hero__actions .detail-action[aria-pressed='true'] {
+    background: transparent;
+    color: var(--color-text);
+  }
+
+  .detail-hero__progress {
+    max-width: none;
+  }
+
+  .detail__body {
+    gap: 36px;
+    margin-top: 8px;
+    padding: 20px 16px 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .episodes__bar {
+    align-items: center;
+    border-bottom: 0;
+  }
+
+  .episodes__tabs-wrap {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .episodes__title {
+    padding-bottom: 0;
+    font-size: 17px;
+  }
+
+  .season-tabs {
+    gap: 0;
+    padding: 3px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface-3);
+  }
+
+  .season-tabs__tab {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+  }
+
+  .season-tabs__tab::after {
+    display: none;
+  }
+
+  .season-tabs__tab[aria-selected='true'] {
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .episodes__summary {
+    width: 100%;
+    padding-bottom: 0;
+  }
+
+  .episode-list {
+    gap: 18px;
+  }
+
+  .episode {
+    grid-template-areas:
+      'still head check'
+      'text text text';
+    grid-template-columns: 128px minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+  }
+
+  .episode__number {
+    display: none;
+  }
+
+  .episode__body {
+    display: contents;
+  }
+
+  .episode__head {
+    grid-area: head;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .episode__title {
+    font-size: 14px;
+  }
+
+  .episode__inline-number {
+    display: inline;
+  }
+
+  .episode__duration {
+    font-size: 12px;
+  }
+
+  .episode__overview,
+  .episode__state {
+    grid-area: text;
+  }
+
+  .episode__overview {
+    font-size: 13px;
+  }
+
+  .episode__state + .episode__overview,
+  .episode__overview + .episode__state {
+    grid-area: auto;
+    grid-column: 1 / -1;
+  }
+
+  .episode__play-ring {
+    width: 30px;
+    height: 30px;
+  }
+
+  .episode__play {
+    background: transparent;
+    opacity: 0.85;
+  }
+
+  .cast__person {
+    flex-basis: 92px;
+  }
+
+  .cast__photo {
+    width: 80px;
+    height: 80px;
+  }
+
+  .tech__row {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+}
+
+.detail-hero__actions svg {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 641px) {
+  .detail-hero__actions {
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--gutter));
+  }
+}
+
+/* Phone: lines wrap, a separator would start a line. */
+@media (max-width: 640px) {
+  .detail-hero__meta {
+    gap: 6px 12px;
+  }
+
+  .detail-hero__meta-part + .detail-hero__meta-part::before {
+    content: none;
+  }
+
+  .detail-hero__credits {
+    flex-direction: column;
+  }
+
+  .detail-hero__credits > span + span::before {
+    content: none;
+  }
+}

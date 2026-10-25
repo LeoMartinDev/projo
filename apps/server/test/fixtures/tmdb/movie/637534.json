@@ -1,0 +1,163 @@
+{
+  "adult": false,
+  "backdrop_path": "/vkIJ2QgcKMJRvi6pBW4Tr2kgLdy.jpg",
+  "belongs_to_collection": null,
+  "budget": 14479740,
+  "genres": [
+    {
+      "id": 53,
+      "name": "Thriller"
+    },
+    {
+      "id": 28,
+      "name": "Action"
+    },
+    {
+      "id": 80,
+      "name": "Crime"
+    }
+  ],
+  "homepage": "",
+  "id": 637534,
+  "imdb_id": "tt10404944",
+  "origin_country": ["FR"],
+  "original_language": "fr",
+  "original_title": "BAC Nord",
+  "overview": "2012.",
+  "popularity": 4.8171,
+  "poster_path": "/r2NnRp4mi4G3e0x9zINQIcnGNd8.jpg",
+  "production_companies": [],
+  "production_countries": [],
+  "release_date": "2021-08-18",
+  "revenue": 0,
+  "runtime": 105,
+  "softcore": false,
+  "spoken_languages": [],
+  "status": "Released",
+  "tagline": "",
+  "title": "BAC Nord",
+  "video": false,
+  "vote_average": 7.344,
+  "vote_count": 1458,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 54291,
+        "known_for_department": "Acting",
+        "name": "Gilles Lellouche",
+        "original_name": "Gilles Lellouche",
+        "popularity": 2.1116,
+        "profile_path": "/5Ka9nodCWS6TRFJnmosjp9sV3iA.jpg",
+        "cast_id": 7,
+        "character": "Greg Cerva",
+        "credit_id": "5d9b011481a7fc23ddc5acd5",
+        "order": 0
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 78124,
+        "known_for_department": "Acting",
+        "name": "François Civil",
+        "original_name": "François Civil",
+        "popularity": 2.7314,
+        "profile_path": "/vSkggoDmEHl820VMBzpGkjARU2z.jpg",
+        "cast_id": 6,
+        "character": "Antoine",
+        "credit_id": "5d9b010dbb2602001b13257b",
+        "order": 1
+      }
+    ],
+    "crew": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 1002647,
+        "known_for_department": "Directing",
+        "name": "Cédric Jimenez",
+        "original_name": "Cédric Jimenez",
+        "popularity": 0.9588,
+        "profile_path": "/1kYOeygLOQQ7ub3pQlp9U7gsb9M.jpg",
+        "credit_id": "5d9b00a581a7fc0020c67a77",
+        "department": "Directing",
+        "job": "Director"
+      }
+    ]
+  },
+  "images": {
+    "backdrops": [],
+    "logos": [],
+    "posters": []
+  },
+  "external_ids": {
+    "imdb_id": "tt10404944",
+    "wikidata_id": "Q85852782",
+    "facebook_id": null,
+    "instagram_id": null,
+    "twitter_id": null
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "TP",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "2021-08-18T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "VOD",
+            "release_date": "2021-12-15T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "10",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "MyCanal",
+            "release_date": "2022-02-18T00:00:00.000Z",
+            "type": 4
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "DVD, Blu-Ray & 4K UHD",
+            "release_date": "2021-12-18T00:00:00.000Z",
+            "type": 5
+          },
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "France•2",
+            "release_date": "2026-01-18T00:00:00.000Z",
+            "type": 6
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "R",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Netflix",
+            "release_date": "2021-09-17T00:00:00.000Z",
+            "type": 4
+          }
+        ]
+      }
+    ]
+  }
+}

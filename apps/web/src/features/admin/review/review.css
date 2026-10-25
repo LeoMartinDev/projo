@@ -1,0 +1,158 @@
+/* "To review" (§7.8), rows in the style of the library table. */
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(0, 1.1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background-color 0.25s ease;
+}
+
+.review-row:not(.review-row--skeleton):hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.review-row--skeleton {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.review-row__skeleton-text {
+  width: 60%;
+}
+
+.review-row__text,
+.review-row__parsed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.review-row__name,
+.review-row__summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-row__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.review-row__path {
+  /* Ellipsis at the start: the end of a path is what tells files apart. */
+  direction: rtl;
+  text-align: left;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-row__kind {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.review-row__summary {
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+}
+
+.review-row__reason {
+  min-width: 0;
+}
+
+.review-row__reason .badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-row__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.review-more {
+  align-self: center;
+}
+
+/* The file being identified, above the search: one line, start ellipsis. */
+.review-file {
+  direction: rtl;
+  flex: 0 0 auto;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .review-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'icon text actions'
+      '. parsed parsed'
+      '. reason reason';
+    gap: 8px 12px;
+    padding: 16px 4px;
+  }
+
+  .review-row--skeleton {
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas: none;
+  }
+
+  .review-row > .lib-row__icon {
+    grid-area: icon;
+  }
+
+  .review-row__text {
+    grid-area: text;
+  }
+
+  .review-row__parsed {
+    grid-area: parsed;
+  }
+
+  .review-row__reason {
+    grid-area: reason;
+  }
+
+  .review-row__actions {
+    grid-area: actions;
+  }
+}
+
+@media (max-width: 560px) {
+  .review-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas:
+      'icon text'
+      '. parsed'
+      '. reason'
+      '. actions';
+  }
+
+  .review-row__actions {
+    justify-content: flex-start;
+  }
+}

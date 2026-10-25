@@ -1,0 +1,168 @@
+{
+  "adult": false,
+  "backdrop_path": "/ziECpBRIyclmBNaFSWlvCfsKbMD.jpg",
+  "belongs_to_collection": {
+    "id": 10,
+    "name": "Star Wars - Saga",
+    "poster_path": "/6mHkagjziBPth2Mx0VpEercocm4.jpg",
+    "backdrop_path": "/iY2ujEY2m68OTTlPFTiHub9joHS.jpg"
+  },
+  "budget": 32350000,
+  "genres": [
+    {
+      "id": 12,
+      "name": "Aventure"
+    },
+    {
+      "id": 28,
+      "name": "Action"
+    },
+    {
+      "id": 878,
+      "name": "Science-Fiction"
+    }
+  ],
+  "homepage": "",
+  "id": 1892,
+  "imdb_id": "tt0086190",
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_title": "Return of the Jedi",
+  "overview": "L'Empire galactique est plus puissant que jamais : la construction de la nouvelle arme, l’Étoile de la Mort, menace l'univers tout entier...",
+  "popularity": 15.8373,
+  "poster_path": "/tEQlCGiiWvMvfD7Sz8d99Pouy39.jpg",
+  "production_companies": [],
+  "production_countries": [],
+  "release_date": "1983-05-25",
+  "revenue": 572700000,
+  "runtime": 133,
+  "softcore": false,
+  "spoken_languages": [],
+  "status": "Released",
+  "tagline": "Retour dans une galaxie… loin, très loin.",
+  "title": "Le Retour du Jedi",
+  "video": false,
+  "vote_average": 7.912,
+  "vote_count": 17472,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 2,
+        "known_for_department": "Acting",
+        "name": "Mark Hamill",
+        "original_name": "Mark Hamill",
+        "popularity": 2.9521,
+        "profile_path": "/zMQ93JTLW8KxusKhOlHFZhih3YQ.jpg",
+        "cast_id": 8,
+        "character": "Luke Skywalker",
+        "credit_id": "52fe431ec3a36847f803bc13",
+        "order": 0
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 3,
+        "known_for_department": "Acting",
+        "name": "Harrison Ford",
+        "original_name": "Harrison Ford",
+        "popularity": 4.2314,
+        "profile_path": "/pjBMJVPpcZK23Vt1nzr1zEBTWrP.jpg",
+        "cast_id": 9,
+        "character": "Han Solo",
+        "credit_id": "52fe431ec3a36847f803bc17",
+        "order": 1
+      }
+    ],
+    "crew": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 19800,
+        "known_for_department": "Directing",
+        "name": "Richard Marquand",
+        "original_name": "Richard Marquand",
+        "popularity": 0.6506,
+        "profile_path": "/eEalDQpLsXJqejPDQ3MWGe95UHT.jpg",
+        "credit_id": "52fe431ec3a36847f803bbfd",
+        "department": "Directing",
+        "job": "Director"
+      }
+    ]
+  },
+  "images": {
+    "backdrops": [],
+    "logos": [],
+    "posters": []
+  },
+  "external_ids": {
+    "imdb_id": "tt0086190",
+    "wikidata_id": "Q181803",
+    "facebook_id": "StarWars",
+    "instagram_id": "starwars",
+    "twitter_id": "starwars"
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "TP",
+            "descriptors": [],
+            "iso_639_1": "fr",
+            "note": "",
+            "release_date": "1983-10-19T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "",
+            "descriptors": [],
+            "iso_639_1": "en",
+            "note": "New York City",
+            "release_date": "1983-05-23T00:00:00.000Z",
+            "type": 1
+          },
+          {
+            "certification": "PG",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1983-05-25T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "PG",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Special Edition",
+            "release_date": "1997-03-14T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "PG",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "40th Anniversary Re-release",
+            "release_date": "2023-04-28T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "PG",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "Limited Edition DVD",
+            "release_date": "2006-09-12T00:00:00.000Z",
+            "type": 5
+          }
+        ]
+      }
+    ]
+  }
+}

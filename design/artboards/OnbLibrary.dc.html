@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Première bibliothèque</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="/_blob/00ccc6c7bfab1fbb6e69fcb0922c4361">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=Geist+Mono:wght@400&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; overflow: hidden;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="cover img-lighthouse kb" style="position: absolute; inset: 0; transform-origin: 78% 30%;"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,11,.55) 0%, rgba(10,10,11,.15) 40%, rgba(10,10,11,.75) 100%);"></div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,10,11,.7) 0%, rgba(10,10,11,0) 45%);"></div>
+  </div>
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px clamp(16px, 4vw, 56px);">
+    <span style="flex: 1 1 0; font-size: 24px; font-weight: 700; letter-spacing: -0.04em;">projo<span>.</span></span>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
+      <div class="steps" aria-hidden="true"><span class="done"></span><span class="done"></span><span class="cur"></span><span></span></div>
+      <span style="font-size: 12px; color: #A1A1AA;">Étape 3 sur 4 · Bibliothèque</span>
+    </div>
+    <div style="flex: 1 1 0; display: flex; justify-content: flex-end;"><a class="btn btn-ghost btn-sm" href="OnbWelcome.dc.html">Aide</a></div>
+  </header>
+
+  <main style="position: relative; z-index: 2; min-height: 100vh; box-sizing: border-box; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 48px; padding: 120px clamp(16px, 6vw, 96px) 48px;">
+    <div style="flex: 1 1 320px; max-width: 460px; display: flex; flex-direction: column; gap: 18px;">
+      <span class="eyebrow rise">Première bibliothèque</span>
+      <h1 class="rise r1" style="margin: 0; font-size: clamp(44px, 5vw, 68px); line-height: 0.96; font-weight: 700; letter-spacing: -0.05em;">Où sont<br>vos vidéos&#8239;?</h1>
+      <p class="rise r2" style="margin: 0; max-width: 420px; font-size: 17px; line-height: 1.55; color: #D4D4D8;">On a repéré quelques dossiers sur ce serveur. Cochez ceux qui comptent, on s'occupe des affiches, des fiches et des intros.</p>
+    </div>
+
+    <section class="panel rise r2" aria-labelledby="lib-title" style="flex: 0 1 620px; min-width: 0; box-sizing: border-box; padding: 28px; display: flex; flex-direction: column; gap: 20px;">
+      <h2 id="lib-title" style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.025em;">Que contient-elle&#8239;?</h2>
+      <div role="radiogroup" aria-labelledby="lib-title" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 12px;">
+        <sc-for list="{{types}}" as="t" hint-placeholder-count="3">
+          <button class="choice" type="button" role="radio" aria-checked="{{t.on}}" onClick="{{t.pick}}" style="border-radius: 18px;">
+            <span class="media" style="aspect-ratio: 16 / 11;"><span class="cover {{t.img}}" style="background-position: {{t.pos}};"></span></span>
+            <span class="badge" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+            <span class="body" style="padding: 0 14px 14px;">
+              <span style="font-size: 16px; font-weight: 600; letter-spacing: -0.015em;">{{t.label}}</span>
+              <span style="font-size: 12.5px; line-height: 1.4; color: #A1A1AA;">{{t.desc}}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+
+      <label class="field">
+        <span class="stack"><span class="lbl">Nom de la bibliothèque</span><input type="text" value="{{libName}}" onInput="{{setName}}"></span>
+      </label>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <span style="font-size: 13px; font-weight: 500; color: #A1A1AA;">Dossiers détectés · {{selectedCount}}</span>
+          <button class="btn btn-glass btn-sm" type="button">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+            Parcourir…
+          </button>
+        </div>
+        <div class="tile" style="padding: 6px;">
+          <sc-for list="{{folders}}" as="f" hint-placeholder-count="4">
+            <button class="checkrow" type="button" role="checkbox" aria-checked="{{f.on}}" onClick="{{f.toggle}}" style="padding: 11px 12px;">
+              <span class="box" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+                <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13.5px; color: #E4E4E7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{f.path}}</span>
+                <span style="font-size: 12px; color: #8B8B94;">{{f.meta}}</span>
+              </span>
+              <span style="font-size: 13px; color: #A1A1AA; white-space: nowrap;">{{f.count}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+        <a class="btn btn-ghost" href="OnbServer.dc.html">Retour</a>
+        <div style="display: flex; gap: 8px;">
+          <a class="btn btn-ghost" href="OnbProfiles.dc.html">Plus tard</a>
+          <a class="btn btn-primary {{nextClass}}" href="OnbProfiles.dc.html">Ajouter
+            <svg class="arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { type: 'film', name: null, folders: { a: true, b: false, c: true, d: false } };
+  }
+  renderVals() {
+    const defs = [
+      ['film', 'Films', 'Affiches, fiches, bandes-annonces.', 'img-dunes', '60% 50%'],
+      ['show', 'Séries', 'Saisons, épisodes, intros.', 'img-lighthouse', '78% 40%'],
+      ['home', 'Vidéos perso', 'Par date, sans fiches.', 'img-forest', '70% 40%']
+    ];
+    const names = { film: 'Films', show: 'Séries', home: 'Vidéos perso' };
+    const types = defs.map(([k, label, desc, img, pos]) => ({
+      label, desc, img, pos,
+      on: this.state.type === k,
+      pick: () => this.setState({ type: k, name: null })
+    }));
+    const fdefs = [
+      ['a', '/media/films', 'Disque interne · 2,1 To', '1 284 vidéos'],
+      ['b', '/media/series', 'Disque interne · 1,8 To', '2 341 vidéos'],
+      ['c', '/mnt/nas/films', 'NAS Synology · partage SMB', '412 vidéos'],
+      ['d', '/home/leo/Téléchargements', 'Dossier personnel', '12 vidéos']
+    ];
+    const folders = fdefs.map(([k, path, meta, count]) => {
+      const on = !!this.state.folders[k];
+      return { path, meta, count, on, toggle: () => this.setState({ folders: { ...this.state.folders, [k]: !on } }) };
+    });
+    const n = folders.filter((f) => f.on).length;
+    return {
+      types,
+      libName: this.state.name ?? names[this.state.type],
+      setName: (e) => this.setState({ name: e && e.target ? e.target.value : '' }),
+      folders,
+      selectedCount: n === 0 ? 'aucun sélectionné' : (n === 1 ? '1 sélectionné' : n + ' sélectionnés'),
+      nextClass: n === 0 ? 'is-disabled' : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

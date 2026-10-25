@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo mobile — Accueil</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes lift{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .8s cubic-bezier(.2,.7,.2,1) both}
+.d1{animation-delay:.1s}.d2{animation-delay:.2s}
+.scroll{scrollbar-width:none}.scroll::-webkit-scrollbar{display:none}
+.press{transition:transform .2s ease}
+.press:active{transform:scale(.97)}
+.hold{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.hold:active{transform:scale(.95)}
+.backdrop{animation:fadeIn .3s ease both}
+.sheet{animation:sheetUp .45s cubic-bezier(.2,.85,.2,1) both}
+.sheet-head{animation:lift .5s cubic-bezier(.2,.7,.2,1) .1s both}
+.act{transition:background-color .2s ease,transform .2s ease}
+.act:active{transform:scale(.94)}
+.line{transition:background-color .2s ease}
+.line:active{background:rgba(255,255,255,.06)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif;">
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 0; height: 760px; background-color: {{ambient}}; transition: background-color 1s ease; -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%); mask-image: linear-gradient(180deg, #000 0%, transparent 100%);"></div>
+
+  <div class="scroll" style="position: absolute; inset: 0; overflow-y: auto; padding-bottom: 110px;">
+    <header style="display: flex; align-items: center; justify-content: space-between; padding: 20px 16px 12px;">
+      <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.04em;">projo<span style="color: {{accent}};">.</span></span>
+      <a href="Main.dc.html" aria-label="Profil de Léo — changer de profil" style="width: 34px; height: 34px; border-radius: 10px; background: #5B7FA6; color: #FFFFFF; display: flex; align-items: center; justify-content: center; text-decoration: none; font-size: 14px; font-weight: 600;">L</a>
+    </header>
+
+    <nav aria-label="Filtres" class="scroll" style="display: flex; gap: 8px; padding: 0 16px 16px; overflow-x: auto;">
+      <a href="MobileHome.dc.html" aria-current="page" style="flex: 0 0 auto; display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-size: 14px; font-weight: 600;">Tout</a>
+      <a href="MobileSeries.dc.html" style="flex: 0 0 auto; display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px; background: rgba(255,255,255,.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.08); color: #D4D4D8; text-decoration: none; font-size: 14px; font-weight: 500;">Séries</a>
+      <a href="MobileHome.dc.html" style="flex: 0 0 auto; display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px; background: rgba(255,255,255,.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.08); color: #D4D4D8; text-decoration: none; font-size: 14px; font-weight: 500;">Films</a>
+      <a href="MobileHome.dc.html" style="flex: 0 0 auto; display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border-radius: 999px; background: rgba(255,255,255,.08); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.08); color: #D4D4D8; text-decoration: none; font-size: 14px; font-weight: 500;">Documentaires</a>
+    </nav>
+
+    <section aria-labelledby="m-hero" class="fu" style="padding: 0 16px;">
+      <div style="position: relative; aspect-ratio: 4 / 5; border-radius: 22px; overflow: hidden; background: radial-gradient(60% 50% at 72% 26%, rgba(242,181,68,.6) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #16263A 55%, #0C141E 100%); box-shadow: 0 30px 60px -24px rgba(0,0,0,.9);">
+        <svg aria-hidden="true" viewBox="0 0 400 200" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 50%;"><path d="M0 70 C 60 50, 120 95, 200 70 S 330 40, 400 65 L 400 200 L 0 200 Z" fill="#0F1A26" fill-opacity="0.75"></path><path d="M0 120 C 80 100, 160 140, 260 118 S 360 105, 400 120 L 400 200 L 0 200 Z" fill="#0A1119"></path></svg>
+        <div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(10,10,11,.92) 0%, rgba(10,10,11,0) 55%);"></div>
+        <div style="position: absolute; left: 20px; right: 20px; bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center;">
+          <h1 id="m-hero" style="margin: 0; font-size: 36px; line-height: 0.95; font-weight: 700; letter-spacing: -0.045em;">Les Marées basses</h1>
+          <span style="font-size: 13px; color: #A1A1AA;">Drame · Policier · 12+</span>
+          <div style="display: flex; gap: 10px; width: 100%;">
+            <a class="press" href="MobileSeries.dc.html" style="flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-size: 15px; font-weight: 600;">
+              <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+              Reprendre
+            </a>
+            <button class="press" type="button" onClick="{{heroToggle}}" aria-pressed="{{heroInList}}" style="flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 14px; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.14); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #F4F4F5; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer;">
+              <sc-if value="{{heroInList}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+              <sc-if value="{{heroNotInList}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+              Ma liste
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="fu d1" aria-labelledby="m-continue" style="display: flex; flex-direction: column; gap: 12px; padding-top: 28px;">
+      <h2 id="m-continue" style="margin: 0; padding: 0 16px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">Continuer à regarder</h2>
+      <div class="scroll" style="display: flex; gap: 10px; overflow-x: auto; padding: 0 16px;">
+        <sc-for list="{{continueItems}}" as="item" hint-placeholder-count="3">
+          <a class="hold" href="MobileSeries.dc.html" aria-label="{{item.title}} — appui long pour les actions" onPointerDown="{{item.down}}" onPointerUp="{{cancelHold}}" onPointerLeave="{{cancelHold}}" onClick="{{guardClick}}" onContextMenu="{{noMenu}}" style="flex: 0 0 220px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #F4F4F5;">
+            <span style="position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: {{item.art}};">
+              <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 55%);"></span>
+              <span style="position: absolute; left: 10px; right: 10px; bottom: 12px; font-size: 16px; line-height: 1.05; font-weight: 700; letter-spacing: -0.03em;">{{item.title}}</span>
+              <span aria-hidden="true" style="position: absolute; left: 10px; right: 10px; bottom: 5px; height: 3px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden;"><span style="display: block; height: 100%; width: {{item.progress}}; background: {{accent}};"></span></span>
+            </span>
+            <span style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px;">
+              <span style="color: #D4D4D8;">{{item.sub}}</span>
+              <span style="color: #8B8B94;">{{item.right}}</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <section class="fu d2" aria-labelledby="m-new" style="display: flex; flex-direction: column; gap: 12px; padding-top: 28px;">
+      <h2 id="m-new" style="margin: 0; padding: 0 16px; font-size: 17px; font-weight: 600; letter-spacing: -0.01em;">Ajoutés récemment</h2>
+      <div class="scroll" style="display: flex; gap: 10px; overflow-x: auto; padding: 0 16px;">
+        <sc-for list="{{posters}}" as="item" hint-placeholder-count="4">
+          <a class="hold" href="MobileSeries.dc.html" aria-label="{{item.title}} — appui long pour les actions" onPointerDown="{{item.down}}" onPointerUp="{{cancelHold}}" onPointerLeave="{{cancelHold}}" onClick="{{guardClick}}" onContextMenu="{{noMenu}}" style="flex: 0 0 112px; text-decoration: none; color: #F4F4F5;">
+            <span style="position: relative; display: block; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: {{item.art}};">
+              <span aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,.7) 0%, rgba(0,0,0,0) 50%);"></span>
+              <span style="position: absolute; left: 8px; right: 8px; bottom: 10px; font-size: 14px; line-height: 1.02; font-weight: 700; letter-spacing: -0.02em;">{{item.title}}</span>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+  </div>
+
+  <nav aria-label="Navigation principale" style="position: absolute; left: 16px; right: 16px; bottom: 18px; display: flex; justify-content: space-around; padding: 6px; border-radius: 26px; background: rgba(30,30,34,.55); backdrop-filter: blur(24px) saturate(160%); -webkit-backdrop-filter: blur(24px) saturate(160%); border: 1px solid rgba(255,255,255,.09); box-shadow: 0 16px 40px -12px rgba(0,0,0,.8);">
+    <a href="MobileHome.dc.html" aria-current="page" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 20px; background: rgba(255,255,255,.12); color: #F4F4F5; text-decoration: none; font-size: 11px; font-weight: 500;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"></path></svg>
+      Accueil
+    </a>
+    <a href="MobileHome.dc.html" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 20px; color: #A1A1AA; text-decoration: none; font-size: 11px; font-weight: 500;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2"></path></svg>
+      Recherche
+    </a>
+    <a href="MobileHome.dc.html" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 20px; color: #A1A1AA; text-decoration: none; font-size: 11px; font-weight: 500;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v16l-6-4-6 4z"></path></svg>
+      Ma liste
+    </a>
+    <a href="MobileHome.dc.html" style="flex: 1 1 0; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 7px 0; border-radius: 20px; color: #A1A1AA; text-decoration: none; font-size: 11px; font-weight: 500;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+      Téléchargements
+    </a>
+  </nav>
+
+  <sc-if value="{{sheetOpen}}" hint-placeholder-val="{{false}}">
+    <button class="backdrop" type="button" onClick="{{close}}" aria-label="Fermer" style="position: absolute; inset: 0; border: 0; padding: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); cursor: pointer;"></button>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" style="position: absolute; left: 0; right: 0; bottom: 0; box-sizing: border-box; padding: 10px 16px 28px; border-radius: 28px 28px 0 0; background: rgba(28,28,31,.82); backdrop-filter: blur(32px) saturate(160%); -webkit-backdrop-filter: blur(32px) saturate(160%); border-top: 1px solid rgba(255,255,255,.1); display: flex; flex-direction: column; gap: 18px;">
+      <span aria-hidden="true" style="align-self: center; width: 36px; height: 5px; border-radius: 999px; background: rgba(255,255,255,.22);"></span>
+
+      <div class="sheet-head" style="display: flex; align-items: center; gap: 14px;">
+        <span aria-hidden="true" style="position: relative; flex: 0 0 120px; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: {{sheet.art}}; box-shadow: 0 12px 24px -10px rgba(0,0,0,.7);"></span>
+        <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+          <h2 id="sheet-title" style="margin: 0; font-size: 18px; line-height: 1.1; font-weight: 700; letter-spacing: -0.03em;">{{sheet.title}}</h2>
+          <span style="font-size: 13px; color: #A1A1AA;">{{sheet.line}}</span>
+          <span style="font-size: 12px; color: #8B8B94;">{{sheet.meta}}</span>
+        </div>
+        <button class="act" type="button" onClick="{{close}}" aria-label="Fermer" style="align-self: flex-start; flex: 0 0 auto; width: 32px; height: 32px; border-radius: 999px; border: 0; background: rgba(255,255,255,.1); color: #D4D4D8; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <sc-if value="{{sheet.hasProgress}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #8B8B94;">
+          <span aria-hidden="true" style="flex: 1 1 auto; height: 3px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden;"><span style="display: block; width: {{sheet.progress}}; height: 100%; background: {{accent}};"></span></span>
+          <span>{{sheet.left}}</span>
+        </div>
+      </sc-if>
+
+      <a class="act" href="Player.dc.html" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 14px; background: #F4F4F5; color: #0A0A0B; text-decoration: none; font-size: 16px; font-weight: 600;">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"></path></svg>
+        {{sheet.playLabel}}
+      </a>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;">
+        <button class="act" type="button" onClick="{{sheet.toggleList}}" aria-pressed="{{sheet.inList}}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 4px; border-radius: 16px; border: 0; background: rgba(255,255,255,.07); color: #F4F4F5; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">
+          <sc-if value="{{sheet.inList}}" hint-placeholder-val="{{false}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
+          <sc-if value="{{sheet.notInList}}" hint-placeholder-val="{{true}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></sc-if>
+          Ma liste
+        </button>
+        <button class="act" type="button" onClick="{{sheet.toggleSeen}}" aria-pressed="{{sheet.seen}}" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 4px; border-radius: 16px; border: 0; background: {{sheet.seenBg}}; color: {{sheet.seenFg}}; font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg>
+          {{sheet.seenLabel}}
+        </button>
+        <a class="act" href="MobileSeries.dc.html" style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 4px; border-radius: 16px; background: rgba(255,255,255,.07); color: #F4F4F5; text-decoration: none; font-size: 12px; font-weight: 500;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 8h.01"></path></svg>
+          Infos
+        </a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; border-radius: 16px; background: rgba(255,255,255,.05); overflow: hidden;">
+        <button class="line" type="button" style="display: flex; align-items: center; gap: 14px; height: 50px; padding: 0 16px; border: 0; background: transparent; color: #F4F4F5; font-family: inherit; font-size: 15px; text-align: left; cursor: pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>
+          Télécharger
+        </button>
+        <sc-if value="{{sheet.isContinue}}" hint-placeholder-val="{{true}}">
+          <button class="line" type="button" onClick="{{sheet.remove}}" style="display: flex; align-items: center; gap: 14px; height: 50px; padding: 0 16px; border: 0; border-top: 1px solid rgba(255,255,255,.06); background: transparent; color: #FCA5A5; font-family: inherit; font-size: 15px; text-align: left; cursor: pointer;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+            Retirer de Continuer à regarder
+          </button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"sheetOpen":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sheet: undefined, list: {}, seen: {}, removed: {} };
+    this.longPressed = false;
+  }
+  componentWillUnmount() {
+    clearTimeout(this.holdTimer);
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const cat = {
+      marees: { title: 'Les Marées basses', tint: '#13283B', art: 'radial-gradient(55% 60% at 74% 32%, rgba(242,181,68,.55) 0%, rgba(242,181,68,0) 60%), linear-gradient(180deg, #2B4560 0%, #16263A 55%, #0C141E 100%)' },
+      orbite: { title: 'Orbite basse', tint: '#181B33', art: 'radial-gradient(circle at 70% 40%, #D9E2EC 0%, #7C8DA3 9%, #2B3445 16%, rgba(0,0,0,0) 16.5%), linear-gradient(160deg, #0E1020 0%, #1D2238 100%)' },
+      atelier: { title: 'Atelier 7', tint: '#2A1B10', art: 'radial-gradient(70% 60% at 25% 20%, rgba(255,214,160,.45) 0%, rgba(255,214,160,0) 60%), linear-gradient(135deg, #6B4529 0%, #2C1B10 100%)' },
+      ferry: { title: 'Le Dernier Ferry', tint: '#1C2C38', art: 'linear-gradient(180deg, #8FA7B8 0%, #6F889A 44%, #2F4656 44.5%, #14212B 100%)' },
+      tilleuls: { title: 'Sous les tilleuls', tint: '#1C2413', art: 'radial-gradient(80% 70% at 30% 30%, #7E9A5A 0%, rgba(126,154,90,0) 70%), linear-gradient(160deg, #3C4A2A 0%, #161C10 100%)' },
+      pente: { title: 'Pente douce', tint: '#2B1815', art: 'linear-gradient(165deg, #C98B6B 0%, #B07258 42%, #6E3F3A 42.5%, #2A1717 100%)' },
+      cinq: { title: 'Cinq heures du matin', tint: '#28202F', art: 'linear-gradient(180deg, #2F3B57 0%, #A7746A 68%, #E0A472 100%)' }
+    };
+    const entries = {
+      c0: { k: 'marees', row: 'continue', sub: 'S2 · É4', right: '18 min', line: 'S2 · É4 « Coefficient 112 »', meta: '12+ · 47 min · 4K HDR', progress: '62%', left: '18 min restantes' },
+      c1: { k: 'orbite', row: 'continue', sub: 'Film', right: '41 min', line: 'Film · 2024', meta: '12+ · 1 h 52 · 4K', progress: '55%', left: '41 min restantes' },
+      c2: { k: 'atelier', row: 'continue', sub: 'S1 · É2', right: '9 min', line: 'S1 · É2 « Le grain du bois »', meta: 'Tous publics · 31 min · HD', progress: '82%', left: '9 min restantes' },
+      p0: { k: 'ferry', row: 'new', line: 'Film · 2023', meta: 'Tous publics · 1 h 48 · 4K' },
+      p1: { k: 'tilleuls', row: 'new', line: 'Film · 2021', meta: 'Tous publics · 1 h 37 · HD' },
+      p2: { k: 'pente', row: 'new', line: 'Série · 2 saisons', meta: '12+ · 16 épisodes · 4K' },
+      p3: { k: 'cinq', row: 'new', line: 'Film · 2025', meta: '12+ · 1 h 54 · 4K HDR' }
+    };
+    const startHold = (key) => () => {
+      clearTimeout(this.holdTimer);
+      this.longPressed = false;
+      this.holdTimer = setTimeout(() => {
+        this.longPressed = true;
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+        this.setState({ sheet: key });
+      }, 450);
+    };
+    const build = (key) => {
+      const e = entries[key];
+      return { key, ...cat[e.k], ...e, progress: e.progress ?? '0%', down: startHold(key) };
+    };
+    const continueItems = ['c0', 'c1', 'c2'].filter((k) => !this.state.removed[k]).map(build);
+    const posters = ['p0', 'p1', 'p2', 'p3'].map(build);
+
+    const openKey = this.state.sheet !== undefined ? this.state.sheet : (this.props.sheetOpen ? 'c0' : null);
+    const sheetOpen = !!openKey && !this.state.removed[openKey];
+    let sheet = { title: '', line: '', meta: '', art: 'none', progress: '0%', left: '' };
+    if (sheetOpen) {
+      const s = build(openKey);
+      const inList = !!this.state.list[s.k];
+      const seen = !!this.state.seen[s.k];
+      sheet = {
+        ...s,
+        hasProgress: !!entries[openKey].progress,
+        isContinue: s.row === 'continue',
+        playLabel: entries[openKey].progress ? 'Reprendre' : 'Lire',
+        inList, notInList: !inList,
+        seen,
+        seenLabel: seen ? 'Vu' : 'Marquer vu',
+        seenBg: seen ? '#F4F4F5' : 'rgba(255,255,255,.07)',
+        seenFg: seen ? '#0A0A0B' : '#F4F4F5',
+        toggleList: () => this.setState({ list: { ...this.state.list, [s.k]: !inList } }),
+        toggleSeen: () => this.setState({ seen: { ...this.state.seen, [s.k]: !seen } }),
+        remove: () => this.setState({ removed: { ...this.state.removed, [openKey]: true }, sheet: null })
+      };
+    }
+    const heroInList = !!this.state.list.marees;
+    return {
+      accent,
+      ambient: sheetOpen ? sheet.tint : cat.marees.tint,
+      continueItems,
+      posters,
+      sheetOpen,
+      sheet,
+      heroInList,
+      heroNotInList: !heroInList,
+      heroToggle: () => this.setState({ list: { ...this.state.list, marees: !heroInList } }),
+      cancelHold: () => clearTimeout(this.holdTimer),
+      guardClick: (ev) => {
+        if (this.longPressed) {
+          if (ev && ev.preventDefault) ev.preventDefault();
+          if (ev && ev.stopPropagation) ev.stopPropagation();
+          this.longPressed = false;
+        }
+      },
+      noMenu: (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); },
+      close: () => this.setState({ sheet: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

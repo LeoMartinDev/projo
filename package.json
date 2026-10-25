@@ -1,0 +1,28 @@
+{
+  "name": "projo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.4.4-canary.20261023.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "e2e"
+  ],
+  "scripts": {
+    "dev": "bun run --parallel dev:server dev:web",
+    "dev:server": "DATA_DIR=.data LOG_LEVEL=debug bun --watch apps/server/src/entrypoints/main.ts",
+    "dev:web": "bun run --cwd apps/web dev",
+    "build:web": "bun run --cwd apps/web build",
+    "build:bundle": "bun run build:web && bun runtime/scripts/build-bundle.ts",
+    "lint": "bun -e \"/^ +lint /m.test(Bun.spawnSync([process.execPath, '--help']).stdout.toString()) || (console.error('This Bun has no built-in lint command: install the canary pinned in packageManager (bun upgrade --canary)'), process.exit(1))\" && bun lint --max-warnings=0",
+    "typecheck": "bun run --filter '*' typecheck && tsc --noEmit -p runtime/tsconfig.json",
+    "test": "bun test",
+    "db:generate": "bun run --cwd apps/server db:generate",
+    "e2e": "bun run --cwd e2e e2e"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "typescript": "6.0.3"
+  }
+}

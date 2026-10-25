@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Admin, comptes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#0A0A0B}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes panelIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+.fu{animation:fadeUp .6s cubic-bezier(.2,.7,.2,1) both}
+.side a{transition:background-color .2s ease,color .2s ease}
+.side a:hover{background:rgba(255,255,255,.05);color:#FFFFFF}
+.acc{transition:background-color .25s ease,border-color .25s ease}
+.acc:hover{background:rgba(255,255,255,.04)}
+.panel{animation:panelIn .45s cubic-bezier(.2,.7,.2,1) both}
+.seg{transition:background-color .25s ease,color .25s ease}
+.seg:hover{color:#FFFFFF}
+.sw .knob{transition:transform .3s cubic-bezier(.2,.7,.2,1)}
+.sw .trk{transition:background-color .3s ease}
+.field{transition:border-color .2s ease}
+.field:hover{border-color:rgba(255,255,255,.22)}
+.field:focus{outline:none;border-color:rgba(255,255,255,.6)}
+.ctl{transition:background-color .2s ease,color .2s ease}
+.ctl:hover{background:rgba(255,255,255,.08);color:#FFFFFF}
+.danger{transition:background-color .2s ease}
+.danger:hover{background:rgba(248,113,113,.1)}
+.swatch{transition:transform .2s ease}
+.swatch:hover{transform:scale(1.1)}
+.btn-primary{transition:background-color .25s ease,transform .2s ease}
+.btn-primary:hover{background:#FFFFFF}.btn-primary:active{transform:scale(.98)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; background: #0A0A0B; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+
+  <aside class="side" style="flex: 1 1 232px; max-width: 100%; box-sizing: border-box; padding: 24px 16px; border-right: 1px solid rgba(255,255,255,.06); display: flex; flex-direction: column; gap: 28px;">
+    <div style="display: flex; flex-direction: column; gap: 2px; padding: 0 12px;">
+      <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.04em;">projo<span style="color: {{accent}};">.</span></span>
+      <span style="font-size: 12px; color: #8B8B94;">Administration · Serveur Maison</span>
+    </div>
+    <nav aria-label="Administration" style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;">
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>
+        Vue d'ensemble
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        Bibliothèques
+      </a>
+      <a href="AdminAccounts.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; background: rgba(255,255,255,.07); color: #F4F4F5; font-weight: 500; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M3 20a6 6 0 0 1 12 0"></path><path d="M16 4.5a3.5 3.5 0 0 1 0 7M17.5 14.5A6 6 0 0 1 21 20"></path></svg>
+        Comptes
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M10 9.5v5l4-2.5z"></path></svg>
+        Lecture et transcodage
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+        Appareils
+      </a>
+      <a href="AdminLibraries.dc.html" style="display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"></path></svg>
+        Journal
+      </a>
+    </nav>
+    <a href="Home.dc.html" style="margin-top: auto; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-radius: 12px; color: #A1A1AA; text-decoration: none; font-size: 14px;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+      Retour au catalogue
+    </a>
+  </aside>
+
+  <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 40px clamp(16px, 4vw, 56px) 64px; display: flex; flex-direction: column; gap: 32px;">
+    <div class="fu" style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.03em;">Comptes</h1>
+        <p style="margin: 0; font-size: 14px; color: #8B8B94;">4 profils · 1 administrateur</p>
+      </div>
+      <button class="btn-primary" type="button" style="display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px 0 12px; border-radius: 12px; border: 0; background: #F4F4F5; color: #0A0A0B; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+        Ajouter un profil
+      </button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 32px;">
+      <ul aria-label="Profils" style="flex: 1.3 1 420px; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;">
+        <sc-for list="{{accounts}}" as="a" hint-placeholder-count="4">
+          <li>
+            <button class="acc" type="button" onClick="{{a.pick}}" aria-current="{{a.current}}" style="width: 100%; display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 10px; border: 1px solid {{a.border}}; background: {{a.bg}}; color: #F4F4F5; font-family: inherit; text-align: left; cursor: pointer;">
+              <span aria-hidden="true" style="flex: 0 0 44px; height: 44px; border-radius: 12px; background: {{a.color}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600;">{{a.initial}}</span>
+              <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+                <span style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 15px; font-weight: 600;">{{a.name}}</span>
+                  <span style="font-size: 12px; color: #A1A1AA; padding: 1px 8px; border-radius: 999px; border: 1px solid rgba(255,255,255,.14);">{{a.roleLabel}}</span>
+                </span>
+                <span style="font-size: 13px; color: #8B8B94;">{{a.summary}}</span>
+              </span>
+              <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 13px; white-space: nowrap;">
+                <span style="display: inline-flex; align-items: center; gap: 6px; color: #D4D4D8;">
+                  <sc-if value="{{a.online}}" hint-placeholder-val="{{false}}"><span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 999px; background: #3DD68C;"></span></sc-if>
+                  {{a.activity}}
+                </span>
+                <span style="color: #8B8B94;">{{a.device}}</span>
+              </span>
+            </button>
+          </li>
+        </sc-for>
+      </ul>
+
+      <section class="panel" aria-labelledby="panel-title" style="flex: 1 1 340px; min-width: 0; max-width: 440px; box-sizing: border-box; padding: 24px; border-radius: 22px; background: rgba(28,28,31,.6); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.08); box-shadow: 0 30px 60px -30px rgba(0,0,0,.8); display: flex; flex-direction: column; gap: 24px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <span aria-hidden="true" style="flex: 0 0 64px; height: 64px; border-radius: 10px; background: {{sel.color}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 600; transition: background-color .3s ease;">{{sel.initial}}</span>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <h2 id="panel-title" style="margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.02em;">{{sel.name}}</h2>
+            <span style="font-size: 13px; color: #8B8B94;">Créé le {{sel.created}}</span>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <span id="color-label" style="font-size: 13px; font-weight: 500; color: #A1A1AA;">Couleur</span>
+          <div role="radiogroup" aria-labelledby="color-label" style="display: flex; gap: 10px;">
+            <sc-for list="{{colors}}" as="c" hint-placeholder-count="6">
+              <button class="swatch" type="button" role="radio" aria-checked="{{c.selected}}" aria-label="{{c.name}}" onClick="{{c.pick}}" style="width: 28px; height: 28px; border-radius: 999px; border: 0; background: {{c.hex}}; box-shadow: {{c.ring}}; cursor: pointer;"></button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <span id="role-label" style="font-size: 13px; font-weight: 500; color: #A1A1AA;">Rôle</span>
+          <div role="radiogroup" aria-labelledby="role-label" style="display: flex; padding: 3px; border-radius: 12px; background: #0A0A0B; border: 1px solid rgba(255,255,255,.08);">
+            <sc-for list="{{roles}}" as="r" hint-placeholder-count="3">
+              <button class="seg" type="button" role="radio" aria-checked="{{r.selected}}" onClick="{{r.pick}}" style="flex: 1 1 0; height: 36px; border-radius: 9px; border: 0; background: {{r.bg}}; color: {{r.fg}}; font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">{{r.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label for="rating" style="font-size: 13px; font-weight: 500; color: #A1A1AA;">Classification maximale</label>
+          <select class="field" id="rating" style="height: 42px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #0A0A0B; color: #F4F4F5; font-family: inherit; font-size: 14px;">
+            <option>Sans limite</option>
+            <option>16 ans et plus</option>
+            <option>12 ans et plus</option>
+            <option>10 ans et plus</option>
+            <option>Tous publics</option>
+          </select>
+        </div>
+
+        <div style="display: flex; flex-direction: column; border-top: 1px solid rgba(255,255,255,.07);">
+          <sc-for list="{{prefs}}" as="o" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0;">
+              <span id="{{o.id}}" style="font-size: 14px; color: #D4D4D8;">{{o.label}}</span>
+              <button class="sw" type="button" role="switch" aria-checked="{{o.on}}" aria-labelledby="{{o.id}}" onClick="{{o.toggle}}" style="flex: 0 0 auto; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                <span class="trk" style="position: relative; display: block; width: 40px; height: 24px; border-radius: 999px; background: {{o.track}};">
+                  <span class="knob" style="position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 999px; background: {{o.knob}}; transform: {{o.shift}};"></span>
+                </span>
+              </button>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.07);">
+          <button class="danger" type="button" style="height: 40px; padding: 0 12px; border-radius: 12px; border: 0; background: transparent; color: #FCA5A5; font-family: inherit; font-size: 14px; font-weight: 500; cursor: pointer;">Supprimer le profil</button>
+          <button class="btn-primary" type="button" style="height: 40px; padding: 0 18px; border-radius: 12px; border: 0; background: #F4F4F5; color: #0A0A0B; font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;">Enregistrer</button>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selected: 'kids',
+      accounts: {
+        leo: { name: 'Léo', initial: 'L', color: '#5B7FA6', role: 'admin', created: '12 mars 2026', summary: 'Toutes les bibliothèques · sans limite', activity: 'En lecture', device: 'Salon · TV', online: true, prefs: { autoplay: true, skipIntro: true, pin: false } },
+        camille: { name: 'Camille', initial: 'C', color: '#A86A55', role: 'member', created: '12 mars 2026', summary: 'Toutes les bibliothèques · sans limite', activity: 'il y a 3 h', device: 'iPhone', online: false, prefs: { autoplay: true, skipIntro: false, pin: false } },
+        sam: { name: 'Sam', initial: 'S', color: '#5E8C72', role: 'member', created: '2 avril 2026', summary: 'Films, Séries · 16 ans et plus', activity: 'hier', device: 'Navigateur', online: false, prefs: { autoplay: false, skipIntro: false, pin: false } },
+        kids: { name: 'Enfants', initial: 'E', color: '#7D6AA6', role: 'kid', created: '2 avril 2026', summary: 'Animation · 10 ans et plus · code PIN', activity: 'il y a 2 j', device: 'Tablette', online: false, prefs: { autoplay: false, skipIntro: true, pin: true } }
+      }
+    };
+  }
+  update(patch) {
+    const id = this.state.selected;
+    const acc = this.state.accounts[id];
+    this.setState({ accounts: { ...this.state.accounts, [id]: { ...acc, ...patch } } });
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#F4F4F5';
+    const roleLabels = { admin: 'Administrateur', member: 'Membre', kid: 'Enfant' };
+    const ids = ['leo', 'camille', 'sam', 'kids'];
+    const selId = this.state.selected;
+    const sel = this.state.accounts[selId];
+    const accounts = ids.map((id) => {
+      const a = this.state.accounts[id];
+      const cur = id === selId;
+      return {
+        ...a,
+        roleLabel: roleLabels[a.role],
+        current: cur ? 'true' : 'false',
+        border: cur ? 'rgba(255,255,255,.14)' : 'transparent',
+        bg: cur ? 'rgba(255,255,255,.05)' : 'transparent',
+        pick: () => this.setState({ selected: id })
+      };
+    });
+    const palette = [
+      ['Bleu', '#5B7FA6'], ['Terre cuite', '#A86A55'], ['Sauge', '#5E8C72'],
+      ['Violet', '#7D6AA6'], ['Ardoise', '#5F6670'], ['Miel', '#B08A3E']
+    ];
+    const colors = palette.map(([name, hex]) => ({
+      name, hex,
+      selected: sel.color === hex,
+      ring: sel.color === hex ? '0 0 0 2px #111113, 0 0 0 4px #F4F4F5' : 'none',
+      pick: () => this.update({ color: hex })
+    }));
+    const roles = ['admin', 'member', 'kid'].map((r) => ({
+      label: roleLabels[r],
+      selected: sel.role === r,
+      bg: sel.role === r ? '#26262A' : 'transparent',
+      fg: sel.role === r ? '#F4F4F5' : '#8B8B94',
+      pick: () => this.update({ role: r })
+    }));
+    const prefDefs = [
+      ['autoplay', 'Enchaîner les épisodes automatiquement'],
+      ['skipIntro', 'Passer les intros automatiquement'],
+      ['pin', 'Protéger par un code PIN']
+    ];
+    const prefs = prefDefs.map(([key, label]) => {
+      const on = !!sel.prefs[key];
+      return {
+        id: 'pref-' + key,
+        label, on,
+        track: on ? accent : 'rgba(255,255,255,.16)',
+        knob: on ? '#0A0A0B' : '#D4D4D8',
+        shift: on ? 'translateX(16px)' : 'translateX(0)',
+        toggle: () => this.update({ prefs: { ...sel.prefs, [key]: !on } })
+      };
+    });
+    return { accent, accounts, sel, colors, roles, prefs };
+  }
+}
+</script>
+</body>
+</html>

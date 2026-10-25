@@ -1,0 +1,234 @@
+{
+  "adult": false,
+  "backdrop_path": "/rfEXNlql4CafRmtgp2VfbnVFRbJ.jpg",
+  "belongs_to_collection": null,
+  "budget": 60000000,
+  "genres": [
+    { "id": 80, "name": "Crime" },
+    { "id": 18, "name": "Drame" },
+    { "id": 28, "name": "Action" }
+  ],
+  "homepage": "",
+  "id": 949,
+  "imdb_id": "tt0113277",
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_title": "Heat",
+  "overview": "Neil McCauley, voleur méthodique, prépare avec son équipe un dernier gros coup à Los Angeles. Sur sa piste, le lieutenant Vincent Hanna, aussi obsédé par son métier que lui, comprend vite qu'il a affaire à son double.",
+  "popularity": 61.287,
+  "poster_path": "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg",
+  "production_companies": [
+    {
+      "id": 508,
+      "logo_path": "/4sGWXoboEkWPphI6es6rTfCRmEr.png",
+      "name": "Regency Enterprises",
+      "origin_country": "US"
+    },
+    { "id": 675, "logo_path": null, "name": "Forward Pass", "origin_country": "US" }
+  ],
+  "production_countries": [{ "iso_3166_1": "US", "name": "United States of America" }],
+  "release_date": "1995-12-15",
+  "revenue": 187436818,
+  "runtime": 170,
+  "spoken_languages": [
+    { "english_name": "English", "iso_639_1": "en", "name": "English" },
+    { "english_name": "Spanish", "iso_639_1": "es", "name": "Español" }
+  ],
+  "status": "Released",
+  "tagline": "Un face-à-face légendaire.",
+  "title": "Heat",
+  "video": false,
+  "vote_average": 7.9,
+  "vote_count": 7412,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 1158,
+        "known_for_department": "Acting",
+        "name": "Al Pacino",
+        "original_name": "Al Pacino",
+        "popularity": 38.2,
+        "profile_path": "/fMDFeVf0pjopTJbyRSLFwNDm8Wr.jpg",
+        "cast_id": 25,
+        "character": "Lt. Vincent Hanna",
+        "credit_id": "52fe4292c3a36847f802916d",
+        "order": 0
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 380,
+        "known_for_department": "Acting",
+        "name": "Robert De Niro",
+        "original_name": "Robert De Niro",
+        "popularity": 41.6,
+        "profile_path": "/cT8htcckIuyI1Lqwt1CvD02ynTh.jpg",
+        "cast_id": 26,
+        "character": "Neil McCauley",
+        "credit_id": "52fe4292c3a36847f8029171",
+        "order": 1
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 5576,
+        "known_for_department": "Acting",
+        "name": "Val Kilmer",
+        "original_name": "Val Kilmer",
+        "popularity": 21.4,
+        "profile_path": "/rwNxqIOdtqDqZpIpwwTKoTeRBkM.jpg",
+        "cast_id": 27,
+        "character": "Chris Shiherlis",
+        "credit_id": "52fe4292c3a36847f8029175",
+        "order": 2
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 10127,
+        "known_for_department": "Acting",
+        "name": "Jon Voight",
+        "original_name": "Jon Voight",
+        "popularity": 17.9,
+        "profile_path": null,
+        "cast_id": 28,
+        "character": "Nate",
+        "credit_id": "52fe4292c3a36847f8029179",
+        "order": 3
+      }
+    ],
+    "crew": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 638,
+        "known_for_department": "Directing",
+        "name": "Michael Mann",
+        "original_name": "Michael Mann",
+        "popularity": 9.8,
+        "profile_path": "/5ExCbo5gTkFQZqzIixRzWl6UG0Y.jpg",
+        "credit_id": "52fe4292c3a36847f802913b",
+        "department": "Directing",
+        "job": "Director"
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 638,
+        "known_for_department": "Directing",
+        "name": "Michael Mann",
+        "original_name": "Michael Mann",
+        "popularity": 9.8,
+        "profile_path": "/5ExCbo5gTkFQZqzIixRzWl6UG0Y.jpg",
+        "credit_id": "52fe4292c3a36847f8029141",
+        "department": "Writing",
+        "job": "Screenplay"
+      },
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 1729,
+        "known_for_department": "Production",
+        "name": "Art Linson",
+        "original_name": "Art Linson",
+        "popularity": 2.1,
+        "profile_path": null,
+        "credit_id": "52fe4292c3a36847f8029147",
+        "department": "Production",
+        "job": "Producer"
+      }
+    ]
+  },
+  "images": {
+    "backdrops": [
+      {
+        "aspect_ratio": 1.778,
+        "height": 1080,
+        "iso_639_1": null,
+        "file_path": "/rfEXNlql4CafRmtgp2VfbnVFRbJ.jpg",
+        "vote_average": 5.6,
+        "vote_count": 12,
+        "width": 1920
+      },
+      {
+        "aspect_ratio": 1.778,
+        "height": 1080,
+        "iso_639_1": "en",
+        "file_path": "/zMyfPUelumio3tiDKPffaUpsQTD.jpg",
+        "vote_average": 5.3,
+        "vote_count": 4,
+        "width": 1920
+      }
+    ],
+    "logos": [
+      {
+        "aspect_ratio": 3.2,
+        "height": 250,
+        "iso_639_1": "en",
+        "file_path": "/vNlYvUnhHd8pYM4NnWcSn9JpbIg.png",
+        "vote_average": 5.4,
+        "vote_count": 3,
+        "width": 800
+      }
+    ],
+    "posters": [
+      {
+        "aspect_ratio": 0.667,
+        "height": 1500,
+        "iso_639_1": "fr",
+        "file_path": "/umSVjVdbVwtx5ryCA2QXL44Durm.jpg",
+        "vote_average": 5.5,
+        "vote_count": 6,
+        "width": 1000
+      },
+      {
+        "aspect_ratio": 0.667,
+        "height": 3000,
+        "iso_639_1": "en",
+        "file_path": "/obpPQskaVpSgyFmSWGLJ1qGy7wz.jpg",
+        "vote_average": 5.8,
+        "vote_count": 18,
+        "width": 2000
+      }
+    ]
+  },
+  "external_ids": {
+    "imdb_id": "tt0113277",
+    "wikidata_id": "Q132689",
+    "facebook_id": null,
+    "instagram_id": null,
+    "twitter_id": null
+  },
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "12",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1996-02-21T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "R",
+            "descriptors": [],
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1995-12-15T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      }
+    ]
+  }
+}

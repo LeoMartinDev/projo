@@ -1,0 +1,141 @@
+{
+  "adult": false,
+  "backdrop_path": "/jnzoh5qoxRLFRIQAxnl6D3RStPC.jpg",
+  "created_by": [],
+  "episode_run_time": [],
+  "first_air_date": "2021-08-11",
+  "genres": [
+    {
+      "id": 16,
+      "name": "Animation"
+    },
+    {
+      "id": 10759,
+      "name": "Action & Adventure"
+    },
+    {
+      "id": 10765,
+      "name": "Science-Fiction & Fantastique"
+    }
+  ],
+  "homepage": "https://www.disneyplus.com/series/what-if/7672ZVj1ZxU9",
+  "id": 91363,
+  "in_production": false,
+  "languages": ["en"],
+  "last_air_date": "2024-12-29",
+  "last_episode_to_air": {
+    "id": 5716680,
+    "name": "Et si…?",
+    "overview": "Le début de la fin.",
+    "vote_average": 5.732,
+    "vote_count": 41,
+    "air_date": "2024-12-29",
+    "episode_number": 8,
+    "episode_type": "finale",
+    "production_code": "",
+    "runtime": 34,
+    "season_number": 3,
+    "show_id": 91363,
+    "still_path": "/qMqTpaKf1EfbHoHZ89jodUJCuYx.jpg"
+  },
+  "name": "What If...?",
+  "next_episode_to_air": null,
+  "networks": [],
+  "number_of_episodes": 26,
+  "number_of_seasons": 3,
+  "origin_country": ["US"],
+  "original_language": "en",
+  "original_name": "What If...?",
+  "overview": "Une anthologie animée sur des réalités alternatives de l'univers Marvel…",
+  "popularity": 54.1047,
+  "poster_path": "/mj98hl3XsRcxYdw99arNavsSBDP.jpg",
+  "production_companies": [],
+  "production_countries": [],
+  "seasons": [
+    {
+      "air_date": "2021-08-11",
+      "episode_count": 9,
+      "id": 134723,
+      "name": "Saison 1",
+      "overview": "",
+      "poster_path": "/Wkjg8AxkmnxO9Bph7J3eW9f3ix.jpg",
+      "season_number": 1,
+      "vote_average": 7
+    },
+    {
+      "air_date": "2023-12-22",
+      "episode_count": 9,
+      "id": 365883,
+      "name": "Saison 2",
+      "overview": "",
+      "poster_path": "/5oYadd4vILTIYs7j3H9pgWIvbhI.jpg",
+      "season_number": 2,
+      "vote_average": 6.5
+    },
+    {
+      "air_date": "2024-12-22",
+      "episode_count": 8,
+      "id": 372135,
+      "name": "Saison 3",
+      "overview": "",
+      "poster_path": "/lImTfDykg2OKrDPOQBb8yCwJbhl.jpg",
+      "season_number": 3,
+      "vote_average": 5.5
+    }
+  ],
+  "softcore": false,
+  "spoken_languages": [],
+  "status": "Ended",
+  "tagline": "Une seule question peut tout changer.",
+  "type": "Scripted",
+  "vote_average": 8.027,
+  "vote_count": 4755,
+  "credits": {
+    "cast": [
+      {
+        "adult": false,
+        "gender": 2,
+        "id": 2954,
+        "known_for_department": "Acting",
+        "name": "Jeffrey Wright",
+        "original_name": "Jeffrey Wright",
+        "popularity": 4.515,
+        "profile_path": "/yGcuHGW4glqRpOPxgiCvjcren7F.jpg",
+        "character": "The Watcher (voice)",
+        "credit_id": "5d33bd0d2f8d090388d16339",
+        "order": 0
+      }
+    ],
+    "crew": []
+  },
+  "images": {
+    "backdrops": [],
+    "logos": [],
+    "posters": []
+  },
+  "external_ids": {
+    "imdb_id": "tt10168312",
+    "freebase_mid": null,
+    "freebase_id": null,
+    "tvdb_id": 367147,
+    "tvrage_id": null,
+    "wikidata_id": "Q65980671",
+    "facebook_id": "officialwhatif",
+    "instagram_id": "whatif",
+    "twitter_id": "whatifofficial"
+  },
+  "content_ratings": {
+    "results": [
+      {
+        "descriptors": [],
+        "iso_3166_1": "US",
+        "rating": "TV-14"
+      },
+      {
+        "descriptors": [],
+        "iso_3166_1": "FR",
+        "rating": "12"
+      }
+    ]
+  }
+}
