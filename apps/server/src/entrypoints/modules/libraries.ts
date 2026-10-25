@@ -8,11 +8,13 @@ import { updateLibraryFactory } from '../../application/library/update-library.t
 import { validateRootsFactory } from '../../application/library/validate-roots.ts'
 import { requestScanFactory } from '../../application/scanner/request-scan.ts'
 import { createNodeFileSystem } from '../../infrastructure/fs/node-file-system.ts'
+import { createSqliteLibraryLeftovers } from '../../infrastructure/sqlite/library-leftovers.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteLocalItemRepository } from '../../infrastructure/sqlite/local-item-repository.ts'
 import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-run-repository.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { adminLibrariesRoutes } from '../http/routes/admin-libraries.ts'
+import type { JobControl } from '../../core/jobs/ports.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
@@ -26,6 +28,7 @@ export const buildLibrariesModule = (
   {
     playbackSessions,
     metadataContext,
+    jobControl,
   }: {
     /** From the playback module: sessions on deleted sources are ended first. */
     playbackSessions: PlaybackSessionTerminator
@@ -34,12 +37,15 @@ export const buildLibrariesModule = (
      * the deciding library of a movie or series, refresh (§9.1, §9.4).
      */
     metadataContext: LibraryMetadataContextObserver
+    /** The runner (bound after the modules): a deletion aborts the running jobs on what goes. */
+    jobControl: Pick<JobControl, 'cancel'>
   },
 ) => {
   const libraryRepository = createSqliteLibraryRepository({ db })
   const sourceRepository = createSqliteSourceRepository({ db, ids })
   const scanRunRepository = createSqliteScanRunRepository({ db })
   const localItems = createSqliteLocalItemRepository({ db })
+  const leftovers = createSqliteLibraryLeftovers({ db, clock })
   const validateRoots = validateRootsFactory({ fileSystem: createNodeFileSystem() })
   const requestScan = requestScanFactory({ jobQueue, jobRepository, clock, eventBus })
   const moduleLogger = logger.child({ module: 'libraries' })
@@ -61,6 +67,8 @@ export const buildLibrariesModule = (
         validateRoots,
         requestScan,
         metadataContext,
+        leftovers,
+        jobControl,
         ids,
         logger: moduleLogger,
       }),
@@ -69,6 +77,8 @@ export const buildLibrariesModule = (
         localItems,
         playbackSessions,
         metadataContext,
+        leftovers,
+        jobControl,
         logger: moduleLogger,
       }),
       requestLibraryScan: requestLibraryScanFactory({ libraryRepository, requestScan }),

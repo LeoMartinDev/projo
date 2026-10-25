@@ -145,6 +145,7 @@ export const startProjo = ({
   const libraries = buildLibrariesModule(platform, {
     playbackSessions,
     metadataContext: metadata.libraryMetadataContext,
+    jobControl: { cancel: (id) => runnerLater.current?.cancel(id) },
   })
   const scanner = buildScannerModule(platform, { playbackSessions, requestMatch })
   const progress = buildProgressModule(platform, { visibilityScope })

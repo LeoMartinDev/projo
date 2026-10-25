@@ -180,9 +180,15 @@ export const scanLibraryFactory = (deps: Deps) => {
     signal,
     reportProgress,
   }: ScanLibraryInput): Promise<Result<ScanReport, ScanLibraryError>> => {
+    const notFound = () =>
+      err(appError('library/not_found', 'library not found', { context: { libraryId } }))
     const library: Library | undefined = libraryRepository.findById(libraryId)
-    if (library === undefined) {
-      return err(appError('library/not_found', 'library not found', { context: { libraryId } }))
+    if (library === undefined) return notFound()
+    // Read after each await: a deleted library takes its scan run with it, a removed root its
+    // sources (cascade). `undefined`: the library is gone.
+    const rootsNow = (): ReadonlySet<string> | undefined => {
+      const current = libraryRepository.findById(libraryId)
+      return current && new Set(current.roots.map((root) => root.id))
     }
     const full = isFullScan(kind)
     const run = scanRunRepository.start({ id: ids.next(), libraryId, kind, startedAt: clock.now() })
@@ -215,6 +221,9 @@ export const scanLibraryFactory = (deps: Deps) => {
     let seenBefore = 0
     for (const [index, root] of library.roots.entries()) {
       const assessment = assessRootStat(await fileSystem.stat(root.path))
+      const present = rootsNow()
+      if (present === undefined) return notFound()
+      if (!present.has(root.id)) continue
       if (assessment.kind === 'unreachable') {
         markUnreachable(root, assessment)
         unreachableRoots.push(root.id)
@@ -232,6 +241,8 @@ export const scanLibraryFactory = (deps: Deps) => {
           publishProgress()
         },
       })
+      const stillPresent = rootsNow()
+      if (stillPresent === undefined) return notFound()
       if (walk.aborted) {
         const finished = scanRunRepository.finish({
           id: run.id,
@@ -242,6 +253,7 @@ export const scanLibraryFactory = (deps: Deps) => {
         return ok({ run: finished, unreachableRoots })
       }
       seenBefore += walk.videos.length
+      if (!stillPresent.has(root.id)) continue
       stats.errors += walk.errors
       const content = assessRootContent({
         entryCount: walk.rootEntryCount,
@@ -271,14 +283,22 @@ export const scanLibraryFactory = (deps: Deps) => {
           !walk.failedFiles.includes(source.relativePath)
         )
       })
-    const found = walks.flatMap(({ walk }) => walk.videos)
-    const signatures = await signaturesFor(knownNow(), found, rootPaths, signal)
+    const signatures = await signaturesFor(
+      knownNow(),
+      walks.flatMap(({ walk }) => walk.videos),
+      rootPaths,
+      signal,
+    )
     // Read again after the last await: plan and apply run without yielding to other jobs.
+    const present = rootsNow()
+    if (present === undefined) return notFound()
+    const live = walks.filter(({ root }) => present.has(root.id))
+    for (const rootId of reachable.keys()) if (!present.has(rootId)) reachable.delete(rootId)
     const known = knownNow()
     const plan = planScan({
       libraryId,
       known,
-      found,
+      found: live.flatMap(({ walk }) => walk.videos),
       now: clock.now(),
       full,
       signatures,
@@ -295,7 +315,7 @@ export const scanLibraryFactory = (deps: Deps) => {
     publishProgress(true)
     reportProgress?.(75)
 
-    for (const { root, walk } of walks) {
+    for (const { root, walk } of live) {
       libraryRepository.markRootScanned({
         rootId: root.id,
         at: clock.now(),
@@ -319,7 +339,7 @@ export const scanLibraryFactory = (deps: Deps) => {
     const stackPatches = planStacks(snapshots)
     sourceRepository.applyChanges({ inserts: [], patches: stackPatches })
     const currentSubtitles = sourceRepository.externalSubtitlesByLibrary(libraryId)
-    for (const { root, walk } of walks) {
+    for (const { root, walk } of live) {
       const replacements = planExternalSubtitles({
         rootPath: root.path,
         sources: snapshots.filter((source) => source.rootId === root.id),

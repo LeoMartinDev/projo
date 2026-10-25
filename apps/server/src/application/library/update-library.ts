@@ -1,9 +1,11 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { IdGenerator } from '../../core/ids.ts'
+import type { JobControl } from '../../core/jobs/ports.ts'
 import type {
   Library,
   LibraryChanges,
+  LibraryLeftovers,
   LibraryMetadataContextObserver,
   LibraryRepository,
   RootChanges,
@@ -26,6 +28,9 @@ type Deps = {
    * so does a removed root changing the library deciding a movie or series (§9.1).
    */
   metadataContext: LibraryMetadataContextObserver
+  leftovers: LibraryLeftovers
+  /** Aborts the running jobs on the removed roots' files (a probe, a subtitle extraction). */
+  jobControl: Pick<JobControl, 'cancel'>
   ids: IdGenerator
   logger: Logger
 }
@@ -43,7 +48,8 @@ export type UpdateLibraryError =
 /**
  * Edits settings and roots. A kept path keeps its root (and sources); a removed root takes its
  * sources with it, and local items left without source are pruned (§7.5 purge rule). Playback
- * sessions on what goes are ended first (§10.6). A new metadata language or rating country queues
+ * sessions on what goes are ended first (§10.6), the queued jobs on its files dropped, the running
+ * ones cancelled, its notifications resolved. A new metadata language or rating country queues
  * the refresh of the metadata written with the old one (§9.4).
  */
 export const updateLibraryFactory =
@@ -54,6 +60,8 @@ export const updateLibraryFactory =
     validateRoots,
     requestScan,
     metadataContext,
+    leftovers,
+    jobControl,
     ids,
     logger,
   }: Deps) =>
@@ -107,6 +115,9 @@ export const updateLibraryFactory =
         ? metadataContext.filesLeaving({ rootIds: rootChanges.remove })
         : undefined
     if (rootChanges !== undefined && removing) {
+      // Before the cascade: the jobs on their sources are found through the `sources` rows.
+      const { runningJobIds } = leftovers.clear({ rootIds: rootChanges.remove })
+      for (const jobId of runningJobIds) jobControl.cancel(jobId)
       playbackSessions.endWithin({ rootIds: rootChanges.remove })
     }
     const updated = libraryRepository.update({

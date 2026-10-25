@@ -55,6 +55,8 @@ const setup = (initial: Library = films) => {
       changed: (input) => void changed.push(input),
       filesLeaving: () => () => {},
     },
+    leftovers: { clear: () => ({ runningJobIds: [] }) },
+    jobControl: { cancel: () => undefined },
     ids: createSequentialIds(),
     logger: silentLogger,
   })

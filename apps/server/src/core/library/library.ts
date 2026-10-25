@@ -69,6 +69,22 @@ export type LibraryMetadataContextObserver = {
   filesLeaving: (files: LeavingFiles) => () => void
 }
 
+/**
+ * What a deleted library or removed root leaves outside its rows (no foreign key reaches them):
+ * the jobs on it or on its sources, and the open notifications about it.
+ */
+export type LibraryLeftovers = {
+  /**
+   * Called before the rows go (its sources are found through them): deletes the `queued` jobs on
+   * the library, or on a source of the roots (their work is moot), resolves the open notifications
+   * about them (unreachable roots, layouts, stuck files) and returns the ids of the `running` jobs,
+   * for the runner to abort.
+   */
+  clear: (scope: { libraryId: string } | { rootIds: readonly string[] }) => {
+    runningJobIds: string[]
+  }
+}
+
 export type RootChanges = {
   add: { id: string; path: string }[]
   /** Root ids; their sources go with them (cascade). */

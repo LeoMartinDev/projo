@@ -87,6 +87,8 @@ export const createScannerWorld = () => {
       changed: (input) => metadataContextLater.current?.changed(input),
       filesLeaving: (files) => metadataContextLater.current?.filesLeaving(files) ?? (() => {}),
     },
+    // No runner: a cancelled running job is only marked so (`runJobs` claims by hand).
+    jobControl: { cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }) },
   })
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)

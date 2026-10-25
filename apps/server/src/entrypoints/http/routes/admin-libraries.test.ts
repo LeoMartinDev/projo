@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
-import { mkdirSync, symlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, symlinkSync, truncateSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import type { LibraryDto, LibraryListResponse, ScanRunsPage } from '@projo/shared/api/libraries'
 
+import { insertLibrary, insertSource } from '../../../../test/support/catalog-fixtures.ts'
 import { createTempDir } from '../../../../test/support/database.ts'
+import { silentLogger } from '../../../../test/support/logger.ts'
 import { createScannerWorld, type ScannerWorld } from '../../../../test/support/scanner-world.ts'
 
 let world: ScannerWorld
@@ -186,5 +188,148 @@ describe('admin libraries routes (§17.2)', () => {
     ).json()) as ScanRunsPage
     expect(next.items.map((run) => run.kind)).toEqual(['initial'])
     expect(next.nextCursor).toBeUndefined()
+  })
+
+  test('a deletion drops the queued jobs, cancels the running ones and resolves the notifications', async () => {
+    const films = insertLibrary(world.db, { id: 'films' }).libraryId
+    const kept = insertLibrary(world.db, { id: 'kept', rootPath: '/other' }).libraryId
+    for (const libraryId of [films, kept])
+      insertSource(world.db, { id: `${libraryId}-1`, libraryId, rootId: `${libraryId}-root` })
+    const enqueue = (type: 'probe_source' | 'match_source', sourceId: string) =>
+      world.jobQueue.enqueue({ type, payload: { sourceId, mode: 'quarantine' } }).job.id
+    const running = enqueue('probe_source', 'films-1')
+    world.jobRepository.claimNext({ types: ['probe_source'], now: world.clock.now() })
+    const queued = [
+      enqueue('match_source', 'films-1'),
+      world.jobQueue.enqueue({
+        type: 'scan_library',
+        payload: { libraryId: films, kind: 'manual' },
+      }).job.id,
+    ]
+    const other = enqueue('match_source', 'kept-1')
+    for (const [id, libraryId] of [
+      ['n-films', films],
+      ['n-kept', kept],
+    ] as const) {
+      world.query(
+        `INSERT INTO notifications (id, kind, severity, title_key, context, created_at)
+         VALUES (?, 'library/root_unreachable', 'error', 'library/root_unreachable', ?, '2026-06-01T10:00:00.000Z')`,
+        id,
+        JSON.stringify({ libraryId, key: id }),
+      )
+    }
+
+    expect((await world.request(`/libraries/${films}`, { method: 'DELETE' })).status).toBe(204)
+    const states = Object.fromEntries(
+      world
+        .query<{ id: string; state: string }>('SELECT id, state FROM jobs')
+        .map((job) => [job.id, job.state]),
+    )
+    expect(queued.map((id) => states[id])).toEqual([undefined, undefined])
+    expect([states[running], states[other]]).toEqual(['cancelled', 'queued'])
+    expect(
+      world.query<{ id: string }>('SELECT id FROM notifications WHERE resolved_at IS NULL'),
+    ).toEqual([{ id: 'n-kept' }])
+  })
+
+  test('removing a root drops the queued jobs on its files and resolves its notifications', async () => {
+    const { libraryId, rootId } = insertLibrary(world.db, {
+      id: 'films',
+      rootPath: join(tmp.path, 'movies'),
+    })
+    const removed = 'films-other'
+    world.query(
+      'INSERT INTO library_roots (id, library_id, path) VALUES (?, ?, ?)',
+      removed,
+      libraryId,
+      join(tmp.path, 'other'),
+    )
+    insertSource(world.db, { id: 'kept-1', libraryId, rootId })
+    insertSource(world.db, { id: 'gone-1', libraryId, rootId: removed })
+    const enqueue = (type: 'probe_source' | 'match_source', sourceId: string) =>
+      world.jobQueue.enqueue({ type, payload: { sourceId, mode: 'quarantine' } }).job.id
+    const running = enqueue('probe_source', 'gone-1')
+    world.jobRepository.claimNext({ types: ['probe_source'], now: world.clock.now() })
+    const dropped = enqueue('match_source', 'gone-1')
+    const kept = [
+      enqueue('match_source', 'kept-1'),
+      world.jobQueue.enqueue({ type: 'scan_library', payload: { libraryId, kind: 'manual' } }).job
+        .id,
+    ]
+    for (const [id, context] of [
+      ['n-root', { libraryId, rootId: removed }],
+      ['n-file', { libraryId, sourceId: 'gone-1' }],
+      ['n-kept', { libraryId, rootId }],
+    ] as const) {
+      world.query(
+        `INSERT INTO notifications (id, kind, severity, title_key, context, created_at)
+         VALUES (?, 'library/root_unreachable', 'error', 'library/root_unreachable', ?, '2026-06-01T10:00:00.000Z')`,
+        id,
+        JSON.stringify({ ...context, key: id }),
+      )
+    }
+
+    const response = await world.request(`/libraries/${libraryId}`, {
+      method: 'PATCH',
+      json: { roots: [join(tmp.path, 'movies')] },
+    })
+    expect(response.status).toBe(200)
+    const states = Object.fromEntries(
+      world
+        .query<{ id: string; state: string }>('SELECT id, state FROM jobs')
+        .map((job) => [job.id, job.state]),
+    )
+    expect([states[dropped], states[running]]).toEqual([undefined, 'cancelled'])
+    expect(kept.map((id) => states[id])).toEqual(['queued', 'queued'])
+    expect(
+      world.query<{ id: string }>('SELECT id FROM notifications WHERE resolved_at IS NULL'),
+    ).toEqual([{ id: 'n-kept' }])
+  })
+
+  /** Claims the queued scan and runs it until its first await (the first root's stat). */
+  const startScan = () => {
+    const job = world.jobRepository.claimNext({ types: ['scan_library'], now: world.clock.now() })
+    const handler = world.scanner.jobHandlers?.scan_library
+    if (job === undefined || handler === undefined) throw new Error('no scan to run')
+    return handler.run(job.payload, {
+      job,
+      signal: new AbortController().signal,
+      reportProgress: () => {},
+      logger: silentLogger,
+    })
+  }
+  /** Above the minimum video size, without writing it (sparse). */
+  const video = (relativePath: string) => {
+    writeFileSync(join(tmp.path, relativePath), '')
+    truncateSync(join(tmp.path, relativePath), 1_500_000)
+  }
+
+  test('a scan whose library is deleted during the walk stops without writing', async () => {
+    video('movies/Alien (1979).mkv')
+    const created = (await (
+      await post({ name: 'Films', roots: [join(tmp.path, 'movies')] })
+    ).json()) as LibraryDto
+    const scanning = startScan()
+    world.query('DELETE FROM libraries WHERE id = ?', created.id)
+    expect(await scanning).toMatchObject({ ok: true })
+    expect(world.query('SELECT id FROM sources')).toEqual([])
+  })
+
+  test('a scan whose root is removed during the walk keeps the other roots only', async () => {
+    video('movies/Alien (1979).mkv')
+    video('other/Heat (1995).mkv')
+    const created = (await (
+      await post({ name: 'Films', roots: [join(tmp.path, 'movies'), join(tmp.path, 'other')] })
+    ).json()) as LibraryDto
+    const scanning = startScan()
+    world.query('DELETE FROM library_roots WHERE path = ?', join(tmp.path, 'other'))
+    expect(await scanning).toMatchObject({ ok: true })
+    expect(world.query('SELECT relative_path FROM sources')).toEqual([
+      { relative_path: 'Alien (1979).mkv' },
+    ])
+    const page = (await (
+      await world.request(`/libraries/${created.id}/scans`)
+    ).json()) as ScanRunsPage
+    expect(page.items[0]?.stats).toMatchObject({ seen: 1, discovered: 1 })
   })
 })
