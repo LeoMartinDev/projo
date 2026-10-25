@@ -90,10 +90,8 @@ jobs:
         run: >-
           printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n'
           | sudo tee /etc/apt/apt.conf.d/80-ci-retries
-      # ffmpeg of the host: the fixtures only. The server runs in the runtime image (serve.ts).
-      - name: Install ffmpeg and ffprobe
-        timeout-minutes: 5
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      # The server and the fixtures' ffmpeg run in it (serve.ts, support/runtime-image.ts): no
+      # ffmpeg from the runner's apt mirror, which can crawl at 100 kB/s for its 60 MB.
       - name: Build the runtime image
         run: docker build --file runtime/Dockerfile --target runtime --tag projo-runtime .
       - run: bun install --frozen-lockfile

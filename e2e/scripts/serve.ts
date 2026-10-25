@@ -9,7 +9,8 @@
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
-import { appDir, dataDir, e2eRoot, port } from '../support/paths.ts'
+import { appDir, dataDir, port } from '../support/paths.ts'
+import { dockerRun, runtimeImage } from '../support/runtime-image.ts'
 
 const entry = join(appDir, 'server.js')
 if (!existsSync(entry)) {
@@ -28,32 +29,21 @@ const serverEnv = {
   LOG_LEVEL: process.env['PROJO_E2E_LOG_LEVEL'] ?? 'warn',
 }
 
-const runtimeImage = process.env['PROJO_E2E_RUNTIME_IMAGE'] ?? ''
-const repoRoot = resolve(import.meta.dir, '../..')
-const mounts = [repoRoot, ...(e2eRoot.startsWith(`${repoRoot}/`) ? [] : [e2eRoot])]
-
 const command =
   runtimeImage === ''
     ? ['bun', '--preload', tmdbRedirect, entry]
     : [
-        'docker',
-        'run',
-        '--rm',
-        '--init',
-        '--network',
-        'host',
-        '--user',
-        `${process.getuid?.() ?? 0}:${process.getgid?.() ?? 0}`,
-        '--workdir',
-        appDir,
-        '--entrypoint',
-        'bun',
-        ...mounts.flatMap((path) => ['--volume', `${path}:${path}`]),
-        ...Object.entries({ ...serverEnv, HOME: '/tmp' }).flatMap(([key, value]) => [
-          '--env',
-          `${key}=${value}`,
+        ...dockerRun('bun', [
+          '--init',
+          '--network',
+          'host',
+          '--workdir',
+          appDir,
+          ...Object.entries({ ...serverEnv, HOME: '/tmp' }).flatMap(([key, value]) => [
+            '--env',
+            `${key}=${value}`,
+          ]),
         ]),
-        runtimeImage,
         '--preload',
         tmdbRedirect,
         entry,
