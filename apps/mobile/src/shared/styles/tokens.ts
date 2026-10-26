@@ -12,6 +12,7 @@ export const colors = {
   border: 'rgba(255, 255, 255, 0.08)',
   borderField: 'rgba(255, 255, 255, 0.09)',
   borderFocus: 'rgba(255, 255, 255, 0.6)',
+  borderStrong: 'rgba(255, 255, 255, 0.28)',
   text: '#f4f4f5',
   textStrong: '#ffffff',
   textSecondary: '#a1a1aa',
@@ -35,6 +36,9 @@ export const colors = {
   errorSoft: '#fca5a5',
   warning: '#e5b567',
 } as const
+
+/** The colour of a card without its picture (§13.5), the web's `.tone-<n>` (`toneOf`). */
+export const tones = ['#2b4560', '#6b4529', '#2f4a3a', '#3a2f5a', '#5a4422', '#3a3f47'] as const
 
 /** Avatar tiles (§13.6), the web's `--avatar-<color>`. */
 export const avatarColors = {
@@ -66,6 +70,8 @@ export const radii = {
   button: 14,
   card: 12,
   buttonSm: 11,
+  thumb: 10,
+  badge: 4,
   pill: 999,
 } as const
 

@@ -1208,6 +1208,9 @@
     "codeOf": "Rated {{code}} ({{country}})"
   },
   "mobile": {
+    "browse": {
+      "longPressHint": "Touch and hold for actions"
+    },
     "changeServer": "Change server",
     "connect": {
       "title": "Connect to your server",
@@ -1215,6 +1218,7 @@
       "urlPlaceholder": "http://192.168.1.10:8080",
       "submit": "Connect"
     },
+    "offline": "Offline",
     "outdated": {
       "title": "Update your projo server",
       "body": "This app needs projo {{minimumVersion}} or later; this server runs {{version}}. An administrator updates it from the web administration.",
