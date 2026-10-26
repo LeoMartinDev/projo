@@ -10,7 +10,7 @@ The spec is `PRODUCT.md` (it is the contract; propose a change rather than diver
 bun install
 bun run dev          # server :8080 (DATA_DIR=.data, LOG_LEVEL=debug, --watch) + Vite :5173 (proxies /api and /health)
 bun lint             # Bun's linter (bunfig.toml [lint], canary): layers, no class, no null, confined try/catch (§5.3)
-bun run typecheck    # strict tsc in each workspace + runtime/
+bun run typecheck    # strict tsc in each workspace + runtime/ (mobile: emits the server's AppType first)
 bun run test         # bun test on the whole repository (bun test <path> to target)
 bun fmt              # Bun's native formatter (bunfig.toml [fmt]); bun fmt --check in CI
 bun run db:generate  # Drizzle migration from the schema (see below)
@@ -51,6 +51,8 @@ apps/server/test/support/  database (createTestDatabase, createTempDir) clock lo
                            media (generateVideo, hasFfmpeg) media-fixtures scanner-world
 apps/server/test/fixtures/ file trees (parser, classifier, scanner)
 apps/web/src/{app,features/<feature>,shared/{api,i18n,styles}}
+apps/mobile/src/app/       Expo Router routes only: one-line files re-exporting a feature screen, _layout.tsx
+apps/mobile/src/{features/<feature>,shared/{api,i18n,styles,ui,version}}   the app (§26), same rules
 packages/shared/           @projo/shared: result.ts, errors/<domain>.ts, api/<domain>.ts
 packages/i18n/             @projo/i18n (§26.2): fr.json en.json (keys typed on fr.json), locales and
                            pure label helpers taking `t` (genres versions item-titles content-ratings
@@ -212,4 +214,5 @@ beforeEach(() => {
 - Logger: `logger.info('msg', { code, jobId, sessionId, error })`, JSON on stdout; `c.get('logger')` carries `requestId`.
 - SSE: `Bun.serve` has `idleTimeout: 120` s ⇒ send a keep-alive at least every 30 s.
 - Bundle (runtime/README.md): `server.js` with `drizzle/` (migrations), `public/` (web) and `manifest.json` next to it; `entrypoints/app-paths.ts` detects this layout.
+- Mobile (§26, Expo SDK 58, Expo Go): `cd apps/mobile && CI=1 bunx expo start --ios` (Simulator), `bunx expo export --platform ios` (Metro bundle check). Native versions through `bunx expo install <pkg>`, then pinned exact. Typecheck: `tsconfig.api-type.json` emits the server's `AppType` declarations to `apps/mobile/.api-type/` (server compiler options, Bun types), then `tsconfig.json` checks the app against them (React Native globals, no Bun types; `@projo/server/api-type` is a `paths` alias to the emitted `.d.ts`) and `tsconfig.test.json` the `bun test` files. Logic without React Native in pure modules tested with `bun test` (§26.8: pairing input, session and connection gates, device name, semver). Strings: `packages/i18n/{fr,en}.json`, existing keys when they fit (`login.*`, `profiles.whoTitle`, `shell.logout`…), the app's own under `mobile.*`; the app's failure codes (`shared/api/failure.ts`: `connection/*`, `pairing/*`) translate under `mobile.errors.<code>`, the server's under `errors.<code>` (`shared/i18n/errors.ts`). Screens follow the state (`_layout.tsx`: `Stack.Protected` per state of the connection then session gates, `redirectTo` the state's landing route). Session: bearer token and last profile in the Keychain (`features/session/session-store.ts`), sent by the `hc` client (`shared/api/credentials.ts`); a 401 to a request that carried the token drops it (sign-in, server URL kept). `minimumServerVersion` (`features/server-connection/compatibility.ts`): raise it when the app relies on a newer server; lower it only locally to test against an unreleased server.
 - Web: `api` (`shared/api/client.ts`) = `hc<AppType>('/api/v1')`; only import types from `@projo/server`. Strings in `packages/i18n/{fr,en}.json` (`@projo/i18n`, keys typed on `fr.json`), errors translated from `error.code` (`errorKeyOf`); `apps/web/src/shared/i18n/` only sets up i18next (`setupI18n`, `currentLocale`, `useErrorMessage`).
