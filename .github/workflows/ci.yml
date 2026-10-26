@@ -89,20 +89,34 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
       # A stalled mirror makes apt wait forever: retry each download, give up on a silent one.
-      - name: Retry stalled apt downloads
-        run: >-
-          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n'
-          | sudo tee /etc/apt/apt.conf.d/80-ci-retries
+      # Downloaded packages go to ~/.cache/apt-archives, cached below.
+      - name: Configure apt (retries, archives directory)
+        run: |
+          mkdir -p ~/.cache/apt-archives/partial
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\nDir::Cache::Archives "%s/";\n' \
+            ~/.cache/apt-archives | sudo tee /etc/apt/apt.conf.d/80-ci
       # The server and the fixtures' ffmpeg run in it (serve.ts, support/runtime-image.ts): no
       # ffmpeg from the runner's apt mirror, which can crawl at 100 kB/s for its 60 MB.
       - name: Build the runtime image
         run: docker build --file runtime/Dockerfile --target runtime --tag projo-runtime .
       - run: bun install --frozen-lockfile
+      - name: Playwright version and runner image
+        id: playwright
+        run: |
+          echo "version=$(node -p 'require("./e2e/package.json").devDependencies["@playwright/test"]')" >> "$GITHUB_OUTPUT"
+          echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-      # Browsers (cached) and their system libraries, including GStreamer's libav for WebKit's
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # The 119 MB of .deb that --with-deps installs: the Azure Ubuntu mirror sometimes crawls at
+      # 40 kB/s. Per runner image, falling back to an older image's (apt fetches only what changed).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/apt-archives/*.deb
+          key: playwright-apt-${{ steps.playwright.outputs.version }}-${{ steps.playwright.outputs.image }}
+          restore-keys: playwright-apt-${{ steps.playwright.outputs.version }}-
+      # Browsers and their system libraries (both cached), including GStreamer's libav for WebKit's
       # H.264/AAC playback. The iPhone project is WebKit with an iPhone viewport: no other browser.
       # 20 s when it goes well: a stuck download fails here, not at the job's timeout.
       - name: Install Playwright browsers
