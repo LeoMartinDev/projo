@@ -2,7 +2,7 @@ import type { Response } from '@playwright/test'
 
 import { expect, test } from '../support/fixtures.ts'
 import { fr, matching, startsWith } from '../support/i18n.ts'
-import { currentTime, playbackStart, wakePlayer } from '../support/media.ts'
+import { currentTime, startPosition, wakePlayer } from '../support/media.ts'
 import {
   adminSessions,
   barSeconds,
@@ -56,9 +56,9 @@ test(
       await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
       await page.getByRole('link', { name: startsWith(fr.item.resumeAt) }).click()
       await expect
-        .poll(() => playbackStart(video), { intervals: [50], timeout: 20_000 })
+        .poll(() => startPosition(video), { intervals: [50], timeout: 20_000 })
         .toBeGreaterThan(0)
-      const resumedAt = await playbackStart(video)
+      const resumedAt = await startPosition(video)
       expect(resumedAt).toBeGreaterThanOrEqual(pausedAt - 0.5)
       expect(resumedAt).toBeLessThan(pausedAt + 1.5)
     })
