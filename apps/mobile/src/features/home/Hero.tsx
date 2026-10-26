@@ -110,6 +110,11 @@ export const Hero = ({
   const playLabel = playLabelOf(t, item, play)
   const rating = ratingBadge(t, locale, item.contentRating)
   const genres = item.genres.length === 0 ? undefined : genreLabels(t, item.genres, 3).join(', ')
+  // The box hugs the logo, as the web's `<img>` within its max sizes: no empty band above it.
+  const [logoRatio, setLogoRatio] = useState<number>()
+  const logoMax = regular ? { width: 420, height: 110 } : { width: width - 64, height: 90 }
+  const logoWidth =
+    logoRatio === undefined ? undefined : Math.min(logoMax.width, logoMax.height * logoRatio)
   const logo = (
     <Artwork
       contentFit="contain"
@@ -120,7 +125,18 @@ export const Hero = ({
       }
       path={item.images.logo}
       position={regular ? 'left bottom' : 'bottom center'}
-      style={[styles.logo, regular ? styles.logoLarge : styles.logoCentered]}
+      onRatio={setLogoRatio}
+      style={[
+        styles.logo,
+        regular ? styles.logoLarge : styles.logoCentered,
+        logoWidth === undefined || logoRatio === undefined
+          ? {}
+          : {
+              width: logoWidth,
+              height: logoWidth / logoRatio,
+              alignSelf: regular ? 'flex-start' : 'center',
+            },
+      ]}
       tinted={false}
       toneId={item.id}
     />
