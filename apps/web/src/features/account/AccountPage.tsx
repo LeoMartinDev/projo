@@ -15,6 +15,7 @@ import { DevicesIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
 import { passwordScore } from '../setup/password-strength.ts'
+import { ConnectDeviceDialog } from './ConnectDeviceDialog.tsx'
 import '../profiles/profiles.css'
 import './account.css'
 
@@ -146,7 +147,10 @@ const PasswordPanel = () => {
   )
 }
 
-/** The account's devices, revocable one by one (§14). Fixed height: the list scrolls. */
+/**
+ * The account's devices, revocable one by one, and "Connect a device" (pairing, §14). Fixed
+ * height: the list scrolls.
+ */
 const DevicesPanel = () => {
   const { t } = useTranslation()
   const ids = useId()
@@ -154,15 +158,32 @@ const DevicesPanel = () => {
   const now = useNow()
   const queryClient = useQueryClient()
   const sessions = useQuery(sessionsQuery)
+  const [connecting, setConnecting] = useState(false)
   const revoke = useMutation({
     mutationFn: (id: string) => request(() => api.auth.sessions[':id'].$delete({ param: { id } })),
     onSettled: () => queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey }),
   })
   return (
     <section className="settings-panel" aria-labelledby={`${ids}-title`}>
-      <h2 id={`${ids}-title`} className="settings-panel__title">
-        {t('account.devices.title')}
-      </h2>
+      <div className="devices__head">
+        <h2 id={`${ids}-title`} className="settings-panel__title">
+          {t('account.devices.title')}
+        </h2>
+        <button
+          type="button"
+          className="button button--glass button--small"
+          onClick={() => setConnecting(true)}
+        >
+          {t('account.devices.connect')}
+        </button>
+      </div>
+      <ConnectDeviceDialog
+        open={connecting}
+        onClose={() => setConnecting(false)}
+        onDevicesChanged={() =>
+          void queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey })
+        }
+      />
       {revoke.isError ? <ErrorAlert error={revoke.error} /> : undefined}
       <div className="devices" aria-busy={sessions.isPending}>
         {sessions.isError ? (

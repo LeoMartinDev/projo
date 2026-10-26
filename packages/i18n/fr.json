@@ -381,13 +381,28 @@
       "app": "Application",
       "lastSeen": "Vu {{when}}",
       "revoke": "Déconnecter",
-      "revokeDevice": "Déconnecter {{name}}"
+      "revokeDevice": "Déconnecter {{name}}",
+      "connect": "Connecter un appareil"
+    },
+    "pairing": {
+      "title": "Connecter un appareil",
+      "scan": "Scannez avec l’application projo",
+      "qr": "QR code pour connecter un appareil à {{origin}}",
+      "expiresIn": "Expire dans {{time}}",
+      "expired": "Ce code a expiré.",
+      "newCode": "Nouveau code",
+      "localWarning": "Cette adresse ne fonctionne qu’à la maison : l’appareil ne joindra projo que depuis ce réseau. Pour connecter un appareil utilisé dehors, ouvrez projo par son adresse publique.",
+      "claimed": "{{name}} est connecté."
     },
     "about": {
       "title": "À propos",
       "version": "Version",
       "segmentsCredit": "Marqueurs de génériques fournis par TheIntroDB, IntroDB et SkipDB."
     }
+  },
+  "pair": {
+    "title": "Ouvrez l’application projo",
+    "body": "Sur votre iPhone ou iPad, ouvrez projo et scannez le code affiché dans « Connecter un appareil »."
   },
   "invite": {
     "display": "Bienvenue\nsur projo",
@@ -1215,6 +1230,10 @@
     "auth/invitation_used": "Cette invitation a déjà été utilisée.",
     "auth/token_not_found": "Jeton introuvable.",
     "auth/session_not_found": "Session introuvable.",
+    "auth/pairing_limit_reached": "Trop de codes en attente. Utilisez-en un ou patientez quelques minutes.",
+    "auth/pairing_invalid": "Ce code n’est pas valide.",
+    "auth/pairing_expired": "Ce code a expiré.",
+    "auth/pairing_used": "Ce code a déjà été utilisé.",
     "catalog/invalid_cursor": "La liste a changé. Rechargez la page.",
     "catalog/image_not_found": "Image introuvable.",
     "common/internal": "Erreur interne du serveur.",

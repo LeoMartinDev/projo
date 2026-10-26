@@ -44,6 +44,7 @@ const InvitePage = lazyRouteComponent(
   () => import('../features/invite/InvitePage.tsx'),
   'InvitePage',
 )
+const PairPage = lazyRouteComponent(() => import('../features/pair/PairPage.tsx'), 'PairPage')
 const ItemPage = lazyRouteComponent(() => import('../features/item/ItemPage.tsx'), 'ItemPage')
 const PlayerPage = lazyRouteComponent(
   () => import('../features/player/PlayerPage.tsx'),
@@ -189,6 +190,13 @@ const inviteRoute = createRoute({
     const { token } = inviteRoute.useParams()
     return <InvitePage key={token} token={token} />
   },
+})
+
+/** Where a pairing QR code leads outside the app (§14): public, says to use the app. */
+const pairRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/pair',
+  component: PairPage,
 })
 
 /**
@@ -500,6 +508,7 @@ export const routeTree = rootRoute.addChildren([
   setupRoute,
   loginRoute,
   inviteRoute,
+  pairRoute,
   authedRoute.addChildren([
     shellRoute.addChildren([
       indexRoute,

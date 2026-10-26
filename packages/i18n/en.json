@@ -381,13 +381,28 @@
       "app": "App",
       "lastSeen": "Seen {{when}}",
       "revoke": "Sign out",
-      "revokeDevice": "Sign out {{name}}"
+      "revokeDevice": "Sign out {{name}}",
+      "connect": "Connect a device"
+    },
+    "pairing": {
+      "title": "Connect a device",
+      "scan": "Scan with the projo app",
+      "qr": "QR code to pair a device with {{origin}}",
+      "expiresIn": "Expires in {{time}}",
+      "expired": "This code has expired.",
+      "newCode": "New code",
+      "localWarning": "This address only works at home: the device will reach projo only from this network. To pair a device used outside, open projo by its public address.",
+      "claimed": "{{name}} is connected."
     },
     "about": {
       "title": "About",
       "version": "Version",
       "segmentsCredit": "Intro and credits markers provided by TheIntroDB, IntroDB and SkipDB."
     }
+  },
+  "pair": {
+    "title": "Open the projo app",
+    "body": "On your iPhone or iPad, open projo and scan the code shown in “Connect a device”."
   },
   "invite": {
     "display": "Welcome\nto projo",
@@ -1215,6 +1230,10 @@
     "auth/invitation_used": "This invitation has already been used.",
     "auth/token_not_found": "Token not found.",
     "auth/session_not_found": "Session not found.",
+    "auth/pairing_limit_reached": "Too many codes are waiting. Use one or wait a few minutes.",
+    "auth/pairing_invalid": "This code is not valid.",
+    "auth/pairing_expired": "This code has expired.",
+    "auth/pairing_used": "This code has already been used.",
     "catalog/invalid_cursor": "The list changed. Reload the page.",
     "catalog/image_not_found": "Image not found.",
     "common/internal": "Internal server error.",
