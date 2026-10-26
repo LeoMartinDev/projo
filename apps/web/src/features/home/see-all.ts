@@ -1,14 +1,11 @@
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
-import { type HomeCategoryDto, homeCategorySlug } from '@projo/shared/api/home'
+import { type HomeCategoryDto, homeCategorySlug, recentlyAddedTarget } from '@projo/shared/api/home'
 
 import type { SeeAll } from './Row.tsx'
 
 /** "See all ›" of Recently added: Movies, or Shows when most of its titles are series. */
 export const recentlyAddedSeeAll = (items: readonly ItemSummaryDto[]): SeeAll => ({
-  to:
-    items.filter((item) => item.kind === 'series').length > items.length / 2
-      ? '/series'
-      : '/movies',
+  to: recentlyAddedTarget(items) === 'series' ? '/series' : '/movies',
   sort: 'added',
 })
 

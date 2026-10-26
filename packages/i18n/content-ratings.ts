@@ -19,13 +19,21 @@ const unratedCodes = new Set(['NR', 'UR', 'UNRATED', 'NOT RATED'])
 
 const ageCode = /^\d{1,2}$/
 
+/** Countries of the shipped languages, where `Intl.Locale` is missing (the mobile app's Hermes). */
+const countryOfLanguage: Record<string, string> = { fr: 'FR', en: 'US' }
+
 /** The country of the interface language (`fr` → FR, `en` → US): its codes need no country. */
 export const interfaceCountry = (locale: string): string | undefined =>
-  new Intl.Locale(locale).maximize().region
+  typeof Intl.Locale === 'function'
+    ? new Intl.Locale(locale).maximize().region
+    : countryOfLanguage[locale.split('-')[0] ?? '']
 
-/** `US` → "United States" in the interface language; anything but an ISO 3166 code as written. */
+/**
+ * `US` → "United States" in the interface language; anything but an ISO 3166 code as written, and
+ * the code itself where `Intl.DisplayNames` is missing (the mobile app's Hermes).
+ */
 const countryName = (country: string, locale: string): string =>
-  /^[A-Z]{2}$/.test(country)
+  /^[A-Z]{2}$/.test(country) && typeof Intl.DisplayNames === 'function'
     ? (new Intl.DisplayNames([locale], { type: 'region' }).of(country) ?? country)
     : country
 

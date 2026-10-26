@@ -47,6 +47,17 @@ describe('classification badge (§13.5), composed from code, country and tier', 
     })
   })
 
+  test('without Intl.DisplayNames and Intl.Locale (Hermes), the country stays a code', async () => {
+    const { DisplayNames, Locale } = Intl
+    Object.assign(Intl, { DisplayNames: undefined, Locale: undefined })
+    expect(interfaceCountry('fr')).toBe('FR')
+    expect(await badge('fr', { code: 'R', country: 'US', tier: '18' })).toEqual({
+      text: 'R (US)',
+      label: 'Classification R (US) · 18 ans et plus',
+    })
+    Object.assign(Intl, { DisplayNames, Locale })
+  })
+
   test('a US fallback: its country in French, its code in English', async () => {
     expect(await badge('fr', { code: 'R', country: 'US', tier: '18' })).toEqual({
       text: 'R (US)',
