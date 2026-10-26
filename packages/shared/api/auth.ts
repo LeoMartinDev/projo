@@ -67,13 +67,21 @@ export const meResponseSchema = z.object({
 })
 export type MeResponse = z.infer<typeof meResponseSchema>
 
-/** `POST /auth/login`. Sets the `projo_session` cookie. */
+/**
+ * `POST /auth/login`. Sets the `projo_session` cookie; with `token: true` (mobile app, §26.3)
+ * opens a bearer session named `deviceName` instead and sets no cookie.
+ */
 export const loginBodySchema = z.object({
   username: z.string().min(1).max(64),
   password: z.string().min(1).max(256),
   deviceName: deviceNameSchema.optional(),
+  token: z.boolean().optional(),
 })
 export type LoginBody = z.infer<typeof loginBodySchema>
+
+/** `POST /auth/login`: `token` is the bearer token, present only with `token: true`, shown once. */
+export const loginResponseSchema = meResponseSchema.extend({ token: z.string().optional() })
+export type LoginResponse = z.infer<typeof loginResponseSchema>
 
 // ── Devices (sessions and bearer tokens) ─────────────────────────────────────
 
@@ -114,3 +122,41 @@ export const changePasswordBodySchema = z.object({
   newPassword: passwordSchema,
 })
 export type ChangePasswordBody = z.infer<typeof changePasswordBodySchema>
+
+// ── Pairing a device (§14, §26.3) ────────────────────────────────────────────
+
+/** 32 characters: no `0`, `O`, `1`, `I`. */
+export const pairingCodeAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+export const pairingCodeLength = 6
+/** Web page the pairing QR code points to: `<origin>/pair?code=<code>`. */
+export const pairingPath = '/pair'
+
+/** `<origin>/pair?code=<code>`: what the QR code holds; the app keeps `origin` as its server. */
+export const pairingUrl = ({ origin, code }: { origin: string; code: string }): string =>
+  `${origin}${pairingPath}?code=${encodeURIComponent(code)}`
+
+/**
+ * `POST /auth/pairings` (201): a code valid 5 minutes, shown once (only its hash is stored).
+ * 403 `profile/restricted`, 409 `auth/pairing_limit_reached` (3 live codes per account).
+ */
+export const createPairingResponseSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  expiresAt: z.string(),
+})
+export type CreatePairingResponse = z.infer<typeof createPairingResponseSchema>
+
+/**
+ * `POST /auth/pairings/claim` (public, 10 attempts per 15 min per IP). The code is read without
+ * case, spaces or dashes. 404 `auth/pairing_invalid`, 410 `auth/pairing_expired` /
+ * `auth/pairing_used`, 429 `auth/rate_limited`.
+ */
+export const claimPairingBodySchema = z.object({
+  code: z.string().trim().min(1).max(32),
+  deviceName: deviceNameSchema,
+})
+export type ClaimPairingBody = z.infer<typeof claimPairingBodySchema>
+
+/** A bearer token of the account that created the code, shown once. */
+export const claimPairingResponseSchema = z.object({ token: z.string() })
+export type ClaimPairingResponse = z.infer<typeof claimPairingResponseSchema>

@@ -30,6 +30,8 @@ const expectedTables = [
   // §9.2 corrections by file (migrations `manual_matches_by_path` → `drop_item_manual_matches`).
   'manual_matches',
   'notifications',
+  // §14 pairing a device (migration `pairings`).
+  'pairings',
   'people',
   'playback_progress',
   'playback_sessions',

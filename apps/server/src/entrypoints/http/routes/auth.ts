@@ -4,9 +4,13 @@ import type { AppError } from '@projo/shared'
 
 import {
   changePasswordBodySchema,
+  claimPairingBodySchema,
+  type ClaimPairingResponse,
+  type CreatePairingResponse,
   createTokenBodySchema,
   type CreateTokenResponse,
   loginBodySchema,
+  type LoginResponse,
   type MeResponse,
   type ProfileDto,
   type SessionDto,
@@ -17,6 +21,7 @@ import type { ChangePassword } from '../../../application/auth/change-password.t
 import type { GetMe, Me } from '../../../application/auth/get-me.ts'
 import type { Login } from '../../../application/auth/login.ts'
 import type { OpenSession } from '../../../application/auth/open-session.ts'
+import type { Pairings } from '../../../application/auth/pairings.ts'
 import type { ListSessions, RevokeSession } from '../../../application/auth/sessions.ts'
 import type { Session } from '../../../core/auth/session.ts'
 import type { Clock } from '../../../core/clock.ts'
@@ -85,7 +90,8 @@ type Deps = {
   openSession: OpenSession
   listSessions: ListSessions
   revokeSession: RevokeSession
-  /** §14: devices, tokens and password are refused to a restricted profile. */
+  pairings: Pairings
+  /** §14: devices, tokens, pairing and password are refused to a restricted profile. */
   requireAccountActions: MiddlewareHandler<AppEnv>
   clock: Clock
   trustProxy: boolean
@@ -103,6 +109,7 @@ export const authRoutes = ({
   openSession,
   listSessions,
   revokeSession,
+  pairings,
   requireAccountActions,
   clock,
   trustProxy,
@@ -110,33 +117,39 @@ export const authRoutes = ({
   new Hono<AppEnv>()
     .post('/auth/login', validate('json', loginBodySchema), async (c) => {
       const client = clientInfo(c, { trustProxy })
-      const { username, password, deviceName } = c.req.valid('json')
+      const { username, password, deviceName, token: wantsToken } = c.req.valid('json')
       const result = await login({
         username,
         password,
         ip: client.ip,
         userAgent: c.req.header('user-agent') ?? '',
+        kind: wantsToken === true ? 'bearer' : 'cookie',
         ...(deviceName === undefined ? {} : { deviceName }),
       })
-      if (!result.ok) {
-        const retryAfter = result.error.context?.['retryAfterSeconds']
-        if (typeof retryAfter === 'number') c.header('Retry-After', String(retryAfter))
-        return respondError(c, result.error)
-      }
-      // Logging in again on the same browser replaces its previous cookie session.
-      const previous = c.get('session')
-      if (previous?.kind === 'cookie') {
-        revokeSession({ accountId: previous.accountId, sessionId: previous.id })
-      }
+      if (!result.ok) return respondErrorWithRetry(c, result.error)
       const { token, session } = result.value
-      setSessionCookie(c, {
-        token,
-        expiresAt: session.expiresAt,
-        now: clock.now(),
-        secure: client.https,
-      })
+      if (session.kind === 'cookie') {
+        // Logging in again on the same browser replaces its previous cookie session.
+        const previous = c.get('session')
+        if (previous?.kind === 'cookie') {
+          revokeSession({ accountId: previous.accountId, sessionId: previous.id })
+        }
+        setSessionCookie(c, {
+          token,
+          expiresAt: session.expiresAt,
+          now: clock.now(),
+          secure: client.https,
+        })
+      }
       const me = getMe({ accountId: session.accountId, activeProfileId: session.lastProfileId })
-      return me.ok ? c.json(toMeResponse(me.value), 200) : respondError(c, me.error)
+      if (!me.ok) return respondError(c, me.error)
+      return c.json(
+        {
+          ...toMeResponse(me.value),
+          ...(session.kind === 'bearer' ? { token } : {}),
+        } satisfies LoginResponse,
+        200,
+      )
     })
     .post('/auth/logout', (c) => {
       const session = c.get('session')
@@ -164,6 +177,32 @@ export const authRoutes = ({
         { token, session: toSessionDto(session, undefined) } satisfies CreateTokenResponse,
         201,
       )
+    })
+    .post('/auth/pairings', requireAccountActions, (c) => {
+      const { account, session } = currentPrincipal(c)
+      const result = pairings.create({ accountId: account.id, sessionId: session.id })
+      if (!result.ok) return respondError(c, result.error)
+      const { pairing, code } = result.value
+      return c.json(
+        {
+          id: pairing.id,
+          code,
+          expiresAt: pairing.expiresAt.toISOString(),
+        } satisfies CreatePairingResponse,
+        201,
+      )
+    })
+    .post('/auth/pairings/claim', validate('json', claimPairingBodySchema), (c) => {
+      const { code, deviceName } = c.req.valid('json')
+      const result = pairings.claim({
+        code,
+        deviceName,
+        ip: clientInfo(c, { trustProxy }).ip,
+        userAgent: c.req.header('user-agent') ?? '',
+      })
+      return result.ok
+        ? c.json({ token: result.value.token } satisfies ClaimPairingResponse, 200)
+        : respondErrorWithRetry(c, result.error)
     })
     .get('/auth/sessions', (c) => {
       const { account, session: current } = currentPrincipal(c)

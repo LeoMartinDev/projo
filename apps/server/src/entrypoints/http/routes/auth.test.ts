@@ -129,6 +129,37 @@ describe('login and session cookie', () => {
     expect((await t.login('leo', adminPassword)).status).toBe(200)
   })
 
+  test('token: true opens a bearer session named after the device, sets no cookie', async () => {
+    const t = createAuthTestApp()
+    const { cookie } = await t.completeSetup()
+    const response = await t.json('POST', '/api/v1/auth/login', {
+      username: 'leo',
+      password: adminPassword,
+      deviceName: 'iPhone 15 Pro',
+      token: true,
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('set-cookie')).toBeNull()
+    const body = (await response.json()) as { token: string; account: { username: string } }
+    expect(body.account.username).toBe('leo')
+    const me = await t.request('/api/v1/auth/me', {
+      headers: { authorization: `Bearer ${body.token}` },
+    })
+    expect(me.status).toBe(200)
+
+    const { items } = (await (await t.as(cookie).get('/api/v1/auth/sessions')).json()) as {
+      items: { kind: string; deviceName: string }[]
+    }
+    expect(items).toContainEqual(
+      expect.objectContaining({ kind: 'bearer', deviceName: 'iPhone 15 Pro' }),
+    )
+    // The browser's cookie session is kept.
+    expect((await t.as(cookie).get('/api/v1/auth/me')).status).toBe(200)
+
+    const plain = await t.login('leo', adminPassword)
+    expect(await plain.json()).not.toHaveProperty('token')
+  })
+
   test('logout revokes the session and clears the cookie', async () => {
     const t = createAuthTestApp()
     const { cookie } = await t.completeSetup()

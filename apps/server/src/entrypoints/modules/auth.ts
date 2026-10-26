@@ -4,6 +4,7 @@ import { changePasswordFactory } from '../../application/auth/change-password.ts
 import { getMeFactory } from '../../application/auth/get-me.ts'
 import { loginFactory } from '../../application/auth/login.ts'
 import { openSessionFactory } from '../../application/auth/open-session.ts'
+import { pairingsFactory } from '../../application/auth/pairings.ts'
 import { resolveProfileFactory } from '../../application/auth/resolve-profile.ts'
 import { listSessionsFactory, revokeSessionFactory } from '../../application/auth/sessions.ts'
 import { invitationsFactory } from '../../application/invitation/invitations.ts'
@@ -12,11 +13,13 @@ import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { isRestricted } from '../../core/profile/restrictions.ts'
 import { settingKeys } from '../../core/settings/settings.ts'
 import { createBunPasswordHasher } from '../../infrastructure/auth/bun-password-hasher.ts'
+import { pairingCodes } from '../../infrastructure/auth/pairing-codes.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { createInMemoryRateLimiter } from '../../infrastructure/rate-limit/in-memory-rate-limiter.ts'
 import { createSqliteAccountActivity } from '../../infrastructure/sqlite/account-activity.ts'
 import { createSqliteAccountRepository } from '../../infrastructure/sqlite/account-repository.ts'
 import { createSqliteInvitationRepository } from '../../infrastructure/sqlite/invitation-repository.ts'
+import { createSqlitePairingRepository } from '../../infrastructure/sqlite/pairing-repository.ts'
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
 import { createSqliteSessionRepository } from '../../infrastructure/sqlite/session-repository.ts'
 import { createSqliteSettingsRepository } from '../../infrastructure/sqlite/settings-repository.ts'
@@ -28,6 +31,8 @@ import type { Platform } from './platform.ts'
 
 /** §20: 10 login attempts per 15 min, per IP and per username (also: password changes). */
 const loginRateLimit = { limit: 10, windowMs: 15 * 60_000 }
+/** §14: 10 pairing claims per 15 min per IP. */
+const pairingClaimRateLimit = { limit: 10, windowMs: 15 * 60_000 }
 /** §20: 20 invitation acceptances per hour per IP. */
 const invitationRateLimit = { limit: 20, windowMs: 60 * 60_000 }
 
@@ -56,7 +61,7 @@ export const buildAuthModule = (
   platform: Platform,
   { playbackSessions }: { playbackSessions: PlaybackSessionTerminator },
 ) => {
-  const { db, clock, ids, logger, config } = platform
+  const { db, clock, ids, logger, config, eventBus } = platform
   const services = buildAuthServices(platform)
   const { accountRepository, profileRepository, sessionRepository, passwordHasher } = services
   const settingsRepository = createSqliteSettingsRepository({ db })
@@ -110,6 +115,17 @@ export const buildAuthModule = (
       openSession: services.openSession,
       listSessions: listSessionsFactory({ sessionRepository, clock }),
       revokeSession: revokeSessionFactory({ sessionRepository, clock, logger }),
+      pairings: pairingsFactory({
+        pairingRepository: createSqlitePairingRepository({ db }),
+        sessionRepository,
+        pairingCodes,
+        openSession: services.openSession,
+        rateLimiter: createInMemoryRateLimiter({ ...pairingClaimRateLimit, clock }),
+        eventBus,
+        clock,
+        ids,
+        logger,
+      }),
       requireAccountActions: middleware.requireAccountActions,
       clock,
       trustProxy: config.trustProxy,

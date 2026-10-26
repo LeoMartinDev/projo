@@ -1,4 +1,5 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import type { SessionKind } from '@projo/shared/api/auth'
 
 import { type Account, type AccountRepository } from '../../core/auth/account.ts'
 import type { PasswordHasher, RateLimiter } from '../../core/auth/ports.ts'
@@ -24,6 +25,8 @@ export type LoginInput = {
   ip: string
   userAgent: string
   deviceName?: string
+  /** `bearer`: a token for the mobile app (`token: true`, §14). Default `cookie`. */
+  kind?: SessionKind
 }
 
 export type LoginError = AppError<
@@ -36,7 +39,7 @@ export const loginRateLimitKeys = ({ ip, username }: { ip: string; username: str
 })
 
 /**
- * Checks the credentials and opens a cookie session. Every attempt counts against both the IP
+ * Checks the credentials and opens a cookie session (or a bearer one). Every attempt counts against both the IP
  * and the username (§20); a success clears the username counter. An unknown username costs the
  * same argon2 verification as a known one.
  * A disabled account is reported only once the password is proven.
@@ -59,6 +62,7 @@ export const loginFactory = ({
     ip,
     userAgent,
     deviceName,
+    kind = 'cookie',
   }: LoginInput): Promise<
     Result<{ token: string; session: Session; account: Account }, LoginError>
   > => {
@@ -102,7 +106,7 @@ export const loginFactory = ({
     const onlyProfile = profiles.length === 1 ? profiles[0]?.id : undefined
     const { token, session } = openSession({
       accountId: account.id,
-      kind: 'cookie',
+      kind,
       deviceName: deviceName ?? describeUserAgent(userAgent),
       userAgent,
       ...(onlyProfile === undefined ? {} : { lastProfileId: onlyProfile }),
