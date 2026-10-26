@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { profileDtoSchema } from './profiles.ts'
+import { type ProfileDto, profileDtoSchema } from './profiles.ts'
 
 /** Schemas for `/api/v1/auth` and `/api/v1/invitations` (§17.2 Auth). */
 
@@ -160,3 +160,34 @@ export type ClaimPairingBody = z.infer<typeof claimPairingBodySchema>
 /** A bearer token of the account that created the code, shown once. */
 export const claimPairingResponseSchema = z.object({ token: z.string() })
 export type ClaimPairingResponse = z.infer<typeof claimPairingResponseSchema>
+
+// ── What the active profile may do (§14), shared by the web and the app ──────
+
+/** The profile `GET /auth/me` resolved, if any (`activeProfileId`, §13.6). */
+export const pickActiveProfile = (me: MeResponse): ProfileDto | undefined =>
+  me.activeProfileId === undefined
+    ? undefined
+    : me.profiles.find((profile) => profile.id === me.activeProfileId)
+
+const isRestricted = (profile: Pick<ProfileDto, 'libraryAccess' | 'maxContentRating'>): boolean =>
+  profile.libraryAccess !== 'all' || profile.maxContentRating !== undefined
+
+/**
+ * §14: the administration is open to an admin account acting from an unrestricted profile (every
+ * library, no maximum rating), never from a child's profile on that account.
+ */
+export const canAdminister = (me: MeResponse): boolean => {
+  if (me.account.role !== 'admin') return false
+  const profile = pickActiveProfile(me)
+  return profile !== undefined && !isRestricted(profile)
+}
+
+/**
+ * §14: account actions (devices, tokens, password, creating or changing other profiles, PINs) are
+ * refused to a restricted profile; without an active profile, as soon as one profile of the
+ * account is restricted (the server acts as the most restricted one).
+ */
+export const canManageAccount = (me: MeResponse): boolean => {
+  const profile = pickActiveProfile(me)
+  return profile === undefined ? !me.profiles.some(isRestricted) : !isRestricted(profile)
+}
