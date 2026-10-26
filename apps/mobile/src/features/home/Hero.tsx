@@ -87,7 +87,16 @@ const HeroPreview = ({ url }: { url: string }) => {
  * iPad the landscape hero of `Home`, with the video preview on Wi-Fi. Logo (title when absent),
  * metadata line, "Play" / "Resume S2 · E4", My list, More info.
  */
-export const Hero = ({ hero, regular }: { hero: HomeHeroDto; regular: boolean }) => {
+export const Hero = ({
+  hero,
+  regular,
+  under = 0,
+}: {
+  hero: HomeHeroDto
+  regular: boolean
+  /** iPad: height of the bars and header drawn over the hero, added to it. */
+  under?: number
+}) => {
   const { t } = useTranslation()
   const locale = useLocale()
   const { width, height } = useWindowDimensions()
@@ -176,7 +185,7 @@ export const Hero = ({ hero, regular }: { hero: HomeHeroDto; regular: boolean })
       : undefined
 
   return (
-    <View style={[styles.wide, { height: Math.min(width * 0.62, height * 0.72) }]}>
+    <View style={[styles.wide, { height: Math.min(width * 0.62, height * 0.72) + under }]}>
       <Artwork path={item.images.backdrop} style={StyleSheet.absoluteFill} toneId={item.id} />
       {preview === undefined ? undefined : <HeroPreview key={preview} url={preview} />}
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.wideShadeLeft]} />
