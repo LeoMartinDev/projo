@@ -1,0 +1,33 @@
+{
+  "app": {
+    "name": "projo"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again"
+  },
+  "connect": {
+    "title": "Connect to your server",
+    "urlLabel": "Server address",
+    "urlPlaceholder": "http://192.168.1.10:8080",
+    "submit": "Connect",
+    "checking": "Connecting…"
+  },
+  "connected": {
+    "title": "Connected",
+    "server": "{{url}} · projo {{version}}",
+    "changeServer": "Change server"
+  },
+  "outdated": {
+    "title": "Update your projo server",
+    "body": "This app needs projo {{minimumVersion}} or later; this server runs {{version}}. An administrator updates it from the web administration.",
+    "checkAgain": "Check again",
+    "changeServer": "Change server"
+  },
+  "errors": {
+    "network": "The server is not responding. Check your connection.",
+    "unknown": "An unexpected error occurred.",
+    "connection/invalid_url": "This address is not valid.",
+    "connection/not_projo": "No projo server at this address."
+  }
+}

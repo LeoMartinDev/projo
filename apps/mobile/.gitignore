@@ -1,0 +1,9 @@
+# Expo (generated)
+.expo/
+expo-env.d.ts
+dist/
+web-build/
+# Continuous Native Generation: ios/ and android/ come from `expo prebuild`, never committed.
+/ios/
+/android/
+.api-type/

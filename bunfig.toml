@@ -18,6 +18,10 @@ ignorePatterns = [
   "e2e/tmp/",
   "e2e/test-results/",
   "e2e/playwright-report/",
+  "apps/mobile/.expo/",
+  "apps/mobile/.api-type/",
+  "apps/mobile/ios/",
+  "apps/mobile/android/",
 ]
 
 # bun lint enforces PRODUCT.md §5.3. See CLAUDE.md for the rules in prose.
@@ -32,6 +36,10 @@ ignorePatterns = [
   "e2e/tmp/",
   "e2e/test-results/",
   "e2e/playwright-report/",
+  "apps/mobile/.expo/",
+  "apps/mobile/.api-type/",
+  "apps/mobile/ios/",
+  "apps/mobile/android/",
 ]
 
 [lint.rules]
@@ -103,15 +111,15 @@ rules = { "no-restricted-syntax" = [
   { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
 ] }
 
-# ── Web ──────────────────────────────────────────────────────────────────────
+# ── Web and mobile (§26.2: the same rules) ───────────────────────────────────
 
 [[lint.overrides]]
-files = ["apps/web/**/*.ts", "apps/web/**/*.tsx"]
+files = ["apps/web/**/*.ts", "apps/web/**/*.tsx", "apps/mobile/**/*.ts", "apps/mobile/**/*.tsx"]
 [lint.overrides.rules]
 "no-restricted-imports" = [
   "error",
   { patterns = [
-    { group = ["@projo/server", "@projo/server/*"], allowTypeImports = true, message = "The web app only imports types from the server (AppType)." },
+    { group = ["@projo/server", "@projo/server/*"], allowTypeImports = true, message = "The apps only import types from the server (AppType): no server code in a client bundle." },
   ] },
 ]
 "react/rules-of-hooks" = "error"

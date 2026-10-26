@@ -1,0 +1,14 @@
+{
+  // Emits the declarations of the server's `AppType` (Hono RPC contract) into .api-type/, with the
+  // server's own compiler options and Bun types. The app type-checks against these .d.ts.
+  "extends": "../server/tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "../..",
+    "outDir": ".api-type"
+  },
+  "include": [],
+  "files": ["../server/src/entrypoints/http/api-type.ts"]
+}

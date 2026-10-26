@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "projo",
+    "slug": "projo",
+    "version": "1.0.0",
+    "scheme": "projo",
+    "platforms": ["ios", "android"],
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0b",
+    "ios": {
+      "bundleIdentifier": "dev.leomartin.projo",
+      "supportsTablet": true,
+      "deploymentTarget": "17.0",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "projo connects to your projo server on your local network."
+      }
+    },
+    "android": {
+      "package": "dev.leomartin.projo"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-localization",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ]
+    ]
+  }
+}

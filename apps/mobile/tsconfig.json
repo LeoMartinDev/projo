@@ -1,0 +1,15 @@
+{
+  // The app, with React Native's globals and no Bun types (they conflict: AbortSignal, fetch…).
+  // `AppType` comes from declarations emitted by tsconfig.api-type.json, never from the server's
+  // sources, which only compile with Bun types: `bun run typecheck` emits them first.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "types": [],
+    "paths": {
+      "@projo/server/api-type": ["./.api-type/apps/server/src/entrypoints/http/api-type.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["src/**/*.test.ts"]
+}
