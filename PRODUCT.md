@@ -1064,7 +1064,7 @@ Criterion: *"I update projo from the admin and roll back in one click, I know wh
 
 Vertical slices, each usable end to end, in this order (§26):
 1. **Foundation**: `packages/i18n` extracted from the web, `apps/mobile` (Expo, Expo Router, lint, TanStack Query, `hc<AppType>`); server: `POST /auth/login` with `token: true`, pairing (`/auth/pairings`, web "Connect a device" dialog and `/pair` page), the §17.1 compatibility rule and the app's server version check. I connect the app and pick a profile.
-2. **Profiles and account**: "Who's watching?" and PIN, the active profile's settings (§11.1, §12.4, interface language, name, colour), profile management, devices and sign-out. These settings are the server's, so what the app changes holds on the web too; any server change they need lands in the web in the same slice.
+2. **Profiles and account**: "Who's watching?" and PIN, the active profile's settings (§11.1, §12.4, interface language, name, colour), profile management, devices and sign-out. These settings are the server's, so what the app changes holds on the web too; any server change they need lands in the web in the same slice. The design of the app's entry screens (server connection, sign-in, "Scan a code", code entry, "Who's watching?") and Geist throughout the app (§26.5).
 3. **Browsing**: home, Shows, Movies, My list, category pages, search, title pages, long-press actions, iPhone and iPad layouts.
 4. **Player prototype** (dev build) and the decision of §26.6.
 5. **Playback**: capability URLs (§20), subtitles inside HLS and their delay (§10.4), the player, resume and heartbeat, intros and credits, next episode, quality by network, SSE during playback.
@@ -1171,7 +1171,8 @@ A native app for iPhone and iPad, on the same server and API as the web. The PWA
 
 ### 26.5 Screens and navigation
 
-- Identity of the web (§19: dark, Geist, tokens, image formats), idioms of iOS: native stack transitions and back swipe, sheets.
+- Identity of the web (§19: dark, Geist, tokens, image formats), idioms of iOS: native stack transitions and back swipe, sheets. Geist and Geist Mono are bundled with the app (`expo-font`) and used on every screen.
+- **Entry screens** (server connection, sign-in, "Scan a code", code entry, "Who's watching?") have no artboard of their own: they take the language of the onboarding artboards and of the web's sign-in page (`OnbWelcome`, `OnbAccount`: a full-screen illustration with a slow Ken Burns, still under reduced motion, a glass panel, the fields and buttons of the UI kit v2), with the web's illustrations (`apps/web/src/shared/backdrops/`) bundled in the app, and "Who's watching?" that of `Main.dc.html` (initial on a coloured tile, PIN padlock).
 - iPhone: tab bar Home · Shows · Movies · My list · Search, avatar at the top (as `MobileHome`). iPad: a sidebar with the same entries, in the manner of the Apple TV app, with a layout of its own rather than an enlarged iPhone.
 - A long press on a card opens a native sheet with the §13.3 card actions.
 - Home hero: a fixed backdrop on iPhone; the video preview (§13.3) only on iPad and on Wi-Fi.
