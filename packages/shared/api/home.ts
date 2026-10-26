@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-import { itemPageSchema, itemSummaryDtoSchema, playTargetDtoSchema } from './catalog.ts'
+import {
+  type ItemSummaryDto,
+  itemPageSchema,
+  itemSummaryDtoSchema,
+  playTargetDtoSchema,
+} from './catalog.ts'
 import { paginationQuerySchema } from './common.ts'
 import { genreIdSchema } from './genres.ts'
 
@@ -119,6 +124,25 @@ export const homeCategoriesDtoSchema = z.object({
   nextCursor: z.string().optional(),
 })
 export type HomeCategoriesDto = z.infer<typeof homeCategoriesDtoSchema>
+
+/**
+ * Category rows to reserve for the next batch (no layout shift when it comes, AGENTS.md): the
+ * size of a batch (the first one's), never more than what is left of the list (`total`); 0 after
+ * the last batch.
+ */
+export const reservedCategoryRows = (pages: readonly HomeCategoriesDto[]): number => {
+  const [first] = pages
+  const last = pages.at(-1)
+  if (first === undefined || last?.nextCursor === undefined) return 0
+  const loaded = pages.reduce((sum, page) => sum + page.rows.length, 0)
+  return Math.max(0, Math.min(first.rows.length, last.total - loaded))
+}
+
+/** "See all ›" of Recently added (§13.3): Shows when most of its titles are series, else Movies. */
+export const recentlyAddedTarget = (
+  items: readonly Pick<ItemSummaryDto, 'kind'>[],
+): 'movies' | 'series' =>
+  items.filter((item) => item.kind === 'series').length > items.length / 2 ? 'series' : 'movies'
 
 // ── Category pages (§13.3 "See all ›") ───────────────────────────────────────
 

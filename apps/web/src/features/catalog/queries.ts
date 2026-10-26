@@ -1,38 +1,14 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
-import type { CatalogSort, SortOrder, WatchFilter } from '@projo/shared/api/catalog'
-import type { GenreId } from '@projo/shared/api/genres'
+import { type CatalogQueryState, catalogListParams } from '@projo/shared/api/catalog-state'
 import type { HomeCategorySlug } from '@projo/shared/api/home'
 
 import { api, request } from '../../shared/api/client.ts'
 
 export type CatalogKind = 'movies' | 'series'
-
-/** Sort and filters of Movies / Shows (§13.4), as sent to `GET /movies|/series`. */
-export type CatalogQueryState = {
-  sort: CatalogSort
-  order?: SortOrder
-  genre?: GenreId
-  decade?: number
-  year?: number
-  watch?: WatchFilter
-}
+export type { CatalogQueryState }
 
 const pageSize = 60
-
-const toQuery = (state: CatalogQueryState, cursor: string) => ({
-  sort: state.sort,
-  limit: String(pageSize),
-  ...(state.order === undefined ? {} : { order: state.order }),
-  ...(state.genre === undefined ? {} : { genre: state.genre }),
-  ...(state.year === undefined
-    ? state.decade === undefined
-      ? {}
-      : { decade: String(state.decade) }
-    : { year: String(state.year) }),
-  ...(state.watch === undefined ? {} : { watch: state.watch }),
-  ...(cursor === '' ? {} : { cursor }),
-})
 
 /** `GET /movies` and `GET /series`, cursor pagination (§17.1). */
 export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
@@ -40,7 +16,7 @@ export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
     queryKey: ['catalog', kind, state],
     initialPageParam: '',
     queryFn: ({ pageParam }) => {
-      const query = toQuery(state, pageParam)
+      const query = catalogListParams(state, pageParam, pageSize)
       return kind === 'movies'
         ? request(() => api.movies.$get({ query }))
         : request(() => api.series.$get({ query }))

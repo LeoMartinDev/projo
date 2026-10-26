@@ -37,6 +37,12 @@ describe('formatDuration', () => {
     expect(plain(formatDuration(112 * 60_000, 'en'))).toMatch(/^1 hr 52 min$/)
   })
 
+  test('without Intl units (Hermes), the same words', () => {
+    expect(plain(formatDuration(112 * 60_000, 'fr', false))).toBe('1 h 52 min')
+    expect(plain(formatDuration(112 * 60_000, 'en', false))).toBe('1 hr 52 min')
+    expect(plain(formatDuration(120 * 60_000, 'fr', false))).toBe('2 h')
+  })
+
   test('whole hours', () => {
     expect(plain(formatDuration(120 * 60_000, 'fr'))).toBe('2 h')
   })

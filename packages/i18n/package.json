@@ -7,8 +7,10 @@
     ".": "./index.ts",
     "./content-ratings": "./content-ratings.ts",
     "./errors": "./errors.ts",
+    "./format": "./format.ts",
     "./genres": "./genres.ts",
     "./item-titles": "./item-titles.ts",
+    "./media": "./media.ts",
     "./versions": "./versions.ts",
     "./fr.json": "./fr.json",
     "./en.json": "./en.json"
