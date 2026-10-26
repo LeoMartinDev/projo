@@ -13,7 +13,6 @@ import {
 } from 'react-native'
 
 import { categoryTitle } from '@projo/i18n/genres'
-import { toneOf } from '@projo/i18n/media'
 import { canAdminister } from '@projo/shared/api/auth'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import {
@@ -25,7 +24,7 @@ import {
   type ResumeFrameDto,
 } from '@projo/shared/api/home'
 
-import { colors, tones } from '../../shared/styles/tokens.ts'
+import { colors } from '../../shared/styles/tokens.ts'
 import { useScreenLayout } from '../../shared/styles/use-layout.ts'
 import { Button } from '../../shared/ui/Button.tsx'
 import { Logo } from '../../shared/ui/EntryScreen.tsx'
@@ -218,18 +217,8 @@ export const HomeScreen = () => {
     )
   }
 
-  const tone = home.data?.hero === undefined ? undefined : tones[toneOf(home.data.hero.item.id)]
   return (
     <View onLayout={layout.onLayout} style={styles.root}>
-      {tone === undefined ? undefined : (
-        <View
-          pointerEvents="none"
-          style={[
-            styles.ambient,
-            { backgroundImage: `linear-gradient(180deg, ${tone}99 0%, rgba(10, 10, 11, 0) 100%)` },
-          ]}
-        />
-      )}
       <ScrollView
         contentContainerStyle={styles.content}
         contentInsetAdjustmentBehavior="automatic"
@@ -245,7 +234,6 @@ export const HomeScreen = () => {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  ambient: { position: 'absolute', top: 0, left: 0, right: 0, height: 760 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
