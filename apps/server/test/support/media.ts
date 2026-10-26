@@ -26,6 +26,13 @@ const encoders = { h264: 'libx264', hevc: 'libx265', aac: 'aac', ac3: 'ac3', fla
 export const hasFfmpeg = (): boolean =>
   (Bun.which('ffmpeg') ?? '') !== '' && (Bun.which('ffprobe') ?? '') !== ''
 
+/** Builds without an encoder exist (Homebrew's ffmpeg 9 has no WebP one); the image's has them all. */
+export const hasFfmpegEncoder = (name: string): boolean =>
+  hasFfmpeg() &&
+  Bun.spawnSync(['ffmpeg', '-hide_banner', '-h', `encoder=${name}`])
+    .stdout.toString()
+    .startsWith(`Encoder ${name} `)
+
 export const generateVideo = async (dir: string, spec: TestVideo): Promise<string> => {
   const pixelFormat = spec.pixelFormat ?? 'yuv420p'
   const path = join(
