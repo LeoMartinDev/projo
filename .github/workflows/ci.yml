@@ -40,10 +40,13 @@ jobs:
       - run: bun fmt --check
       - run: bun run typecheck
       # §20: any advisory on what ships (production dependencies), high and critical everywhere.
+      # Ignored: node-forge (GHSA-86w9-cpqp-85rv) and zod 3 (GHSA-mrhx-c7xc-m3w5), only reached
+      # through expo > @expo/cli, the mobile app's build tooling, absent from the app bundle; no
+      # fixed version within @expo/cli's ranges yet. Drop them once Expo ships one.
       - name: bun audit (production dependencies)
-        run: bun audit --production
+        run: bun audit --production --ignore=GHSA-86w9-cpqp-85rv --ignore=GHSA-mrhx-c7xc-m3w5
       - name: bun audit (all dependencies, high and above)
-        run: bun audit --audit-level=high
+        run: bun audit --audit-level=high --ignore=GHSA-86w9-cpqp-85rv --ignore=GHSA-mrhx-c7xc-m3w5
 
   # Tests that run ffmpeg, ffprobe or fpcalc depend on their version (Ubuntu 24.04 has ffmpeg 6.1,
   # the image 7.1): they run in the `runtime` target of the image, with the Bun of production.
