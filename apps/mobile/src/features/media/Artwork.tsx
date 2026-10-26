@@ -44,6 +44,7 @@ export const Artwork = ({
   position,
   fallback,
   tinted = true,
+  onRatio,
 }: {
   path: string | undefined
   /** The item whose tone shows under the picture (`toneOf`). */
@@ -54,6 +55,8 @@ export const Artwork = ({
   fallback?: ReactNode
   /** `false`: no tone behind (a logo over a backdrop). */
   tinted?: boolean
+  /** Width / height of the loaded picture (a logo sized to it, as the web's `<img>`). */
+  onRatio?: (ratio: number) => void
 }) => {
   const image = useServerImage()
   const reduced = useReducedMotion()
@@ -76,6 +79,9 @@ export const Artwork = ({
           contentFit={contentFit}
           {...(position === undefined ? {} : { contentPosition: position })}
           onError={() => setFailed(path)}
+          {...(onRatio === undefined
+            ? {}
+            : { onLoad: ({ source }) => onRatio(source.width / source.height) })}
           source={image(path)}
           style={StyleSheet.absoluteFill}
           transition={reduced ? 0 : 300}

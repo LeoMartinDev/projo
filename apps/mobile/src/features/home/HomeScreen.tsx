@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { categoryTitle } from '@projo/i18n/genres'
 import { canAdminister } from '@projo/shared/api/auth'
@@ -50,8 +50,11 @@ const rowTitleKey = {
 /** The next category batch is asked for this far before the end of the page. */
 const aheadPx = 800
 
-/** The logo and avatar line: 12 + the 34 pt avatar + 12. */
-const headerHeight = 58
+/**
+ * The status bar alone: the screen's top inset also counts the iPad tab bar, and the logo and
+ * avatar sit on the tab bar's line, as in the Apple TV app.
+ */
+const windowTop = initialWindowMetrics?.insets.top ?? 0
 
 type Card = { item: ItemSummaryDto; isNew: boolean; resumeFrame?: ResumeFrameDto }
 
@@ -177,12 +180,7 @@ export const HomeScreen = () => {
     return (
       <>
         {hero === undefined ? undefined : (
-          <Hero
-            key={hero.item.id}
-            hero={hero}
-            regular={regular}
-            under={regular ? insets.top + headerHeight : 0}
-          />
+          <Hero key={hero.item.id} hero={hero} regular={regular} under={regular ? insets.top : 0} />
         )}
         <View style={styles.rows}>
           {rows.map((row) => (
@@ -242,7 +240,7 @@ export const HomeScreen = () => {
       >
         {regular ? undefined : header}
         {body()}
-        {regular ? <View style={[styles.overHero, { top: insets.top }]}>{header}</View> : undefined}
+        {regular ? <View style={[styles.overHero, { top: windowTop }]}>{header}</View> : undefined}
       </ScrollView>
     </View>
   )
