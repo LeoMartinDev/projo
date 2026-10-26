@@ -1,7 +1,6 @@
+import { episodeCode } from '@projo/i18n/item-titles'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
-
-import { episodeCode } from '../../shared/format/format.ts'
 
 /**
  * What the spectator cards show of an item (§13.3, §19 "Formats d'images"), pure so the rules

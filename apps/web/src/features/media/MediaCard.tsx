@@ -9,10 +9,10 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { genreLabels } from '@projo/i18n/genres'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
 
-import { genreLabels } from '../../shared/i18n/genres.ts'
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { PlayIcon } from '../../shared/ui/icons.tsx'

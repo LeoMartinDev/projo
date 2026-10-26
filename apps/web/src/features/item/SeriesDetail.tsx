@@ -3,11 +3,11 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { type KeyboardEvent, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { itemTitle, listedNumber, playEpisodeLabel } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { formatDuration } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { itemTitle, listedNumber, playEpisodeLabel } from '../../shared/i18n/item-titles.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { CheckIcon, MoreIcon, PlayIcon } from '../../shared/ui/icons.tsx'
 import { AddedIcon, AddIcon, CheckCircleIcon, RestartIcon } from '../../shared/ui/media-icons.tsx'

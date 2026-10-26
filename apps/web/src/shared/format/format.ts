@@ -85,16 +85,3 @@ export const formatRelative = (iso: string, locale: string, now: Date = new Date
   }
   return formatter.format(Math.round(value), 'year')
 }
-
-/** `S2 · É4` (fr), `S2 · E4` (en): the episode label of §13.3. */
-export const episodeCode = (
-  season: number | undefined,
-  episode: number | undefined,
-  labels: { season: string; episode: string },
-): string =>
-  [
-    season === undefined ? undefined : `${labels.season}${season}`,
-    episode === undefined ? undefined : `${labels.episode}${episode}`,
-  ]
-    .filter((part) => part !== undefined)
-    .join(' · ')

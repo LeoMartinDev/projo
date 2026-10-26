@@ -2,8 +2,6 @@ import type { TFunction } from 'i18next'
 
 import type { ItemKind } from '@projo/shared/api/catalog'
 
-import { episodeCode } from '../format/format.ts'
-
 /**
  * §6.3: a season or an episode without a name of its own has no `title` in the API (its TMDB or
  * file name was "Saison 2", "Episode 7"…); its label is built from its number in the interface
@@ -16,6 +14,19 @@ export type Titled = {
   seasonNumber?: number | undefined
   episodeNumber?: number | undefined
 }
+
+/** `S2 · É4` (fr), `S2 · E4` (en): the episode label of §13.3. */
+export const episodeCode = (
+  season: number | undefined,
+  episode: number | undefined,
+  labels: { season: string; episode: string },
+): string =>
+  [
+    season === undefined ? undefined : `${labels.season}${season}`,
+    episode === undefined ? undefined : `${labels.episode}${episode}`,
+  ]
+    .filter((part) => part !== undefined)
+    .join(' · ')
 
 /** "Season 2", "Specials" for season 0. */
 export const seasonLabel = (t: TFunction, seasonNumber: number): string =>

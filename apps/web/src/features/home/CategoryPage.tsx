@@ -2,9 +2,9 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { categoryTitle } from '@projo/i18n/genres'
 import { type HomeCategorySlug, homeCategoryOfSlug } from '@projo/shared/api/home'
 
-import { categoryTitle } from '../../shared/i18n/genres.ts'
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { homeCategoryPageQuery } from '../catalog/queries.ts'
 import { PosterTile } from '../media/PosterTile.tsx'

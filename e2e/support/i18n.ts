@@ -1,4 +1,4 @@
-import fr from '../../apps/web/src/shared/i18n/fr.json' with { type: 'json' }
+import fr from '../../packages/i18n/fr.json' with { type: 'json' }
 
 /** The UI runs in French (`locale: 'fr-FR'`): every label is read from `fr.json`. */
 export { fr }

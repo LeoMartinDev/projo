@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { type ChangeEvent, type FormEvent, type ReactNode, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { genreLabel, sortGenresByLabel } from '@projo/i18n/genres'
 import { type GenreId, genreIds } from '@projo/shared/api/genres'
 import {
   type EditableField,
@@ -11,7 +12,6 @@ import {
 } from '@projo/shared/api/metadata'
 
 import { apiFailure } from '../../../shared/api/failure.ts'
-import { genreLabel, sortGenresByLabel } from '../../../shared/i18n/genres.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'

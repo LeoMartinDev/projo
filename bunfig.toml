@@ -67,6 +67,7 @@ ignorePatterns = [
     { target = "./apps/server/src/infrastructure", from = "./apps/server/src/application", message = "infrastructure/ implements core/ ports; it never imports application/." },
     { target = "./apps/server/src/infrastructure", from = "./apps/server/src/entrypoints", message = "infrastructure/ never imports entrypoints/." },
     { target = "./packages/shared", from = "./apps", message = "packages/shared never imports an app." },
+    { target = "./packages/i18n", from = "./apps", message = "packages/i18n never imports an app." },
   ] },
 ]
 
@@ -109,6 +110,17 @@ rules = { "no-restricted-syntax" = [
   "error",
   { selector = "ClassDeclaration", message = "No classes (§5.3): use curried factories and closures." },
   { selector = "ClassExpression", message = "No classes (§5.3): use curried factories and closures." },
+] }
+
+# ── Shared i18n (§26.2): strings and pure helpers, no React, no DOM ────────────
+
+[[lint.overrides]]
+files = ["packages/i18n/**/*.ts"]
+rules = { "no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { regex = '^(?!\.{1,2}/|@projo/shared(?:/|$)|i18next$|bun:test$)', message = "packages/i18n imports only @projo/shared and i18next (its TFunction): shared by the web and the mobile app, no React, no DOM (§26.2)." },
+  ] },
 ] }
 
 # ── Web and mobile (§26.2: the same rules) ───────────────────────────────────

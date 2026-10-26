@@ -1,10 +1,10 @@
 import { useTranslation } from 'react-i18next'
 
+import { versionLabels } from '@projo/i18n/versions'
 import type { ItemDetailDto, SourceDto } from '@projo/shared/api/catalog'
 
 import { formatBytes } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { versionLabels } from '../../shared/i18n/versions.ts'
 import {
   audioCodecLabel,
   channelsLabel,

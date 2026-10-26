@@ -1,27 +1,11 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import en from './en.json'
-import fr from './fr.json'
-
-export const locales = ['fr', 'en'] as const
-export type Locale = (typeof locales)[number]
-
-export const resources = {
-  fr: { translation: fr },
-  en: { translation: en },
-} as const
-
-const isLocale = (value: string): value is Locale => locales.some((locale) => locale === value)
+import { isLocale, type Locale, matchLocale, resources } from '@projo/i18n'
 
 /** Browser language by default (§19); the active profile's `ui_locale` overrides it. */
-export const detectLocale = (languages: readonly string[] = navigator.languages): Locale => {
-  for (const language of languages) {
-    const base = language.toLowerCase().split('-')[0] ?? ''
-    if (isLocale(base)) return base
-  }
-  return 'fr'
-}
+export const detectLocale = (languages: readonly string[] = navigator.languages): Locale =>
+  matchLocale(languages)
 
 export const setupI18n = (locale: Locale = detectLocale()) => {
   void i18next.use(initReactI18next).init({

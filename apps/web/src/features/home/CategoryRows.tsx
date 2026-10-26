@@ -2,10 +2,10 @@ import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { categoryTitle } from '@projo/i18n/genres'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import { type HomeCategoriesDto, homeCategoryKey } from '@projo/shared/api/home'
 
-import { categoryTitle } from '../../shared/i18n/genres.ts'
 import { ErrorState } from '../../shared/ui/states.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { MediaCard } from '../media/MediaCard.tsx'

@@ -1,10 +1,10 @@
 import { type KeyboardEvent, type PointerEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { chapterLabel } from '@projo/i18n/item-titles'
 import type { ChapterDto } from '@projo/shared/api/playback'
 
 import { formatClock } from '../../shared/format/format.ts'
-import { chapterLabel } from '../../shared/i18n/item-titles.ts'
 import { chapterIndexAt, ratioAtPointer, ratioOf, type SegmentZone } from './timeline.ts'
 import { displayScale, type Thumbnail } from './trickplay.ts'
 

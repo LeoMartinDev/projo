@@ -1,8 +1,7 @@
 import type { TFunction } from 'i18next'
 
+import { itemWithSeriesLabel } from '@projo/i18n/item-titles'
 import { type JobTargetDto, type JobTypeDto, jobTypes } from '@projo/shared/api/jobs'
-
-import { itemWithSeriesLabel } from '../../../shared/i18n/item-titles.ts'
 
 /** A job type this version knows (a notification may name one from another version). */
 export const isJobType = (value: string): value is JobTypeDto =>

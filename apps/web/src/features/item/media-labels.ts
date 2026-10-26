@@ -1,6 +1,6 @@
 /** Human labels for the technical info of a source (§13.5 "pistes disponibles"). Pure. */
 
-export { videoCodecLabel } from '../../shared/i18n/versions.ts'
+export { videoCodecLabel } from '@projo/i18n/versions'
 
 const audioCodecs: Record<string, string> = {
   aac: 'AAC',

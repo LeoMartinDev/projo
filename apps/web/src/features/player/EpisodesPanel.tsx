@@ -2,11 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { itemTitle, listedNumber } from '@projo/i18n/item-titles'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { formatDuration } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { itemTitle, listedNumber } from '../../shared/i18n/item-titles.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { CloseIcon } from '../../shared/ui/icons.tsx'
 import { childrenQuery } from '../catalog/queries.ts'

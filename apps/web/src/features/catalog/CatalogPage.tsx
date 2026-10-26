@@ -3,10 +3,10 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { genreLabel, sortGenresByLabel } from '@projo/i18n/genres'
 import type { CatalogSort, WatchFilter } from '@projo/shared/api/catalog'
 import { genreIdSchema } from '@projo/shared/api/genres'
 
-import { genreLabel, sortGenresByLabel } from '../../shared/i18n/genres.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'

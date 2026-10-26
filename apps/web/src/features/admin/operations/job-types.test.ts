@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import i18next, { type TFunction } from 'i18next'
 
-import { resources } from '../../../shared/i18n/index.ts'
+import { resources } from '@projo/i18n'
+
 import { jobTargetLabel } from './job-types.ts'
 
 const translator = async (lng: 'fr' | 'en'): Promise<TFunction> => {

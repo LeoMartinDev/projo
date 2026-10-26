@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import i18next from 'i18next'
 
-import { resources } from '../../../shared/i18n/index.ts'
+import { resources } from '@projo/i18n'
+
 import { fileName, initialFromSource, parsedSummary, reviewReason, sceneCode } from './parsed.ts'
 
 const fr = i18next.createInstance()
