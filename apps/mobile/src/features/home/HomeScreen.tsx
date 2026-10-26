@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { categoryTitle } from '@projo/i18n/genres'
 import { canAdminister } from '@projo/shared/api/auth'
@@ -49,6 +50,9 @@ const rowTitleKey = {
 /** The next category batch is asked for this far before the end of the page. */
 const aheadPx = 800
 
+/** The logo and avatar line: 12 + the 34 pt avatar + 12. */
+const headerHeight = 58
+
 type Card = { item: ItemSummaryDto; isNew: boolean; resumeFrame?: ResumeFrameDto }
 
 const cardsOf = (row: HomeRowDto): Card[] =>
@@ -73,6 +77,7 @@ export const HomeScreen = () => {
   const window = useWindowDimensions()
   const layout = useScreenLayout()
   const { gutter, gap, regular } = layout
+  const insets = useSafeAreaInsets()
   const queries = useCatalogQueries()
   const home = useQuery(queries.home)
   const categories = useInfiniteQuery(queries.homeCategories)
@@ -171,7 +176,14 @@ export const HomeScreen = () => {
     const reserved = reservedCategoryRows(pages)
     return (
       <>
-        {hero === undefined ? undefined : <Hero key={hero.item.id} hero={hero} regular={regular} />}
+        {hero === undefined ? undefined : (
+          <Hero
+            key={hero.item.id}
+            hero={hero}
+            regular={regular}
+            under={regular ? insets.top + headerHeight : 0}
+          />
+        )}
         <View style={styles.rows}>
           {rows.map((row) => (
             <Row
@@ -219,14 +231,18 @@ export const HomeScreen = () => {
 
   return (
     <View onLayout={layout.onLayout} style={styles.root}>
+      {/* On an iPad the hero runs under the status and tab bars, as on the web: react-native-screens
+          gives the first scroll view of a tab automatic insets, so this one is not the first. */}
+      {regular ? <View collapsable={false} /> : undefined}
       <ScrollView
         contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior={regular ? 'never' : 'automatic'}
         onScroll={onScroll}
         scrollEventThrottle={200}
       >
-        {header}
+        {regular ? undefined : header}
         {body()}
+        {regular ? <View style={[styles.overHero, { top: insets.top }]}>{header}</View> : undefined}
       </ScrollView>
     </View>
   )
@@ -241,6 +257,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
   },
+  overHero: { position: 'absolute', left: 0, right: 0 },
   pressed: { opacity: 0.6 },
   content: { paddingBottom: 32 },
   rows: { gap: 28, paddingTop: 28 },
