@@ -1212,6 +1212,9 @@
     "codeOf": "Classification {{code}} ({{country}})"
   },
   "mobile": {
+    "browse": {
+      "longPressHint": "Appui long pour les actions"
+    },
     "changeServer": "Changer de serveur",
     "connect": {
       "title": "Connexion au serveur",
@@ -1219,6 +1222,7 @@
       "urlPlaceholder": "http://192.168.1.10:8080",
       "submit": "Se connecter"
     },
+    "offline": "Hors ligne",
     "outdated": {
       "title": "Mettez à jour votre serveur projo",
       "body": "Cette app a besoin de projo {{minimumVersion}} ou plus récent ; ce serveur est en {{version}}. Un administrateur le met à jour depuis l’administration web.",

@@ -73,7 +73,7 @@ const AppStack = () => {
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={gate.kind === 'ready'} redirectTo={redirectTo}>
         {/* Its title is the back button of the settings. */}
-        <Stack.Screen name="index" options={{ title: t('common.home') }} />
+        <Stack.Screen name="(tabs)" options={{ title: t('common.home') }} />
         <Stack.Screen
           name="settings/index"
           options={{ ...settings, title: t('mobile.settings.title') }}
