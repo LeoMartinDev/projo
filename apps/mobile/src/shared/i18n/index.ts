@@ -2,18 +2,11 @@ import { getLocales } from 'expo-localization'
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import en from './en.json'
-import fr from './fr.json'
-import { detectLocale, type Locale } from './locale.ts'
+import { type Locale, matchLocale, resources } from '@projo/i18n'
 
-export const resources = {
-  fr: { translation: fr },
-  en: { translation: en },
-} as const
-
-/** Device language by default; the active profile's `ui_locale` will override it (§19). */
+/** Device language by default (§19); the active profile's `ui_locale` overrides it. */
 export const setupI18n = (
-  locale: Locale = detectLocale(getLocales().map(({ languageTag }) => languageTag)),
+  locale: Locale = matchLocale(getLocales().map(({ languageTag }) => languageTag)),
 ) => {
   void i18next.use(initReactI18next).init({
     resources,
@@ -23,4 +16,9 @@ export const setupI18n = (
     returnEmptyString: false,
   })
   return i18next
+}
+
+export const changeLocale = async (locale: Locale): Promise<void> => {
+  if ((i18next.resolvedLanguage ?? i18next.language) !== locale)
+    await i18next.changeLanguage(locale)
 }

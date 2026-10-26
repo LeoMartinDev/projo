@@ -1,6 +1,14 @@
-import type { ConnectionErrorCode } from '../../features/server-connection/connection-error.ts'
+import { type ErrorKey, errorKeyOf } from '@projo/i18n/errors'
 
-/** Every error code has a translation under `errors.<code>` (checked by `locales.test.ts`). */
-export type ErrorKey = `errors.${ConnectionErrorCode}`
+import { type AppFailureCode, appFailureCodes, type FailureCode } from '../api/failure.ts'
 
-export const errorKey = (code: ConnectionErrorCode): ErrorKey => `errors.${code}`
+const appCodes: ReadonlySet<string> = new Set(appFailureCodes)
+
+const isAppCode = (code: FailureCode): code is AppFailureCode => appCodes.has(code)
+
+/**
+ * Translation key of a failure code: the server's codes under `errors.<code>` (`@projo/i18n`), the
+ * app's own under `mobile.errors.<code>` (both checked for every locale by the tests).
+ */
+export const errorKey = (code: FailureCode): ErrorKey | `mobile.errors.${AppFailureCode}` =>
+  isAppCode(code) ? `mobile.errors.${code}` : errorKeyOf(code)

@@ -15,13 +15,13 @@ export const OutdatedServerScreen = () => {
   return (
     <Screen>
       <Text accessibilityRole="header" style={textStyles.title}>
-        {t('outdated.title')}
+        {t('mobile.outdated.title')}
       </Text>
       <Text style={textStyles.body}>
-        {t('outdated.body', { version: gate.version, minimumVersion: gate.minimumVersion })}
+        {t('mobile.outdated.body', { version: gate.version, minimumVersion: gate.minimumVersion })}
       </Text>
-      <Button busy={rechecking} label={t('outdated.checkAgain')} onPress={recheck} />
-      <Button label={t('outdated.changeServer')} onPress={forget} variant="secondary" />
+      <Button busy={rechecking} label={t('mobile.outdated.checkAgain')} onPress={recheck} />
+      <Button label={t('mobile.changeServer')} onPress={forget} variant="secondary" />
     </Screen>
   )
 }

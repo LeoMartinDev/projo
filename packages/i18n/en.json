@@ -1207,6 +1207,41 @@
     "code": "Rated {{code}}",
     "codeOf": "Rated {{code}} ({{country}})"
   },
+  "mobile": {
+    "changeServer": "Change server",
+    "connect": {
+      "title": "Connect to your server",
+      "urlLabel": "Server address",
+      "urlPlaceholder": "http://192.168.1.10:8080",
+      "submit": "Connect"
+    },
+    "outdated": {
+      "title": "Update your projo server",
+      "body": "This app needs projo {{minimumVersion}} or later; this server runs {{version}}. An administrator updates it from the web administration.",
+      "checkAgain": "Check again"
+    },
+    "signIn": {
+      "scan": "Scan a code",
+      "enterCode": "Enter a code"
+    },
+    "pair": {
+      "title": "Enter a code",
+      "codeLabel": "Code",
+      "codePlaceholder": "ABC 234",
+      "submit": "Connect"
+    },
+    "scan": {
+      "title": "Scan a code",
+      "allow": "Allow the camera",
+      "denied": "Allow projo to use the camera in Settings to scan the code.",
+      "openSettings": "Open Settings"
+    },
+    "errors": {
+      "connection/invalid_url": "This address is not valid.",
+      "connection/not_projo": "No projo server at this address.",
+      "pairing/not_a_code": "This is not a projo code."
+    }
+  },
   "errors": {
     "network": "The server is not responding. Check your connection.",
     "unknown": "An unexpected error occurred.",

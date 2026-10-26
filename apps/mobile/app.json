@@ -27,6 +27,14 @@
       "expo-router",
       "expo-localization",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "projo uses the camera to scan the code shown by “Connect a device”.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "faceIDPermission": false
