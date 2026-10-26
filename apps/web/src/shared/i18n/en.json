@@ -291,6 +291,9 @@
     "empty": "My list is empty",
     "emptyText": "Add movies and series with + to find them here."
   },
+  "category": {
+    "empty": "Nothing in this category"
+  },
   "profiles": {
     "whoTitle": "Who’s watching?",
     "manageTitle": "Manage profiles",

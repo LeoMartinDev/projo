@@ -25,21 +25,15 @@ describe('"Tout voir ›" of the home rows (§13.3)', () => {
     expect(recentlyAddedSeeAll(half)).toEqual({ to: '/movies', sort: 'added' })
   })
 
-  test('a genre row: the majority type filtered on the genre', () => {
-    expect(categorySeeAll({ kind: 'genre', genre: 'comedy' }, mostlySeries)).toEqual({
-      to: '/series',
-      sort: 'added',
-      genre: 'comedy',
+  test('a category row: its page, Animés included', () => {
+    expect(categorySeeAll({ kind: 'genre', genre: 'comedy' })).toEqual({
+      to: '/categories/$category',
+      category: 'comedy',
     })
-    expect(categorySeeAll({ kind: 'genre', genre: 'war' }, half)).toEqual({
-      to: '/movies',
-      sort: 'added',
-      genre: 'war',
+    expect(categorySeeAll({ kind: 'anime' })).toEqual({
+      to: '/categories/$category',
+      category: 'anime',
     })
-  })
-
-  test('Animés: no link (Animation is not Animés)', () => {
-    expect(categorySeeAll({ kind: 'anime' }, mostlySeries)).toBeUndefined()
   })
 })
 

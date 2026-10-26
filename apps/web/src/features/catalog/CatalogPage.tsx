@@ -184,18 +184,14 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
     saveCatalogState(profileId, kind, next)
   }
 
-  // "See all ›" arrives with `?sort=added` (and `&genre=` from a genre row): the state it opened
-  // with (`arrivalState`) becomes the remembered one, the URL is cleaned.
-  const { sort, genre } = search
+  // "See all ›" arrives with `?sort=added`: the state it opened with (`arrivalState`) becomes the
+  // remembered one, the URL is cleaned.
+  const { sort } = search
   useEffect(() => {
-    if (sort === undefined && genre === undefined) return
-    const next = arrivalState(loadCatalogState(profileId, kind), {
-      ...(sort === undefined ? {} : { sort }),
-      ...(genre === undefined ? {} : { genre }),
-    })
-    saveCatalogState(profileId, kind, next)
+    if (sort === undefined) return
+    saveCatalogState(profileId, kind, arrivalState(loadCatalogState(profileId, kind), { sort }))
     void navigate({ to: kind === 'movies' ? '/movies' : '/series', search: {}, replace: true })
-  }, [sort, genre, profileId, kind, navigate])
+  }, [sort, profileId, kind, navigate])
 
   const items = catalog.data?.pages.flatMap((page) => page.items) ?? []
   const title = kind === 'movies' ? t('nav.movies') : t('nav.series')

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { catalogSortSchema, sortOrderSchema, watchFilterSchema } from '@projo/shared/api/catalog'
-import { type GenreId, genreIdSchema } from '@projo/shared/api/genres'
+import { genreIdSchema } from '@projo/shared/api/genres'
 
 import { readStoredJson, writeStoredJson } from '../../shared/storage/local-store.ts'
 import type { CatalogKind, CatalogQueryState } from './queries.ts'
@@ -115,29 +115,16 @@ export const yearsOf = (decade: number, range: YearRange | undefined): number[] 
   )
 
 /**
- * What "See all ›" of a home row puts in the URL of Movies / Shows (§13.3): `sort=added`
- * (Recently added, the category rows) and `genre` (a genre row). Anything else is dropped.
+ * What "See all ›" of Recently added puts in the URL of Movies / Shows (§13.3): `sort=added`.
+ * Anything else is dropped.
  */
-export type CatalogSearch = { sort?: 'added'; genre?: GenreId }
+export type CatalogSearch = { sort?: 'added' }
 
-export const parseCatalogSearch = (search: Record<string, unknown>): CatalogSearch => {
-  const genre = genreIdSchema.safeParse(search['genre'])
-  return {
-    ...(search['sort'] === 'added' ? { sort: 'added' } : {}),
-    ...(genre.success ? { genre: genre.data } : {}),
-  }
-}
+export const parseCatalogSearch = (search: Record<string, unknown>): CatalogSearch =>
+  search['sort'] === 'added' ? { sort: 'added' } : {}
 
-/**
- * The state Movies / Shows opens with: the remembered one, its sort replaced by the link's; a
- * link with a genre (a genre row) also resets the other filters and the order.
- */
+/** The state Movies / Shows opens with: the remembered one, its sort replaced by the link's. */
 export const arrivalState = (
   stored: CatalogQueryState,
   search: CatalogSearch,
-): CatalogQueryState =>
-  search.genre === undefined
-    ? search.sort === undefined
-      ? stored
-      : { ...stored, sort: search.sort }
-    : normalizeCatalogState({ sort: search.sort ?? stored.sort, genre: search.genre })
+): CatalogQueryState => (search.sort === undefined ? stored : { ...stored, sort: search.sort })

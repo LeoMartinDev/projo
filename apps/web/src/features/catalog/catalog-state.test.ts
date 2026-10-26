@@ -71,23 +71,13 @@ describe('arriving from "Tout voir ›" (§13.3)', () => {
     watch: 'watched',
   } as const
 
-  test('the URL keeps `sort=added` and a known genre only', () => {
-    expect(parseCatalogSearch({ sort: 'added', genre: 'comedy' })).toEqual({
-      sort: 'added',
-      genre: 'comedy',
-    })
-    expect(parseCatalogSearch({ sort: 'title', genre: 'Comédie', x: 1 })).toEqual({})
+  test('the URL keeps `sort=added` only', () => {
+    expect(parseCatalogSearch({ sort: 'added', genre: 'comedy' })).toEqual({ sort: 'added' })
+    expect(parseCatalogSearch({ sort: 'title', x: 1 })).toEqual({})
   })
 
   test('Ajoutés récemment: the remembered state, sorted by addition', () => {
     expect(arrivalState(stored, { sort: 'added' })).toEqual({ ...stored, sort: 'added' })
     expect(arrivalState(stored, {})).toEqual(stored)
-  })
-
-  test('a genre row: that genre alone, the other filters and the order reset', () => {
-    expect(arrivalState(stored, { sort: 'added', genre: 'comedy' })).toEqual({
-      sort: 'added',
-      genre: 'comedy',
-    })
   })
 })

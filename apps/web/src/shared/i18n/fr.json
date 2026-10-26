@@ -291,6 +291,9 @@
     "empty": "Ma liste est vide",
     "emptyText": "Ajoutez des films et des séries avec + pour les retrouver ici."
   },
+  "category": {
+    "empty": "Aucun titre dans cette catégorie"
+  },
   "profiles": {
     "whoTitle": "Qui regarde ?",
     "manageTitle": "Gérer les profils",

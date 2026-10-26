@@ -1,7 +1,11 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
 import type { GenreId } from '@projo/shared/api/genres'
-import { type HomeCategoriesDto, homeCategoryKey } from '@projo/shared/api/home'
+import {
+  type HomeCategoriesDto,
+  homeCategoryKey,
+  type HomeCategoryPage,
+} from '@projo/shared/api/home'
 
 import { createCatalogTestApp } from '../../../../test/support/catalog-app.ts'
 import {
@@ -13,7 +17,10 @@ import {
   seedViewer,
 } from '../../../../test/support/catalog-fixtures.ts'
 
-/** §13.3 item 6 over HTTP: `GET /home/categories`, batch by batch, within the §14 scope. */
+/**
+ * §13.3 item 6 over HTTP: `GET /home/categories`, batch by batch, and the category pages of
+ * `GET /home/categories/:category`, within the §14 scope.
+ */
 
 let app: ReturnType<typeof createCatalogTestApp>
 
@@ -21,6 +28,11 @@ const get = async (path: string, as = 'leo') => {
   const response = await app.call(path, { as })
   expect(response.status).toBe(200)
   return (await response.json()) as HomeCategoriesDto
+}
+const getPage = async (path: string, as = 'leo') => {
+  const response = await app.call(path, { as })
+  expect(response.status).toBe(200)
+  return (await response.json()) as HomeCategoryPage
 }
 const keys = (batch: HomeCategoriesDto) => batch.rows.map((row) => homeCategoryKey(row.category))
 const added = (n: number) => new Date(Date.UTC(2026, 1, 1, 0, n)).toISOString()
@@ -129,5 +141,48 @@ describe('GET /home/categories', () => {
   test('a malformed cursor is a 400', async () => {
     const response = await app.call('/home/categories?cursor=abc')
     expect(response.status).toBe(400)
+  })
+})
+
+describe('GET /home/categories/:category', () => {
+  test('every title of the category, page by page, in the order of its row', async () => {
+    const ids = movies(25, ['drama'])
+    const newest = ids.at(-1) ?? ''
+    insertProgress(app.db, { profileId: 'profile-of-leo', itemId: newest, ratio: 1, watched: true })
+    const unwatched = ids.slice(0, -1).reverse()
+
+    const first = await getPage('/home/categories/drama?limit=20')
+    expect(first.items.map((item) => item.id)).toEqual(unwatched.slice(0, 20))
+    expect(first.nextCursor).toBe('20')
+    const second = await getPage(`/home/categories/drama?limit=20&cursor=${first.nextCursor}`)
+    // Past the 20 of the row: the rest, the watched one last.
+    expect(second.items.map((item) => item.id)).toEqual([...unwatched.slice(20), newest])
+    expect(second.nextCursor).toBeUndefined()
+  })
+
+  test('Anime and Animation are separate pages', async () => {
+    const anime = movies(2, ['animation'], { originalLanguage: 'ja' })
+    const animation = movies(2, ['animation'], { originalLanguage: 'en' })
+    const idsOf = async (path: string) => (await getPage(path)).items.map((item) => item.id)
+    expect(await idsOf('/home/categories/anime')).toEqual(anime.reverse())
+    // Under the 6 titles of a row: the page still lists them.
+    expect(await idsOf('/home/categories/animation')).toEqual(animation.reverse())
+  })
+
+  test('the profile scope (§14) decides the titles', async () => {
+    const family = movies(2, ['drama'], { contentRating: 'TP', contentRatingCountry: 'FR' })
+    movies(2, ['drama'], { contentRating: '16', contentRatingCountry: 'FR' })
+    expect((await getPage('/home/categories/drama')).items).toHaveLength(4)
+    const kid = await getPage('/home/categories/drama', 'kid')
+    expect(kid.items.map((item) => item.id)).toEqual(family.reverse())
+  })
+
+  test('an empty category: no titles, no cursor', async () => {
+    expect(await getPage('/home/categories/western')).toEqual({ items: [] })
+  })
+
+  test('an unknown category or a malformed cursor is a 400', async () => {
+    expect((await app.call('/home/categories/drame')).status).toBe(400)
+    expect((await app.call('/home/categories/drama?cursor=abc')).status).toBe(400)
   })
 })

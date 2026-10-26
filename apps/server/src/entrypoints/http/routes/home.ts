@@ -4,6 +4,10 @@ import {
   type ContinueWatchingEntryDto,
   type HomeCategoriesDto,
   homeCategoriesQuerySchema,
+  homeCategoryOfSlug,
+  type HomeCategoryPage,
+  homeCategoryPageQuerySchema,
+  homeCategoryParamSchema,
   type HomeDto,
   type HomeRowDto,
   type ResumeFrameDto,
@@ -11,6 +15,7 @@ import {
 
 import type { GetHome } from '../../../application/home/get-home.ts'
 import type { GetHomeCategories } from '../../../application/home/get-home-categories.ts'
+import type { GetHomeCategoryPage } from '../../../application/home/get-home-category-page.ts'
 import type { ResumeFrame } from '../../../application/playback/resume-frames.ts'
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
 import type { AppEnv } from '../context.ts'
@@ -40,6 +45,7 @@ export type HomeResumeFramePort = (input: {
 type Deps = {
   getHome: GetHome
   getHomeCategories: GetHomeCategories
+  getHomeCategoryPage: GetHomeCategoryPage
   scopeFor: VisibilityScopeResolver
   previews?: HomePreviewPort
   resumeFrames?: HomeResumeFramePort
@@ -47,11 +53,13 @@ type Deps = {
 
 /**
  * §13.3 `GET /home`: the hero and the fixed rows in one request; `GET /home/categories`: the
- * category rows under them, batch by batch. Mounted at `/api/v1`.
+ * category rows under them, batch by batch; `GET /home/categories/:category`: the page of a
+ * category behind its row's "See all ›". Mounted at `/api/v1`.
  */
 export const homeRoutes = ({
   getHome,
   getHomeCategories,
+  getHomeCategoryPage,
   scopeFor,
   previews,
   resumeFrames,
@@ -151,5 +159,29 @@ export const homeRoutes = ({
         200,
       )
     })
+    .get(
+      '/home/categories/:category',
+      validate('param', homeCategoryParamSchema),
+      validate('query', homeCategoryPageQuerySchema),
+      async (c) => {
+        const profileId = currentProfileId(c)
+        if (!profileId.ok) return respondError(c, profileId.error)
+        const { cursor, limit } = c.req.valid('query')
+        const page = await getHomeCategoryPage({
+          profileId: profileId.value,
+          scope: scopeFor(profileId.value),
+          category: homeCategoryOfSlug(c.req.valid('param').category),
+          offset: cursor === undefined ? 0 : Number(cursor),
+          limit,
+        })
+        return c.json(
+          {
+            items: page.entries.map(toItemSummaryDto),
+            ...(page.nextOffset === undefined ? {} : { nextCursor: String(page.nextOffset) }),
+          } satisfies HomeCategoryPage,
+          200,
+        )
+      },
+    )
 
 export type HomeRoutes = ReturnType<typeof homeRoutes>

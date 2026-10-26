@@ -11,8 +11,11 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { LoginPage } from '../features/auth/LoginPage.tsx'
+import { homeCategorySlugSchema } from '@projo/shared/api/home'
+
 import { parseCatalogSearch } from '../features/catalog/catalog-state.ts'
 import { CatalogPage } from '../features/catalog/CatalogPage.tsx'
+import { CategoryPage } from '../features/home/CategoryPage.tsx'
 import { HomePage, HomeSkeleton } from '../features/home/HomePage.tsx'
 import { loadHome } from '../features/home/load-home.ts'
 import { loadItem } from '../features/item/load-item.ts'
@@ -253,7 +256,7 @@ const indexRoute = createRoute({
   component: HomePage,
 })
 
-/** `?sort=added&genre=`: "See all ›" of Recently added and the genre rows (§13.3). */
+/** `?sort=added`: "See all ›" of Recently added (§13.3). */
 const validateCatalogSearch = parseCatalogSearch
 
 const moviesRoute = createRoute({
@@ -271,6 +274,20 @@ const seriesRoute = createRoute({
   validateSearch: validateCatalogSearch,
   component: function Series() {
     return <CatalogPage key="series" kind="series" search={seriesRoute.useSearch()} />
+  },
+})
+
+/** `/categories/anime`, `/categories/<genre id>`: "See all ›" of a category row (§13.3). */
+const categoryRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/categories/$category',
+  component: function Category() {
+    const category = homeCategorySlugSchema.safeParse(categoryRoute.useParams().category)
+    return category.success ? (
+      <CategoryPage key={category.data} category={category.data} />
+    ) : (
+      <NotFound />
+    )
   },
 })
 
@@ -488,6 +505,7 @@ export const routeTree = rootRoute.addChildren([
       indexRoute,
       moviesRoute,
       seriesRoute,
+      categoryRoute,
       watchlistRoute,
       itemRoute,
       profileSettingsRoute,

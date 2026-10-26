@@ -23,12 +23,31 @@ export type HomeCategoriesView = {
   nextOffset?: number
 }
 
-type Deps = {
+export type HomeCategoryDeps = {
   categoryQueries: HomeCategoryQueries
   catalogRepository: Pick<CatalogRepository, 'findManyVisible' | 'listSeriesEpisodes'>
   progressQueries: ProgressQueries
   catalogEntries: CatalogEntries
 }
+
+/**
+ * The titles a category row puts last (§13.1): movies watched, series whose every visible episode
+ * is.
+ */
+export const watchedTitlesFor =
+  ({
+    catalogRepository,
+    progressQueries,
+  }: Pick<HomeCategoryDeps, 'catalogRepository' | 'progressQueries'>) =>
+  ({ profileId, scope }: { profileId: string; scope: VisibilityScope }): Set<string> => {
+    const played = progressQueries.listPlayed({ profileId, scope })
+    const seriesIds = seriesWithWatchedEpisodes(played)
+    return watchedTitles({
+      played,
+      episodes:
+        seriesIds.length === 0 ? [] : catalogRepository.listSeriesEpisodes({ seriesIds, scope }),
+    })
+  }
 
 /**
  * `GET /home/categories` (§13.3 item 6): the batch of category rows at `offset`, for the active
@@ -37,7 +56,7 @@ type Deps = {
  * recomputes the list: a cursor is an offset in it.
  */
 export const getHomeCategoriesFactory =
-  ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: Deps) =>
+  ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: HomeCategoryDeps) =>
   async ({
     profileId,
     scope,
@@ -57,14 +76,7 @@ export const getHomeCategoriesFactory =
     })
     if (batch.length === 0) return page([])
 
-    // Watched last (§13.1): movies watched, series whose every visible episode is.
-    const played = progressQueries.listPlayed({ profileId, scope })
-    const seriesIds = seriesWithWatchedEpisodes(played)
-    const watched = watchedTitles({
-      played,
-      episodes:
-        seriesIds.length === 0 ? [] : catalogRepository.listSeriesEpisodes({ seriesIds, scope }),
-    })
+    const watched = watchedTitlesFor({ catalogRepository, progressQueries })({ profileId, scope })
     const ids = categoryRows({ titles, categories: batch, watched })
     const items = catalogRepository.findManyVisible({ ids: [...ids.values()].flat(), scope })
     const entries = new Map(

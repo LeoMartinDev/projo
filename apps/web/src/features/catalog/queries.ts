@@ -2,6 +2,7 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
 import type { CatalogSort, SortOrder, WatchFilter } from '@projo/shared/api/catalog'
 import type { GenreId } from '@projo/shared/api/genres'
+import type { HomeCategorySlug } from '@projo/shared/api/home'
 
 import { api, request } from '../../shared/api/client.ts'
 
@@ -100,6 +101,21 @@ export const homeCategoriesQuery = infiniteQueryOptions({
     ),
   getNextPageParam: (page) => page.nextCursor,
 })
+
+/** `GET /home/categories/:category`: the page behind a category row's "See all ›" (§13.3). */
+export const homeCategoryPageQuery = (category: HomeCategorySlug) =>
+  infiniteQueryOptions({
+    queryKey: ['catalog', 'home', 'category', category],
+    initialPageParam: '',
+    queryFn: ({ pageParam }) =>
+      request(() =>
+        api.home.categories[':category'].$get({
+          param: { category },
+          query: { limit: String(pageSize), ...(pageParam === '' ? {} : { cursor: pageParam }) },
+        }),
+      ),
+    getNextPageParam: (page) => page.nextCursor,
+  })
 
 /** `GET /search?q=` (§13.5), from 2 characters. */
 export const searchQuery = (q: string) =>

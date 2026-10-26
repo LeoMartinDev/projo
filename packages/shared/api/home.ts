@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
-import { itemSummaryDtoSchema, playTargetDtoSchema } from './catalog.ts'
+import { itemPageSchema, itemSummaryDtoSchema, playTargetDtoSchema } from './catalog.ts'
+import { paginationQuerySchema } from './common.ts'
 import { genreIdSchema } from './genres.ts'
 
 /**
@@ -118,3 +119,31 @@ export const homeCategoriesDtoSchema = z.object({
   nextCursor: z.string().optional(),
 })
 export type HomeCategoriesDto = z.infer<typeof homeCategoriesDtoSchema>
+
+// ── Category pages (§13.3 "See all ›") ───────────────────────────────────────
+
+/** A category in the URL of its page: `anime`, or the genre id (`/categories/drama`). */
+export const homeCategorySlugSchema = z.union([z.literal('anime'), genreIdSchema])
+export type HomeCategorySlug = z.infer<typeof homeCategorySlugSchema>
+
+export const homeCategorySlug = (category: HomeCategoryDto): HomeCategorySlug =>
+  category.kind === 'anime' ? 'anime' : category.genre
+
+export const homeCategoryOfSlug = (slug: HomeCategorySlug): HomeCategoryDto =>
+  slug === 'anime' ? { kind: 'anime' } : { kind: 'genre', genre: slug }
+
+export const homeCategoryParamSchema = z.object({ category: homeCategorySlugSchema })
+
+/**
+ * `GET /home/categories/:category?cursor=&limit=`: a page of every title of the category visible
+ * to the profile, in the order of its row (newest first, the watched ones last). `cursor` is the
+ * `nextCursor` of the previous page.
+ */
+export const homeCategoryPageQuerySchema = paginationQuerySchema.extend({
+  cursor: z
+    .string()
+    .regex(/^\d{1,6}$/u, 'a cursor is a nextCursor of a previous page')
+    .optional(),
+})
+export const homeCategoryPageSchema = itemPageSchema
+export type HomeCategoryPage = z.infer<typeof homeCategoryPageSchema>

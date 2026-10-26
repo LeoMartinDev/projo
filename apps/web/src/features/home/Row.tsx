@@ -10,7 +10,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { GenreId } from '@projo/shared/api/genres'
+import type { HomeCategorySlug } from '@projo/shared/api/home'
 
 import { ChevronLeftIcon, ChevronRightSmallIcon } from '../../shared/ui/media-icons.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
@@ -69,9 +69,11 @@ export const RowSkeleton = ({ poster = false }: { poster?: boolean }) => {
   )
 }
 
-/** "See all ›": Movies / Shows sorted by addition (and on a genre: a genre row), or My list. */
+/** "See all ›": Movies / Shows sorted by addition, My list, or the page of a category row. */
 export type SeeAll =
-  { to: '/movies' | '/series'; sort: 'added'; genre?: GenreId } | { to: '/watchlist' }
+  | { to: '/movies' | '/series'; sort: 'added' }
+  | { to: '/watchlist' }
+  | { to: '/categories/$category'; category: HomeCategorySlug }
 
 /** A home row (§13.3): title, "See all ›", previous / next, the cards. */
 export const Row = ({
@@ -147,15 +149,16 @@ export const Row = ({
           <Link to="/watchlist" className="row__see">
             {t('home.seeAll')}
           </Link>
-        ) : (
+        ) : seeAll.to === '/categories/$category' ? (
           <Link
-            to={seeAll.to}
-            search={{
-              sort: seeAll.sort,
-              ...(seeAll.genre === undefined ? {} : { genre: seeAll.genre }),
-            }}
+            to="/categories/$category"
+            params={{ category: seeAll.category }}
             className="row__see"
           >
+            {t('home.seeAll')}
+          </Link>
+        ) : (
+          <Link to={seeAll.to} search={{ sort: seeAll.sort }} className="row__see">
             {t('home.seeAll')}
           </Link>
         )}

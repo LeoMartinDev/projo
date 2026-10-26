@@ -6,6 +6,7 @@ import { searchCatalogFactory } from '../../application/catalog/search-catalog.t
 import { seriesPlayFactory } from '../../application/catalog/series-play.ts'
 import { getHomeFactory } from '../../application/home/get-home.ts'
 import { getHomeCategoriesFactory } from '../../application/home/get-home-categories.ts'
+import { getHomeCategoryPageFactory } from '../../application/home/get-home-category-page.ts'
 import { progressViewsFactory } from '../../application/progress/progress-views.ts'
 import { everything, type VisibilityScopeResolver } from '../../core/catalog/catalog.ts'
 import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
@@ -48,6 +49,12 @@ export const buildCatalogModule = (
     watchlistRepository,
   })
   const seriesPlay = seriesPlayFactory({ catalogRepository, progressRepository })
+  const homeCategoryDeps = {
+    categoryQueries: createSqliteHomeCategoryQueries({ db }),
+    catalogRepository,
+    progressQueries: progressRepository,
+    catalogEntries,
+  }
   return {
     routes: catalogRoutes({
       listCatalog: listCatalogFactory({ catalogRepository, catalogEntries }),
@@ -65,12 +72,8 @@ export const buildCatalogModule = (
         catalogEntries,
         seriesPlay,
       }),
-      getHomeCategories: getHomeCategoriesFactory({
-        categoryQueries: createSqliteHomeCategoryQueries({ db }),
-        catalogRepository,
-        progressQueries: progressRepository,
-        catalogEntries,
-      }),
+      getHomeCategories: getHomeCategoriesFactory(homeCategoryDeps),
+      getHomeCategoryPage: getHomeCategoryPageFactory(homeCategoryDeps),
       scopeFor: visibilityScope,
       // §13.3 hero preview, from the media assets module.
       ...(homePreviews === undefined ? {} : { previews: homePreviews }),

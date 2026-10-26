@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import { type HomeCategoriesDto, homeCategoryKey } from '@projo/shared/api/home'
 
-import { genreLabel } from '../../shared/i18n/genres.ts'
+import { categoryTitle } from '../../shared/i18n/genres.ts'
 import { ErrorState } from '../../shared/ui/states.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { MediaCard } from '../media/MediaCard.tsx'
@@ -58,17 +58,14 @@ export const CategoryRows = ({
         .flatMap((page) => page.rows)
         .map(({ category, items }) => {
           const key = homeCategoryKey(category)
-          const seeAll = categorySeeAll(category, items)
           return (
             <Row
               key={key}
               id={`row-${key}`}
-              title={
-                category.kind === 'anime' ? t('home.rows.anime') : genreLabel(t, category.genre)
-              }
+              title={categoryTitle(t, category)}
               count={items.length}
               poster
-              {...(seeAll === undefined ? {} : { seeAll })}
+              seeAll={categorySeeAll(category)}
             >
               {items.map((item) => (
                 <MediaCard key={item.id} item={item} place="category" onLongPress={onLongPress} />
