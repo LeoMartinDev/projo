@@ -620,7 +620,8 @@
       "manual_quick": "Manuelle",
       "manual_full": "Complète",
       "startup": "Démarrage",
-      "initial": "Première analyse"
+      "initial": "Première analyse",
+      "rules_update": "Nouvelles règles de noms"
     },
     "delete": {
       "title": "Supprimer « {{name}} » ?",
@@ -763,6 +764,8 @@
       "empty": "Rien à vérifier",
       "identify": "Identifier",
       "identifyTitle": "Identifier le fichier",
+      "identified_one": "{{count}} fichier identifié",
+      "identified_other": "{{count}} fichiers identifiés",
       "more": "Afficher plus",
       "classification": {
         "movie": "Film",
@@ -776,7 +779,8 @@
         "episode_not_found": "Épisode introuvable",
         "absolute_numbering": "Numérotation absolue",
         "date_based": "Épisode daté",
-        "hint_conflict": "Contredit le type de la bibliothèque"
+        "hint_conflict": "Épisode dans une bibliothèque de films",
+        "no_episode_number": "Pas de numéro d’épisode"
       }
     },
     "sessions": {

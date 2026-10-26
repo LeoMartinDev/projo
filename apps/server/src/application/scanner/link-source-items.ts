@@ -98,7 +98,12 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
     localItems.transaction(() => {
       if (source.matchState === 'matched' || source.matchState === 'manual') return { kind: 'kept' }
       const current = localItems.linksOf(source.id)
-      if (current.some((link) => link.tmdbId !== undefined)) return { kind: 'kept' }
+      // TMDB links of the source's kind wait for the matcher; a source re-read as the other kind
+      // (§7.4) goes back to local items of its new reading.
+      const sameKind = current.every(
+        (link) => (link.kind === 'movie') === (source.classification === 'movie'),
+      )
+      if (sameKind && current.some((link) => link.tmdbId !== undefined)) return { kind: 'kept' }
       const targets = linkTargetsFor(source)
       if (targets.length === 0 && current.length === 0) return { kind: 'none' }
       const itemIds = [...new Set(targets.map(itemFor))]

@@ -4,12 +4,12 @@
  */
 import { describe, expect, test } from 'bun:test'
 
-import { analyzeMediaPath } from './analyze'
+import { analyzeMediaPath, showFolderOf } from './analyze'
 import { isValidSeason, parseSeasonFolder } from './episode'
 import { filterDirectory, filterFile } from './filters'
 import { resolveStacks } from './stacks'
 import { matchExternalSubtitles } from './subtitles'
-import type { LibraryHint } from './types'
+import type { LibraryHint, ParsedName } from './types'
 
 const analyze = (relativePath: string, hint: LibraryHint = 'auto') =>
   analyzeMediaPath({ relativePath, hint })
@@ -118,6 +118,21 @@ describe('§8.1 Films', () => {
       ['Heat.VF2.mkv', 'Heat'],
       ['Heat.TRUEFRENCH.mkv', 'Heat'],
       ['Heat.FRENCH.mkv', 'Heat'],
+      ['Heat.MULTIFRENCH.mkv', 'Heat'],
+      ['Heat.VOSTA.mkv', 'Heat'],
+      ['Heat.HDLight.mkv', 'Heat'],
+      ['Heat.4KLight.mkv', 'Heat'],
+      ['Heat.mHD.mkv', 'Heat'],
+      ['Heat.BDRemux.mkv', 'Heat'],
+      ['Heat.TVRip.mkv', 'Heat'],
+      ['Heat.HDCAM.mkv', 'Heat'],
+      ['Heat.NF.WEB-DL.mkv', 'Heat'],
+      ['Heat.DV.HDR.mkv', 'Heat'],
+      ['Heat.HD.mkv', 'Heat'],
+      ['Heat.FHD.mkv', 'Heat'],
+      ['Heat.SD.mkv', 'Heat'],
+      ['Heat.VO.mkv', 'Heat'],
+      ['Heat.FR.mkv', 'Heat'],
     ])('coupe au token de release : %s', (path, title) => {
       expect(analyze(path).parsed.title).toBe(title)
     })
@@ -507,6 +522,89 @@ describe('§8.2 Séries', () => {
       })
       expect(analyze('Downloads/Naruto - 101.mkv').classification).toBe('unknown')
     })
+
+    test.each([
+      ['Fullmetal Alchemist Brotherhood/Fullmetal Alchemist Brotherhood 64.mkv', 64],
+      ['Show/Show 5.mkv', 5],
+      ['Show/Show 12 MULTI.mkv', 12],
+    ])('bibliothèque séries, `Name 12` : %s', (path, absoluteEpisode) => {
+      const result = analyze(path, 'series')
+      expect(result.parsed).toEqual({ series: path.split('/')[0] ?? '', absoluteEpisode })
+      expect(result.reviewReason).toBeUndefined()
+    })
+
+    test('`Name 12` : seulement en bibliothèque séries, après les autres motifs', () => {
+      expect(analyze('Show/Show 12.mkv').classification).toBe('movie')
+      expect(analyze('Show/05 Title 2.mkv', 'series').parsed).toMatchObject({ episode: 5 })
+      expect(analyze('Show/Show.FRENCH.AAC.5.1.mkv', 'series')).toMatchObject({
+        parsed: { series: 'Show' },
+        reviewReason: 'no_episode_number',
+      })
+    })
+  })
+
+  describe('Contexte série : bibliothèque séries ou dossier saison', () => {
+    test.each<[string, LibraryHint, ParsedName]>([
+      ['Show/Season 2/Show 05.mkv', 'auto', { series: 'Show', season: 2, episode: 5 }],
+      [
+        'Show/Season 1/E01 - Pilot.mkv',
+        'auto',
+        { series: 'Show', season: 1, episode: 1, episodeTitle: 'Pilot' },
+      ],
+      ['Show/S1/E01.mkv', 'auto', { series: 'Show', season: 1, episode: 1 }],
+      ['Show/Show E05.mkv', 'series', { series: 'Show', season: 1, episode: 5 }],
+      ['Show/Show Ep05.mkv', 'series', { series: 'Show', season: 1, episode: 5 }],
+      [
+        'Fullmetal Alchemist Brotherhood/Fullmetal Alchemist Brotherhood 64 HD Multi.mkv',
+        'series',
+        { series: 'Fullmetal Alchemist Brotherhood', absoluteEpisode: 64 },
+      ],
+      ['Show/Show 01 [Team].mkv', 'series', { series: 'Show', absoluteEpisode: 1 }],
+      ['Show (2019) 05.mkv', 'series', { series: 'Show', year: 2019, absoluteEpisode: 5 }],
+      [
+        'Show - 05 - The Return Part 2.mkv',
+        'series',
+        { series: 'Show', absoluteEpisode: 5, episodeTitle: 'The Return Part 2' },
+      ],
+      // the last number before the tags; a number of the folder's title never counts
+      [
+        'Mob Psycho 100/Mob Psycho 100 05.mkv',
+        'series',
+        { series: 'Mob Psycho 100', absoluteEpisode: 5 },
+      ],
+      ['Mob Psycho 100 05.mkv', 'series', { series: 'Mob Psycho 100', absoluteEpisode: 5 }],
+      ['Show 2/Show 2 05.mkv', 'series', { series: 'Show 2', absoluteEpisode: 5 }],
+      // a season marker right before the number
+      [
+        'Shingeki no Kyojin S3 - 05.mkv',
+        'series',
+        { series: 'Shingeki no Kyojin', season: 3, episode: 5 },
+      ],
+      ['Show - Saison 2 - 05.mkv', 'series', { series: 'Show', season: 2, episode: 5 }],
+      ['Show Season 2 05.mkv', 'series', { series: 'Show', season: 2, episode: 5 }],
+      // a numeric folder at the root is a show, not a season
+      ['24/24 - 12.mkv', 'series', { series: '24', absoluteEpisode: 12 }],
+      ['24/S01E01.mkv', 'auto', { series: '24', season: 1, episode: 1 }],
+      [
+        '24/01 - Pilot.mkv',
+        'series',
+        { series: '24', season: 1, episode: 1, episodeTitle: 'Pilot' },
+      ],
+      ['24/Season 2/01.mkv', 'auto', { series: '24', season: 2, episode: 1 }],
+    ])('%s (%s)', (path, hint, parsed) => {
+      const result = analyze(path, hint)
+      expect(result.classification).toBe('episode')
+      expect(result.parsed).toEqual(parsed)
+      expect(result.reviewReason).toBeUndefined()
+    })
+
+    test('hors contexte série, un nombre isolé reste dans le titre', () => {
+      expect(analyze('Bleach/Bleach 26.mkv').classification).toBe('movie')
+      expect(analyze('Toy Story/Toy Story 3 (2010).mkv').parsed).toEqual({
+        title: 'Toy Story 3',
+        year: 2010,
+      })
+    })
   })
 
   describe('Épisode daté', () => {
@@ -603,6 +701,16 @@ describe('§8.2 Séries', () => {
     })
   })
 
+  test.each([
+    ['Show/Season 1/Show.S01E01.mkv', 'Show'],
+    ['Shows/Show (2019)/Saison 2/E01.mkv', 'Shows/Show (2019)'],
+    ['Show/Show 05.mkv', 'Show'],
+    ['Season 1/S01E01.mkv', ''],
+    ['Show.S01E01.mkv', ''],
+  ])('dossier de série (§7.8) : %s → %p', (path, folder) => {
+    expect(showFolderOf(path)).toBe(folder)
+  })
+
   test('Versions d’un épisode : même parse', () => {
     const a = analyze('Show/Season 1/S01E01 - 1080p.mkv')
     const b = analyze('Show/Season 1/S01E01 - 2160p.mkv')
@@ -624,11 +732,12 @@ describe('§8.2 Séries', () => {
       expect(analyze('Vrac/Show.S01E01.mkv').classification).toBe('episode')
     })
 
-    test('dossier saison au-dessus = episode', () => {
+    test('dossier saison au-dessus = episode (sans numéro : no_episode_number)', () => {
       expect(analyze('Show/Season 2/Pilot.mkv')).toEqual({
         classification: 'episode',
         parsed: { series: 'Show', season: 2 },
         displayTitle: 'Show',
+        reviewReason: 'no_episode_number',
       })
     })
 

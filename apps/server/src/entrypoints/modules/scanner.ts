@@ -19,6 +19,7 @@ import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-not
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteLocalItemRepository } from '../../infrastructure/sqlite/local-item-repository.ts'
 import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-run-repository.ts'
+import { createSqliteNamingRulesVersionStore } from '../../infrastructure/sqlite/settings-values.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { createNodeDirectoryWatcher } from '../../infrastructure/watch/node-directory-watcher.ts'
 import { defineJobHandler } from '../jobs/handler.ts'
@@ -129,6 +130,7 @@ export const buildScannerModule = (
     libraryRepository,
     scanRunRepository,
     requestScan,
+    namingRules: createSqliteNamingRulesVersionStore({ db }),
     clock,
   })
 

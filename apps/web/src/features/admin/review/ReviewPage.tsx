@@ -23,19 +23,25 @@ import './review.css'
 const ClassificationIcon = ({ value }: { value: SourceDto['classification'] }) =>
   value === 'movie' ? <FilmIcon /> : value === 'episode' ? <TvIcon /> : <LayersIcon />
 
-/** "It's a movie" / "it's an episode of…" for one source (§7.8). */
+/**
+ * "It's a movie" / "it's an episode of…" for one source (§7.8). When other files of the series
+ * came along or stay to review, the dialog says how many before closing.
+ */
 const IdentifySourceDialog = ({ source, onClose }: { source: SourceDto; onClose: () => void }) => {
   const { t } = useTranslation()
   const formId = useId()
   const queryClient = useQueryClient()
   const [ready, setReady] = useState(false)
+  const [outcome, setOutcome] = useState<{ identified: number; left: number }>()
   const assign = useMutation({
     mutationFn: (body: AssignBody) =>
       request(() =>
         api.admin.sources[':id'].assign.$post({ param: { id: source.id }, json: body }),
       ),
-    onSuccess: async () => {
-      onClose()
+    onSuccess: async ({ sourceIds, needsReview }) => {
+      if (sourceIds.length > 1 || needsReview.length > 0)
+        setOutcome({ identified: sourceIds.length, left: needsReview.length })
+      else onClose()
       await invalidateAfterIdentify(queryClient)
     },
   })
@@ -48,25 +54,40 @@ const IdentifySourceDialog = ({ source, onClose }: { source: SourceDto; onClose:
         if (!assign.isPending) onClose()
       }}
       footer={
-        <>
-          <button type="button" className="button" onClick={onClose} disabled={assign.isPending}>
-            {t('common.cancel')}
+        outcome === undefined ? (
+          <>
+            <button type="button" className="button" onClick={onClose} disabled={assign.isPending}>
+              {t('common.cancel')}
+            </button>
+            <IdentifySubmit formId={formId} pending={assign.isPending} ready={ready} />
+          </>
+        ) : (
+          <button type="button" className="button button--primary" onClick={onClose}>
+            {t('common.close')}
           </button>
-          <IdentifySubmit formId={formId} pending={assign.isPending} ready={ready} />
-        </>
+        )
       }
     >
       <p className="review-file mono" title={source.path}>
         <bdi>{source.relativePath}</bdi>
       </p>
-      <IdentifyForm
-        formId={formId}
-        modes={['movie', 'episode']}
-        initial={initialFromSource(source)}
-        {...(assign.isError ? { error: assign.error } : {})}
-        onSelect={setReady}
-        onSubmit={(body) => assign.mutate(body)}
-      />
+      {outcome === undefined ? (
+        <IdentifyForm
+          formId={formId}
+          modes={['movie', 'episode']}
+          initial={initialFromSource(source)}
+          {...(assign.isError ? { error: assign.error } : {})}
+          onSelect={setReady}
+          onSubmit={(body) => assign.mutate(body)}
+        />
+      ) : (
+        <EmptyState
+          title={t('admin.review.identified', { count: outcome.identified })}
+          {...(outcome.left === 0
+            ? {}
+            : { text: t('admin.identify.leftForReview', { count: outcome.left }) })}
+        />
+      )}
     </Dialog>
   )
 }

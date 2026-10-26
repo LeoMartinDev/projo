@@ -1,3 +1,5 @@
+import { scanKindSchema } from '@projo/shared/api/libraries'
+
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { JobQueue, JobRepository } from '../../core/jobs/ports.ts'
@@ -17,7 +19,8 @@ export const scanDedupeKey = (libraryId: string): string => `library:${libraryId
 const queuedIsFull = (payload: unknown): boolean => {
   const kind =
     typeof payload === 'object' ? (payload as { kind?: unknown } | undefined)?.kind : undefined
-  return kind === 'manual_full' || kind === 'initial'
+  const parsed = scanKindSchema.safeParse(kind)
+  return parsed.success && isFullScan(parsed.data)
 }
 
 /**

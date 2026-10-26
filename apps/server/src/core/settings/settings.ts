@@ -36,6 +36,9 @@ export const settingKeys = {
   updateChannel: 'updates.channel',
   /** Result of the last `check_updates` (`UpdateCheckRecord`): survives restarts. */
   updateLastCheck: 'updates.last_check',
+  // §7.4 scans.
+  /** Version of the name analysis rules the names were last read with (`NAMING_RULES_VERSION`). */
+  namingRulesVersion: 'scanner.naming_rules_version',
   // §15 notifications.
   /** When `scan/needs_review_count` was last raised (daily while "To review" is not empty). */
   needsReviewNotifiedAt: 'notifications.needs_review_notified_at',

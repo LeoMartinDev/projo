@@ -344,7 +344,7 @@ Generic titles: a season or an episode whose name is only its number (`Saison 2`
 - Per-library settings, all visible on the design's creation screen: watch folders (watcher), scan interval, quiet period, detect intro and credits (`detect_segments`), extract embedded subtitles during analysis (`pre_extract_subtitles`, otherwise on first playback), generate playback bar previews (`trickplay_enabled`), metadata language (empty = server setting), country for ratings (`rating_country`, default FR), profiles with access.
 - A file belongs to exactly one library (its root's). Two roots cannot overlap, within the same library or across libraries (validated on creation).
 - Roots are absolute container paths. The admin picks them through a server-side file browser (navigation from `/`, folders only) or by typing the path.
-- The `hint` steers the classifier: `movies` forces the movie classification for any file whose name has no explicit episode pattern; `series` forces episode; `auto` lets it decide.
+- The `hint` steers the classifier (§8.2 "Classification"): `movies` forces the movie classification for any file whose name has no explicit episode pattern; `series` forces episode; `auto` lets it decide. Changing it reads every name of the library again (full scan).
 - Users never see libraries. They see **Movies** and **Shows** aggregated over the libraries their profile can access, filtered by the profile's maximum rating.
 
 ### 7.2 Pipeline of a source
@@ -393,7 +393,9 @@ Three triggers, a single scan per library at a time, concurrent requests coalesc
 | Watcher | Recursive `fs.watch` on each root, if `watch_enabled` | Queues the touched paths and moves the next incremental scan to "now + 5 s" (debounce). Never authoritative on its own. |
 | Periodic incremental | Every `scan_interval_minutes` (default 15) | Walks the folders; only goes down into those whose mtime changed since the last scan or that are unknown. Compares the files found with the `sources` table. |
 | Manual | Admin button per library: "Scan" (incremental) or "Full scan" (read everything again, names included, reclassified if the parser changed, re-probe sources whose signature changed, retry matching of `unmatched` ones) | |
-| Startup | When the server starts | Incremental scan of all libraries, after 10 s |
+| Startup | When the server starts | Incremental scan of all libraries, after 10 s; a full scan instead (kind `rules_update`) when the name analysis rules changed since the last start (a version number of the parser, stored in `settings`) |
+
+A full scan reads every name again. A file whose new reading changes its classification (movie ↔ episode) loses an automatic identification and is identified again from its new reading; a manual correction keeps its classification and its identification.
 
 The watcher can be turned off per library, and will be off by default on network mounts in v2 (detected by FS type).
 
@@ -431,9 +433,14 @@ A source becomes `match_state = needs_review` with a `review_reason` when:
 - the show is found but not the season or episode (`episode_not_found`);
 - absolute numbering on a show with several seasons (`absolute_numbering`);
 - dated episode (`date_based`);
-- the library hint contradicts the name pattern (`hint_conflict`).
+- an explicit episode pattern in a `movies` library (`hint_conflict`);
+- an episode without an episode number (`no_episode_number`): a `series` library or a season folder, but no number read in the name.
+
+The parser reasons (`classification_ambiguous`, `date_based`, `hint_conflict`, `no_episode_number`) are never sent to TMDB automatically: they wait for the admin. The "To review" list shows the files present on the disk (`ready`); a missing or pending file leaves it until it is back.
 
 In "To review", the admin can: search a TMDB title and assign it (movie, or show + season + episode), declare "it's a movie" / "it's an episode of…", or hide the source. Each correction is saved in `manual_matches` and takes precedence over automatic matching on all later scans.
+
+"It's an episode of…", when the admin keeps the season and episode read from the file name, also identifies with the same show the other files to review of the same series (same show name read from the names) found in the same show folder of the same library root (the folder above the season folder, otherwise the file's folder), each with its own season and episode numbers; those the show lacks stay in "To review" (`episode_not_found`). Numbers typed over the file name's apply to that file alone. All files are checked with TMDB first: nothing is written if one fails; a file hidden, moved or identified in the meantime is left alone. A file without an episode number belongs to no series and is identified alone. The dialog then says how many files were identified and how many stay to review.
 
 A `needs_review` file stays visible and playable (under its local item, title taken from the name) until it is corrected.
 
@@ -455,9 +462,9 @@ projo accepts the union of the Jellyfin and Infuse conventions, minus what is ou
 |---|---|---|
 | Flat file | yes | `Movies/Inception (2010).mkv` |
 | Folder per movie | yes, the file may have a different name from the folder | `Movies/Inception (2010)/Inception.2010.1080p.BluRay.x264-GRP.mkv` |
-| Year | first `19xx` or `20xx` preceded by a delimiter (`space . _ - ( ) [ ]`), not followed by digits or a date; everything after it is dropped | `Inception.2010.1080p` → title `Inception`, year 2010 |
+| Year | a `19xx` or `20xx` preceded by a delimiter (`space . _ - ( ) [ ]`) and something before it, not followed by digits or a date, not part of a range (`1977-2019`), before the release tags; with several, the last one in parentheses or brackets, otherwise the last one (`Blade Runner 2049 (2017)`, `Blade.Runner.2049.2017`). Everything after it is dropped | `Inception.2010.1080p` → title `Inception`, year 2010 |
 | Without year | yes, matching on the title alone with a stricter threshold | `Inception.mkv` |
-| Release name cleanup | cuts at the first token of the Jellyfin list (`1080p 720p 2160p 4k x264 x265 h264 h265 hevc bluray bdrip brrip web-dl webrip hdtv dvdrip proper repack multi subs unrated extended limited internal remux …`) plus the French tokens `vostfr vff vfq vfi vf2 truefrench french multi`; removes a leading `[group]`, and any `[...]` after the title, even before the year (`Avatar [FR-EN] (2009)`); dots and underscores become spaces | `[GRP] Le.Fabuleux.Destin.d'Amélie.Poulain.2001.FRENCH.1080p.mkv` → `Le Fabuleux Destin d'Amélie Poulain`, 2001 |
+| Release name cleanup | the title ends at the first release tag. Two lists (`core/naming/title.ts`): **tags**, never title words, always cut (resolutions `1080p` `4k`, codecs `x265` `hevc`, sources `bluray` `web-dl` `hdtv` `hdlight` `4klight` `bdremux` `tvrip` `hdcam`, audio `ac3` `dts` `truehd` `atmos`, platforms `amzn` `nf`… French `vostfr` `vosta` `vff` `vfq` `vfi` `vf2` `truefrench` `multifrench`); **words** that can also be title words (`multi french vf vo fr hd fhd sd web cam proper repack extended unrated limited internal subs`…) cut only when nothing but tags, a year, a `[...]` or the end follows them (`The.French.Dispatch.MULTi.1080p` → `The French Dispatch`). Removes a leading `[group]`, and any `[...]` after the title, even before the year (`Avatar [FR-EN] (2009)`); dots and underscores become spaces except in acronyms (`S.W.A.T`) | `[GRP] Le.Fabuleux.Destin.d'Amélie.Poulain.2001.FRENCH.1080p.mkv` → `Le Fabuleux Destin d'Amélie Poulain`, 2001 |
 | Id tag | `tmdbid`, `tmdb`, `imdbid`, `imdb`, `tvdbid`, `tvdb`, between `[]`, `()` or `{}`, separator `-` or `=`, on the folder or the file. An IMDb or TVDB id is resolved to a TMDB id through `/find`. A tag skips the search. | `Inception (2010) [tmdbid-27205].mkv`, `Inception {imdb-tt1375666}.mkv` |
 | Edition | `{edition-Label}` (Plex, Infuse, Radarr), kept as is (`editionName`), or one of the Infuse labels recognised alone after a separator, stored as an id (`editionIds`, web label `editions.<id>`): `Director's Cut` → `directors_cut`, `Extended Cut`, `Extended Edition` or `Extended Collector's Edition` → `extended`, `Theatrical Cut` → `theatrical`, `Final Cut` → `final_cut`, `Unrated Cut` → `unrated`, `Uncut` → `uncut`, `Special Edition` → `special_edition`, `Ultimate Edition` → `ultimate_edition`, `IMAX` → `imax`, `Remastered` → `remastered` | `Blade Runner (1982) {edition-Final Cut}.mkv`, `Blade Runner (1982) - Director's Cut.mkv` |
 | Multiple versions | by TMDB identity: any file matching the same movie is a version, wherever it is | `Dune (2021) - 2160p.mkv` + `Dune (2021) - 1080p.mkv` |
@@ -469,19 +476,22 @@ projo accepts the union of the Jellyfin and Infuse conventions, minus what is ou
 | Case | Accepted | Example |
 |---|---|---|
 | Show folder | recommended: `Name (year) [tmdbid-id]`, year and tag optional | `Shows/Breaking Bad (2008) [tmdbid-1396]/` |
-| Season folder | `Season 01`, `Season 1`, `S01`, `Saison 1`, `Staffel 1`, `Temporada 1`, `Stagione 1`, `Series 1`, Jellyfin's multilingual keywords, a purely numeric folder `01`, with an optional title after the number | `Saison 2 - La fuite/` |
+| Season folder | `Season 01`, `Season 1`, `S01`, `Saison 1`, `Staffel 1`, `Temporada 1`, `Stagione 1`, `Series 1`, Jellyfin's multilingual keywords, with an optional title after the number; a purely numeric folder `01` (digits only) only below another folder (`24/` at the root is a show) | `Saison 2 - La fuite/` |
 | Specials | `Season 00`, `Season 0`, `Specials`. **Not** `Extras` (that is an extras folder, §8.5) | |
-| Episode patterns | `S01E02` with optional ` . _ -` separators between S and E, `s1e2`, `S01.E02`, `S01xE02`, `1x02`, `se1.ep2`, `season1.episode2`, `Season 1 Episode 2`, `S03 E09`, `Episode 02` or `02 - Title` or `02.Title` under a season folder, `01.02 Title` (season.episode) under a show folder | `Dexter.S04E02.Remains.to.Be.Seen.HDTV.mkv` |
-| Episode without a season folder, in the show folder | yes; season read from the name, otherwise 1 | `Fleabag/Fleabag S02E01.mkv` |
-| Flat episode at the root | yes; show name = what precedes the pattern, cleaned like a movie title | `Misc/The.Bear.S03E01.1080p.WEB.mkv` → show `The Bear` |
+| Show name | the folder above the season folder; otherwise what precedes the episode number in the file name, cleaned like a movie title; otherwise (the name starts with the number) the file's folder. A folder carrying an id tag always names the show; the folder's year and id tag complete a name it matches | `Misc/The.Bear.S03E01.1080p.WEB.mkv` → `The Bear`; `Dexter/Season 4/02 - Title.mkv` → `Dexter` |
+| Explicit patterns | anywhere, in any library: `S01E02` with optional ` . _ -` separators between S and E, `s1e2`, `S01.E02`, `S01xE02`, `S03 E09`, `1x02`, `se1.ep2`, `season1.episode2`, `Season 1 Episode 2`; `01.02 Title` (season.episode) in a folder. An episode number placed before the pattern changes nothing: the pattern wins | `Dexter.S04E02.Remains.to.Be.Seen.HDTV.mkv` |
+| Show context | a `series` library, or a season folder above the file. There, in this order: `Episode 02`, `Ep 02`, `E02`; the first `Name - 12`; a number starting the name (`02 - Title`, `02.Title`, `02`); the last standalone number before the release tags (`Name 64`, `Mob Psycho 100 05`). Never a year (`19xx`/`20xx`), a resolution, a codec number (`x264`, `H.265`), a channel layout (`5.1`) or a number of the folder's title | `Fullmetal Alchemist Brotherhood 64 HD Multi.mkv` → episode 64 |
+| Season | the season folder; otherwise the name: `S02E05`, `2x05`, or a season marker right before the episode number (`S2 - 05`, `Saison 2 - 05`, `Season 2 05`, not part of the show name); otherwise 1 | `Shingeki no Kyojin S3 - 05.mkv` → `Shingeki no Kyojin`, season 3, episode 5 |
+| Absolute numbering | a number read after the show name (`Name 64`, `Name - 64`) with no season is absolute: assigned if the show has only one season on TMDB, otherwise `needs_review` (`absolute_numbering`); `Episode 02`, `02 - Title` and numbers with a season are episodes of that season. Outside a show context, only `Name - 12` and `Name 101` (3 or 4 digits) in a folder named like the show are absolute (`Naruto/Naruto - 101.mkv`); `Name - 12` elsewhere is `unknown`; any other number belongs to the title (`Fahrenheit.451.mkv`, `OSS.117.mkv` → movies). True absolute mapping: v2 | |
+| Episode title | what follows an explicit pattern or a number starting the name (`S04E02.Remains.to.Be.Seen`, `02 - Title`), or what follows ` - ` after a number read after the show name (`Name - 12 - Title`), cleaned like a movie title; nothing else (`Name 64 HD` has none) | |
+| No number | an episode of a show context without any number goes to "To review" (`no_episode_number`) | `The Bear/Season 3/The.Bear.Tomorrow.mkv` |
 | Multi-episodes | `S01E01-E02`, `S01E01E02`, `S01E01-02`, `1x01-1x02`, `Episode 16-17`; the end number is rejected if followed by digits or `p`/`i` (avoids `S09E14-1080p`) or if lower than the start number | |
-| Absolute numbering | patterns `Name - 101`, `[Group] Name - 12 [1080p]`, `Name 101` detected; if the show has only one season on TMDB, assigned; otherwise `needs_review` (`absolute_numbering`). True absolute mapping: v2 | |
 | Dated episode | `2017.04.20`, `2017-04-20`, `20.04.2017` detected, `needs_review` (`date_based`). Support: v2 | |
-| Safeguard | a season between 200 and 1927 or beyond 2500 is invalid (avoids `1920x1080` read as S1920E1080); an `NxNN` preceded by a channel layout and whose number is a codec (264 to 266) is not an episode, nor is `H.264`/`H.265` an absolute numbering | `Furiosa.2024.DDP5.1x265-GRP.mkv` → movie |
+| Safeguard | a season between 200 and 1927 or beyond 2500 is invalid (avoids `1920x1080` read as S1920E1080); an `NxNN` preceded by a channel layout and whose number is a codec (264 to 266) is not an episode | `Furiosa.2024.DDP5.1x265-GRP.mkv` → movie |
 | Versions of an episode | by TMDB identity, like movies | `S01E01 - 1080p.mkv` + `S01E01 - 2160p.mkv` |
 | Miniseries | season 1 | |
 
-Classification (`auto`): an episode pattern (§8.2 "Episode patterns" row) in the file name or a season folder above = `episode`. An episode number placed before the pattern changes nothing: the pattern wins. Otherwise `movie`. Absolute numbering cases without a show folder are `unknown`.
+Classification: in a `movies` library, a movie, unless an explicit pattern (episode, `hint_conflict`); in a `series` library, an episode (`no_episode_number` without a number). In `auto`: an explicit pattern or a season folder above = `episode`; absolute numbering in a folder named like the show = `episode`; a dated name = `episode` (`date_based`) in a folder, `unknown` at the root; `Name - 12` elsewhere = `unknown`; otherwise `movie`.
 
 ### 8.3 External subtitles
 

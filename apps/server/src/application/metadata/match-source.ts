@@ -22,6 +22,7 @@ const PARSER_REVIEW_REASONS = new Set<ReviewReason>([
   'classification_ambiguous',
   'date_based',
   'hint_conflict',
+  'no_episode_number',
 ])
 
 type Deps = {

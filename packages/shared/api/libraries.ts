@@ -27,7 +27,10 @@ export const rootErrorReasons = [
 export const rootErrorReasonSchema = z.enum(rootErrorReasons)
 export type RootErrorReason = z.infer<typeof rootErrorReasonSchema>
 
-/** What triggered a scan (§7.4). `initial`: the first scan of a library, right after its creation. */
+/**
+ * What triggered a scan (§7.4). `initial`: the first scan of a library, right after its creation;
+ * `rules_update`: the startup scan reading every name again after the analysis rules changed.
+ */
 export const scanKindSchema = z.enum([
   'watch',
   'periodic',
@@ -35,6 +38,7 @@ export const scanKindSchema = z.enum([
   'manual_full',
   'startup',
   'initial',
+  'rules_update',
 ])
 export type ScanKind = z.infer<typeof scanKindSchema>
 

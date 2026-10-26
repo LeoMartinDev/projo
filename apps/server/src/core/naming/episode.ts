@@ -118,11 +118,11 @@ export const findExplicitEpisode = (value: string): EpisodeHit | undefined => {
 }
 
 const EPISODE_KEYWORD = new RegExp(
-  String.raw`${NOT_WORD_BEFORE}(?:episode|épisode|ep)${SEP}(\d{1,4})(?!\d)`,
+  String.raw`${NOT_WORD_BEFORE}(?:(?:episode|épisode|ep)${SEP}|e)(\d{1,4})(?!\d)`,
   'iu',
 )
 
-/** `Episode 02`, `Episode 16-17` (needs folder context). */
+/** `Episode 02`, `Ep 02`, `E02`, `Episode 16-17` (needs a show context). */
 export const findEpisodeKeyword = (value: string): EpisodeHit | undefined => {
   const match = EPISODE_KEYWORD.exec(value) ?? undefined
   if (match === undefined) return undefined
@@ -139,7 +139,7 @@ export const findEpisodeKeyword = (value: string): EpisodeHit | undefined => {
 
 const LEADING_NUMBER = /^(\d{1,3})(?=$|[\s._]*-|\.|[\s_]+\D)/u
 
-/** `02 - Titre`, `02.Titre`, `02` (needs a season folder). */
+/** `02 - Titre`, `02.Titre`, `02` (needs a show context). */
 export const findLeadingNumber = (value: string): EpisodeHit | undefined => {
   const match = LEADING_NUMBER.exec(value.trimStart()) ?? undefined
   if (match === undefined) return undefined
@@ -158,37 +158,50 @@ export const findSeasonDotEpisode = (value: string): EpisodeHit | undefined => {
   return toHit(0, match[0].length, Number(match[1]), episode, undefined)
 }
 
-const ABSOLUTE_AFTER = String.raw`(?:v\d)?(?=[\s._\-()\[\]]|$)`
-const ABSOLUTE_DASH = new RegExp(String.raw`[\s._]+-[\s._]+(\d{1,4})${ABSOLUTE_AFTER}`, 'gu')
-const ABSOLUTE_BARE = new RegExp(String.raw`[\s._]+(\d{3,4})${ABSOLUTE_AFTER}`, 'gu')
+const NUMBER_AFTER = String.raw`(?:v\d)?(?=[\s._\-()\[\]]|$)`
+const DASH_NUMBER = new RegExp(String.raw`[\s._]+-[\s._]+(\d{1,4})${NUMBER_AFTER}`, 'gu')
+const BARE_NUMBER = new RegExp(String.raw`[\s._]+(\d{1,4})${NUMBER_AFTER}`, 'gu')
 const RESOLUTION_NUMBERS = new Set(['480', '576', '720', '1080', '2160'])
 const YEAR_LIKE = /^(?:19|20)\d{2}$/u
+/** Audio channel layouts (`5.1`, `7.1.4`, `2.0`): their digits are not episode numbers. */
+const CHANNEL_LAYOUT = /(?<!\d)\d\.\d(?:\.\d)?(?!\d)/gu
+
+const overlapsChannelLayout = (value: string, start: number, end: number): boolean =>
+  [...value.matchAll(CHANNEL_LAYOUT)].some(
+    (layout) => layout.index < end && start < layout.index + layout[0].length,
+  )
+
+/** Numbers after a name that may be episode numbers: never a year, a resolution, a codec or a channel layout. */
+const numbersAfterName = (
+  value: string,
+  pattern: RegExp,
+  form: AbsoluteHit['form'],
+): AbsoluteHit[] =>
+  [...value.matchAll(pattern)].flatMap((match) => {
+    const digits = match[1] ?? ''
+    const end = match.index + match[0].length
+    const before = value.slice(0, match.index)
+    if (before.trim() === '' || YEAR_LIKE.test(digits)) return []
+    if (form === 'bare' && RESOLUTION_NUMBERS.has(digits)) return []
+    if (form === 'bare' && overlapsChannelLayout(value, match.index, end)) return []
+    if (CODEC_NUMBER.test(digits) && CODEC_LETTER_BEFORE.test(before)) return []
+    return [{ index: match.index, end, number: Number(digits), digits, form }]
+  })
+
+/** `Name - 12`, `[Group] Name - 12 [1080p]` (group already stripped): every one, in order. */
+export const findDashNumbers = (value: string): AbsoluteHit[] =>
+  numbersAfterName(value, DASH_NUMBER, 'dash')
+
+/** Standalone numbers after a name (`Name 64`, `Mob Psycho 100 05`), in order. */
+export const findBareNumbers = (value: string): AbsoluteHit[] =>
+  numbersAfterName(value, BARE_NUMBER, 'bare')
 
 /**
- * `Name - 101`, `[Group] Name - 12 [1080p]` (group already stripped), `Name 101`.
- * The bare form needs 3-4 digits so that sequels (`Toy Story 3`, `Apollo 13`) are not read as episodes.
+ * Absolute numbering outside a show context (§8.2): `Name - 101`, or `Name 101` with 3-4 digits
+ * so that sequels (`Toy Story 3`, `Apollo 13`) stay titles.
  */
-export const findAbsoluteNumber = (value: string): AbsoluteHit | undefined => {
-  const find = (pattern: RegExp, form: AbsoluteHit['form']): AbsoluteHit | undefined => {
-    for (const match of value.matchAll(pattern)) {
-      const digits = match[1] ?? ''
-      if (value.slice(0, match.index).trim() === '') continue
-      if (YEAR_LIKE.test(digits)) continue
-      if (form === 'bare' && RESOLUTION_NUMBERS.has(digits)) continue
-      if (CODEC_NUMBER.test(digits) && CODEC_LETTER_BEFORE.test(value.slice(0, match.index)))
-        continue
-      return {
-        index: match.index,
-        end: match.index + match[0].length,
-        number: Number(digits),
-        digits,
-        form,
-      }
-    }
-    return undefined
-  }
-  return find(ABSOLUTE_DASH, 'dash') ?? find(ABSOLUTE_BARE, 'bare')
-}
+export const findAbsoluteNumber = (value: string): AbsoluteHit | undefined =>
+  findDashNumbers(value)[0] ?? findBareNumbers(value).find((hit) => hit.digits.length >= 3)
 
 const DATE_YMD = /(?<!\d)((?:19|20)\d{2})[.\-_ ](\d{2})[.\-_ ](\d{2})(?!\d)/u
 const DATE_DMY = /(?<!\d)(\d{2})[.-](\d{2})[.-]((?:19|20)\d{2})(?!\d)/u
@@ -249,6 +262,24 @@ const SEASON_NUMBER_FIRST = new RegExp(
 )
 const SEASON_NUMERIC = /^\d{1,3}$/u
 const SPECIALS = /^(?:specials?|spéciaux)$/iu
+
+const SEASON_MARKER_BEFORE = new RegExp(
+  String.raw`(?<![\p{L}\d])(?:${SEASON_KEYWORDS})[\s._]*(\d{1,4})[\s._-]*$`,
+  'iu',
+)
+
+/**
+ * `S2 - 05`, `Saison 2 - 05`, `Season 2 05`: a season marker ending the text before an episode
+ * number (§8.2 "Season"). `index`: where the marker starts (the show name ends before it).
+ */
+export const findSeasonMarker = (
+  before: string,
+): { readonly index: number; readonly season: number } | undefined => {
+  const match = SEASON_MARKER_BEFORE.exec(before) ?? undefined
+  if (match === undefined || before.slice(0, match.index).trim() === '') return undefined
+  const season = Number(match[1])
+  return isValidSeason(season) ? { index: match.index, season } : undefined
+}
 
 export type SeasonFolder = { readonly season: number; readonly title?: string }
 

@@ -45,7 +45,8 @@ export type ParsedName = {
 }
 
 /** Review reasons the parser can decide on its own (§7.8). `absolute_numbering` needs TMDB and is left to the matcher. */
-export type NamingReviewReason = 'classification_ambiguous' | 'hint_conflict' | 'date_based'
+export type NamingReviewReason =
+  'classification_ambiguous' | 'hint_conflict' | 'date_based' | 'no_episode_number'
 
 export type MediaPathAnalysis = {
   readonly classification: Classification

@@ -16,6 +16,7 @@ export const reviewReasonSchema = z.enum([
   'absolute_numbering',
   'date_based',
   'hint_conflict',
+  'no_episode_number',
 ])
 export type ReviewReason = z.infer<typeof reviewReasonSchema>
 
@@ -69,7 +70,8 @@ const positive = z.number().int().min(0).max(100_000)
  * - `movie`: "it's a movie" + the chosen TMDB movie;
  * - `episode`: "it's an episode of…": the TMDB series, season and episode default to what the
  *   file name says (season 1 when it says nothing); a multi-episode file keeps its span from
- *   that episode on;
+ *   that episode on. On a source keeping its file name's
+ *   numbers, the other files to review of its series in the same show folder follow (§7.8);
  * - `series` (rematch of a series item only): every episode file of the item moves to that
  *   series, same season and episode numbers.
  */
@@ -87,8 +89,9 @@ export type AssignBody = z.infer<typeof assignBodySchema>
 
 /**
  * Result of an assignment or a rematch: the sources touched and the items they now belong to.
- * `needsReview` (rematch of a series): episode files the new series has no episode for, left in
- * "To review" (`episode_not_found`) while the others moved.
+ * `needsReview` (rematch of a series, episode of a source with other files to review): episode
+ * files the series has no episode for, left in "To review" (`episode_not_found`) while the others
+ * moved.
  */
 export const assignResponseSchema = z.object({
   sourceIds: z.array(z.string()),

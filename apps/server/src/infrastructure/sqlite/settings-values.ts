@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { NeedsReviewReminderStore } from '../../core/notifications/notification.ts'
+import type { NamingRulesVersionStore } from '../../core/scanner/ports.ts'
 import {
   defaultServerName,
   type ServerNameStore,
@@ -31,6 +32,21 @@ export const createSqliteServerNameStore = ({ db }: { db: Db }): ServerNameStore
     return parsed.success ? parsed.data : defaultServerName
   },
   write: ({ name, at }) => write(db, settingKeys.serverName, name, at),
+})
+
+const versionSchema = z.number().int().positive()
+
+/** `scanner.naming_rules_version` (§7.4 "Startup"); unset or invalid reads as never read. */
+export const createSqliteNamingRulesVersionStore = ({
+  db,
+}: {
+  db: Db
+}): NamingRulesVersionStore => ({
+  read: () => {
+    const parsed = versionSchema.safeParse(read(db, settingKeys.namingRulesVersion))
+    return parsed.success ? parsed.data : undefined
+  },
+  write: ({ version, at }) => write(db, settingKeys.namingRulesVersion, version, at),
 })
 
 const instantSchema = z.iso.datetime({ offset: true })

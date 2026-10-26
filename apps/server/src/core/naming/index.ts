@@ -1,4 +1,4 @@
-export { analyzeMediaPath } from './analyze'
+export { analyzeMediaPath, NAMING_RULES_VERSION, showFolderOf } from './analyze'
 export {
   findAbsoluteNumber,
   findAirDate,

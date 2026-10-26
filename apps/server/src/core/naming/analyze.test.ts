@@ -114,6 +114,20 @@ describe('films : noms de release réels', () => {
     ['Fahrenheit 451/Fahrenheit 451.mkv', { title: 'Fahrenheit 451' }],
     ['Apollo 13/Apollo.13.1080p.mkv', { title: 'Apollo 13' }],
     ['Toy.Story.3.1080p.mkv', { title: 'Toy Story 3' }],
+    // a number outside a show folder belongs to the title (§8.2 "Absolute numbering")
+    ['OSS.117.Rio.ne.répond.plus.mkv', { title: 'OSS 117 Rio ne répond plus' }],
+    ['Films/Fahrenheit.451.1080p.mkv', { title: 'Fahrenheit 451' }],
+    ['The 355.mkv', { title: 'The 355' }],
+    ['(500) Days of Summer (2009).mkv', { title: '(500) Days of Summer', year: 2009 }],
+    // tags that are never title words, and title-like words at the end
+    ['Le.Film.MULTi.HDLight.mkv', { title: 'Le Film' }],
+    [
+      'The.Informer.2019.MULTi.1080p.HDLight.x264.AC3-EXTREME.mkv',
+      { title: 'The Informer', year: 2019 },
+    ],
+    ['Under the Skin 2013 MULTIFRENCH 1080p x264.mkv', { title: 'Under the Skin', year: 2013 }],
+    ['Le.Film.VOSTA.mkv', { title: 'Le Film' }],
+    ['Le Film FR HD.mkv', { title: 'Le Film' }],
   ])('%s', (path, parsed) => {
     const result = analyze(path)
     expect(result.classification).toBe('movie')
@@ -231,15 +245,26 @@ describe('épisodes : noms de release réels', () => {
     ],
     ['Bleach/Season 2/Bleach - 21.mkv', { series: 'Bleach', season: 2, episode: 21 }],
     ['Bleach/Bleach 265.mkv', { series: 'Bleach', absoluteEpisode: 265 }],
+    // SubsPlease / fansub naming of later seasons
     [
-      'The Bear/Season 3/The.Bear.Tomorrow.1080p.WEB.DDP.5.1.H.265-GRP.mkv',
-      { series: 'The Bear', season: 3 },
+      'Shingeki no Kyojin/[SubsPlease] Shingeki no Kyojin S3 - 05 (1080p) [ABCD1234].mkv',
+      { series: 'Shingeki no Kyojin', season: 3, episode: 5 },
     ],
   ])('%s', (path, parsed) => {
     const result = analyze(path)
     expect(result.classification).toBe('episode')
     expect(result.parsed).toEqual(parsed)
     expect(result.reviewReason).toBeUndefined()
+  })
+
+  test('dossier saison sans numéro dans le nom : à vérifier, pas de numéro', () => {
+    expect(
+      analyze('The Bear/Season 3/The.Bear.Tomorrow.1080p.WEB.DDP.5.1.H.265-GRP.mkv'),
+    ).toMatchObject({
+      classification: 'episode',
+      parsed: { series: 'The Bear', season: 3 },
+      reviewReason: 'no_episode_number',
+    })
   })
 })
 
@@ -288,12 +313,12 @@ describe('indice de librairie', () => {
   })
 
   describe('series : épisode forcé', () => {
-    test('nom de film : épisode sans numéro, hint_conflict', () => {
+    test('nom de film : épisode sans numéro, no_episode_number', () => {
       expect(analyze('Inception (2010).mkv', 'series')).toEqual({
         classification: 'episode',
         parsed: { series: 'Inception', year: 2010 },
         displayTitle: 'Inception',
-        reviewReason: 'hint_conflict',
+        reviewReason: 'no_episode_number',
       })
     })
 
@@ -323,11 +348,6 @@ describe('cas ambigus : unknown', () => {
     [
       'Downloads/Naruto - 101.mkv',
       { title: 'Naruto - 101', series: 'Naruto', absoluteEpisode: 101 },
-    ],
-    // a real film whose number looks absolute: prudent, goes to review
-    [
-      'OSS.117.Rio.ne.répond.plus.mkv',
-      { title: 'OSS 117 Rio ne répond plus', series: 'OSS', absoluteEpisode: 117 },
     ],
     // dated episode at the root
     ['Show.20.04.2017.mkv', { title: 'Show', airDate: '2017-04-20' }],

@@ -31,6 +31,16 @@ const STRONG_RELEASE_TOKENS = sticky(
     'blu-?ray',
     'bdrip',
     'brrip',
+    'bdremux',
+    'hdlight',
+    String.raw`\d+klight`,
+    'mhd',
+    'sdr',
+    'dv',
+    'dolby',
+    'tvrip',
+    'hdcam',
+    'camrip',
     String.raw`bd(?:5|9|25|50)`,
     'hddvd',
     'remux',
@@ -51,6 +61,7 @@ const STRONG_RELEASE_TOKENS = sticky(
     'atvp',
     'hmax',
     'pcok',
+    'nf',
     String.raw`(?:ddp?|e?ac3|aac|dts|truehd|flac|opus|mp3|atmos)[\d.]*`,
     'h-?sbs',
     'half-(?:sbs|ou)',
@@ -61,7 +72,9 @@ const STRONG_RELEASE_TOKENS = sticky(
     String.raw`read\.?nfo`,
     'nfofix',
     'vostfr',
+    'vosta',
     'vost',
+    String.raw`multi-?french`,
     'vff',
     'vfq',
     'vfi',
@@ -87,6 +100,10 @@ const WEAK_RELEASE_TOKENS = sticky(
     'subs?',
     'french',
     'vf',
+    'vo',
+    'fr',
+    'f?hd',
+    'sd',
     'german',
     'swedish',
     'dutch',
@@ -212,9 +229,17 @@ const fixCasing = (value: string): string => {
   return value
 }
 
-const TRIM_EDGES = /^[\s._\-,([{]+|[\s._\-,([{:]+$/gu
+const TRIM_EDGES = /^[\s._\-,]+|[\s._\-,([{:]+$/gu
 
+const OPENERS: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}' }
 const CLOSERS: Readonly<Record<string, string>> = { ')': '(', ']': '[', '}': '{' }
+
+/** `(Untitled` loses its bracket, `(500) Days of Summer` keeps its own. */
+const dropUnmatchedOpeners = (value: string): string => {
+  const closer = OPENERS[value[0] ?? '']
+  if (closer === undefined || value.includes(closer)) return value
+  return dropUnmatchedOpeners(value.slice(1).replace(/^[\s._\-,]+/u, ''))
+}
 
 /** `GRP]` (leftover of a stripped `[GRP]`) loses its bracket, `The Office (US)` keeps its own. */
 const dropUnmatchedClosers = (value: string): string => {
@@ -232,7 +257,7 @@ export const prettifyTitle = (slice: string): string => {
     .replace(TRIM_EDGES, '')
     .replace(/\s+-$/u, '')
     .trim()
-  return fixCasing(dropUnmatchedClosers(spaced))
+  return fixCasing(dropUnmatchedClosers(dropUnmatchedOpeners(spaced)))
 }
 
 type Token = { readonly index: number; readonly text: string }
@@ -281,6 +306,11 @@ const yearAt = (value: string, token: Token): YearHit | undefined => {
 
 const matchesAt = (pattern: RegExp, value: string, index: number): RegExpExecArray | undefined =>
   pattern.exec(value.slice(index)) ?? undefined
+
+/** Where the release tags that are never title words start (`1080p`, `x265`…); the length when none. */
+export const releaseTagIndex = (value: string): number =>
+  tokenize(value).find((t) => matchesAt(STRONG_RELEASE_TOKENS, value, t.index))?.index ??
+  value.length
 
 export type TitleFragment = {
   readonly title: string

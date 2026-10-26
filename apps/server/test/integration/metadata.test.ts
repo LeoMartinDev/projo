@@ -436,6 +436,118 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(sourceRow('Rushes.mkv')).toMatchObject({ state: 'ready', match_state: 'needs_review' })
   })
 
+  test('"c\'est un épisode de…" takes along the other files to review of the series', async () => {
+    await world.setKey()
+    place('Ours/Season 1/Ours.S01E01.mkv')
+    place('Ours/Season 1/Ours.S01E02.mkv')
+    place('Ours/Season 1/Ours.S01E09.mkv')
+    place('Autre/Season 1/Autre.S01E01.mkv')
+    // Same show name, another show folder: left alone.
+    place('Rangement/Ours/Season 1/Ours.S01E03.mkv')
+    await createLibrary('series')
+    await settle()
+    expect(sourceRow('Ours.S01E02.mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'no_match',
+    })
+    const e01 = sourceRow('Ours.S01E01.mkv')
+    const e02 = sourceRow('Ours.S01E02.mkv')
+    const e09 = sourceRow('Ours.S01E09.mkv')
+
+    const assigned = await world.request(`/sources/${e01?.id}/assign`, {
+      method: 'POST',
+      json: { kind: 'episode', seriesTmdbId: 136315 },
+    })
+    expect(assigned.status).toBe(200)
+    const body = (await assigned.json()) as AssignResponse
+    expect(body.sourceIds.toSorted()).toEqual([e01?.id ?? '', e02?.id ?? ''].toSorted())
+    // The Bear has 8 episodes in season 1: E09 stays in "To review".
+    expect(body.needsReview).toEqual([
+      { sourceId: e09?.id ?? '', seasonNumber: 1, episodeNumber: 9 },
+    ])
+    expect(sourceRow('Ours.S01E02.mkv')?.match_state).toBe('manual')
+    expect(sourceRow('Ours.S01E09.mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'episode_not_found',
+    })
+    // Another series, or the same name in another show folder, is left alone.
+    expect(sourceRow('Autre.S01E01.mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'no_match',
+    })
+    expect(sourceRow('Ours.S01E03.mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'no_match',
+    })
+    expect(
+      world.query<{ episode_number: number }>(
+        'SELECT episode_number FROM manual_matches ORDER BY episode_number',
+      ),
+    ).toEqual([{ episode_number: 1 }, { episode_number: 2 }])
+    expect(
+      items()
+        .filter((row) => row.kind === 'series' && row.tmdb_id === 136315)
+        .map((row) => row.id),
+    ).toHaveLength(1)
+  })
+
+  test('"c\'est un épisode de…" with typed numbers: that file alone', async () => {
+    await world.setKey()
+    place('Ours/Season 1/Ours.S01E01.mkv')
+    place('Ours/Season 1/Ours.S01E02.mkv')
+    await createLibrary('series')
+    await settle()
+    const e01 = sourceRow('Ours.S01E01.mkv')
+
+    const assigned = await world.request(`/sources/${e01?.id}/assign`, {
+      method: 'POST',
+      json: { kind: 'episode', seriesTmdbId: 136315, seasonNumber: 1, episodeNumber: 5 },
+    })
+    expect(assigned.status).toBe(200)
+    const body = (await assigned.json()) as AssignResponse
+    expect(body).toMatchObject({ sourceIds: [e01?.id ?? ''], needsReview: [] })
+    expect(sourceRow('Ours.S01E02.mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'no_match',
+    })
+    // E01, identified already, does not follow E02.
+    const again = await world.request(`/sources/${sourceRow('Ours.S01E02.mkv')?.id}/assign`, {
+      method: 'POST',
+      json: { kind: 'episode', seriesTmdbId: 136315, seasonNumber: 1, episodeNumber: 2 },
+    })
+    expect(((await again.json()) as AssignResponse).sourceIds).toHaveLength(1)
+  })
+
+  test('a library type change re-reads an identified file as the other kind (§7.4)', async () => {
+    await world.setKey()
+    place('Inception (2010).mkv')
+    const library = await createLibrary()
+    await settle()
+    const source = sourceRow('Inception (2010).mkv')
+    expect(source?.match_state).toBe('matched')
+
+    const changed = await world.request(`/libraries/${library.id}`, {
+      method: 'PATCH',
+      json: { hint: 'series' },
+    })
+    expect(changed.status).toBe(200)
+    await world.runJobs(['scan_library'])
+    await world.runJobs(['match_source'])
+    expect(sourceRow('Inception (2010).mkv')).toMatchObject({
+      match_state: 'needs_review',
+      review_reason: 'no_episode_number',
+    })
+    // No longer the movie: no number, so no local episode either.
+    expect(linksOf(source?.id ?? '')).toEqual([])
+
+    await world.request(`/libraries/${library.id}`, { method: 'PATCH', json: { hint: 'auto' } })
+    await world.runJobs(['scan_library'])
+    await world.runJobs(['match_source'])
+    expect(sourceRow('Inception (2010).mkv')?.match_state).toBe('matched')
+    const linked = items().find((row) => row.id === linksOf(source?.id ?? '')[0])
+    expect(linked).toMatchObject({ kind: 'movie', tmdb_id: 27205 })
+  })
+
   test('a hidden file stays hidden through full scans, shown again with its correction', async () => {
     await world.setKey()
     place('Dune.mkv')

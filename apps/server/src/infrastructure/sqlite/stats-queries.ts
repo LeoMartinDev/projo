@@ -36,7 +36,7 @@ export const createSqliteStatsQueries = ({ db }: { db: Db }): StatsQueries => ({
       (SELECT count(DISTINCT sn.parent_id) FROM items e CROSS JOIN items sn ON sn.id = e.parent_id
         WHERE e.kind = 'episode' AND ${ready('e')}) AS series,
       (SELECT count(*) FROM sources WHERE state = 'pending') AS pending,
-      (SELECT count(*) FROM sources WHERE match_state = 'needs_review') AS needsReview,
+      (SELECT count(*) FROM sources WHERE match_state = 'needs_review' AND state = 'ready') AS needsReview,
       (SELECT count(*) FROM sources WHERE state = 'missing') AS missing`)
     if (row === undefined) throw new Error('stats query returned no row')
     return {

@@ -101,8 +101,8 @@ export type AdminSourcesRoutes = ReturnType<typeof adminSourcesRoutes>
  * "To review" actions (§7.8, journey 5), built by the metadata module and mounted at
  * `/api/v1/admin` next to `adminSourcesRoutes`:
  * - `POST /sources/:id/assign`: "it's a movie" (`{ kind: 'movie', tmdbId }`) or "it's an episode
- *   of…" (`{ kind: 'episode', seriesTmdbId, seasonNumber?, episodeNumber? }`), remembered in
- *   `manual_matches`;
+ *   of…" (`{ kind: 'episode', seriesTmdbId, seasonNumber?, episodeNumber? }`, the other files to
+ *   review of its series and show folder along when the numbers are the file name's), remembered in `manual_matches`;
  * - `POST /sources/:id/reject`: hides it (`state = rejected`), scans included;
  * - `POST /sources/:id/restore`: shows a hidden source again (204; 409 `source/not_rejected`).
  */

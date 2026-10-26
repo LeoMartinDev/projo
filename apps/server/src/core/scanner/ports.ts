@@ -19,7 +19,14 @@ export const emptyScanStats = (): ScanStats => ({
  * Re-read everything (no directory cache, every ready source relinked): a manual full scan, and
  * the first scan of a library, which has nothing to compare with.
  */
-export const isFullScan = (kind: ScanKind): boolean => kind === 'manual_full' || kind === 'initial'
+export const isFullScan = (kind: ScanKind): boolean =>
+  kind === 'manual_full' || kind === 'initial' || kind === 'rules_update'
+
+/** The name analysis rules version the names were last read with (§7.4 "Startup"). */
+export type NamingRulesVersionStore = {
+  read: () => number | undefined
+  write: (input: { version: number; at: Date }) => void
+}
 
 export type ScanRun = {
   id: string

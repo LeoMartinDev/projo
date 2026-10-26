@@ -96,7 +96,8 @@ export const matchStateFor = (
 
 /**
  * Naming columns of a (re-)parsed path. An identified source keeps its state and has no review
- * reason; a manual correction also keeps its classification (§7.8: "it's a movie" survives
+ * reason, unless an automatic identification sees its classification change (§7.4: identified
+ * again); a manual correction also keeps its classification (§7.8: "it's a movie" survives
  * every later scan); a hidden source never goes back to "To review".
  */
 const namingFields = (
@@ -108,10 +109,13 @@ const namingFields = (
   matchState: MatchState
   reviewReason: NamingReviewReason | undefined
 } => {
+  // §7.4: an automatic identification does not survive a change of classification.
+  const reclassified =
+    current?.matchState === 'matched' && current.classification !== analysis.classification
   const matchState =
     current?.state === 'rejected'
       ? 'unmatched'
-      : matchStateFor(current?.matchState, analysis.reviewReason)
+      : matchStateFor(reclassified ? undefined : current?.matchState, analysis.reviewReason)
   return {
     classification:
       current?.matchState === 'manual' ? current.classification : analysis.classification,

@@ -5,7 +5,7 @@ import { reviewQueryKey } from '../identify/queries.ts'
 
 const pageSize = 50
 
-/** The "To review" queue (§7.8): sources with `match_state = needs_review`. */
+/** The "To review" queue (§7.8): files present on the disk with `match_state = needs_review`. */
 export const reviewQuery = infiniteQueryOptions({
   queryKey: [...reviewQueryKey, 'list'],
   initialPageParam: '',
@@ -13,6 +13,7 @@ export const reviewQuery = infiniteQueryOptions({
     request(() =>
       api.admin.sources.$get({
         query: {
+          state: 'ready',
           matchState: 'needs_review',
           limit: String(pageSize),
           ...(pageParam === '' ? {} : { cursor: pageParam }),
@@ -27,7 +28,9 @@ export const reviewCountQuery = queryOptions({
   queryKey: [...reviewQueryKey, 'count'],
   queryFn: async () => {
     const page = await request(() =>
-      api.admin.sources.$get({ query: { matchState: 'needs_review', limit: '1' } }),
+      api.admin.sources.$get({
+        query: { state: 'ready', matchState: 'needs_review', limit: '1' },
+      }),
     )
     return page.total
   },

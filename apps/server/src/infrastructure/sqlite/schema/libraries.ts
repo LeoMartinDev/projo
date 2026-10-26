@@ -95,6 +95,7 @@ export const sources = sqliteTable(
         'absolute_numbering',
         'date_based',
         'hint_conflict',
+        'no_episode_number',
       ],
     }),
     versionLabel: text(),
@@ -153,7 +154,15 @@ export const scanRuns = sqliteTable(
       .notNull()
       .references(() => libraries.id, { onDelete: 'cascade' }),
     kind: text({
-      enum: ['watch', 'periodic', 'manual_quick', 'manual_full', 'startup', 'initial'],
+      enum: [
+        'watch',
+        'periodic',
+        'manual_quick',
+        'manual_full',
+        'startup',
+        'initial',
+        'rules_update',
+      ],
     }).notNull(),
     startedAt: text().notNull(),
     finishedAt: text(),

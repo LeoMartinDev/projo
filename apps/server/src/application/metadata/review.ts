@@ -10,7 +10,7 @@ import type {
   MetadataSettings,
 } from '../../core/metadata/ports.ts'
 import type { TmdbApi, TmdbError, TmdbSearchHit } from '../../core/metadata/tmdb.ts'
-import { analyzeMediaPath, MIN_VIDEO_SIZE_BYTES } from '../../core/naming/index.ts'
+import { analyzeMediaPath, MIN_VIDEO_SIZE_BYTES, showFolderOf } from '../../core/naming/index.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { matchStateFor } from '../../core/scanner/scan-plan.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
@@ -209,6 +209,40 @@ export const reviewFactory = ({
   const sourceNotFound = (id: string) =>
     err(appError('source/not_found', 'source not found', { context: { id } }))
 
+  /** A file listed in "To review": waiting for a decision and present on the disk (§7.8). */
+  const awaitsReview = (source: Source): boolean =>
+    source.matchState === 'needs_review' && source.state === 'ready'
+
+  /**
+   * The other files to review linked to episodes of the same series as this source, in the same
+   * library root and show folder (§7.8).
+   */
+  const reviewSiblings = (source: Source) => {
+    const episode = items.linkedItems(source.id).find((item) => item.kind === 'episode')
+    const season = episode?.parentId === undefined ? undefined : items.findItem(episode.parentId)
+    if (season?.parentId === undefined) return []
+    const folder = showFolderOf(source.relativePath)
+    return items.sourcesUnder(season.parentId).flatMap((link) => {
+      const sibling =
+        link.sourceId === source.id ? undefined : sourceRepository.findById(link.sourceId)
+      return sibling !== undefined &&
+        awaitsReview(sibling) &&
+        sibling.rootId === source.rootId &&
+        showFolderOf(sibling.relativePath) === folder
+        ? [{ sibling, link }]
+        : []
+    })
+  }
+
+  /** The admin kept the season and episode the file name gives (none typed over them). */
+  const keepsOwnNumbers = (prepared: Extract<Prepared, { kind: 'matched' }>): boolean => {
+    const { parsed } = prepared.source
+    return (
+      prepared.at?.seasonNumber === (parsed.season ?? 1) &&
+      prepared.at.episodeNumber === (parsed.episode ?? parsed.absoluteEpisode)
+    )
+  }
+
   return {
     /** `GET /admin/tmdb/search`. */
     search: (input: {
@@ -231,7 +265,14 @@ export const reviewFactory = ({
           })
     },
 
-    /** `POST /admin/sources/:id/assign`: "it's a movie" / "it's an episode of…". */
+    /**
+     * `POST /admin/sources/:id/assign`: "it's a movie" / "it's an episode of…". An episode keeping
+     * the numbers of its file name takes along the other files to review of its series (same root,
+     * same show folder), each with its own numbers; those the chosen series lacks stay in "To
+     * review" (`episode_not_found`). Every file is checked against TMDB first: nothing is written
+     * if one of them fails. Files taken along are read again when writing: one hidden, moved or
+     * identified meanwhile is left alone.
+     */
     assignSource: async (input: {
       sourceId: string
       assignment: Assignment
@@ -241,11 +282,49 @@ export const reviewFactory = ({
       if (source === undefined) return sourceNotFound(input.sourceId)
       const prepared = await prepare(source, input.assignment)
       if (!prepared.ok) return prepared
-      if (prepared.value.kind === 'not_found') return episodeNotFound(prepared.value)
-      const applied = commit(prepared.value, input.accountId)
-      requestImages(jobQueue, applied.enriched)
-      logger.info('source assigned', { sourceId: source.id, itemIds: applied.itemIds })
-      return ok({ sourceIds: [source.id], itemIds: applied.itemIds, needsReview: [] })
+      const main = prepared.value
+      if (main.kind === 'not_found') return episodeNotFound(main)
+      const siblings: Prepared[] = []
+      if (input.assignment.kind === 'episode' && keepsOwnNumbers(main)) {
+        const along: Assignment = { kind: 'episode', seriesTmdbId: input.assignment.seriesTmdbId }
+        for (const { sibling, link } of reviewSiblings(source)) {
+          const checked = await prepare(sibling, along, link)
+          if (!checked.ok) return checked
+          siblings.push(checked.value)
+        }
+      }
+      const sourceIds: string[] = []
+      const itemIds = new Set<string>()
+      const enriched: string[] = []
+      const needsReview: EpisodeNotFound[] = []
+      const write = (entry: Extract<Prepared, { kind: 'matched' }>) => {
+        const applied = commit(entry, input.accountId)
+        sourceIds.push(entry.source.id)
+        for (const id of applied.itemIds) itemIds.add(id)
+        enriched.push(...applied.enriched)
+      }
+      items.transaction(() => {
+        write(main)
+        for (const entry of siblings) {
+          const fresh = sourceRepository.findById(entry.source.id)
+          if (fresh === undefined || !awaitsReview(fresh)) continue
+          if (fresh.rootId !== source.rootId || fresh.relativePath !== entry.source.relativePath)
+            continue
+          if (entry.kind === 'matched') {
+            write({ ...entry, source: fresh })
+            continue
+          }
+          applyMatch.review(fresh.id, 'episode_not_found')
+          needsReview.push({ sourceId: fresh.id, ...entry.at })
+        }
+      })
+      requestImages(jobQueue, enriched)
+      logger.info('source assigned', {
+        sourceId: source.id,
+        sourceIds,
+        needsReview: needsReview.length,
+      })
+      return ok({ sourceIds, itemIds: [...itemIds], needsReview })
     },
 
     /** `POST /admin/sources/:id/reject` (§7.8 "Hide"): out of every list and scan until restored. */
