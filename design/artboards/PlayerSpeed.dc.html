@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Projo — Lecteur, vitesse</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0;background:#000000}
+a{color:#F4F4F5}a:hover{color:#FFFFFF}
+:focus-visible{outline:2px solid #F4F4F5;outline-offset:3px}
+@keyframes drift{from{transform:scale(1.02) translateX(0)}to{transform:scale(1.06) translateX(-1.5%)}}
+@keyframes menuIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+.scene{animation:drift 30s ease-in-out infinite alternate}
+.menu{animation:menuIn .38s cubic-bezier(.2,.7,.2,1) both}
+.ctl{transition:background-color .2s ease,transform .2s ease}
+.ctl:hover{background:rgba(255,255,255,.1)}
+.ctl:active{transform:scale(.94)}
+.mclose{transition:background-color .2s ease,color .2s ease,transform .2s ease}
+.mclose:hover{background:rgba(255,255,255,.14)!important;color:#F4F4F5!important}
+.mclose:active{transform:scale(.94)}
+.sfill{transition:width .18s cubic-bezier(.2,.7,.2,1)}
+.sthumb{transition:left .18s cubic-bezier(.2,.7,.2,1),transform .2s ease}
+.sctl:active .sthumb{transform:scale(1.2)}
+.sctl:focus-visible{outline:none}
+.sctl:focus-visible .sthumb{outline:2px solid #F4F4F5;outline-offset:3px}
+.slab{transition:background-color .2s ease,color .2s ease}
+.slab:hover{background:rgba(255,255,255,.08);color:#F4F4F5}
+.slab[data-current="true"]{background:rgba(255,255,255,.16);color:#FFFFFF}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="position: relative; height: 100vh; min-height: 560px; overflow: hidden; background: #000000; color: #F4F4F5; font-family: 'Geist', system-ui, sans-serif;">
+
+  <div aria-hidden="true" style="position: absolute; inset: 0; overflow: hidden;">
+    <div class="scene" style="position: absolute; inset: 0; background: radial-gradient(30% 40% at 66% 38%, rgba(242,181,68,.38) 0%, rgba(242,181,68,0) 70%), linear-gradient(180deg, #3A5570 0%, #1D3044 52%, #0C141E 100%);">
+      <svg viewBox="0 0 1440 400" preserveAspectRatio="none" style="position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 50%;"><path d="M0 110 C 220 70, 380 150, 600 112 S 980 60, 1200 100 S 1380 128, 1440 100 L 1440 400 L 0 400 Z" fill="#132232" fill-opacity="0.85"></path><path d="M0 220 C 260 180, 460 250, 760 210 S 1220 170, 1440 214 L 1440 400 L 0 400 Z" fill="#0A1119"></path></svg>
+      <svg viewBox="0 0 60 220" style="position: absolute; left: 22%; bottom: 44%; width: 3.2%; height: auto;"><path d="M22 0 h16 l4 200 h-24 z" fill="#0B141D"></path><rect x="20" y="6" width="20" height="14" fill="#F2D49A"></rect></svg>
+    </div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 16px; padding: 24px clamp(16px, 3vw, 40px); background: linear-gradient(180deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 100%);">
+    <a class="ctl" href="Series.dc.html" aria-label="Quitter la lecture" style="width: 44px; height: 44px; border-radius: 999px; color: #F4F4F5; display: flex; align-items: center; justify-content: center;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"></path></svg>
+    </a>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; gap: 14px; padding: 72px clamp(16px, 3vw, 40px) 24px; background: linear-gradient(0deg, rgba(0,0,0,.8) 0%, rgba(0,0,0,0) 100%);">
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <div role="slider" tabindex="0" aria-label="Position de lecture" aria-valuemin="0" aria-valuemax="2832" aria-valuenow="760" aria-valuetext="12:40 sur 47:12" style="position: relative; flex: 1 1 auto; height: 20px; display: flex; align-items: center; cursor: pointer;">
+        <span style="position: relative; display: block; width: 100%; height: 4px; border-radius: 999px; background: rgba(255,255,255,.2); overflow: hidden;">
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 35%; background: rgba(255,255,255,.22);"></span>
+          <span style="position: absolute; left: 1%; top: 0; bottom: 0; width: 2.5%; background: rgba(255,255,255,.28);"></span>
+          <span style="position: absolute; left: 96%; top: 0; bottom: 0; width: 4%; background: rgba(255,255,255,.28);"></span>
+          <span style="position: absolute; left: 0; top: 0; bottom: 0; width: 26.8%; background: {{accent}};"></span>
+        </span>
+        <span aria-hidden="true" style="position: absolute; left: 26.8%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 1px 6px rgba(0,0,0,.4);"></span>
+      </div>
+      <span style="font-size: 13px; font-variant-numeric: tabular-nums; color: #D4D4D8; white-space: nowrap;">−34:32</span>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+      <button class="ctl" type="button" aria-label="Pause" style="width: 48px; height: 48px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="currentColor"></rect><rect x="14" y="4.5" width="4" height="15" rx="1" fill="currentColor"></rect></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Reculer de 10 secondes" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"></path><path d="M4 4v4h4"></path><text x="12" y="15.2" text-anchor="middle" font-size="7" font-family="Geist, sans-serif" font-weight="600" fill="currentColor" stroke="none">10</text></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Avancer de 10 secondes" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"></path><path d="M20 4v4h-4"></path><text x="12" y="15.2" text-anchor="middle" font-size="7" font-family="Geist, sans-serif" font-weight="600" fill="currentColor" stroke="none">10</text></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Couper le son" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"></path><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"></path></svg>
+      </button>
+
+      <div style="flex: 1 1 120px; min-width: 0; display: flex; justify-content: center; gap: 10px; font-size: 15px; white-space: nowrap; overflow: hidden;">
+        <span style="font-weight: 600;">Les Marées basses</span>
+        <span style="color: #A1A1AA; overflow: hidden; text-overflow: ellipsis;">S2 · É4 «&#8239;Coefficient 112&#8239;»</span>
+      </div>
+
+      <a class="ctl" href="PlayerNext.dc.html" aria-label="Épisode suivant" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 5v14l10-7z" fill="currentColor"></path><path d="M18.5 5v14" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+      </a>
+      <a class="ctl" href="Series.dc.html" aria-label="Liste des épisodes" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="14" height="12" rx="2"></rect><path d="M7 4h12a2 2 0 0 1 2 2v10"></path></svg>
+      </a>
+      <a class="ctl" href="PlayerChapters.dc.html" aria-label="Chapitres" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6.5h11M9 12h11M9 17.5h11"></path><path d="M4.5 6.5h.01M4.5 12h.01M4.5 17.5h.01" stroke-width="2.4"></path></svg>
+      </a>
+      <a class="ctl" href="Player.dc.html" aria-label="Vitesse" style="width: 44px; height: 44px; border-radius: 999px; background: rgba(255,255,255,.1); color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.2 17.5a8.5 8.5 0 1 1 15.6 0"></path><path d="M12 14l3.5-4.5"></path><circle cx="12" cy="14" r="1.2" fill="currentColor" stroke="none"></circle></svg>
+      </a>
+      <a class="ctl" href="PlayerQuality.dc.html" aria-label="Qualité" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h8.5M16.5 7.5H20M4 16.5h3.5M11.5 16.5H20"></path><circle cx="14.5" cy="7.5" r="2"></circle><circle cx="9.5" cy="16.5" r="2"></circle></svg>
+      </a>
+      <a class="ctl" href="PlayerLanguages.dc.html" aria-label="Sous-titres et audio" style="width: 44px; height: 44px; border-radius: 999px; color: #FFFFFF; display: flex; align-items: center; justify-content: center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M7 12.5h3M12.5 12.5H17M7 15.5h6"></path></svg>
+      </a>
+      <button class="ctl" type="button" aria-label="Picture-in-Picture" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none"></rect></svg>
+      </button>
+      <button class="ctl" type="button" aria-label="Plein écran" style="width: 44px; height: 44px; border-radius: 999px; border: 0; background: transparent; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="menu" role="dialog" aria-label="Vitesse" style="position: absolute; right: clamp(16px, 3vw, 40px); bottom: 108px; z-index: 6; display: flex; flex-direction: column; width: min(300px, calc(100% - 32px)); overflow: hidden; border-radius: 22px; background: linear-gradient(180deg, rgba(34,34,40,.66), rgba(18,18,22,.74)); -webkit-backdrop-filter: blur(44px) saturate(180%) brightness(.58); backdrop-filter: blur(44px) saturate(180%) brightness(.58); box-shadow: inset 0 0 0 1px rgba(255,255,255,.11), inset 0 1px 0 rgba(255,255,255,.18), 0 24px 70px rgba(0,0,0,.5); transform-origin: 85% 100%;">
+    <div style="display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 8px 4px 18px;">
+      <h2 style="margin: 0; font-size: 15px; font-weight: 600;">Vitesse</h2>
+      <a class="mclose" href="Player.dc.html" aria-label="Fermer" style="display: flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; background: rgba(255,255,255,.07); color: #A1A1AA;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+      </a>
+    </div>
+
+    <div aria-hidden="true" style="padding: 0 0 12px; font-size: 34px; font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; text-align: center;">{{value}}<span style="color: #A1A1AA; font-weight: 500;">×</span></div>
+
+    <div style="margin: 0 8px 8px; padding: 6px 26px 12px; border-radius: 14px; background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05);">
+      <div class="sctl" role="slider" tabindex="0" aria-label="Vitesse" aria-valuemin="0.5" aria-valuemax="2" aria-valuenow="{{rate}}" aria-valuetext="{{valueText}}" onKeyDown="{{onKey}}" onClick="{{onTrack}}" style="position: relative; height: 36px; cursor: pointer; touch-action: none;">
+        <span aria-hidden="true" style="position: absolute; top: 50%; left: 0; right: 0; height: 4px; margin-top: -2px; border-radius: 999px; background: rgba(255,255,255,.18);">
+          <span class="sfill" style="position: absolute; top: 0; bottom: 0; left: 0; width: {{thumb}}; border-radius: inherit; background: {{accent}};"></span>
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+            <span style="position: absolute; top: 50%; left: {{s.left}}; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 999px; background: rgba(255,255,255,.45); opacity: {{s.detentOpacity}};"></span>
+          </sc-for>
+        </span>
+        <span class="sthumb" aria-hidden="true" style="position: absolute; top: 50%; left: {{thumb}}; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,.45);"></span>
+      </div>
+      <div aria-hidden="true" style="position: relative; height: 28px; margin-top: 4px;">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+          <button class="slab" type="button" tabindex="-1" data-current="{{s.current}}" onClick="{{s.pick}}" style="position: absolute; top: 0; left: {{s.left}}; min-width: 44px; height: 28px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: #A1A1AA; font-family: inherit; font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600; transform: translateX(-50%); cursor: pointer;">{{s.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F4F4F5","options":["#F4F4F5","#7C83FF","#FF5A5F","#3DDC97"]},"$preview":{"width":1440,"height":810}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rate: 1 };
+  }
+  renderVals() {
+    const rates = [0.5, 1, 1.5, 2];
+    const rate = this.state.rate;
+    const ratioOf = (r) => (r - 0.5) / 1.5;
+    const label = (r) => String(r).replace('.', ',');
+    const nearest = (ratio) => {
+      const raw = 0.5 + Math.min(1, Math.max(0, ratio)) * 1.5;
+      return rates.reduce((best, r) => (Math.abs(r - raw) < Math.abs(best - raw) ? r : best));
+    };
+    const step = (direction) => {
+      const index = rates.indexOf(rate) + direction;
+      return rates[Math.min(rates.length - 1, Math.max(0, index))];
+    };
+    const thumbRatio = ratioOf(rate);
+    return {
+      accent: this.props.accent ?? '#F4F4F5',
+      rate,
+      value: label(rate),
+      valueText: label(rate) + '×',
+      thumb: (thumbRatio * 100).toFixed(2) + '%',
+      steps: rates.map((r) => ({
+        label: label(r),
+        left: (ratioOf(r) * 100).toFixed(2) + '%',
+        detentOpacity: ratioOf(r) <= thumbRatio ? 0 : 1,
+        current: r === rate ? 'true' : 'false',
+        pick: () => this.setState({ rate: r })
+      })),
+      onTrack: (event) => {
+        const box = event.currentTarget.getBoundingClientRect();
+        this.setState({ rate: nearest((event.clientX - box.left) / box.width) });
+      },
+      onKey: (event) => {
+        const key = event.key;
+        const next = key === 'ArrowRight' || key === 'ArrowUp' || key === 'PageUp' ? step(1)
+          : key === 'ArrowLeft' || key === 'ArrowDown' || key === 'PageDown' ? step(-1)
+          : key === 'Home' ? rates[0]
+          : key === 'End' ? rates[rates.length - 1]
+          : undefined;
+        if (next === undefined) return;
+        event.preventDefault();
+        this.setState({ rate: next });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

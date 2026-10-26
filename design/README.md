@@ -1,6 +1,6 @@
 # Reference design
 
-Source: the "Projo — media server" design canvas (version of 2026-10-23, "UI kit v2" and onboarding revision). The artboards are copied as is in `artboards/` (`.dc.html` format, one file per screen, `canvas.json` = index and layout). The canvas remains the editable version; after a change, copy the files here again.
+Source: the "Projo — media server" design canvas (version of 2026-10-23, "UI kit v2" and onboarding revision; player menus added on 2026-10-26, drawn from the web player). The artboards are copied as is in `artboards/` (`.dc.html` format, one file per screen, `canvas.json` = index and layout). The canvas remains the editable version; after a change, copy the files here again.
 
 The revised artboards load a stylesheet and illustrations hosted by the canvas (`/_blob/<id>`). They are copied in `artboards/blobs/` under their id:
 
@@ -29,6 +29,11 @@ The artboards are in French, the reference language of the interface; labels bel
 | `Series.dc.html` | Show page: Resume, My list, From the beginning, underlined season tabs, episode list with progress, Mark all as watched | §13.5 |
 | `Player.dc.html` | Player: bar with segment zones, controls, "Skip intro" with an 8 s bar, Undo toast | §10.7, §12.4 |
 | `PlayerNext.dc.html` | Player, end of episode: shrunk video, next episode card, Next episode / Watch the credits | §10.7, §12.4 |
+| `PlayerChapters.dc.html` | Player — Chapters menu: list with start times, the current chapter highlighted | §10.7 |
+| `PlayerSpeed.dc.html` | Player — Speed menu: the speed in large, slider on four steps (0.5×, 1×, 1.5×, 2×) in a card, steps as chips | §10.7 |
+| `PlayerQuality.dc.html` | Player — Quality menu: Version (when the item has several) then Quality (Original, 1080p, 720p, 480p) | §7.7, §10.2 |
+| `PlayerLanguages.dc.html` | Player — Subtitles and audio, wide: two columns, tags (Forced, SDH, Image) and details, size and delay card under the subtitles, subtitles shown beside the menu | §10.4, §10.7 |
+| `MobilePlayerLanguages.dc.html` | Mobile — Subtitles and audio, compact: Audio / Subtitles tabs sharing the height of the longer, size and delay side by side | §10.7, §26 |
 | `AdminLibraries.dc.html` | Admin — Libraries: one card per library, Resync, Recent activity | §15 |
 | `AdminAddLibrary.dc.html` | Admin — Add a library: name, content type, folders, analysis options, language, country, profiles with access | §7.1, §15 |
 | `AdminAccounts.dc.html` | Admin — Accounts: list of profiles, role, colour, maximum rating, preferences, PIN | §14, §15 |
@@ -41,6 +46,8 @@ The artboards are in French, the reference language of the interface; labels bel
 | `OnbProfiles.dc.html` | Onboarding 5 — Profiles: admin profile, adding Adult / Kid profiles | §14 |
 | `OnbReady.dc.html` | Onboarding 6 — All set: scrolling poster wall, animated check mark, analysis progress, Open projo / Go to administration | §15 |
 | `Components.dc.html` | UI kit v2: buttons, fields, controls, choice cards | §19 |
+
+The player menus are drawn from the web player as built (`apps/web/src/features/player/PlayerMenus.tsx`, `player.css`): one button per menu in the controls row (chapters when the file has some, speed, quality when there is a choice, subtitles and audio, Picture-in-Picture), smoked glass menus (`blur(44px) saturate(180%) brightness(.58)` over a dark gradient), radius 22 (28 for the wide subtitles menu), a check on the chosen option. `Player.dc.html` still shows the earlier row with a single "Subtitles and audio" button.
 
 ## What the application keeps from the onboarding flow
 

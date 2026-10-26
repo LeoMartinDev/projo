@@ -22,15 +22,21 @@
     "OnbLibrary.dc.html": {"x": 4560, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 4 — Première bibliothèque", "expand": "fill", "is_interactive": true},
     "OnbProfiles.dc.html": {"x": 6080, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 5 — Profils", "expand": "fill", "is_interactive": true},
     "OnbReady.dc.html": {"x": 7600, "y": 4864, "w": 1440, "h": 900, "title": "Onboarding 6 — C'est prêt", "expand": "fill", "is_interactive": true},
-    "Components.dc.html": {"x": 0, "y": 6164, "w": 1440, "h": 2000, "title": "Kit d'interface v2", "expand": "fill", "is_interactive": true}
+    "Components.dc.html": {"x": 0, "y": 6164, "w": 1440, "h": 2000, "title": "Kit d'interface v2", "expand": "fill", "is_interactive": true},
+    "PlayerChapters.dc.html": {"x": 0, "y": 8564, "w": 1440, "h": 810, "title": "Lecteur — chapitres", "expand": "fill", "is_interactive": true},
+    "PlayerSpeed.dc.html": {"x": 1520, "y": 8564, "w": 1440, "h": 810, "title": "Lecteur — vitesse", "expand": "fill", "is_interactive": true},
+    "PlayerQuality.dc.html": {"x": 3040, "y": 8564, "w": 1440, "h": 810, "title": "Lecteur — qualité", "expand": "fill", "is_interactive": true},
+    "PlayerLanguages.dc.html": {"x": 4560, "y": 8564, "w": 1440, "h": 810, "title": "Lecteur — sous-titres et audio", "expand": "fill", "is_interactive": true},
+    "MobilePlayerLanguages.dc.html": {"x": 6080, "y": 8564, "w": 390, "h": 844, "title": "Mobile — sous-titres et audio", "is_interactive": true}
   },
-  "order": ["Main.dc.html", "Home.dc.html", "Series.dc.html", "Player.dc.html", "PlayerNext.dc.html", "AdminLibraries.dc.html", "AdminAddLibrary.dc.html", "AdminAccounts.dc.html", "MobileHome.dc.html", "MobileSeries.dc.html", "OnbWelcome.dc.html", "OnbAccount.dc.html", "OnbServer.dc.html", "OnbLibrary.dc.html", "OnbProfiles.dc.html", "OnbReady.dc.html", "Components.dc.html"],
+  "order": ["Main.dc.html", "Home.dc.html", "Series.dc.html", "Player.dc.html", "PlayerNext.dc.html", "AdminLibraries.dc.html", "AdminAddLibrary.dc.html", "AdminAccounts.dc.html", "MobileHome.dc.html", "MobileSeries.dc.html", "OnbWelcome.dc.html", "OnbAccount.dc.html", "OnbServer.dc.html", "OnbLibrary.dc.html", "OnbProfiles.dc.html", "OnbReady.dc.html", "Components.dc.html", "PlayerChapters.dc.html", "PlayerSpeed.dc.html", "PlayerQuality.dc.html", "PlayerLanguages.dc.html", "MobilePlayerLanguages.dc.html"],
   "notes": {
     "rowViewer": {"x": 0, "y": -300, "text": "Côté spectateur", "kind": "title1", "maxW": 7520},
     "rowAdmin": {"x": 0, "y": 1820, "text": "Administration", "kind": "title1", "maxW": 4480},
     "rowMobile": {"x": 0, "y": 3320, "text": "Mobile", "kind": "title1", "maxW": 860},
     "rowOnboarding": {"x": 0, "y": 4564, "text": "Onboarding administrateur", "kind": "title1", "maxW": 9040},
-    "rowKit": {"x": 0, "y": 5864, "text": "Composants", "kind": "title1", "maxW": 1440}
+    "rowKit": {"x": 0, "y": 5864, "text": "Composants", "kind": "title1", "maxW": 1440},
+    "rowPlayerMenus": {"x": 0, "y": 8264, "text": "Lecteur — menus", "kind": "title1", "maxW": 6470}
   },
   "designSystems": []
 }
