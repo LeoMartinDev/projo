@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text } from 'react-native'
 
 import type { Failure } from '../../shared/api/failure.ts'
 import { Button } from '../../shared/ui/Button.tsx'
+import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'
-import { Screen } from '../../shared/ui/Screen.tsx'
 import { TextField } from '../../shared/ui/TextField.tsx'
 import { textStyles } from '../../shared/ui/text.ts'
 import { useServerConnection } from '../server-connection/ServerConnection.tsx'
@@ -38,16 +37,13 @@ export const PairCodeScreen = () => {
   }
 
   return (
-    <Screen>
-      <Text accessibilityRole="header" style={textStyles.title}>
-        {t('mobile.pair.title')}
-      </Text>
+    <EntryScreen image="forest" pushed title={t('mobile.pair.title')}>
       <TextField
-        accessibilityLabel={t('mobile.pair.codeLabel')}
         autoCapitalize="characters"
         autoComplete="one-time-code"
         autoFocus
         editable={!pair.pending}
+        label={t('mobile.pair.codeLabel')}
         onChangeText={setInput}
         onSubmitEditing={submit}
         placeholder={t('mobile.pair.codePlaceholder')}
@@ -58,7 +54,7 @@ export const PairCodeScreen = () => {
         value={input}
       />
       <ErrorLine error={invalid ?? pair.error} />
-      <Button busy={pair.pending} label={t('mobile.pair.submit')} onPress={submit} />
-    </Screen>
+      <Button busy={pair.pending} label={t('mobile.pair.submit')} onPress={submit} size="large" />
+    </EntryScreen>
   )
 }

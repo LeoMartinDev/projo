@@ -8,6 +8,7 @@ import {
   type MeResponse,
   meResponseSchema,
 } from '@projo/shared/api/auth'
+import type { ProfileDto } from '@projo/shared/api/profiles'
 
 import { type ApiClient, createApiClient, requestApi } from '../../shared/api/client.ts'
 import { getCredentials, setCredentials } from '../../shared/api/credentials.ts'
@@ -76,14 +77,20 @@ type Session = {
   signIn: Action<{ username: string; password: string }>
   /** A pairing code of `serverUrl` → a bearer token (`POST /auth/pairings/claim`, §14). */
   pair: Action<{ serverUrl: string; code: string }>
-  /** `POST /profiles/:id/select`: the profile becomes this device's (§13.6). */
-  selectProfile: Action<string>
+  /** `POST /profiles/:id/select`: the profile becomes this device's (§13.6), PIN checked. */
+  selectProfile: Action<{ id: string; pin?: string }>
+  /** The account's profiles changed (created, deleted): `GET /auth/me` again. */
+  refreshMe: () => Promise<void>
+  /** A profile was saved (`PATCH /profiles/:id`): the session shows it, in its language. */
+  profileSaved: (profile: ProfileDto) => Promise<void>
   switchProfile: () => void
   cancelSwitch: () => void
   retry: () => void
   retrying: boolean
   signOut: () => void
   signingOut: boolean
+  /** Sign out, then forget the server: the connection screen (§26.5 device settings). */
+  changeServer: () => void
 }
 
 const SessionContext = createContext<Session | undefined>(undefined)
@@ -200,11 +207,15 @@ export const SessionProvider = ({
   })
 
   const selectProfile = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, pin }: { id: string; pin?: string }) => {
       if (api === undefined) throw failure('unknown', 'no server')
       const answer = await unwrap(
         requestApi(
-          () => api.profiles[':id'].select.$post({ param: { id }, json: {} }),
+          () =>
+            api.profiles[':id'].select.$post({
+              param: { id },
+              json: pin === undefined ? {} : { pin },
+            }),
           meResponseSchema,
         ),
       )
@@ -229,6 +240,17 @@ export const SessionProvider = ({
     },
   })
 
+  const meData = me.data
+  const profileSaved = async (profile: ProfileDto) => {
+    if (url === undefined || meData === undefined) return
+    const answer = {
+      ...meData,
+      profiles: meData.profiles.map((known) => (known.id === profile.id ? profile : known)),
+    }
+    queryClient.setQueryData([...meKey(url), token ?? ''], answer)
+    await applyMe(answer, store)
+  }
+
   const meError = me.error ?? undefined
   const value: Session = {
     gate: sessionGate({
@@ -247,8 +269,13 @@ export const SessionProvider = ({
     cancelSwitch: () => setSwitching(false),
     retry: () => void me.refetch(),
     retrying: me.isFetching,
+    refreshMe: async () => {
+      await me.refetch()
+    },
+    profileSaved,
     signOut: () => signOut.mutate(),
     signingOut: signOut.isPending,
+    changeServer: () => signOut.mutate(undefined, { onSettled: connection.forget }),
   }
   return <SessionContext value={value}>{children}</SessionContext>
 }

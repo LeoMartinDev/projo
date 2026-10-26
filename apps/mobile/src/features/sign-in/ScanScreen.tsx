@@ -6,8 +6,8 @@ import { ActivityIndicator, Linking, StyleSheet, Text, View } from 'react-native
 import type { Failure } from '../../shared/api/failure.ts'
 import { colors, radii } from '../../shared/styles/tokens.ts'
 import { Button } from '../../shared/ui/Button.tsx'
+import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'
-import { Screen } from '../../shared/ui/Screen.tsx'
 import { textStyles } from '../../shared/ui/text.ts'
 import { useSession } from '../session/Session.tsx'
 import { parsePairingLink } from './pairing-input.ts'
@@ -41,10 +41,7 @@ export const ScanScreen = () => {
   const blocked = permission?.granted === false && !permission.canAskAgain
 
   return (
-    <Screen>
-      <Text accessibilityRole="header" style={textStyles.title}>
-        {t('mobile.scan.title')}
-      </Text>
+    <EntryScreen image="forest" pushed title={t('mobile.scan.title')}>
       {/* Fixed square: the same frame before, during and after the permission (AGENTS.md). */}
       <View style={styles.frame}>
         {granted ? (
@@ -65,11 +62,19 @@ export const ScanScreen = () => {
       </View>
       <ErrorLine error={invalid ?? pair.error} />
       {granted ? undefined : blocked ? (
-        <Button label={t('mobile.scan.openSettings')} onPress={() => void Linking.openSettings()} />
+        <Button
+          label={t('mobile.scan.openSettings')}
+          onPress={() => void Linking.openSettings()}
+          size="large"
+        />
       ) : (
-        <Button label={t('mobile.scan.allow')} onPress={() => void requestPermission()} />
+        <Button
+          label={t('mobile.scan.allow')}
+          onPress={() => void requestPermission()}
+          size="large"
+        />
       )}
-    </Screen>
+    </EntryScreen>
   )
 }
 
@@ -77,9 +82,9 @@ const styles = StyleSheet.create({
   frame: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: radii.panel,
+    borderRadius: radii.well,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: colors.well,
     alignItems: 'center',
     justifyContent: 'center',
   },

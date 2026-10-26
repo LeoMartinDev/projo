@@ -1236,6 +1236,14 @@
       "denied": "Allow projo to use the camera in Settings to scan the code.",
       "openSettings": "Open Settings"
     },
+    "settings": {
+      "title": "Settings",
+      "device": "This device",
+      "server": "Server",
+      "appVersion": "App version",
+      "serverVersion": "Server version",
+      "changeServerText": "You will be signed out of this server on this device."
+    },
     "errors": {
       "connection/invalid_url": "This address is not valid.",
       "connection/not_projo": "No projo server at this address.",
