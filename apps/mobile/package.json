@@ -13,10 +13,13 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "58.0.15",
+    "@projo/i18n": "workspace:*",
     "@projo/shared": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "expo": "58.0.19",
+    "expo-camera": "58.0.12",
     "expo-constants": "58.0.13",
+    "expo-device": "58.0.5",
     "expo-linking": "58.0.14",
     "expo-localization": "58.0.5",
     "expo-router": "58.0.26",

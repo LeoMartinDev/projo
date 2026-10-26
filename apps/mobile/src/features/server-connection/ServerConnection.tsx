@@ -1,11 +1,12 @@
 import type { Result } from '@projo/shared/result'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createContext, type ReactNode, use, useMemo } from 'react'
+import { createContext, type ReactNode, use } from 'react'
 
-import { type ApiClient, createApiClient } from '../../shared/api/client.ts'
-import { checkServerFactory, type ServerStatus } from './check-server.ts'
+import { type Failure, toFailure } from '../../shared/api/failure.ts'
+import { secureSessionStore, type SessionStore } from '../session/session-store.ts'
+import { type CheckServer, checkServerFactory, type ServerStatus } from './check-server.ts'
 import { minimumServerVersion } from './compatibility.ts'
-import { type ConnectionError, toConnectionError } from './connection-error.ts'
+import type { ConnectionError } from './connection-error.ts'
 import { type ConnectionGate, connectionGate } from './connection-gate.ts'
 import { normalizeServerUrl } from './server-url.ts'
 import { secureServerUrlStore, type ServerUrlStore } from './server-url-store.ts'
@@ -18,9 +19,11 @@ const checkServer = checkServerFactory({
 
 const storedUrlKey = ['server-url'] as const
 const healthKey = (url: string) => ['server-health', url] as const
+/** Prefix of every query of the signed-in account: dropped with the server. */
+export const sessionQueryPrefix = 'session'
 
 /** TanStack Query wants a rejection: the `Err` of a `Result` becomes one, as is. */
-const unwrap = async <T, E>(result: Promise<Result<T, E>> | Result<T, E>): Promise<T> => {
+export const unwrap = async <T, E>(result: Promise<Result<T, E>> | Result<T, E>): Promise<T> => {
   const settled = await result
   if (!settled.ok) throw settled.error
   return settled.value
@@ -28,14 +31,17 @@ const unwrap = async <T, E>(result: Promise<Result<T, E>> | Result<T, E>): Promi
 
 type ServerConnection = {
   gate: ConnectionGate
-  /** Typed client of the connected server's `/api/v1`. */
-  api?: ApiClient
   connect: (input: string) => void
   connecting: boolean
-  connectError?: ConnectionError
+  connectError?: Failure
   recheck: () => void
   rechecking: boolean
+  /** Changing server: the URL, the token and the last profile are forgotten. */
   forget: () => void
+  /** `GET <url>/health` of a server that is not (yet) the stored one: a pairing link's (§14). */
+  check: CheckServer
+  /** Keeps `url`, already checked, as the server: what pairing with a scanned code does. */
+  adopt: (url: string, status: ServerStatus) => Promise<Result<void, ConnectionError<'unknown'>>>
 }
 
 const ServerConnectionContext = createContext<ServerConnection | undefined>(undefined)
@@ -47,9 +53,11 @@ const ServerConnectionContext = createContext<ServerConnection | undefined>(unde
 export const ServerConnectionProvider = ({
   children,
   store = secureServerUrlStore,
+  sessionStore = secureSessionStore,
 }: {
   children: ReactNode
   store?: ServerUrlStore
+  sessionStore?: SessionStore
 }) => {
   const queryClient = useQueryClient()
 
@@ -85,35 +93,48 @@ export const ServerConnectionProvider = ({
   })
 
   const forget = useMutation({
-    mutationFn: () => unwrap(store.clear()),
+    mutationFn: async () => {
+      await unwrap(sessionStore.clear())
+      await unwrap(store.clear())
+    },
     onSuccess: () => {
       queryClient.removeQueries({ queryKey: ['server-health'] })
+      queryClient.removeQueries({ queryKey: [sessionQueryPrefix] })
       queryClient.setQueryData(storedUrlKey, {})
       connect.reset()
     },
   })
+
+  const adopt = async (adopted: string, status: ServerStatus) => {
+    const saved = await store.save(adopted)
+    if (saved.ok) {
+      queryClient.setQueryData(healthKey(adopted), status)
+      queryClient.setQueryData(storedUrlKey, { url: adopted })
+      connect.reset()
+    }
+    return saved
+  }
 
   const healthError = health.error ?? undefined
   const gate = connectionGate({
     stored: { loaded: stored.isSuccess, url },
     health: {
       status: health.data,
-      error: healthError === undefined ? undefined : toConnectionError(healthError),
+      error: healthError === undefined ? undefined : toFailure(healthError),
     },
   })
   const connectError = connect.error ?? undefined
 
-  const api = useMemo(() => (url === undefined ? undefined : createApiClient(url)), [url])
-
   const value: ServerConnection = {
     gate,
-    ...(api === undefined ? {} : { api }),
     connect: connect.mutate,
     connecting: connect.isPending,
-    ...(connectError === undefined ? {} : { connectError: toConnectionError(connectError) }),
+    ...(connectError === undefined ? {} : { connectError: toFailure(connectError) }),
     recheck: () => void health.refetch(),
     rechecking: health.isFetching,
     forget: () => forget.mutate(),
+    check: checkServer,
+    adopt,
   }
   return <ServerConnectionContext value={value}>{children}</ServerConnectionContext>
 }

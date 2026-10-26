@@ -1207,6 +1207,41 @@
     "code": "Classification {{code}}",
     "codeOf": "Classification {{code}} ({{country}})"
   },
+  "mobile": {
+    "changeServer": "Changer de serveur",
+    "connect": {
+      "title": "Connexion au serveur",
+      "urlLabel": "Adresse du serveur",
+      "urlPlaceholder": "http://192.168.1.10:8080",
+      "submit": "Se connecter"
+    },
+    "outdated": {
+      "title": "Mettez à jour votre serveur projo",
+      "body": "Cette app a besoin de projo {{minimumVersion}} ou plus récent ; ce serveur est en {{version}}. Un administrateur le met à jour depuis l’administration web.",
+      "checkAgain": "Vérifier à nouveau"
+    },
+    "signIn": {
+      "scan": "Scanner un code",
+      "enterCode": "Saisir un code"
+    },
+    "pair": {
+      "title": "Saisir un code",
+      "codeLabel": "Code",
+      "codePlaceholder": "ABC 234",
+      "submit": "Se connecter"
+    },
+    "scan": {
+      "title": "Scanner un code",
+      "allow": "Autoriser la caméra",
+      "denied": "Autorisez projo à utiliser la caméra dans Réglages pour scanner le code.",
+      "openSettings": "Ouvrir Réglages"
+    },
+    "errors": {
+      "connection/invalid_url": "Cette adresse n’est pas valide.",
+      "connection/not_projo": "Aucun serveur projo à cette adresse.",
+      "pairing/not_a_code": "Ce n’est pas un code projo."
+    }
+  },
   "errors": {
     "network": "Le serveur ne répond pas. Vérifiez votre connexion.",
     "unknown": "Une erreur inattendue est survenue.",

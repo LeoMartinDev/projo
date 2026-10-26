@@ -1,3 +1,5 @@
+import type { AvatarColor } from '@projo/shared/api/profiles'
+
 /**
  * Design tokens of the web (`apps/web/src/shared/styles/tokens.css`, §19) as React Native
  * constants. Dark theme only. Same values: change them in both places.
@@ -23,6 +25,16 @@ export const colors = {
   errorSoft: '#fca5a5',
   warning: '#e5b567',
 } as const
+
+/** Avatar tiles (§13.6), the web's `--avatar-<color>`. */
+export const avatarColors = {
+  slate: '#5f6670',
+  blue: '#5b7fa6',
+  honey: '#b08a3e',
+  sage: '#5e8c72',
+  terracotta: '#a86a55',
+  violet: '#7d6aa6',
+} as const satisfies Record<AvatarColor, string>
 
 export const radii = {
   panel: 28,

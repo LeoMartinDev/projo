@@ -1,10 +1,10 @@
+import type { Failure } from '../../shared/api/failure.ts'
 import type { ServerStatus } from './check-server.ts'
-import type { ConnectionError } from './connection-error.ts'
 
 /** Which screen the app shows, from the stored server URL and the last health check (§26.4). */
 export type ConnectionGate =
   | { readonly kind: 'loading' }
-  | { readonly kind: 'disconnected'; readonly url?: string; readonly error?: ConnectionError }
+  | { readonly kind: 'disconnected'; readonly url?: string; readonly error?: Failure }
   | {
       readonly kind: 'outdated'
       readonly url: string
@@ -19,7 +19,7 @@ export type ConnectionGateInput = {
   /** The last successful check of that URL, and the error of the last one if it failed. */
   readonly health: {
     readonly status?: ServerStatus | undefined
-    readonly error?: ConnectionError | undefined
+    readonly error?: Failure | undefined
   }
 }
 
