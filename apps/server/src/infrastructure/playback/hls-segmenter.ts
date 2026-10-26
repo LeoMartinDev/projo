@@ -1,4 +1,13 @@
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, unlinkSync } from 'node:fs'
+import {
+  accessSync,
+  constants,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  unlinkSync,
+} from 'node:fs'
 import { rename } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -11,6 +20,7 @@ import {
   segmentFileName,
 } from '../../core/playback/hls-playlist.ts'
 import type { Logger } from '../../core/logger.ts'
+import type { AdminNotifier } from '../../core/scanner/ports.ts'
 import type {
   HlsJob,
   HlsSegmenter,
@@ -23,6 +33,7 @@ import {
   type FfmpegFilters,
   outputTimestampOffsetS,
   remuxArgs,
+  tonemaps,
   transcodeArgs,
 } from './ffmpeg-args.ts'
 import {
@@ -40,6 +51,10 @@ type Deps = {
   ffmpegBinary?: string
   /** Optional filters of the binary (HDR tonemapping); detected on the first transcode if absent. */
   filters?: FfmpegFilters
+  /** §10.3 `hw_accel = vaapi`: the render node the container was given. */
+  renderNode?: string
+  /** `playback/hw_accel_failed`, resolved by the next working VAAPI run. */
+  notifier?: AdminNotifier
   /** §10.3: a segment not yet written is awaited this long before 503. */
   waitTimeoutMs?: number
   /** §10.3 production window: a request beyond `current + windowAhead` restarts ffmpeg. */
@@ -63,6 +78,9 @@ type Run = {
   /** ffmpeg reached the end of the file (exit 0, not killed): nothing after `producing` will come. */
   endedCleanly: boolean
   resume: (() => void) | undefined
+  vaapi: boolean
+  /** A VAAPI run that failed before writing anything: the session goes on in software. */
+  fallback: boolean
 }
 
 type SessionState = {
@@ -73,6 +91,8 @@ type SessionState = {
   listeners: Set<() => void>
   /** Set by `stop`: pending requests give up instead of restarting ffmpeg. */
   stopped: boolean
+  /** Decided by the session's first run (`wantsVaapi` + render node); off after a fallback. */
+  vaapi: boolean | undefined
 }
 
 type Pending = { segment: number; parts: Uint8Array[]; complete: boolean }
@@ -90,6 +110,30 @@ export const detectFfmpegFilters = (ffmpegBinary = 'ffmpeg'): FfmpegFilters => {
     return { zscale: hasFilter(listing, 'zscale'), tonemap: hasFilter(listing, 'tonemap') }
   } catch {
     return { zscale: false, tonemap: false }
+  }
+}
+
+/** §10.3: VAAPI is only tried for a transcode without burn-in, when the admin turned it on. */
+export const wantsVaapi = (job: HlsJob): boolean =>
+  job.mode === 'hls_transcode' && job.hwAccel === 'vaapi' && job.transcode.burnIn === undefined
+
+/**
+ * §10.3 fallback: a failed VAAPI run that wrote no `init.mp4` (device, driver or codec refused at
+ * start) is retried in software; once an init exists, the session's encoder cannot change.
+ */
+export const fallsBackToSoftware = (run: {
+  vaapi: boolean
+  exitCode: number
+  killed: boolean
+  initExists: boolean
+}): boolean => run.vaapi && !run.killed && run.exitCode !== 0 && !run.initExists
+
+const usable = (path: string): boolean => {
+  try {
+    accessSync(path, constants.R_OK | constants.W_OK)
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -131,6 +175,8 @@ export const createHlsSegmenter = ({
   keepBehind = 40,
   rememberStopped = 10_000,
   filters,
+  renderNode = '/dev/dri/renderD128',
+  notifier,
 }: Deps): HlsSegmenter => {
   let knownFilters = filters
   const ffmpegFilters = (): FfmpegFilters => {
@@ -246,6 +292,7 @@ export const createHlsSegmenter = ({
               if (video === undefined) throw new Error('no video track in moov')
               const init = fileFor(state, 'init')
               if (!existsSync(init)) await writeAtomically(init, head)
+              if (run.vaapi) notifier?.resolve({ kind: 'playback/hw_accel_failed', key: 'vaapi' })
               wakeAll(state)
             }
           }
@@ -257,7 +304,13 @@ export const createHlsSegmenter = ({
         if (current !== undefined) await finalize(state, current)
         run.endedCleanly = true
       }
-      if (!run.killed && code !== 0) {
+      const initExists = existsSync(fileFor(state, 'init'))
+      if (fallsBackToSoftware({ ...run, exitCode: code, initExists })) {
+        run.failed = true
+        run.fallback = true
+        state.vaapi = false
+        vaapiFailed(job, 'ffmpeg_failed', (await stderr).slice(-2000))
+      } else if (!run.killed && code !== 0) {
         run.failed = true
         logger.error('ffmpeg HLS run failed', {
           code: 'playback/stream_failed',
@@ -283,12 +336,31 @@ export const createHlsSegmenter = ({
     }
   }
 
-  const argsFor = (job: HlsJob, startS: number): string[] => {
+  const vaapiFailed = (
+    job: HlsJob,
+    reason: 'render_node_unavailable' | 'ffmpeg_failed',
+    stderr?: string,
+  ): void => {
+    logger.warn('VAAPI unavailable, transcoding in software', {
+      code: 'playback/hw_accel_failed',
+      sessionId: job.sessionId,
+      reason,
+      renderNode,
+      ...(stderr === undefined ? {} : { stderr }),
+    })
+    notifier?.notify({
+      kind: 'playback/hw_accel_failed',
+      severity: 'warning',
+      key: 'vaapi',
+      context: { reason, renderNode, codec: job.video.codec },
+    })
+  }
+
+  const argsFor = (job: HlsJob, startS: number, vaapi: boolean): string[] => {
     const common = {
       sourcePath: job.sourcePath,
       startS,
       audioDownmix: job.audioDownmix,
-      hwAccel: job.hwAccel,
       ...(job.audio === undefined ? {} : { audio: job.audio }),
     }
     if (job.mode === 'hls_remux') return remuxArgs({ ...common, video: job.video })
@@ -299,16 +371,22 @@ export const createHlsSegmenter = ({
       quality,
       ...(burnIn === undefined ? {} : { burnIn }),
       filters: ffmpegFilters(),
+      ...(vaapi ? { vaapiDevice: renderNode } : {}),
     })
   }
 
   const startRun = (state: SessionState, fromSegment: number): Run | undefined => {
     stopRun(state)
     const { job } = state
+    if (state.vaapi === undefined) {
+      state.vaapi = wantsVaapi(job) && usable(renderNode)
+      if (wantsVaapi(job) && !state.vaapi) vaapiFailed(job, 'render_node_unavailable')
+    }
+    const vaapi = state.vaapi
     try {
       mkdirSync(state.dir, { recursive: true })
       const proc = Bun.spawn({
-        cmd: [ffmpegBinary, ...argsFor(job, job.segments[fromSegment]?.startS ?? 0)],
+        cmd: [ffmpegBinary, ...argsFor(job, job.segments[fromSegment]?.startS ?? 0, vaapi)],
         stdin: 'ignore',
         stdout: 'pipe',
         stderr: 'pipe',
@@ -322,13 +400,24 @@ export const createHlsSegmenter = ({
         failed: false,
         endedCleanly: false,
         resume: undefined,
+        vaapi,
+        fallback: false,
       }
       state.run = run
       logger.debug('ffmpeg HLS run started', {
         sessionId: job.sessionId,
         mode: job.mode,
         fromSegment,
+        vaapi,
       })
+      if (job.mode === 'hls_transcode' && (job.transcode.dynamicRange ?? 'sdr') !== 'sdr') {
+        // §10.3: CPU tone mapping is the costliest transcode; the admin sees why the CPU is busy.
+        logger.info('HDR source transcoded to SDR', {
+          code: 'playback/hdr_tonemap',
+          sessionId: job.sessionId,
+          tonemapped: tonemaps(job.transcode, ffmpegFilters()),
+        })
+      }
       void consume(state, run)
       return run
     } catch (cause) {
@@ -355,6 +444,7 @@ export const createHlsSegmenter = ({
       lastRequested: -1,
       listeners: new Set(),
       stopped: false,
+      vaapi: undefined,
     }
     sessions.set(job.sessionId, state)
     return state
@@ -407,6 +497,8 @@ export const createHlsSegmenter = ({
             }),
           )
         }
+        // Retried in software below, like a run that ended without the segment.
+        if (started?.fallback === true) started = undefined
         if (started !== undefined && started.finished && !started.killed) {
           return err(
             started.failed

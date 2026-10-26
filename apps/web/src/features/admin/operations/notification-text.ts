@@ -82,6 +82,12 @@ export const notificationDetail = (
         ? undefined
         : t('admin.notificationCenter.freeSpace', { size: formatBytes(free, locale) })
     }
+    case 'playback/hw_accel_failed': {
+      const renderNode = text(context, 'renderNode') ?? ''
+      return context.reason === 'render_node_unavailable'
+        ? t('admin.notificationCenter.hwAccelRenderNode', { renderNode })
+        : t('admin.notificationCenter.hwAccelFfmpeg', { codec: text(context, 'codec') ?? '' })
+    }
     case 'metadata/tmdb_key_missing':
     case 'tmdb/unauthorized':
       return undefined
@@ -98,6 +104,7 @@ export const notificationTarget = (
   | '/admin/jobs'
   | '/admin/updates'
   | '/admin/settings/metadata'
+  | '/admin/settings/playback'
   | '/admin/server' => {
   switch (kind) {
     case 'library/root_unreachable':
@@ -119,5 +126,7 @@ export const notificationTarget = (
       return '/admin/settings/metadata'
     case 'cache/disk_low':
       return '/admin/server'
+    case 'playback/hw_accel_failed':
+      return '/admin/settings/playback'
   }
 }

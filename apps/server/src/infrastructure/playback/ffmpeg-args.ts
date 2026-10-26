@@ -4,12 +4,7 @@ import { transcodeSegmentS } from '../../core/playback/hls-playlist.ts'
 import type { BurnInSubtitle, HlsAudio } from '../../core/playback/ports.ts'
 import { fileInput } from './ffprobe.ts'
 
-/**
- * ffmpeg command lines, built by pure functions (§10.3: `hwAccel` is accepted now so that v2
- * only touches this file; v1 only implements `off`, any other value encodes in software).
- */
-
-export type HwAccel = 'off' | 'vaapi' | 'qsv'
+/** ffmpeg command lines, built by pure functions. */
 
 export type AudioDownmix = 'stereo' | 'keep'
 
@@ -73,7 +68,6 @@ export type RemuxArgsInput = {
   video: { index: number; codec: string }
   audio?: HlsAudio
   audioDownmix?: AudioDownmix
-  hwAccel?: HwAccel
 }
 
 /**
@@ -131,6 +125,12 @@ export type FfmpegFilters = { zscale: boolean; tonemap: boolean }
  * the source colour tags kept (right on an HDR screen, washed out elsewhere). Dolby Vision
  * profile 5 (no HDR10 base layer) comes out with wrong colours either way: v2 (libplacebo).
  */
+export const tonemaps = (
+  video: Pick<TranscodeArgsInput['video'], 'dynamicRange'>,
+  filters: FfmpegFilters,
+): boolean =>
+  (video.dynamicRange === 'hdr' || video.dynamicRange === 'dv') && filters.zscale && filters.tonemap
+
 const tonemapChain = [
   'zscale=t=linear:npl=100',
   'format=gbrpf32le',
@@ -139,11 +139,11 @@ const tonemapChain = [
   'zscale=t=bt709:m=bt709:r=tv',
 ]
 
-/** Never upscaled, even dimensions (4:2:0); the aspect ratio kept. */
-const scaleFilter = (quality: PlaybackQuality): string => {
-  if (quality === 'original') return 'scale=trunc(iw/2)*2:trunc(ih/2)*2'
+/** `w:h` options of `scale` and `scale_vaapi`: never upscaled, even (4:2:0), aspect ratio kept. */
+const scaleSize = (quality: PlaybackQuality): string => {
+  if (quality === 'original') return 'trunc(iw/2)*2:trunc(ih/2)*2'
   const { maxWidth, maxHeight } = qualityTargets[quality]
-  return `scale='min(iw,${maxWidth})':'min(ih,${maxHeight})':force_original_aspect_ratio=decrease:force_divisible_by=2`
+  return `'min(iw,${maxWidth})':'min(ih,${maxHeight})':force_original_aspect_ratio=decrease:force_divisible_by=2`
 }
 
 const subtitleInputFormat = { pgs: 'sup', vobsub: 'vobsub' } as const
@@ -167,8 +167,22 @@ export type TranscodeArgsInput = {
   quality: PlaybackQuality
   burnIn?: BurnInSubtitle
   filters: FfmpegFilters
-  hwAccel?: HwAccel
+  /** VAAPI render node (`/dev/dri/renderD128`): the hardware pipeline; ignored with `burnIn`. */
+  vaapiDevice?: string
 }
+
+const vaapiInput = (device: string): string[] => [
+  '-init_hw_device',
+  `vaapi=va:${device}`,
+  '-filter_hw_device',
+  'va',
+  '-hwaccel',
+  'vaapi',
+  '-hwaccel_device',
+  'va',
+  '-hwaccel_output_format',
+  'vaapi',
+]
 
 /**
  * HLS transcode (§10.2, §10.3): H.264 `libx264` `veryfast`, CRF 21 at Original, else the target
@@ -180,9 +194,16 @@ export type TranscodeArgsInput = {
  * early for the audio, the video trimmed to the segment start; timestamps rebased to the source
  * timeline with `-output_ts_offset` (`t` of `-force_key_frames` counts from the first frame).
  *
- * Burn-in (§10.4): `overlay` of the bitmap track (sub2video) on the video, then the scaling:
- * subtitles are drawn at the source resolution. The subtitle canvas is scaled to the video first
- * (a PGS authored at 1080 lines on a cropped 800-line video stays visible, squeezed).
+ * HDR (§10.3): scaled to the quality, then tonemapped to SDR BT.709 (`tonemaps`), tagged BT.709.
+ *
+ * VAAPI (`vaapiDevice`, §10.3): decoded, scaled (`scale_vaapi`, to NV12) and encoded
+ * (`h264_vaapi`, QP 21 at Original, else the target bitrate) on the GPU, the forced IDR every 4 s
+ * kept. HDR: scaled on the GPU keeping 10 bits, downloaded, tonemapped on the CPU like above
+ * (never `tonemap_vaapi`: Gen9 iGPUs have none), uploaded back for the encoder.
+ *
+ * Burn-in (§10.4): `overlay` of the bitmap track (sub2video) on the scaled (and tonemapped)
+ * video. The subtitle canvas is scaled to the video first (a PGS authored at 1080 lines on a
+ * cropped 800-line video stays visible, squeezed).
  * - embedded track: same input, seeked with the video; an event already on screen at the seek
  *   point is lost (the demuxer restarts at the video keyframe), the next ones are in sync.
  * - external `.sup` / VobSub `.idx`: second input read from its start (`-seek_timestamp 1`
@@ -198,29 +219,45 @@ export const transcodeArgs = ({
   quality,
   burnIn,
   filters,
+  vaapiDevice,
 }: TranscodeArgsInput): string[] => {
+  const vaapi = burnIn === undefined ? vaapiDevice : undefined
   const inputStartS = Math.max(0, startS - transcodePrerollS)
   const preroll = startS - inputStartS
   const seek = inputStartS > 0 ? inputStartS.toFixed(6) : undefined
   const trim = preroll > 0 ? [`trim=start=${preroll.toFixed(6)}`] : []
   const external = burnIn?.origin === 'external' ? burnIn : undefined
-  const tonemap =
-    (video.dynamicRange === 'hdr' || video.dynamicRange === 'dv') &&
-    filters.zscale &&
-    filters.tonemap
-  const finish = [scaleFilter(quality), 'format=yuv420p'].join(',')
-  const source = `[0:${video.index}]`
+  const tonemap = tonemaps(video, filters)
+  // Scaled first: the costly float tonemapping (and the overlay) work on the output size.
+  const filtered =
+    vaapi === undefined
+      ? [`scale=${scaleSize(quality)}`, ...(tonemap ? tonemapChain : [])]
+      : tonemap
+        ? [
+            `scale_vaapi=${scaleSize(quality)}:format=p010`,
+            'hwdownload',
+            'format=p010',
+            ...tonemapChain,
+            'format=nv12',
+            'hwupload',
+          ]
+        : [`scale_vaapi=${scaleSize(quality)}:format=nv12`]
+  const picture = `[0:${video.index}]${[...trim, ...filtered].join(',')}`
   const graph =
-    burnIn === undefined
-      ? `${source}${[...trim, ...(tonemap ? tonemapChain : []), finish].join(',')}[v]`
-      : [
-          `${source}${[...trim, ...(tonemap ? tonemapChain : [])].join(',') || 'null'}[base]`,
-          `${burnIn.origin === 'embedded' ? `[0:${burnIn.streamIndex}]` : '[1:0]'}[base]scale2ref=w=main_w:h=main_h[subs][video]`,
-          `[video][subs]overlay=eof_action=pass,${finish}[v]`,
-        ].join(';')
+    vaapi !== undefined
+      ? `${picture}[v]`
+      : burnIn === undefined
+        ? `${picture},format=yuv420p[v]`
+        : [
+            `${picture}[base]`,
+            `${burnIn.origin === 'embedded' ? `[0:${burnIn.streamIndex}]` : '[1:0]'}[base]scale2ref=w=main_w:h=main_h[subs][video]`,
+            '[video][subs]overlay=eof_action=pass,format=yuv420p[v]',
+          ].join(';')
   const rate =
     quality === 'original'
-      ? ['-crf', '21']
+      ? vaapi === undefined
+        ? ['-crf', '21']
+        : ['-rc_mode', 'CQP', '-qp', '21']
       : [
           '-b:v',
           `${qualityTargets[quality].bitrateKbps}k`,
@@ -231,6 +268,7 @@ export const transcodeArgs = ({
         ]
   return [
     ...head,
+    ...(vaapi === undefined ? [] : vaapiInput(vaapi)),
     ...(seek === undefined ? [] : ['-ss', seek]),
     '-i',
     fileInput(sourcePath),
@@ -251,21 +289,17 @@ export const transcodeArgs = ({
     '[v]',
     ...(audio === undefined ? [] : ['-map', `0:${audio.index}`]),
     '-c:v',
-    'libx264',
-    '-preset',
-    'veryfast',
+    ...(vaapi === undefined ? ['libx264', '-preset', 'veryfast'] : ['h264_vaapi']),
     '-profile:v',
     'high',
     ...rate,
     '-force_key_frames',
     // `t` counts from the run's first video frame (after the trim): the segment start.
     `expr:gte(t,n_forced*${transcodeSegmentS})`,
-    '-forced-idr',
-    '1',
-    '-sc_threshold',
-    '0',
-    '-x264-params',
-    'keyint=infinite',
+    // h264_vaapi makes forced keyframes IDRs; its own GOP (1000 frames) is longer than a segment.
+    ...(vaapi === undefined
+      ? ['-forced-idr', '1', '-sc_threshold', '0', '-x264-params', 'keyint=infinite']
+      : ['-g', '1000']),
     ...(tonemap
       ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
       : []),

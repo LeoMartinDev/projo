@@ -553,6 +553,7 @@ describe('settings "Lecture" and "Serveur" (§15)', () => {
       transcodeCacheMaxGb: 10,
       burnInEnabled: true,
       trickplayEnabled: true,
+      hwAccel: 'off',
     })
     admin.update({})
     expect(writes).toEqual([{ maxConcurrentTranscodes: 4, audioDownmix: 'keep' }])

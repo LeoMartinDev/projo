@@ -3,7 +3,6 @@ import { z } from 'zod'
 
 import {
   defaultPlaybackSettings,
-  type EditablePlaybackSettings,
   type PlaybackSettings,
   type PlaybackSettingsReader,
   type PlaybackSettingsWriter,
@@ -20,7 +19,7 @@ const schemas = {
   transcodeCacheMaxGb: z.number().positive(),
   burnInEnabled: z.boolean(),
   trickplayEnabled: z.boolean(),
-  hwAccel: z.enum(['off', 'vaapi', 'qsv']),
+  hwAccel: z.enum(['off', 'vaapi']),
 } satisfies { [K in keyof PlaybackSettings]: z.ZodType<PlaybackSettings[K]> }
 
 /** §10 playback keys of the `settings` table; an unset or invalid value reads as its default. */
@@ -49,7 +48,8 @@ const editableKeys = [
   'transcodeCacheMaxGb',
   'burnInEnabled',
   'trickplayEnabled',
-] as const satisfies readonly (keyof EditablePlaybackSettings)[]
+  'hwAccel',
+] as const satisfies readonly (keyof PlaybackSettings)[]
 
 /** §15 "Playback": writes the given keys, in one transaction; the reader sees them at once. */
 export const createSqlitePlaybackSettingsWriter = ({ db }: { db: Db }): PlaybackSettingsWriter => ({

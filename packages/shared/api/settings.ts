@@ -12,13 +12,14 @@ export const metadataLanguageSchema = z
   .regex(/^[a-z]{2,3}(-[A-Z]{2})?$/u, { message: 'expected a language tag such as fr-FR' })
 
 /**
- * §15 "Playback" (§10, defaults of §24). Hardware acceleration stays off in v1 (not exposed).
+ * §15 "Playback" (§10, defaults of §24).
  * - `maxConcurrentTranscodes`: `hls_transcode` sessions at once (beyond: 503
  *   `playback/transcode_limit_reached`);
  * - `audioDownmix`: `stereo` downmixes multichannel audio in remux and transcode, `keep` keeps it;
  * - `burnInEnabled`: bitmap subtitles (PGS, VobSub) burnt into a transcode; off: not offered;
  * - `transcodeCacheMaxGb`: LRU size of `cache/transcode/`;
- * - `trickplayEnabled`: timeline thumbnails, server-wide switch (each library also has its own).
+ * - `trickplayEnabled`: timeline thumbnails, server-wide switch (each library also has its own);
+ * - `hwAccel`: `vaapi` transcodes on the GPU's render node, with a software fallback (§10.3).
  */
 export const playbackSettingsDtoSchema = z.object({
   maxConcurrentTranscodes: z.number().int().min(1).max(16),
@@ -26,6 +27,7 @@ export const playbackSettingsDtoSchema = z.object({
   burnInEnabled: z.boolean(),
   transcodeCacheMaxGb: z.number().int().min(1).max(10_000),
   trickplayEnabled: z.boolean(),
+  hwAccel: z.enum(['off', 'vaapi']),
 })
 export type PlaybackSettingsDto = z.infer<typeof playbackSettingsDtoSchema>
 

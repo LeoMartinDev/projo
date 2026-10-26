@@ -15,7 +15,7 @@ export const settingKeys = {
   transcodeCacheMaxGb: 'playback.transcode_cache_max_gb',
   burnInEnabled: 'playback.burn_in_enabled',
   trickplayEnabled: 'playback.trickplay_enabled',
-  /** Not exposed in v1 (§10.3): the ffmpeg argument builders already take it. */
+  /** §10.3 hardware transcoding: `off` or `vaapi`. */
   hwAccel: 'playback.hw_accel',
   // §12 intros and credits (admin screen §15 "Intros and credits").
   /** Enabled community providers, in the order they are asked (§12.2). */
@@ -57,7 +57,7 @@ export type PlaybackSettings = {
   transcodeCacheMaxGb: number
   burnInEnabled: boolean
   trickplayEnabled: boolean
-  hwAccel: 'off' | 'vaapi' | 'qsv'
+  hwAccel: 'off' | 'vaapi'
 }
 
 export const defaultPlaybackSettings: PlaybackSettings = {
@@ -72,12 +72,9 @@ export const defaultPlaybackSettings: PlaybackSettings = {
 /** Read on every use: a change applies to the next session or job without a restart. */
 export type PlaybackSettingsReader = { read: () => PlaybackSettings }
 
-/** §15 "Playback": what the admin edits (`hwAccel` is not exposed in v1). */
-export type EditablePlaybackSettings = Omit<PlaybackSettings, 'hwAccel'>
-
 /** Writes the given playback keys (`settings` table); the reader sees them at once. */
 export type PlaybackSettingsWriter = {
-  write: (input: { values: Partial<EditablePlaybackSettings>; at: Date }) => void
+  write: (input: { values: Partial<PlaybackSettings>; at: Date }) => void
 }
 
 /** §15 "Server": the name shown on the login and invitation pages (`server.name`). */

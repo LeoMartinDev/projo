@@ -936,7 +936,8 @@
       "update/runtime_too_old": "Update needs a newer Docker image",
       "update/failed": "Update failed",
       "update/rolled_back": "Update rolled back to the previous version",
-      "cache/disk_low": "Low disk space"
+      "cache/disk_low": "Low disk space",
+      "playback/hw_accel_failed": "Hardware transcoding unavailable, using the CPU"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1082,6 +1083,8 @@
       },
       "runtimeNeeded": "{{version}} needs image {{runtime}}",
       "freeSpace": "{{size}} free",
+      "hwAccelRenderNode": "{{renderNode}} is missing or not accessible",
+      "hwAccelFfmpeg": "ffmpeg refused VAAPI ({{codec}})",
       "state": {
         "unread": "Unread",
         "read": "Read",
@@ -1094,7 +1097,8 @@
       "cacheSize": "Transcode cache (GB)",
       "downmix": "Downmix multichannel audio to stereo",
       "burnIn": "Burn in image subtitles",
-      "trickplay": "Timeline thumbnails"
+      "trickplay": "Timeline thumbnails",
+      "hwAccel": "Hardware transcoding (VAAPI)"
     },
     "server": {
       "title": "Server",

@@ -8,8 +8,8 @@ import type {
 import type { PlaybackSettingsAdmin, ServerSettingsAdmin, ServerSettingsView } from './types.ts'
 
 /**
- * §15 "Playback": what the admin edits of §10 (hardware acceleration stays off in v1). Every use
- * reads the settings again: a change applies to the next session or job, without a restart.
+ * §15 "Playback": what the admin edits of §10. Every use reads the settings again: a change
+ * applies to the next session or job, without a restart.
  */
 export const playbackSettingsAdminFactory = ({
   reader,
@@ -22,10 +22,7 @@ export const playbackSettingsAdminFactory = ({
   clock: Clock
   logger: Logger
 }): PlaybackSettingsAdmin => {
-  const get = () => {
-    const { hwAccel: _hwAccel, ...editable } = reader.read()
-    return editable
-  }
+  const get = () => reader.read()
   return {
     get,
     update: (values) => {

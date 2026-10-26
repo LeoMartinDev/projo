@@ -10,19 +10,28 @@ import { settingsQuery, useUpdateSettings } from './queries.ts'
 import '../admin.css'
 import './settings.css'
 
-type Toggle = 'audioDownmix' | 'burnInEnabled' | 'trickplayEnabled'
+type Toggle = 'audioDownmix' | 'burnInEnabled' | 'trickplayEnabled' | 'hwAccel'
 
 const toggleLabels = {
   audioDownmix: 'admin.playbackSettings.downmix',
   burnInEnabled: 'admin.playbackSettings.burnIn',
   trickplayEnabled: 'admin.playbackSettings.trickplay',
+  hwAccel: 'admin.playbackSettings.hwAccel',
 } as const
 
 const isOn = (playback: PlaybackSettingsDto, key: Toggle): boolean =>
-  key === 'audioDownmix' ? playback.audioDownmix === 'stereo' : playback[key]
+  key === 'audioDownmix'
+    ? playback.audioDownmix === 'stereo'
+    : key === 'hwAccel'
+      ? playback.hwAccel === 'vaapi'
+      : playback[key]
 
 const bodyOf = (key: Toggle, on: boolean): Partial<PlaybackSettingsDto> =>
-  key === 'audioDownmix' ? { audioDownmix: on ? 'stereo' : 'keep' } : { [key]: on }
+  key === 'audioDownmix'
+    ? { audioDownmix: on ? 'stereo' : 'keep' }
+    : key === 'hwAccel'
+      ? { hwAccel: on ? 'vaapi' : 'off' }
+      : { [key]: on }
 
 /** A switch saved at once. */
 const ToggleSetting = ({
@@ -149,7 +158,7 @@ const Limits = ({ playback }: { playback: PlaybackSettingsDto }) => {
 
 /**
  * `/admin/settings/playback` (§15 "Playback"): simultaneous transcodes, transcode cache size,
- * stereo downmix, burnt-in subtitles, timeline thumbnails. Applied to the next session or job,
+ * stereo downmix, burnt-in subtitles, timeline thumbnails, hardware transcoding. Applied to the next session or job,
  * without restart (§10).
  */
 export const PlaybackSettingsPage = () => {
@@ -176,9 +185,11 @@ export const PlaybackSettingsPage = () => {
                 playback={settings.data.playback}
               />
               <div className="settings-block settings-block--switches">
-                {(['audioDownmix', 'burnInEnabled', 'trickplayEnabled'] as const).map((key) => (
-                  <ToggleSetting key={key} playback={settings.data.playback} setting={key} />
-                ))}
+                {(['audioDownmix', 'burnInEnabled', 'trickplayEnabled', 'hwAccel'] as const).map(
+                  (key) => (
+                    <ToggleSetting key={key} playback={settings.data.playback} setting={key} />
+                  ),
+                )}
               </div>
             </>
           )}

@@ -936,7 +936,8 @@
       "update/runtime_too_old": "Mise à jour : image Docker trop ancienne",
       "update/failed": "La mise à jour a échoué",
       "update/rolled_back": "Mise à jour annulée : retour à la version précédente",
-      "cache/disk_low": "Espace disque faible"
+      "cache/disk_low": "Espace disque faible",
+      "playback/hw_accel_failed": "Transcodage matériel indisponible, le processeur prend le relais"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -1082,6 +1083,8 @@
       },
       "runtimeNeeded": "{{version}} demande l’image {{runtime}}",
       "freeSpace": "{{size}} libres",
+      "hwAccelRenderNode": "{{renderNode}} absent ou inaccessible",
+      "hwAccelFfmpeg": "ffmpeg a refusé VAAPI ({{codec}})",
       "state": {
         "unread": "Non lue",
         "read": "Lue",
@@ -1094,7 +1097,8 @@
       "cacheSize": "Cache de transcodage (Go)",
       "downmix": "Réduire le son multicanal en stéréo",
       "burnIn": "Incruster les sous-titres image",
-      "trickplay": "Aperçus de la barre de lecture"
+      "trickplay": "Aperçus de la barre de lecture",
+      "hwAccel": "Transcodage matériel (VAAPI)"
     },
     "server": {
       "title": "Serveur",

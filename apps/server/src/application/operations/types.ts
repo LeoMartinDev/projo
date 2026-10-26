@@ -3,7 +3,7 @@ import type { AppError, Result } from '@projo/shared'
 import type { Job } from '../../core/jobs/job.ts'
 import type { JobListQuery, JobTargetItem, JobTargetRef } from '../../core/jobs/ports.ts'
 import type { Notification, NotificationStatus } from '../../core/notifications/notification.ts'
-import type { EditablePlaybackSettings } from '../../core/settings/settings.ts'
+import type { PlaybackSettings } from '../../core/settings/settings.ts'
 import type { CatalogCounts, RunningScan, StorageUsage } from '../../core/stats/stats.ts'
 
 /**
@@ -78,8 +78,8 @@ export type MissingSourcesAdmin = {
 // ── Settings: "Playback" and "Server" (§15) ──────────────────────────────────
 
 export type PlaybackSettingsAdmin = {
-  get: () => EditablePlaybackSettings
-  update: (input: Partial<EditablePlaybackSettings>) => EditablePlaybackSettings
+  get: () => PlaybackSettings
+  update: (input: Partial<PlaybackSettings>) => PlaybackSettings
 }
 
 export type ServerSettingsView = {

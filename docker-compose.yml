@@ -19,6 +19,12 @@ services:
       #   Synology folder:    /volume1/video:/media/video:ro
       #   Synology USB disk:  /volumeUSB1/usbshare:/media/usb:ro
       # - :/media/videos:ro
+    # Optional, Intel iGPU hardware transcoding (Administration > Playback): uncomment both. The
+    # number is the group owning /dev/dri/renderD128 on this machine (README "Hardware transcoding").
+    # devices:
+    #   - /dev/dri/renderD128:/dev/dri/renderD128
+    # group_add:
+    #   - '' # e.g. '937' on Synology DSM
     environment:
       - TRUST_PROXY=false # true behind a reverse proxy (Caddy, Traefik, NPM, DSM)
     # The supervisor gives the app 25 s to stop before killing it.

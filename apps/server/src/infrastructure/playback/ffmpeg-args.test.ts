@@ -4,6 +4,7 @@ import {
   aacBitrateKbps,
   audioArgs,
   remuxArgs,
+  tonemaps,
   transcodeArgs,
   type TranscodeArgsInput,
 } from './ffmpeg-args.ts'
@@ -164,14 +165,25 @@ describe('transcodeArgs (§10.2, §10.3)', () => {
     expect(silent).not.toContain('-c:a')
   })
 
-  test('HDR / Dolby Vision: tonemapped to BT.709 when zscale and tonemap exist', () => {
+  test('tonemaps: HDR and Dolby Vision, only when the binary has zscale and tonemap', () => {
+    const both = { zscale: true, tonemap: true }
+    expect(tonemaps({ dynamicRange: 'hdr' }, both)).toBe(true)
+    expect(tonemaps({ dynamicRange: 'dv' }, both)).toBe(true)
+    expect(tonemaps({ dynamicRange: 'sdr' }, both)).toBe(false)
+    expect(tonemaps({}, both)).toBe(false)
+    expect(tonemaps({ dynamicRange: 'hdr' }, { zscale: false, tonemap: true })).toBe(false)
+    expect(tonemaps({ dynamicRange: 'hdr' }, { zscale: true, tonemap: false })).toBe(false)
+  })
+
+  test('HDR / Dolby Vision: scaled to the quality, then tonemapped to BT.709', () => {
     const args = transcodeArgs({
       ...base,
+      quality: '720p',
       video: { index: 0, codec: 'hevc', dynamicRange: 'hdr' },
       filters: { zscale: true, tonemap: true },
     })
     expect(valueOf(args, '-filter_complex')).toBe(
-      '[0:0]zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v]',
+      "[0:0]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2,zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p[v]",
     )
     expect(valueOf(args, '-color_trc')).toBe('bt709')
     const dv = transcodeArgs({
@@ -197,15 +209,79 @@ describe('transcodeArgs (§10.2, §10.3)', () => {
     })
     expect(valueOf(sdr, '-filter_complex')).not.toContain('tonemap')
   })
+})
 
-  test('hwAccel is accepted; v1 encodes in software whatever its value', () => {
-    expect(transcodeArgs({ ...base, hwAccel: 'vaapi' })).toEqual(transcodeArgs(base))
-    expect(transcodeArgs({ ...base, hwAccel: 'qsv' })).toEqual(transcodeArgs(base))
+describe('VAAPI (§10.3)', () => {
+  const vaapi = { ...base, vaapiDevice: '/dev/dri/renderD128' }
+
+  test('decoded on the GPU: the device and hwaccel options come before the seek and the input', () => {
+    const args = transcodeArgs({ ...vaapi, startS: 8 })
+    expect(args.slice(args.indexOf('-init_hw_device'), args.indexOf('-i') + 1)).toEqual([
+      '-init_hw_device',
+      'vaapi=va:/dev/dri/renderD128',
+      '-filter_hw_device',
+      'va',
+      '-hwaccel',
+      'vaapi',
+      '-hwaccel_device',
+      'va',
+      '-hwaccel_output_format',
+      'vaapi',
+      '-ss',
+      '7.500000',
+      '-i',
+    ])
+  })
+
+  test('SDR: scaled to NV12 and encoded on the GPU, a forced IDR every 4 s', () => {
+    const args = transcodeArgs({ ...vaapi, quality: '720p' })
+    expect(valueOf(args, '-filter_complex')).toBe(
+      "[0:0]scale_vaapi='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12[v]",
+    )
+    expect(valueOf(args, '-c:v')).toBe('h264_vaapi')
+    expect(valueOf(args, '-b:v')).toBe('4000k')
+    expect(valueOf(args, '-force_key_frames')).toBe('expr:gte(t,n_forced*4)')
+    expect(valueOf(args, '-g')).toBe('1000')
+    for (const x264Only of ['-preset', '-crf', '-forced-idr', '-x264-params']) {
+      expect(args).not.toContain(x264Only)
+    }
+    const original = transcodeArgs(vaapi)
+    expect(valueOf(original, '-filter_complex')).toBe(
+      '[0:0]scale_vaapi=trunc(iw/2)*2:trunc(ih/2)*2:format=nv12[v]',
+    )
+    expect(valueOf(original, '-qp')).toBe('21')
+    expect(valueOf(original, '-rc_mode')).toBe('CQP')
+  })
+
+  test('HDR: scaled on the GPU in 10 bits, tonemapped on the CPU, uploaded back', () => {
+    const args = transcodeArgs({
+      ...vaapi,
+      quality: '1080p',
+      startS: 4,
+      video: { index: 0, codec: 'hevc', dynamicRange: 'hdr' },
+      filters: { zscale: true, tonemap: true },
+    })
+    expect(valueOf(args, '-filter_complex')).toBe(
+      "[0:0]trim=start=0.500000,scale_vaapi='min(iw,1920)':'min(ih,1080)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=p010,hwdownload,format=p010,zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=nv12,hwupload[v]",
+    )
+    expect(args.join(' ')).not.toContain('tonemap_vaapi')
+    expect(valueOf(args, '-color_trc')).toBe('bt709')
+    // Without zscale: like software, only the 8-bit conversion (on the GPU).
+    const plain = transcodeArgs({
+      ...vaapi,
+      video: { index: 0, codec: 'hevc', dynamicRange: 'hdr' },
+    })
+    expect(valueOf(plain, '-filter_complex')).toEndWith('format=nv12[v]')
+  })
+
+  test('burn-in: the software pipeline', () => {
+    const burnIn = { origin: 'embedded', streamIndex: 2 } as const
+    expect(transcodeArgs({ ...vaapi, burnIn })).toEqual(transcodeArgs({ ...base, burnIn }))
   })
 })
 
 describe('burn-in of bitmap subtitles (§10.4)', () => {
-  test('embedded track: overlay at the source resolution, then the scaling', () => {
+  test('embedded track: the video scaled, then the overlay', () => {
     const args = transcodeArgs({
       ...base,
       quality: '720p',
@@ -215,15 +291,15 @@ describe('burn-in of bitmap subtitles (§10.4)', () => {
     expect(valuesOf(args, '-i')).toHaveLength(1)
     expect(valueOf(args, '-filter_complex')).toBe(
       [
-        '[0:0]trim=start=0.500000[base]',
+        "[0:0]trim=start=0.500000,scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2[base]",
         '[0:4][base]scale2ref=w=main_w:h=main_h[subs][video]',
-        "[video][subs]overlay=eof_action=pass,scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2,format=yuv420p[v]",
+        '[video][subs]overlay=eof_action=pass,format=yuv420p[v]',
       ].join(';'),
     )
     expect(args).toContain('-sn')
   })
 
-  test('embedded track with HDR tonemapping: the subtitles are drawn after it', () => {
+  test('embedded track with HDR tonemapping: the subtitles are drawn after it, untouched', () => {
     const graph = valueOf(
       transcodeArgs({
         ...base,
@@ -233,8 +309,8 @@ describe('burn-in of bitmap subtitles (§10.4)', () => {
       }),
       '-filter_complex',
     )
-    expect(graph?.split(';')[0]).toStartWith('[0:0]zscale=t=linear')
-    expect(graph?.split(';')[0]).toEndWith('[base]')
+    expect(graph?.split(';')[0]).toStartWith('[0:0]scale=')
+    expect(graph?.split(';')[0]).toEndWith('zscale=t=bt709:m=bt709:r=tv[base]')
     expect(graph?.split(';')[2]).toStartWith('[video][subs]overlay')
   })
 
@@ -271,6 +347,8 @@ describe('burn-in of bitmap subtitles (§10.4)', () => {
       '-i',
       'file:/media/film.en.idx',
     ])
-    expect(valueOf(args, '-filter_complex')).toStartWith('[0:0]null[base];[1:0][base]scale2ref')
+    expect(valueOf(args, '-filter_complex')).toStartWith(
+      '[0:0]scale=trunc(iw/2)*2:trunc(ih/2)*2[base];[1:0][base]scale2ref',
+    )
   })
 })

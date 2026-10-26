@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { type BitmapCue, writePgs } from '../../../test/support/bitmap-subtitles.ts'
 import { createTempDir } from '../../../test/support/database.ts'
-import { silentLogger } from '../../../test/support/logger.ts'
+import { createCapturingLogger, silentLogger } from '../../../test/support/logger.ts'
 import {
   audioDelayS,
   decodesCleanly,
@@ -22,7 +22,7 @@ import type {
 import { outputTimestampOffsetS, transcodePrerollS } from './ffmpeg-args.ts'
 import { createFfprobe } from './ffprobe.ts'
 import { createBoxSplitter, fragmentStartTicks, readTrackRun, readTracks } from './fmp4.ts'
-import { createHlsSegmenter } from './hls-segmenter.ts'
+import { createHlsSegmenter, detectFfmpegFilters } from './hls-segmenter.ts'
 
 /**
  * §10.3 transcode against the real ffmpeg: H.264 and HEVC 10-bit sources to H.264 8-bit, fixed
@@ -70,6 +70,19 @@ beforeAll(async () => {
     durationS: 14,
     pixelFormat: 'yuv420p10le',
   })
+  // The same stream tagged HDR10 (BT.2020, PQ) in its VUI, as an HDR remux would be.
+  files['hdr'] = join(media.path, 'hdr.mkv')
+  await ffmpeg([
+    '-i',
+    files['hevc10'],
+    '-map',
+    '0',
+    '-c',
+    'copy',
+    '-bsf:v',
+    'hevc_metadata=colour_primaries=9:transfer_characteristics=16:matrix_coefficients=9',
+    files['hdr'],
+  ])
   // Black video (2 s GOP) + its PGS track: muxed with `-copyts`, else the track is rebased on
   // its first cue.
   const black = join(media.path, 'black.mkv')
@@ -139,9 +152,9 @@ afterEach(async () => {
   cache?.cleanup()
   segmenter = undefined
 })
-const newSegmenter = () => {
+const newSegmenter = (deps: Partial<Parameters<typeof createHlsSegmenter>[0]> = {}) => {
   const dir = createTempDir('projo-transcode-')
-  const created = createHlsSegmenter({ transcodeDir: dir.path, logger: silentLogger })
+  const created = createHlsSegmenter({ transcodeDir: dir.path, logger: silentLogger, ...deps })
   cache = dir
   segmenter = created
   return { segmenter: created, dir: dir.path }
@@ -433,5 +446,98 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
     expect([16.2, 18.5, 19.5].map((t) => litAt(fourth, t))).toEqual([true, true, false])
     const third = await burnt('b-sup-2', files['black'] ?? '', sup, 2)
     expect([8.5, 9.5, 10.5, 11.5].map((t) => litAt(third, t))).toEqual([false, true, true, false])
+  })
+})
+
+/** Homebrew's ffmpeg has no zscale (libzimg); the runtime image's has it. */
+const canTonemap = hasFfmpeg() && Object.values(detectFfmpegFilters()).every(Boolean)
+
+describe.skipIf(!canTonemap)('HDR → SDR tone mapping (real ffmpeg with zscale, §10.3)', () => {
+  test('PQ HEVC 10-bit, detected HDR from the probe → H.264 8-bit tagged BT.709', async () => {
+    const path = files['hdr'] ?? ''
+    const probed = unwrap(await ffprobe.probe(path))
+    expect(probed.video[0]?.dynamicRange).toBe('hdr')
+    const job = await jobFor('t-hdr', path, { quality: '480p', dynamicRange: 'hdr' })
+    const { segmenter, dir } = newSegmenter()
+    const one = unwrap(await segmenter.segment(job, 1))
+    const init = unwrap(await segmenter.segment(job, 'init'))
+    const glued = glue(dir, 'hdr.mp4', [init, one])
+    const probe = (await ffprobeJson(glued)) as unknown as {
+      streams: Record<string, unknown>[]
+    }
+    expect(probe.streams[0]).toMatchObject({
+      codec_name: 'h264',
+      pix_fmt: 'yuv420p',
+      color_transfer: 'bt709',
+      color_primaries: 'bt709',
+      color_space: 'bt709',
+    })
+    expect(await decodesCleanly(glued)).toBe(true)
+    expectContinuous(init, [one], 4, 8)
+  })
+})
+
+describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, §10.3)', () => {
+  const vaapiWorld = () => {
+    const { logger, lines } = createCapturingLogger()
+    const notified: unknown[] = []
+    const resolved: unknown[] = []
+    const notifier = {
+      notify: (input: unknown) => notified.push(input),
+      resolve: (input: unknown) => resolved.push(input),
+    }
+    return { logger, lines, notifier, notified, resolved }
+  }
+
+  test('render node missing: software from the first run, the admin notified', async () => {
+    const world = vaapiWorld()
+    const job = { ...(await jobFor('v-missing', files['h264'] ?? '')), hwAccel: 'vaapi' as const }
+    const { segmenter, dir } = newSegmenter({
+      logger: world.logger,
+      notifier: world.notifier,
+      renderNode: join(media.path, 'renderD128'),
+    })
+    const init = unwrap(await segmenter.segment(job, 'init'))
+    const zero = unwrap(await segmenter.segment(job, 0))
+    expect(await decodesCleanly(glue(dir, 'missing.mp4', [init, zero]))).toBe(true)
+    expect(world.notified).toEqual([
+      {
+        kind: 'playback/hw_accel_failed',
+        severity: 'warning',
+        key: 'vaapi',
+        context: {
+          reason: 'render_node_unavailable',
+          renderNode: join(media.path, 'renderD128'),
+          codec: 'h264',
+        },
+      },
+    ])
+    expect(
+      world.lines.filter((line) => line.fields['code'] === 'playback/hw_accel_failed'),
+    ).toEqual([expect.objectContaining({ level: 'warn' })])
+  })
+
+  test('a VAAPI run that fails before writing anything is retried in software', async () => {
+    const world = vaapiWorld()
+    // Accessible but not a DRM device: ffmpeg cannot open VAAPI on it.
+    const fakeNode = join(media.path, 'fake-render-node')
+    writeFileSync(fakeNode, '')
+    const job = { ...(await jobFor('v-fails', files['h264'] ?? '')), hwAccel: 'vaapi' as const }
+    const { segmenter, dir } = newSegmenter({
+      logger: world.logger,
+      notifier: world.notifier,
+      renderNode: fakeNode,
+    })
+    const one = unwrap(await segmenter.segment(job, 1))
+    const init = unwrap(await segmenter.segment(job, 'init'))
+    expect(await decodesCleanly(glue(dir, 'fallback.mp4', [init, one]))).toBe(true)
+    expect(fragmentStarts(init, one)).toEqual([4])
+    expect(world.notified).toEqual([
+      expect.objectContaining({ context: expect.objectContaining({ reason: 'ffmpeg_failed' }) }),
+    ])
+    expect(world.resolved).toEqual([])
+    expect(world.lines.filter((line) => line.level === 'error')).toEqual([])
+    const runs = world.lines.filter((line) => line.message === 'ffmpeg HLS run started')
+    expect(runs.map((line) => line.fields['vaapi'])).toEqual([true, false])
   })
 })

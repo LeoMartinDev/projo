@@ -30,6 +30,8 @@ export const notificationKinds = [
   'update/rolled_back',
   /** Less than 2 GB free on `/data` (§15). */
   'cache/disk_low',
+  /** §10.3: VAAPI is on but a transcode ran in software (`context`: `reason`, `renderNode`, `codec`). */
+  'playback/hw_accel_failed',
 ] as const
 export const notificationKindSchema = z.enum(notificationKinds)
 export type NotificationKind = z.infer<typeof notificationKindSchema>

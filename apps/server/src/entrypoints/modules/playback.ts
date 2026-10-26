@@ -34,6 +34,7 @@ import {
 import { createFileKeyframeStore } from '../../infrastructure/playback/keyframe-store.ts'
 import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createTrickplayStore } from '../../infrastructure/playback/trickplay-store.ts'
+import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
@@ -68,7 +69,11 @@ export const buildPlaybackModule = (
   // player waits for (priority `interactive`) keeps the normal one.
   const backgroundFfprobe = createFfprobe({ processPriority: 'background' })
   const keyframeStore = createFileKeyframeStore({ keyframesDir: paths.cache.keyframes })
-  const segmenter = createHlsSegmenter({ transcodeDir: paths.cache.transcode, logger })
+  const segmenter = createHlsSegmenter({
+    transcodeDir: paths.cache.transcode,
+    logger,
+    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
+  })
   const transcodeCache = createTranscodeCache({ transcodeDir: paths.cache.transcode })
   const trickplayUrl = trickplayUrlFactory({
     catalogRepository,

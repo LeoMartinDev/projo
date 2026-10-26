@@ -8,7 +8,7 @@ import { generateVideo, hasFfmpeg } from '../../../test/support/media.ts'
 import { planFixedSegments, segmentFileName } from '../../core/playback/hls-playlist.ts'
 import type { HlsJob, HlsSegmenter } from '../../core/playback/ports.ts'
 import { createFfprobe } from './ffprobe.ts'
-import { createHlsSegmenter } from './hls-segmenter.ts'
+import { createHlsSegmenter, fallsBackToSoftware, wantsVaapi } from './hls-segmenter.ts'
 
 /**
  * §10.3 run control against the real ffmpeg: when a request waits, when it restarts ffmpeg, and
@@ -186,5 +186,39 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     expect(Date.now() - startedAt).toBeLessThan(1_000)
     expect((await latest).ok).toBe(true)
     expect(runsStarted()).toHaveLength(2)
+  })
+})
+
+describe('VAAPI decision (§10.3)', () => {
+  const transcode: HlsJob = {
+    mode: 'hls_transcode',
+    sessionId: 's',
+    sourcePath: '/media/film.mkv',
+    segments: planFixedSegments(8),
+    video: { index: 0, codec: 'hevc' },
+    audioDownmix: 'stereo',
+    hwAccel: 'vaapi',
+    transcode: { quality: '720p', dynamicRange: 'hdr' },
+  }
+
+  test('only a transcode without burn-in, when the admin turned VAAPI on', () => {
+    expect(wantsVaapi(transcode)).toBe(true)
+    expect(wantsVaapi({ ...transcode, hwAccel: 'off' })).toBe(false)
+    expect(
+      wantsVaapi({
+        ...transcode,
+        transcode: { quality: '720p', burnIn: { origin: 'embedded', streamIndex: 2 } },
+      }),
+    ).toBe(false)
+    expect(wantsVaapi({ ...transcode, mode: 'hls_remux', keyframes: [0] })).toBe(false)
+  })
+
+  test('software retry: a failed VAAPI run, before any init.mp4 of the session', () => {
+    const failed = { vaapi: true, exitCode: 1, killed: false, initExists: false }
+    expect(fallsBackToSoftware(failed)).toBe(true)
+    expect(fallsBackToSoftware({ ...failed, initExists: true })).toBe(false)
+    expect(fallsBackToSoftware({ ...failed, killed: true })).toBe(false)
+    expect(fallsBackToSoftware({ ...failed, exitCode: 0 })).toBe(false)
+    expect(fallsBackToSoftware({ ...failed, vaapi: false })).toBe(false)
   })
 })

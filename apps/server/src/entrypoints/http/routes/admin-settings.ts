@@ -55,6 +55,7 @@ const toDto = ({ metadata, segments, playback, server }: Sections): AdminSetting
       burnInEnabled: current.burnInEnabled,
       transcodeCacheMaxGb: current.transcodeCacheMaxGb,
       trickplayEnabled: current.trickplayEnabled,
+      hwAccel: current.hwAccel,
     },
     metadata: toMetadataDto(metadata.get()),
     segments: toSegmentsDto(segments.get()),

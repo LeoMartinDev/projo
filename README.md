@@ -74,6 +74,14 @@ Your media must be **readable by uid 1000**: check with `ls -ln /path/to/your/mo
 
 With `user:`, nothing is changed on startup: `projo-data` must belong to that user (`sudo chown -R 1001:1001 projo-data`).
 
+### Hardware transcoding (Intel iGPU, optional)
+
+On an x86_64 machine with an Intel integrated GPU, projo can transcode with VAAPI instead of the CPU (the image ships Intel's iHD driver). HDR is still tone mapped by the CPU, on the already scaled picture. Without the GPU, or if it refuses a file, projo falls back to the CPU on its own and says so in Notifications.
+
+1. Find the group that owns the render node: `ls -ln /dev/dri` (the 4th column of `renderD128`). Elsewhere `getent group render` also gives it; on Synology DSM, which has no `getent`, `grep videodriver /etc/group`.
+2. In `docker-compose.yml`, uncomment `devices` and `group_add` and put that number in `group_add`. The node is not world-readable (`crw-rw----`), so projo needs that group to open it.
+3. `docker compose up -d`, then turn on **Administration › Playback › Hardware transcoding (VAAPI)**.
+
 ### Behind a reverse proxy
 
 projo listens over HTTP. For access from outside with HTTPS and a domain name, put it behind a reverse proxy (Caddy, Traefik, Nginx Proxy Manager…) and set **`TRUST_PROXY=true`**.

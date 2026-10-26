@@ -902,6 +902,7 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       burnInEnabled: true,
       transcodeCacheMaxGb: 10,
       trickplayEnabled: true,
+      hwAccel: 'off',
     })
     expect(empty.server).toMatchObject({ name: 'projo', trustProxy: false })
     await world.setKey()
@@ -919,7 +920,12 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     const changed = await world.request('/settings', {
       method: 'PATCH',
       json: {
-        playback: { maxConcurrentTranscodes: 4, audioDownmix: 'keep', trickplayEnabled: false },
+        playback: {
+          maxConcurrentTranscodes: 4,
+          audioDownmix: 'keep',
+          trickplayEnabled: false,
+          hwAccel: 'vaapi',
+        },
         server: { name: '  Maison  ' },
       },
     })
@@ -931,6 +937,7 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       burnInEnabled: true,
       transcodeCacheMaxGb: 10,
       trickplayEnabled: false,
+      hwAccel: 'vaapi',
     })
     expect(body.server.name).toBe('Maison')
     // What the playback use cases read on their next session or job (§10).
@@ -940,6 +947,7 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       ),
     ).toEqual([
       { key: 'playback.audio_downmix', value: '"keep"' },
+      { key: 'playback.hw_accel', value: '"vaapi"' },
       { key: 'playback.max_concurrent_transcodes', value: '4' },
       { key: 'playback.trickplay_enabled', value: 'false' },
       { key: 'server.name', value: '"Maison"' },

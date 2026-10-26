@@ -10,8 +10,15 @@ FROM oven/bun:${BUN_VERSION}-debian AS bun
 # ---------------------------------------------------------------------------
 FROM debian:${DEBIAN_RELEASE}-slim AS runtime
 
+# x86_64: Intel's VAAPI driver (iHD) for hardware transcoding (PRODUCT.md §10.3). The non-free
+# build: the free one cannot encode H.264 on Gen9 iGPUs (Apollo Lake, Gemini Lake) without HuC.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools tini ca-certificates tzdata \
+ && if [ "$(dpkg --print-architecture)" = amd64 ]; then \
+      sed -i 's/^Components: main$/Components: main non-free/' /etc/apt/sources.list.d/debian.sources \
+      && apt-get update \
+      && apt-get install -y --no-install-recommends intel-media-va-driver-non-free; \
+    fi \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun

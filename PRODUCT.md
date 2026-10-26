@@ -58,7 +58,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 - Responsive web app (desktop, mobile, tablet), installable as a PWA, served by the server itself.
 - Untyped multi-folder libraries, messy content accepted, automatic per-file classification.
 - Robust scanning: detection of files being written, missing files, unreachable folders, moves, multiple versions.
-- Playback: direct play, remux, audio transcoding, software video transcoding with a quality picker, text and burned-in subtitles, timeline thumbnails.
+- Playback: direct play, remux, audio transcoding, video transcoding (software, or VAAPI as an admin option) with a quality picker and HDR to SDR tone mapping, text and burned-in subtitles, timeline thumbnails.
 - Smart audio and subtitle selection, remembered per show.
 - Intros and credits: skip intro, skip end credits, next episode autoplay, through community databases, local fingerprinting and manual markers.
 - Per-profile progress: continue watching, up next, watched / unwatched, My list, video preview on the home hero.
@@ -71,8 +71,6 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 
 - Mobile app: no longer v2, specified in §26 (iPhone and iPad, milestone M6).
 - Network mounts (NFS, SMB): the per-root watcher / polling strategy is already planned.
-- Hardware transcoding acceleration (VAAPI, QuickSync) behind an admin option.
-- HDR to SDR tone mapping.
 - Faithful rendering of ASS subtitles (libass in WASM).
 - Subtitle download (OpenSubtitles).
 - Advanced kids mode (dedicated interface, exit lock); the per-profile maximum rating is already in v1.
@@ -613,7 +611,8 @@ A quality above the source is brought down to the best offered one (never upscal
 - A requested segment not yet written is awaited up to 20 s before 503, only if it is coming in the current run; a segment already passed (deleted behind the player) restarts ffmpeg. Only the latest segment request can restart ffmpeg, a request abandoned by the client stops, and a run that finished without producing the requested segment gives an error (no restart).
 - End of session (explicit stop, or 60 s without heartbeat): ffmpeg killed, folder deleted after a 5 min grace period. The `cleanup_cache` job caps `cache/transcode` at `settings.transcode_cache_max_gb` (default 10) by deleting the oldest finished sessions.
 - Maximum number of simultaneous transcodes: `settings.max_concurrent_transcodes` (default 2, configurable without a ceiling). Remuxing does not count. Beyond it: error `playback/transcode_limit_reached`, the player shows "Too many playbacks running on the server". Also not counted: sessions without heartbeat for 60 s, and the most recent one of the same authentication session on the same item (the player replacing its session, whether it stops the old one before or after); only one is exempted, other tabs of the same browser on the same title count. `0` disables transcoding.
-- Hardware acceleration: not in v1. The admin option `settings.hw_accel = off | vaapi | qsv` exists in the schema from v1 but is not exposed; the ffmpeg command is built by a pure function that accepts this parameter, so that v2 only touches infrastructure.
+- HDR to SDR: a source whose video is HDR or Dolby Vision (`dynamicRange` of §7.7, from the probe: transfer `smpte2084` or `arib-std-b67`, or Dolby Vision side data or tag) comes out of `hls_transcode` as SDR BT.709. The picture is scaled to the quality first, then tone mapped on the CPU (`zscale` linearization, `tonemap=hable:desat=0`, back to BT.709, tagged BT.709), then the burned-in subtitles are drawn over it. Only if the ffmpeg binary has `zscale` (libzimg) and `tonemap`, as the image's does; otherwise the picture is only converted to 8 bits and comes out washed out. Tone mapping is the costliest part of a transcode, worst at Original on a 4K source: each run logs `playback/hdr_tonemap`. `direct` and `hls_remux` pass HDR through unchanged. Dolby Vision profile 5 (no HDR10 base layer) comes out with wrong colours.
+- Hardware transcoding: `settings.hw_accel = off | vaapi` (default `off`, §15 "Playback"). With `vaapi`, a transcode without burn-in is decoded, scaled (`scale_vaapi`) and encoded (`h264_vaapi`, QP 21 at Original, otherwise the quality's bitrate, the same forced IDR every 4 s) on the render node `/dev/dri/renderD128`: an Intel iGPU through the image's iHD driver, the container given the device and its group (README). HDR: scaled on the GPU keeping 10 bits, downloaded, tone mapped on the CPU as above (on the scaled frame), uploaded back to the encoder; never `tonemap_vaapi` (Gen9 iGPUs have none: one rule for every GPU). Burn-in: software. Fallback to software, decided per session: a render node missing or not readable and writable by the process makes the session's first run software; a VAAPI run that fails before the session has an `init.mp4` (device, driver, a codec the GPU does not decode) is retried at once in software. Both log `playback/hw_accel_failed` (warning) and raise the notification of the same name, resolved by the next VAAPI run that writes its init. A failure once the init exists is an ordinary stream failure: a session never changes encoder.
 - On Safari (iOS, macOS), HLS is played natively; elsewhere through hls.js.
 
 ### 10.4 Subtitles
@@ -824,7 +823,7 @@ Available to `admin` accounts through the avatar menu, same language and same de
 | **Hidden** | `rejected` sources (§7.8): path, size. Action: show again. |
 | **Accounts** | `AdminAccounts` artboard. List of accounts with their profiles (avatar, account role, summary "Movies, Shows · 16 and over", last activity and device, playing or not). Detail panel per profile: name, colour, accessible libraries, maximum rating, autoplay episodes, skip intros, protect with a PIN code, "Delete the profile". Per account: role, pending invitations, create an invitation, reset a password, disable, delete, revoke sessions, add a profile (5 max). List as a table; an account's details (settings + profiles) open in a dialog when clicking its row. |
 | **Active sessions** | Who watches what, mode (direct, remux, transcode), quality, device, position. Stop a session. |
-| **Playback** | Max simultaneous transcodes, audio downmix, subtitle burn-in, max transcoding cache size, trickplay on/off, (v2: hardware acceleration). |
+| **Playback** | Max simultaneous transcodes, audio downmix, subtitle burn-in, max transcoding cache size, trickplay on/off, hardware transcoding (VAAPI, §10.3). |
 | **Intros and credits** | Enabled providers and order, TheIntroDB key, fingerprinting on/off and thresholds, contribution on/off. |
 | **Metadata** | Language, TMDB key (replacement; state `missing` \| `valid` \| `rejected` — `rejected` when TMDB answered 401 to the saved key since it was validated, also reported by the admin banner), "Refresh the whole library". |
 | **Updates** | Current version, last check, available version and release notes, "Check now", "Update", versions on disk with "Go back to this version", update log. |
@@ -832,7 +831,7 @@ Available to `admin` accounts through the avatar menu, same language and same de
 | **Jobs** | List of queued, running, failed jobs (type, target, state, attempts, error with code and context), retry, cancel. Target: name of the library, the file or the version; an item or a season arrives in parts (own title, show, numbers) and the web composes the line (`Severance · S2 · E4`, `Severance · Season 2`). No log viewer. |
 | **Notifications** | Notification centre: unread, read, resolved. Badge in the menu. |
 
-Notifications emitted in v1: `library/root_unreachable`, `scan/source_stuck_pending`, `scan/unsupported_layout`, `scan/needs_review_count` (daily if > 0), `metadata/tmdb_key_missing`, `update/available`, `update/runtime_too_old`, `update/failed`, `update/rolled_back`, `job/failed` (after the last attempt), `tmdb/unauthorized`, `cache/disk_low` (less than 2 GB free on `/data`). Reference list: `notificationKinds` of `packages/shared/api/notifications.ts`.
+Notifications emitted in v1: `library/root_unreachable`, `scan/source_stuck_pending`, `scan/unsupported_layout`, `scan/needs_review_count` (daily if > 0), `metadata/tmdb_key_missing`, `update/available`, `update/runtime_too_old`, `update/failed`, `update/rolled_back`, `job/failed` (after the last attempt), `tmdb/unauthorized`, `cache/disk_low` (less than 2 GB free on `/data`), `playback/hw_accel_failed` (§10.3). Reference list: `notificationKinds` of `packages/shared/api/notifications.ts`.
 
 ---
 
@@ -1086,6 +1085,7 @@ Decisions taken to move forward, changeable without breaking the model. Values a
 | "Pending since" alert | 24 h |
 | Purge of missing files | 30 days |
 | Simultaneous transcodes | 2 |
+| Hardware transcoding | off (VAAPI as an option) |
 | Transcoding cache | 10 GB, LRU |
 | Grace after end of session | 5 min |
 | Session without heartbeat | 60 s |
