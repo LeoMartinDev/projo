@@ -4,6 +4,7 @@ import i18next, { type TFunction } from 'i18next'
 import { resources } from './index.ts'
 import {
   chapterLabel,
+  episodeCode,
   episodeLine,
   itemTitle,
   itemWithSeriesLabel,
@@ -146,5 +147,15 @@ describe('episodes on lines that show their number (§6.3)', () => {
     expect(playEpisodeLabel(en, titled, '7')).toBe('Play episode 7, “The Watcher”')
     expect(playEpisodeLabel(fr, untitled, '7')).toBe('Lire l’épisode 7')
     expect(playEpisodeLabel(en, untitled, '7')).toBe('Play episode 7')
+  })
+})
+
+describe('episodeCode', () => {
+  test('season and episode', () => {
+    expect(episodeCode(2, 4, { season: 'S', episode: 'É' })).toBe('S2 · É4')
+  })
+
+  test('season only', () => {
+    expect(episodeCode(1, undefined, { season: 'S', episode: 'E' })).toBe('S1')
   })
 })

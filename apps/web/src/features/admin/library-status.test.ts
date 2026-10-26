@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import i18next, { type TFunction } from 'i18next'
 
+import { resources } from '@projo/i18n'
 import type { LibraryDto } from '@projo/shared/api/libraries'
 
-import { resources } from '../../shared/i18n/index.ts'
 import { addReadySource, createThrottle, scanPercent } from './live-scans.ts'
 import {
   hasAnalysisInProgress,

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
+import { episodeCode, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto, PersonDto } from '@projo/shared/api/catalog'
 
-import { episodeCode, formatDuration } from '../../shared/format/format.ts'
-import { itemTitle } from '../../shared/i18n/item-titles.ts'
+import { formatDuration } from '../../shared/format/format.ts'
 import { PlayIcon } from '../../shared/ui/icons.tsx'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { durationMsOf, toneOf } from '../media/media.ts'

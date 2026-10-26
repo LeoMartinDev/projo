@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
+import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
+import { versionLabel } from '@projo/i18n/versions'
 import type { AdminPlaybackSessionDto } from '@projo/shared/api/playback'
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
 import { api, request } from '../../../shared/api/client.ts'
 import { formatClock } from '../../../shared/format/format.ts'
-import { episodeLine, itemTitle } from '../../../shared/i18n/item-titles.ts'
-import { versionLabel } from '../../../shared/i18n/versions.ts'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { AdminAvatar, avatarColors } from '../accounts/parts.tsx'
 import { playbackSessionsQuery, playbackSessionsQueryKey } from './queries.ts'

@@ -1,9 +1,9 @@
 import { useTranslation } from 'react-i18next'
 
+import { type RatingBadge as Badge, ratingBadge } from '@projo/i18n/content-ratings'
 import type { ContentRatingDto } from '@projo/shared/api/content-ratings'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { type RatingBadge as Badge, ratingBadge } from '../../shared/i18n/content-ratings.ts'
 
 /** The §13.5 badge of a classification in the interface language (`undefined`: none to show). */
 export const useRatingBadge = () => {

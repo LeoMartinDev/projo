@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { itemTitle } from '@projo/i18n/item-titles'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
-import { itemTitle } from '../../shared/i18n/item-titles.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { CheckIcon } from '../../shared/ui/icons.tsx'
 import {

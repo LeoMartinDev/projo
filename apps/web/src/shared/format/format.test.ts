@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
-  episodeCode,
   formatBytes,
   formatClock,
   formatDuration,
@@ -60,16 +59,6 @@ describe('formatRelative', () => {
   test('a date slightly in the future reads as now', () => {
     const now = new Date('2026-10-23T12:00:00Z')
     expect(formatRelative('2026-10-23T12:00:06Z', 'en', now)).toBe('now')
-  })
-})
-
-describe('episodeCode', () => {
-  test('season and episode', () => {
-    expect(episodeCode(2, 4, { season: 'S', episode: 'É' })).toBe('S2 · É4')
-  })
-
-  test('season only', () => {
-    expect(episodeCode(1, undefined, { season: 'S', episode: 'E' })).toBe('S1')
   })
 })
 

@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
+import { genreLabels } from '@projo/i18n/genres'
+import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import type { HomeHeroDto } from '@projo/shared/api/home'
 
 import { Artwork } from '../../shared/ui/Artwork.tsx'
@@ -11,9 +13,7 @@ import { useWatchlistToggle } from '../media/actions.ts'
 import { formatRemaining } from '../media/card-text.ts'
 import { episodeLabelOf, progressRatioOf, toneOf, yearsLabel } from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
-import { genreLabels } from '../../shared/i18n/genres.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { episodeLine, itemTitle } from '../../shared/i18n/item-titles.ts'
 import { useHeroPreview } from './hero-preview.ts'
 
 /**

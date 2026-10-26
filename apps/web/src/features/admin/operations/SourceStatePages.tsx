@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-q
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { itemWithSeriesLabel } from '@projo/i18n/item-titles'
 import type { SourceDto } from '@projo/shared/api/libraries'
 
 import { api, request } from '../../../shared/api/client.ts'
@@ -12,7 +13,6 @@ import {
   formatRelative,
 } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { itemWithSeriesLabel } from '../../../shared/i18n/item-titles.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { EyeIcon, EyeOffIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'

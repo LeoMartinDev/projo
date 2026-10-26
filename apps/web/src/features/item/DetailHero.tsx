@@ -2,11 +2,11 @@ import { Link, useCanGoBack, useRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { genreLabels } from '@projo/i18n/genres'
+import { itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, PersonDto } from '@projo/shared/api/catalog'
 
-import { genreLabels } from '../../shared/i18n/genres.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { itemTitle } from '../../shared/i18n/item-titles.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { ChevronLeftIcon, StarIcon } from '../../shared/ui/media-icons.tsx'
 import { qualityLabel, toneOf, yearsLabel } from '../media/media.ts'

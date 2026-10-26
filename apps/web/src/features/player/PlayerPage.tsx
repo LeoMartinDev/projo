@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 import type {
   AudioTrackDto,
@@ -24,7 +25,6 @@ import { type ApiFailure, toApiFailure } from '../../shared/api/failure.ts'
 import { useServerEvent } from '../../shared/events/events.ts'
 import { formatClock } from '../../shared/format/format.ts'
 import { useErrorMessage } from '../../shared/i18n/errors.ts'
-import { episodeLine, itemTitle } from '../../shared/i18n/item-titles.ts'
 import { pickActiveProfile } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import {

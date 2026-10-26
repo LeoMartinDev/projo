@@ -1,9 +1,9 @@
 import type { TFunction } from 'i18next'
 
+import { editionLabel } from '@projo/i18n/versions'
 import type { SourceDto } from '@projo/shared/api/libraries'
 import { type ReviewReason, reviewReasonSchema } from '@projo/shared/api/metadata'
 
-import { editionLabel } from '../../../shared/i18n/versions.ts'
 import type { IdentifyInitial } from '../identify/IdentifyForm.tsx'
 
 /** Last segment of a relative path: what the admin recognizes first. */
