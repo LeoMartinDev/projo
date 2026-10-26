@@ -16,6 +16,12 @@ export const authErrorCodes = [
   'auth/invitation_used',
   'auth/token_not_found',
   'auth/session_not_found',
+  /** §14: at most 3 live pairing codes per account. */
+  'auth/pairing_limit_reached',
+  /** Unknown pairing code, or voided (the session that created it was revoked). */
+  'auth/pairing_invalid',
+  'auth/pairing_expired',
+  'auth/pairing_used',
 ] as const
 
 export type AuthErrorCode = (typeof authErrorCodes)[number]

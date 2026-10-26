@@ -15,12 +15,13 @@ import { clearSessionCookie, readSessionCredential, setSessionCookie } from './s
 
 const apiPrefix = '/api/v1'
 
-/** Routes reachable without an account (§17.2): wizard, login, logout, invitations. */
+/** Routes reachable without an account (§17.2): wizard, login, logout, pairing claim, invitations. */
 const publicRoutes: { method: string; path: RegExp }[] = [
   { method: 'GET', path: /^\/setup\/status$/ },
   { method: 'POST', path: /^\/setup$/ },
   { method: 'POST', path: /^\/auth\/login$/ },
   { method: 'POST', path: /^\/auth\/logout$/ },
+  { method: 'POST', path: /^\/auth\/pairings\/claim$/ },
   { method: 'GET', path: /^\/invitations\/[^/]+$/ },
   { method: 'POST', path: /^\/invitations\/[^/]+\/accept$/ },
 ]

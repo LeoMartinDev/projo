@@ -19,4 +19,8 @@ export const authErrorStatus = {
   'auth/invitation_used': 410,
   'auth/token_not_found': 404,
   'auth/session_not_found': 404,
+  'auth/pairing_limit_reached': 409,
+  'auth/pairing_invalid': 404,
+  'auth/pairing_expired': 410,
+  'auth/pairing_used': 410,
 } satisfies ErrorStatusMap<AuthErrorCode>

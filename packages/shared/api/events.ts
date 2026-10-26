@@ -63,6 +63,16 @@ export const serverEventSchemas = {
     reason: z.enum(['admin', 'timeout', 'ended']),
   }),
   /**
+   * A pairing code was claimed (§14): the "Connect a device" dialog of the session that created it
+   * (`sessionId`) shows the device. `deviceSessionId`: the device's new bearer session.
+   */
+  'pairing.claimed': z.object({
+    pairingId: z.string(),
+    sessionId: z.string(),
+    deviceSessionId: z.string(),
+    deviceName: z.string(),
+  }),
+  /**
    * The catalogue changed (files ready, scans finished, identification or images done): clients
    * refetch what they show. Coalesced by the server (at most one every 2 s), no detail: every
    * profile receives it, whatever it sees.
@@ -100,6 +110,7 @@ export const serverEventAudience: Record<ServerEventType, EventAudience> = {
   'job.updated': 'admin',
   'notification.created': 'admin',
   'playback.session_terminated': 'owning_session',
+  'pairing.claimed': 'owning_session',
   'update.state': 'admin',
   'catalog.changed': 'everyone',
 }

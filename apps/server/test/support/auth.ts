@@ -1,4 +1,5 @@
 import type { Account, AccountRepository } from '../../src/core/auth/account.ts'
+import type { Pairing, PairingCodes, PairingRepository } from '../../src/core/auth/pairing.ts'
 import type { PasswordHasher, RateLimiter, SessionTokens } from '../../src/core/auth/ports.ts'
 import type { Session, SessionRepository } from '../../src/core/auth/session.ts'
 import type { Profile, ProfileRepository } from '../../src/core/profile/profile.ts'
@@ -180,6 +181,52 @@ export const createInMemorySessions = (initial: Session[] = []) => {
     },
   }
   return { repository, sessions }
+}
+
+/** Codes from `codes` in turn (then `ZZZZZ<n>`), hashed as `h(<code>)`. */
+export const createFakePairingCodes = (codes: string[] = []): PairingCodes => {
+  const queue = [...codes]
+  let counter = 0
+  return {
+    generate: () => {
+      counter += 1
+      return queue.shift() ?? `ZZZZZ${(counter % 8) + 2}`
+    },
+    hash: (code) => `h(${code})`,
+  }
+}
+
+export const createInMemoryPairings = (initial: Pairing[] = []) => {
+  const pairings = [...initial]
+  const repository: PairingRepository = {
+    create: (pairing) => {
+      pairings.push(pairing)
+    },
+    findByCodeHash: (codeHash) =>
+      pairings
+        .filter((pairing) => pairing.codeHash === codeHash)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0],
+    listLiveByAccount: ({ accountId, now }) =>
+      pairings.filter(
+        (pairing) =>
+          pairing.accountId === accountId &&
+          pairing.claimedAt === undefined &&
+          pairing.expiresAt.getTime() > now.getTime(),
+      ),
+    claim: ({ id, claimedAt, claimedSessionId }) => {
+      const index = pairings.findIndex((pairing) => pairing.id === id)
+      const pairing = pairings[index]
+      if (pairing === undefined || pairing.claimedAt !== undefined) return false
+      pairings[index] = { ...pairing, claimedAt, claimedSessionId }
+      return true
+    },
+    deleteExpiredBefore: (before) => {
+      for (let i = pairings.length - 1; i >= 0; i -= 1) {
+        if ((pairings[i]?.expiresAt.getTime() ?? 0) < before.getTime()) pairings.splice(i, 1)
+      }
+    },
+  }
+  return { repository, pairings }
 }
 
 export const createInMemorySetup = () => {

@@ -100,3 +100,26 @@ export const sessions = sqliteTable(
     index('sessions_account_id_idx').on(t.accountId),
   ],
 )
+
+/** §14 "Pairing a device": a code shown by the web, claimed by the app. Only its hash is kept. */
+export const pairings = sqliteTable(
+  'pairings',
+  {
+    id: text().primaryKey(),
+    accountId: text()
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    createdBySessionId: text()
+      .notNull()
+      .references(() => sessions.id, { onDelete: 'cascade' }),
+    codeHash: text().notNull(),
+    createdAt: text().notNull(),
+    expiresAt: text().notNull(),
+    claimedAt: text(),
+    claimedSessionId: text().references(() => sessions.id, { onDelete: 'set null' }),
+  },
+  (t) => [
+    index('pairings_code_hash_idx').on(t.codeHash),
+    index('pairings_account_id_idx').on(t.accountId),
+  ],
+)
