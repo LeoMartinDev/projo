@@ -4,15 +4,13 @@ export const currentTime = (video: Locator) =>
   video.evaluate((element: HTMLVideoElement) => element.currentTime)
 
 /**
- * Where the player started the video: the start of the last range of `video.played` once a frame
- * has played, the playhead before. Unlike a later `currentTime`, both stay put: on a loaded CI
- * runner, two reads of a WebKit page can be seconds apart. The playhead covers WebKit on Linux
- * (GStreamer), which may hold the first frame of a stream seeked before it played for longer
- * than the test waits (`watchSeekStalls`): the position is right, the frames are late.
+ * Where playback really started: the start of the last range of `video.played`, `0` before a
+ * frame has played. Unlike `currentTime`, it stays put while the video plays: on a loaded CI
+ * runner, two reads of a WebKit page can be seconds apart.
  */
-export const startPosition = (video: Locator) =>
-  video.evaluate(({ played, currentTime }: HTMLVideoElement) =>
-    played.length === 0 ? currentTime : played.start(played.length - 1),
+export const playbackStart = (video: Locator) =>
+  video.evaluate(({ played }: HTMLVideoElement) =>
+    played.length === 0 ? 0 : played.start(played.length - 1),
   )
 
 /** Player chrome hides after 3 s of inactivity: a pointer move brings it back. */
