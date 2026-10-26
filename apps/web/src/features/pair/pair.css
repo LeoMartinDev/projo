@@ -1,0 +1,8 @@
+/* `/pair` (§14): the invitation's composition, one sentence. */
+
+.pair__text {
+  max-width: 44ch;
+  color: var(--color-text-soft);
+  font-size: 17px;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
+}

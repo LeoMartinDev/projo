@@ -99,6 +99,144 @@
   flex: 0 0 auto;
 }
 
+.devices__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* "Connect a device" (§14): QR tile and code side by side, the same size in every state. */
+.pairing {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  height: 232px;
+}
+
+.pairing__tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 232px;
+  height: 232px;
+  padding: 14px;
+  border-radius: var(--radius-card);
+  background: #fff;
+  color: #000;
+  transition: opacity 0.2s var(--ease);
+}
+
+.pairing:has(.pairing__expired) .pairing__tile {
+  opacity: 0.15;
+}
+
+.qr-code {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pairing__skeleton {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.06);
+}
+
+.pairing__done {
+  display: flex;
+  color: #128a50;
+}
+
+.pairing__info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pairing__scan {
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.pairing__code {
+  font-size: 40px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+.pairing__origin {
+  overflow: hidden;
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pairing__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  height: 92px;
+  margin-top: 10px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.pairing:has(.pairing__claimed) .pairing__code {
+  opacity: 0.35;
+}
+
+.pairing__countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+.pairing__claimed {
+  color: var(--color-success);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.pairing__warning {
+  background: rgba(229, 181, 103, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(229, 181, 103, 0.28);
+  color: var(--color-warning);
+}
+
+.pairing__warning svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+@media (max-width: 560px) {
+  .pairing {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 16px;
+    height: 436px;
+    text-align: center;
+  }
+
+  .pairing__tile {
+    width: 200px;
+    height: 200px;
+  }
+
+  .pairing__info,
+  .pairing__status {
+    align-items: center;
+    width: 100%;
+  }
+
+  .pairing__code {
+    font-size: 34px;
+  }
+}
+
 /* "À propos": version, then the attributions. */
 .about {
   display: flex;
