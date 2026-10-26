@@ -17,7 +17,8 @@
           "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
         },
-        "NSLocalNetworkUsageDescription": "projo connects to your projo server on your local network."
+        "NSLocalNetworkUsageDescription": "projo connects to your projo server on your local network.",
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
