@@ -3,7 +3,7 @@ import { Text } from 'react-native'
 
 import { errorKey } from '../../shared/i18n/errors.ts'
 import { Button } from '../../shared/ui/Button.tsx'
-import { Screen } from '../../shared/ui/Screen.tsx'
+import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { textStyles } from '../../shared/ui/text.ts'
 import { useSession } from './Session.tsx'
 
@@ -14,13 +14,10 @@ export const SessionErrorScreen = () => {
   if (gate.kind !== 'error') return undefined
 
   return (
-    <Screen>
-      <Text accessibilityRole="header" style={textStyles.title}>
-        {t('common.errorTitle')}
-      </Text>
+    <EntryScreen image="city" title={t('common.errorTitle')}>
       <Text style={textStyles.error}>{t(errorKey(gate.error.code))}</Text>
       <Button busy={retrying} label={t('common.retry')} onPress={retry} />
       <Button busy={signingOut} label={t('shell.logout')} onPress={signOut} variant="plain" />
-    </Screen>
+    </EntryScreen>
   )
 }

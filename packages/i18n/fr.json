@@ -1236,6 +1236,14 @@
       "denied": "Autorisez projo à utiliser la caméra dans Réglages pour scanner le code.",
       "openSettings": "Ouvrir Réglages"
     },
+    "settings": {
+      "title": "Réglages",
+      "device": "Cet appareil",
+      "server": "Serveur",
+      "appVersion": "Version de l’app",
+      "serverVersion": "Version du serveur",
+      "changeServerText": "Cet appareil sera déconnecté de ce serveur."
+    },
     "errors": {
       "connection/invalid_url": "Cette adresse n’est pas valide.",
       "connection/not_projo": "Aucun serveur projo à cette adresse.",

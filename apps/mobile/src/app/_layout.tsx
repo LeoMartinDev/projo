@@ -1,4 +1,12 @@
+import {
+  Geist_400Regular,
+  Geist_500Medium,
+  Geist_600SemiBold,
+  Geist_700Bold,
+} from '@expo-google-fonts/geist'
+import { GeistMono_400Regular } from '@expo-google-fonts/geist-mono'
 import { QueryClientProvider } from '@tanstack/react-query'
+import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
@@ -11,7 +19,7 @@ import {
 import { SessionProvider, useSession } from '../features/session/Session.tsx'
 import { createAppQueryClient } from '../shared/api/query-client.ts'
 import { setupI18n } from '../shared/i18n/index.ts'
-import { colors } from '../shared/styles/tokens.ts'
+import { colors, fonts } from '../shared/styles/tokens.ts'
 
 setupI18n()
 const queryClient = createAppQueryClient()
@@ -51,11 +59,33 @@ const AppStack = () => {
     headerTintColor: colors.text,
     headerBackTitle: t('common.back'),
   } as const
+  // The settings behind the avatar: native header, back swipe (§26.5).
+  const settings = {
+    headerShown: true,
+    headerTintColor: colors.text,
+    headerStyle: { backgroundColor: colors.bg },
+    headerTitleStyle: { fontFamily: fonts.semibold, color: colors.text },
+    headerBackTitleStyle: { fontFamily: fonts.regular },
+    headerShadowVisible: false,
+  } as const
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={gate.kind === 'ready'} redirectTo={redirectTo}>
-        <Stack.Screen name="index" />
+        {/* Its title is the back button of the settings. */}
+        <Stack.Screen name="index" options={{ title: t('common.home') }} />
+        <Stack.Screen
+          name="settings/index"
+          options={{ ...settings, title: t('mobile.settings.title') }}
+        />
+        <Stack.Screen
+          name="settings/profile"
+          options={{ ...settings, title: t('shell.profileSettings') }}
+        />
+        <Stack.Screen
+          name="settings/account"
+          options={{ ...settings, title: t('shell.account') }}
+        />
       </Stack.Protected>
       <Stack.Protected guard={gate.kind === 'choosing'} redirectTo={redirectTo}>
         <Stack.Screen name="profiles" />
@@ -80,17 +110,30 @@ const AppStack = () => {
   )
 }
 
-const RootLayout = () => (
-  <SafeAreaProvider style={styles.root}>
-    <QueryClientProvider client={queryClient}>
-      <ServerConnectionProvider>
-        <SessionProvider>
-          <AppStack />
-        </SessionProvider>
-      </ServerConnectionProvider>
-    </QueryClientProvider>
-  </SafeAreaProvider>
-)
+/** Geist and Geist Mono, bundled with the app (§26.5): the names of `fonts`. */
+const fontFiles = {
+  [fonts.regular]: Geist_400Regular,
+  [fonts.medium]: Geist_500Medium,
+  [fonts.semibold]: Geist_600SemiBold,
+  [fonts.bold]: Geist_700Bold,
+  [fonts.mono]: GeistMono_400Regular,
+}
+
+const RootLayout = () => {
+  // Local files: ready in a few frames. A font that fails to load falls back to the system's.
+  const [loaded, error] = useFonts(fontFiles)
+  return (
+    <SafeAreaProvider style={styles.root}>
+      <QueryClientProvider client={queryClient}>
+        <ServerConnectionProvider>
+          <SessionProvider>
+            {loaded || Boolean(error) ? <AppStack /> : <View style={styles.root} />}
+          </SessionProvider>
+        </ServerConnectionProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  )
+}
 
 export default RootLayout
 

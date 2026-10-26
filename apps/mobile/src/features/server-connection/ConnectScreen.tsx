@@ -1,13 +1,11 @@
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text } from 'react-native'
 
 import { Button } from '../../shared/ui/Button.tsx'
+import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'
-import { Screen } from '../../shared/ui/Screen.tsx'
 import { TextField } from '../../shared/ui/TextField.tsx'
-import { textStyles } from '../../shared/ui/text.ts'
 import { useServerConnection } from './ServerConnection.tsx'
 
 /**
@@ -23,16 +21,13 @@ export const ConnectScreen = () => {
   const submit = () => connect(input)
 
   return (
-    <Screen>
-      <Text accessibilityRole="header" style={textStyles.title}>
-        {t('mobile.connect.title')}
-      </Text>
+    <EntryScreen image="dunes" title={t('mobile.connect.title')}>
       <TextField
-        accessibilityLabel={t('mobile.connect.urlLabel')}
         autoCapitalize="none"
         autoComplete="url"
         editable={!connecting}
         inputMode="url"
+        label={t('mobile.connect.urlLabel')}
         onChangeText={setInput}
         onSubmitEditing={submit}
         placeholder={t('mobile.connect.urlPlaceholder')}
@@ -41,12 +36,12 @@ export const ConnectScreen = () => {
         value={input}
       />
       <ErrorLine error={error} />
-      <Button busy={connecting} label={t('mobile.connect.submit')} onPress={submit} />
+      <Button busy={connecting} label={t('mobile.connect.submit')} onPress={submit} size="large" />
       <Button
         label={t('mobile.signIn.scan')}
         onPress={() => router.push('/scan')}
         variant="secondary"
       />
-    </Screen>
+    </EntryScreen>
   )
 }

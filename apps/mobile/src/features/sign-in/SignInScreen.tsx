@@ -1,13 +1,13 @@
 import { useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Text } from 'react-native'
+import { StyleSheet, View } from 'react-native'
 
 import { Button } from '../../shared/ui/Button.tsx'
+import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'
-import { Screen } from '../../shared/ui/Screen.tsx'
+import { RevealButton } from '../../shared/ui/RevealButton.tsx'
 import { TextField, type TextFieldInstance } from '../../shared/ui/TextField.tsx'
-import { textStyles } from '../../shared/ui/text.ts'
 import { useServerConnection } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 
@@ -22,25 +22,22 @@ export const SignInScreen = () => {
   const { signIn } = useSession()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [shown, setShown] = useState(false)
   const passwordField = useRef<TextFieldInstance | undefined>(undefined)
+  const ready = username.trim() !== '' && password !== ''
   const submit = () => {
-    if (username.trim() !== '' && password !== '')
-      signIn.run({ username: username.trim(), password })
+    if (ready) signIn.run({ username: username.trim(), password })
   }
 
   return (
-    <Screen>
-      <Text accessibilityRole="header" style={textStyles.title}>
-        {t('login.title')}
-      </Text>
+    <EntryScreen image="ocean" title={t('login.title')}>
       <TextField
-        accessibilityLabel={t('login.username')}
         autoCapitalize="none"
         autoComplete="username"
         editable={!signIn.pending}
+        label={t('login.username')}
         onChangeText={setUsername}
         onSubmitEditing={() => passwordField.current?.focus()}
-        placeholder={t('login.username')}
         returnKeyType="next"
         submitBehavior="submit"
         textContentType="username"
@@ -50,31 +47,48 @@ export const SignInScreen = () => {
         ref={(node) => {
           passwordField.current = node ?? undefined
         }}
-        accessibilityLabel={t('login.password')}
         autoCapitalize="none"
         autoComplete="current-password"
         editable={!signIn.pending}
+        label={t('login.password')}
         onChangeText={setPassword}
         onSubmitEditing={submit}
-        placeholder={t('login.password')}
         returnKeyType="go"
-        secureTextEntry
+        secureTextEntry={!shown}
         textContentType="password"
+        trail={<RevealButton onToggle={() => setShown(!shown)} shown={shown} />}
         value={password}
       />
       <ErrorLine error={signIn.error} />
-      <Button busy={signIn.pending} label={t('login.submit')} onPress={submit} />
       <Button
-        label={t('mobile.signIn.scan')}
-        onPress={() => router.push('/scan')}
-        variant="secondary"
+        busy={signIn.pending}
+        disabled={!ready}
+        label={t('login.submit')}
+        onPress={submit}
+        size="large"
       />
-      <Button
-        label={t('mobile.signIn.enterCode')}
-        onPress={() => router.push('/pair')}
-        variant="secondary"
-      />
+      <View style={styles.codes}>
+        <View style={styles.code}>
+          <Button
+            label={t('mobile.signIn.scan')}
+            onPress={() => router.push('/scan')}
+            variant="secondary"
+          />
+        </View>
+        <View style={styles.code}>
+          <Button
+            label={t('mobile.signIn.enterCode')}
+            onPress={() => router.push('/pair')}
+            variant="secondary"
+          />
+        </View>
+      </View>
       <Button label={t('mobile.changeServer')} onPress={forget} variant="plain" />
-    </Screen>
+    </EntryScreen>
   )
 }
+
+const styles = StyleSheet.create({
+  codes: { flexDirection: 'row', gap: 10 },
+  code: { flex: 1 },
+})

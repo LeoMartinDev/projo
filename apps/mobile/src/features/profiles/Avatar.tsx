@@ -1,10 +1,11 @@
+import { SymbolView } from 'expo-symbols'
 import { StyleSheet, Text, View } from 'react-native'
 
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
-import { avatarColors, titleTracking } from '../../shared/styles/tokens.ts'
+import { avatarColors, fonts, titleTracking } from '../../shared/styles/tokens.ts'
 
-/** Profile avatar (§13.6): the initial on a coloured tile, no image. */
+/** Profile avatar (§13.6, `Main`): the initial on a coloured tile, no image. */
 export const Avatar = ({
   name,
   color,
@@ -35,35 +36,24 @@ export const Avatar = ({
     </Text>
     {locked ? (
       <View style={styles.lock}>
-        <View style={styles.shackle} />
-        <View style={styles.body} />
+        <SymbolView name="lock.fill" size={13} tintColor="#ffffff" />
       </View>
     ) : undefined}
   </View>
 )
 
 const styles = StyleSheet.create({
-  tile: { alignItems: 'center', justifyContent: 'center' },
-  initial: { color: '#ffffff', fontWeight: '600' },
+  tile: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  initial: { color: '#ffffff', fontFamily: fonts.semibold },
   lock: {
     position: 'absolute',
     right: 8,
     bottom: 8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(10, 10, 11, 0.4)',
   },
-  shackle: {
-    width: 8,
-    height: 6,
-    borderWidth: 1.5,
-    borderBottomWidth: 0,
-    borderColor: '#ffffff',
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-  },
-  body: { width: 12, height: 8, borderRadius: 2, backgroundColor: '#ffffff' },
 })
