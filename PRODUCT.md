@@ -3,7 +3,7 @@
 > A self-hosted media server for movies and TV shows, built for a household, with the user experience as its only differentiator.
 > This document bounds the project: anything not in it is not in projo. It is written to be carried out from A to Z by a developer or an agent, milestone by milestone.
 
-Document version: 1.0 (2026-10-23). Product language: French first, English shipped.
+Document version: 1.1 (2026-10-26: iPhone and iPad app, §26). Product language: French first, English shipped.
 
 ---
 
@@ -34,6 +34,7 @@ Document version: 1.0 (2026-10-23). Product language: French first, English ship
 23. [Milestones](#23-milestones)
 24. [Default decisions](#24-default-decisions)
 25. [References](#25-references)
+26. [Mobile app (iOS, iPadOS)](#26-mobile-app-ios-ipados)
 
 ---
 
@@ -68,7 +69,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 
 ### 2.2 Planned for v2 (not in v1, but the architecture must not make it impossible)
 
-- Mobile app (same API, bearer tokens already planned).
+- Mobile app: no longer v2, specified in §26 (iPhone and iPad, milestone M6).
 - Network mounts (NFS, SMB): the per-root watcher / polling strategy is already planned.
 - Hardware transcoding acceleration (VAAPI, QuickSync) behind an admin option.
 - HDR to SDR tone mapping.
@@ -85,7 +86,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 ### 2.3 Permanently out of scope
 
 - Multi-tenancy, billing, cloud account, relay, native HTTPS, certificate management.
-- Chromecast, AirPlay, native TV apps (Apple TV, Android TV, Tizen, webOS).
+- Chromecast, native TV apps (Apple TV, Android TV, Tizen, webOS). AirPlay only as the iOS app's player provides it (§26.6), never a feature of its own.
 - Music, photos, live TV, books, unidentifiable home videos.
 - Renaming, moving or deleting files by the app. The library is read-only.
 - NFO files and local images (`poster.jpg`, `fanart.jpg`).
@@ -139,6 +140,7 @@ These five journeys are the ones the Playwright suite covers end to end. They de
 | Validation | Zod, schemas shared between server and web |
 | API client | Hono's typed RPC (`hc`) from the server app's type |
 | Web | Vite, React, TanStack Router, TanStack Query, hls.js |
+| Mobile (§26) | Expo (React Native), Expo Router, TanStack Query, `expo-video` (AVPlayer) |
 | Real time | SSE (Server-Sent Events), one stream per authenticated client |
 | Media | `ffmpeg`, `ffprobe`, `fpcalc` (Chromaprint) called as subprocesses |
 | Jobs | In-process queue, persisted in SQLite, no Redis |
@@ -164,8 +166,12 @@ projo/
       src/
         features/      # home, browse, item, player, profiles, settings, admin, auth
         shared/        # components, hooks, API client, i18n
+    mobile/            # iPhone and iPad app, Expo (§26)
+      src/             # same layout as web: app, features, shared
+      modules/         # native code (Expo Modules, Swift), the only exception to §5.3
   packages/
     shared/            # Result, error codes, Zod schemas, naming conventions, API types
+    i18n/              # fr/en strings and pure label helpers, shared by web and mobile (§26.2)
   runtime/             # Dockerfile, supervisor, image scripts
   design/              # the reference design (provided by Léo), visual source of truth
   e2e/                 # Playwright
@@ -283,6 +289,7 @@ SQLite, Drizzle. Ids: UUID v7 (sortable by date) as text. Dates in ISO 8601 UTC.
 | `profiles` | `id`, `account_id`, `name`, `avatar_color` (`slate` \| `blue` \| `honey` \| `sage` \| `terracotta` \| `violet`), `pin_hash?`, `max_content_rating?` (maximum rating, empty = no limit), `library_access` (`all` \| `selected`), `ui_locale` (`fr` \| `en`), `audio_language`, `subtitle_language`, `subtitle_mode` (`never` \| `always` \| `when_audio_differs` \| `forced_only`), `anime_original_audio` (bool), `autoplay_next` (bool), `auto_skip_intro` (bool), `auto_skip_credits` (bool), `created_at` |
 | `profile_libraries` | `profile_id`, `library_id` (used when `library_access = selected`) |
 | `sessions` | `id`, `account_id`, `kind` (`cookie` \| `bearer`), `token_hash`, `device_name`, `user_agent`, `last_profile_id?`, `created_at`, `last_seen_at`, `expires_at`, `revoked_at?` |
+| `pairings` | `id`, `account_id`, `created_by_session_id`, `code_hash`, `created_at`, `expires_at`, `claimed_at?`, `claimed_session_id?` (§14, §26.3) |
 
 Constraints: 1 to 5 profiles per account; deleting an account deletes its profiles, sessions, progress, lists and preferences.
 
@@ -319,7 +326,7 @@ Generic titles: a season or an episode whose name is only its number (`Saison 2`
 | `playback_progress` | `profile_id`, `item_id`, `position_ms`, `duration_ms`, `watched` (bool), `watched_at?`, `play_count`, `last_played_at`, `hidden_from_continue` (bool) |
 | `watchlist` | `profile_id`, `item_id`, `added_at` |
 | `track_preferences` | `profile_id`, `item_id` (show or movie), `audio_language?`, `subtitle_language?`, `subtitles_enabled` (bool), `updated_at` |
-| `playback_sessions` | `id`, `profile_id`, `session_id` (auth), `source_id`, `item_id`, `mode` (`direct` \| `hls_remux` \| `hls_transcode`), `quality?`, `audio_stream?`, `audio_delivery?` (`copy` \| `aac`: the remux audio decision, kept to survive a restart), `subtitle_stream?`, `burn_in` (bool), `started_at`, `last_heartbeat_at`, `position_ms`, `ended_at?` |
+| `playback_sessions` | `id`, `profile_id`, `session_id` (auth), `source_id`, `item_id`, `mode` (`direct` \| `hls_remux` \| `hls_transcode`), `quality?`, `audio_stream?`, `audio_delivery?` (`copy` \| `aac`: the remux audio decision, kept to survive a restart), `subtitle_stream?`, `burn_in` (bool), `stream_secret_hash` (§20), `started_at`, `last_heartbeat_at`, `position_ms`, `ended_at?` |
 | `segments` | `id`, `item_id`, `type` (`intro` \| `recap` \| `credits` \| `preview`), `start_ms`, `end_ms`, `origin` (`manual` \| `chapter` \| `theintrodb` \| `introdb` \| `skipdb` \| `fingerprint`), `confidence?`, `created_at` |
 | `segment_lookups` | `item_id`, `provider`, `checked_at`, `outcome` (`found` \| `none` \| `no_segment` \| `error`) |
 | `segment_submissions` | `id`, `item_id`, `type`, `provider` (`theintrodb` \| `skipdb`), `start_ms`, `end_ms`, `outcome` (`submitted` \| `failed`), `error?`, `submitted_at` (§12.5) |
@@ -583,7 +590,7 @@ A browser does not play the MKV container, nor AC3/EAC3/DTS/TrueHD audio (Safari
 
 ### 10.2 Choosing the playback mode
 
-At every playback start, the client sends its **capabilities**: the result of `MediaSource.isTypeSupported` and `navigator.mediaCapabilities.decodingInfo` for a fixed list of codecs (`avc1`, `hvc1`/`hev1`, `av01`, `vp09`, `mp4a.40.2`, `ec-3`, `ac-3`, `opus`, `flac`), plus the screen height. The server chooses:
+At every playback start, the client sends its **capabilities**: the result of `MediaSource.isTypeSupported` and `navigator.mediaCapabilities.decodingInfo` for a fixed list of codecs (`avc1`, `hvc1`/`hev1`, `av01`, `vp09`, `mp4a.40.2`, `ec-3`, `ac-3`, `opus`, `flac`), plus the screen height, and how it shows text subtitles: `subtitleDelivery = overlay` (default, the web: WebVTT `<track>`) or `hls` (the iOS app, §10.4). The iOS app declares `hls: native` and the codecs AVFoundation decodes on the device. The server chooses:
 
 | Condition | Mode |
 |---|---|
@@ -618,6 +625,13 @@ A quality above the source is brought down to the best offered one (never upscal
 | Bitmap (`hdmv_pgs_subtitle`, `dvd_subtitle`, external `sup`, `sub`/`idx`) | **burn-in**: `hls_transcode` mode forced with an `overlay`/`subtitles` filter; the player shows "Burned-in subtitles, reduced quality". Can be turned off: `settings.burn_in_enabled` (default true); if off, these tracks are listed greyed out as "not supported". A bitmap track picked by the cascade (§11.2, not explicitly requested) that cannot be burned in (transcode limit reached, client without HLS) is left aside: the session starts without subtitles rather than failing. |
 
 Subtitle delay and size: adjustable in the player, remembered per device.
+
+**Delivery inside HLS** (`subtitleDelivery = hls`, the iOS app, §26.6): AVPlayer only shows subtitles the stream declares, never a separate file. For such a client:
+- A session whose resolved subtitle (§11.2) is a text track is at least `hls_remux`, never `direct`.
+- An HLS session is served through a master playlist (`master.m3u8`) that references the video playlist and declares every text track of the source as a WebVTT rendition (`#EXT-X-MEDIA:TYPE=SUBTITLES`, language, name, `FORCED`, `CHARACTERISTICS` for SDH), the resolved one `DEFAULT=YES`. Each rendition is a playlist over the same WebVTT file as the `<track>` (same cache), aligned with the video timeline (`X-TIMESTAMP-MAP`). They follow the video into Picture-in-Picture and AirPlay.
+- Delay: `master.m3u8?subtitleOffsetMs=` shifts the cues of every rendition; changing the delay reloads the playlist at the current position in the same session (no new ffmpeg). Size and style: the iOS accessibility settings, not the app.
+- A track picked in the native player's menu is a manual change (§11.3), reported by the client.
+- Bitmap tracks: unchanged (burn-in).
 
 Cache: `<track>.vtt` (`source_subtitles` id) next to `<track>.json` (size and mtime of the converted file: the external one, or the video for an embedded one); converted again when it changes, concurrent conversions of a track shared. An external file not in UTF-8 (BOM, otherwise invalid UTF-8 ⇒ Windows-1252, a superset of Latin-1) is re-encoded to UTF-8 before ffmpeg. Access: the active profile (last profile of the auth session for `<track>`) sees the source (same rule as `listReadySources`), otherwise 404 `playback/subtitle_not_found`; bitmap ⇒ 422 `playback/subtitle_unsupported`. `pre_extract_subtitles`: `extract_subtitles` job (priority 15) on `source.ready`, all embedded text tracks in one ffmpeg pass.
 
@@ -788,7 +802,8 @@ Poster grid, virtualised scrolling, sorting (addition, title, year, score) and f
 - **Per-profile library access**: `profiles.library_access = all` or an explicit list (`profile_libraries`), set by the admin from the library ("Profiles with access") or from the profile. Anything outside the access does not exist for that profile (home, title pages, search, API, images).
 - **Per-profile maximum rating**: empty (no limit) or a tier of the rating country's scale (for France: All audiences, 10, 12, 16, 18). An item whose rating exceeds the tier, or whose rating is unknown when a tier is set, does not exist for that profile. Together with the PIN on the other profiles, this is v1's kids profile.
 - **Restricted profile** (selected libraries or maximum rating): it performs no account-level action, 403 `profile/restricted`: revoking sessions or devices, creating a bearer token, changing the password, creating, editing or deleting another profile, setting or removing a PIN (its own included). It edits its own settings unrelated to access (name, colour, languages, subtitles, autoplay…) and can restrict its access further, never widen it. The web hides "Account and devices" and profile management for it. **Without a resolved active profile** (`X-Profile-Id` refused: PIN not unlocked, foreign or unknown profile; "Who's watching?" not answered yet), the account acts as its most restricted profile: never any widening, and account actions are refused as soon as one of its profiles is restricted. Widening access requires an admin acting from a resolved active profile without restrictions.
-- **Sessions**: `projo_session` cookie, httpOnly, `Secure` if the request is over HTTPS (direct or through `TRUST_PROXY`), `SameSite=Lax`, sliding 30-day lifetime, renewed on each request more than 24 h after the previous one. Same table for the bearer tokens (`Authorization: Bearer`) meant for the mobile app, created by `POST /auth/tokens` with a device name. Users see their devices (name, browser, last activity) and revoke them; the admin can revoke all sessions of an account.
+- **Sessions**: `projo_session` cookie, httpOnly, `Secure` if the request is over HTTPS (direct or through `TRUST_PROXY`), `SameSite=Lax`, sliding 30-day lifetime, renewed on each request more than 24 h after the previous one. Same table for the bearer tokens (`Authorization: Bearer`) meant for the mobile app (§26), with the same sliding 30-day lifetime, created with a device name by `POST /auth/tokens`, by `POST /auth/login` with `token: true` (the token is returned, no cookie is set) or by claiming a pairing code. Users see their devices (name, browser, last activity) and revoke them; the admin can revoke all sessions of an account.
+- **Pairing a device**: "Account and devices" → "Connect a device" calls `POST /auth/pairings` (account action: 403 `profile/restricted` from a restricted profile) and shows, for 5 minutes, a 6-character code (alphabet without `0 O 1 I`) and a QR code of `<origin>/pair?code=<code>`; the dialog lists the device as soon as it is claimed. The app scans it (or takes the server URL and the code typed in) and calls `POST /auth/pairings/claim` (`{ code, deviceName }`, public, 10 attempts per 15 min per IP) → `{ token }`, a bearer session of the account that created the code. A code is single-use, only its hash is stored, at most 3 live codes per account, and revoking the session that created it voids it. `/pair` on the web only says to open the projo app and scan the code.
 - **Disabling**: a disabled account can no longer sign in, its sessions are revoked, its data is kept. Deletion: full cascade, confirmed by typing the username.
 - Deleting an account or a profile, or disabling an account, first cleanly ends its active playback sessions (ffmpeg stopped, `playback.session_terminated`).
 
@@ -865,17 +880,18 @@ Bun script in the image (`runtime/supervisor/main.ts`, no npm dependency), start
 - Errors: `{ error: { code, message, context? } }` with the status from the mapping table. Cursor pagination (`?cursor=&limit=`), filters in the query.
 - SSE: `GET /api/v1/events` (events: `scan.progress`, `scan.finished`, `source.ready`, `job.updated`, `notification.created`, `playback.session_terminated`, `update.state`, `catalog.changed`), filtered by audience: `admin` (including `scan.*` and `source.ready`), `everyone`, or only the session concerned. The audience is re-read at each event: an admin demoted or switched to a restricted profile (the stream's profile is the session's last profile) no longer receives admin events, a disabled account or a revoked session loses the stream. `catalog.changed` (audience `everyone`, no details): the catalogue changed (source ready, scan finished, `match_source` or `fetch_images` job finished), grouped on the server (at most one every 2 s, at the end of a burst); the web then reloads its catalogue queries (Movies, Shows, Home, title pages), at most every 1.5 s. `scan.progress` carries `phase` (`discovering` \| `processing`) and `total` when known, for a determinate bar. The admin follows the analysis (§15) by reloading the libraries on `source.ready` and on the end of `watch_pending` / `probe_source` jobs (`job.updated`), at most every 2 s.
 - Everything admin is under `/api/v1/admin/` and requires the role.
+- **Compatibility** (since the mobile app, §26.4): the server updates itself from the admin while the app updates through the App Store, so `/api/v1` only changes additively: new routes, new optional request fields, new response fields. Never a removal, a rename, a change of meaning, a newly required field, or a new value of an existing response enum (except error codes: an unknown code shows the generic message). Anything else is `/api/v2`, served alongside v1.
 
 ### 17.2 Endpoints
 
 | Domain | Endpoints |
 |---|---|
 | Setup | `GET /setup/status`, `POST /setup` |
-| Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/tokens`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/password`, `GET /invitations/:token`, `POST /invitations/:token/accept` |
+| Auth | `POST /auth/login` (`token: true` → bearer, §14), `POST /auth/logout`, `GET /auth/me`, `POST /auth/tokens`, `POST /auth/pairings`, `POST /auth/pairings/claim`, `GET /auth/sessions`, `DELETE /auth/sessions/:id`, `POST /auth/password`, `GET /invitations/:token`, `POST /invitations/:token/accept` |
 | Profiles | `GET/POST /profiles`, `PATCH/DELETE /profiles/:id`, `POST /profiles/:id/verify-pin`, `POST /profiles/:id/select` |
 | Catalogue | `GET /home`, `GET /home/categories?cursor=` (a batch of §13.3 category rows, `total` and `nextCursor`), `GET /home/categories/:category?cursor=&limit=` (`anime` or a genre id: a page of the titles of a §13.3 category page), `GET /movies`, `GET /series`, `GET /items/:id`, `GET /items/:id/children`, `GET /search?q=`, `GET /images/:id`, `GET /genres` (ids of the genres present, unsorted, and year bounds `years: { min, max }`) |
 | Progress | `PUT /items/:id/progress`, `POST /items/:id/watched`, `DELETE /items/:id/watched`, `POST /items/:id/hide-from-continue`, `GET/POST/DELETE /watchlist/:itemId` |
-| Playback | `POST /playback/sessions`, `PUT /playback/sessions/:id/heartbeat`, `DELETE /playback/sessions/:id`, `GET /stream/:sessionId/index.m3u8`, `GET /stream/:sessionId/:segment`, `GET /stream/direct/:sourceId`, `GET /subtitles/:sourceId/:trackId.vtt`, `GET /trickplay/:sourceId/index.json`, `GET /trickplay/:sourceId/:sheet.jpg`, `GET /previews/:itemId.mp4`, `GET /items/:id/segments`, `PUT/DELETE /items/:id/track-preferences` |
+| Playback | `POST /playback/sessions`, `PUT /playback/sessions/:id/heartbeat`, `DELETE /playback/sessions/:id`; under the session's capability prefix `/stream/:sessionId/:secret/` (§20, URLs returned by `POST /playback/sessions`): `master.m3u8`, `index.m3u8`, `:segment`, `direct`, `subtitles/:trackId.vtt`, `subtitles/:trackId.m3u8`, `trickplay/index.json`, `trickplay/:sheet.jpg`; `GET /previews/:itemId.mp4`, `GET /items/:id/segments`, `PUT/DELETE /items/:id/track-preferences` |
 | Admin libraries | `GET/POST /admin/libraries`, `GET/PATCH/DELETE /admin/libraries/:id`, `POST /admin/libraries/:id/scan`, `GET /admin/libraries/:id/scans`, `GET/PUT /admin/libraries/:id/profiles` ("Profiles with access", same `library_access` / `profile_libraries` as the profile), `GET /admin/fs/browse?path=` |
 | Admin sources | `GET /admin/sources?libraryId=&state=&matchState=` (with `total` on every page), `POST /admin/sources/:id/recheck`, `POST /admin/sources/:id/assign`, `POST /admin/sources/:id/reject` (hide), `POST /admin/sources/:id/restore` (show again), `DELETE /admin/sources/:id`, `POST /admin/sources/purge-missing` |
 | Admin items | `GET /admin/tmdb/search`, `POST /admin/items/:id/rematch`, `GET /admin/items/:id` (values and locked fields, for editing), `PATCH /admin/items/:id` (overrides), `POST /admin/libraries/:id/refresh-metadata` ("Refresh the whole library"), `DELETE /admin/items/:id/overrides/:field`, `POST /admin/items/:id/refresh`, `GET /admin/items/:id/images/alternatives`, `POST /admin/items/:id/images`, `PUT/DELETE /admin/items/:id/segments/:type`, `POST /admin/items/:id/segments/apply-to-season` |
@@ -919,7 +935,7 @@ Rules: derived files (subtitles, trickplay, previews) of deleted sources, tracks
 - **Tokens** (extracted from the artboards): Geist font (Geist Mono for paths and sizes in the admin); background `#0A0A0B`, surfaces `#111113` and `#141416`, glass `rgba(255,255,255,.06 to .16)` with `backdrop-filter: blur`, text `#F4F4F5`, secondary text `#A1A1AA`, dimmed `#8B8B94` and `#71717A`, borders `rgba(255,255,255,.08 to .28)`; default accent `#F4F4F5` with variants `#7C83FF`, `#FF5A5F`, `#3DDC97`; error `#FF5A5F`; avatar colours Blue `#5B7FA6`, Terracotta `#A86A55`, Sage `#5E8C72`, Purple `#7D6AA6`, Honey `#B08A3E`, Slate `#5F6670`; radii 999 px (pills), 14 px (primary buttons), 12 px (cards), 10 px (thumbnails), 30 px (avatars); motion `cubic-bezier(.2,.7,.2,1)`, 0.8 s staggered fade-rise entrance, 26 s Ken Burns on backdrops, all turned off by `prefers-reduced-motion`.
 - **Principles** when the design does not decide: dark, image first, few words, subtle motion, a single gesture for the main action.
 - **Image formats**: 2:3 posters for Recently added, the home categories, Movies and Shows; 16:9 thumbnails with still for episodes, Continue watching, Up next and My list; backdrop + logo for the hero.
-- **i18n** from the first screen: all strings in `apps/web/src/shared/i18n/<locale>.json`, including notification titles (`admin.notifications.<kind>`), genre (`genres.<id>`, §9.1) and edition (`editions.<id>`, §8.1) labels, the version label (§7.7), that of seasons, episodes and chapters without a name of their own (`item.season`, `item.specials`, `item.episodeNumber`, `player.menu.chapterNumber`, §6.3, §10.7), the rating badge (`contentRatings.*`, §13.5), the reason of an unreachable root (`admin.rootError.<reason>`, §7.5): the server only sends codes and ids, `fr` and `en` shipped, language per profile (default: browser language). API error codes are translated on the web. Localised dates and durations.
+- **i18n** from the first screen: all strings in `apps/web/src/shared/i18n/<locale>.json` (moved to `packages/i18n` by M6, shared with the app, §26.2), including notification titles (`admin.notifications.<kind>`), genre (`genres.<id>`, §9.1) and edition (`editions.<id>`, §8.1) labels, the version label (§7.7), that of seasons, episodes and chapters without a name of their own (`item.season`, `item.specials`, `item.episodeNumber`, `player.menu.chapterNumber`, §6.3, §10.7), the rating badge (`contentRatings.*`, §13.5), the reason of an unreachable root (`admin.rootError.<reason>`, §7.5): the server only sends codes and ids, `fr` and `en` shipped, language per profile (default: browser language). API error codes are translated on the web. Localised dates and durations.
 - **Theme**: dark only in v1, CSS variables ready for a light theme.
 - **PWA**: manifest, icons, `display: standalone`, service worker limited to caching static assets (never streams nor the API).
 - **Responsive**: mobile ≥ 360 px, tablet, desktop, adapted navigation (bottom bar on mobile).
@@ -935,7 +951,7 @@ Rules: derived files (subtitles, trickplay, previews) of deleted sources, tracks
 - Rate limiting: 10 login attempts per 15 min per IP and per username (the slot is taken before the password check; a success resets the username counter, not the IP one), 5 PIN checks per minute per profile, 20 invitation acceptances per hour per IP.
 - `TRUST_PROXY=false` by default: the client IP and scheme come from the direct connection. Behind a reverse proxy, the host sets it to `true` and the README explains why.
 - Admin file browser: read-only, folders only, refuses paths outside `/`, does not follow symbolic links outside the browsed folder.
-- Streams and images: every media URL is tied to a playback session or to an item visible to the account; no guessable URL without auth. A playback session (direct stream, HLS, heartbeats) can only be used by its account, from a resolved active profile that is its own or that sees its item (`<video>`/HLS streams and `sendBeacon` without `X-Profile-Id` take the auth session's last profile, updated by `X-Profile-Id` and `POST /profiles/:id/select`).
+- Streams and images: every media URL is tied to a playback session or to an item visible to the account; no guessable URL without auth. The media of a playback session (direct file, playlists, segments, subtitles, trickplay) are **capability URLs**: `/stream/:sessionId/:secret/…`, a random secret of 256 bits created with the session (only its hash stored), enough on its own (no cookie or bearer: AirPlay receivers and AVPlayer sub-requests carry no credentials), valid until the session ends plus its 5 min grace, and only for that session's source. The web uses them too. The request logs replace the secret with `***`. Images and previews stay authenticated by cookie or bearer. The rest of a playback session (heartbeats, end) can only be used by its account, from a resolved active profile that is its own or that sees its item (`<video>`/HLS streams and `sendBeacon` without `X-Profile-Id` take the auth session's last profile, updated by `X-Profile-Id` and `POST /profiles/:id/select`).
 - Image uploads: type checked by magic signature, max size 10 MB, re-encoded by ffmpeg before storage.
 - Subprocesses: arguments passed as an array, never through a shell; file paths never interpreted.
 - Updates: SHA-256 check of the archive and of each file through the manifest, download only from `github.com/LeoMartinDev/projo/releases`.
@@ -957,6 +973,7 @@ Rules: derived files (subtitles, trickplay, previews) of deleted sources, tracks
 | HLS seek | < 3 s |
 | Server memory | < 300 MB excluding ffmpeg |
 | Browsers | last two versions of Chrome, Edge, Firefox, Safari; iOS Safari; Android Chrome. No guarantee on TV browsers. |
+| Mobile app | iOS and iPadOS 17 and later (§26). Android builds from the same code, without a guarantee. |
 | Server platforms | Linux x86_64 and arm64, Docker. |
 | Observability | structured JSON logs on stdout with `code`, `jobId`, `sessionId`; `/health`; counters in the admin dashboard. No outgoing telemetry. |
 | Backup | all of `/data`; "Export the database" runs a `VACUUM INTO` into `db/backups/`. |
@@ -969,6 +986,7 @@ Rules: derived files (subtitles, trickplay, previews) of deleted sources, tracks
 - **Integration**: SQLite repositories on a temporary database; scanner on real fixture trees (`test/fixtures/libraries/*`) including tiny video files generated by ffmpeg (`testsrc`), a simulated "being written" file, a `Subs/`, a multi-episode, a `cd1`/`cd2`; real ffprobe and ffmpeg; TMDB and segment providers replaced by test HTTP servers with recorded responses.
 - **E2E (Playwright)**: the five journeys of §4 on Chromium, then a WebKit smoke test (playback and resume of a MKV on desktop Safari, the journeys tagged `@mobile` on the iPhone viewport), one at a time against a single server started with a fixture library. What a background job produces without a screen of its own (timeline thumbnails, fingerprints) is covered by the integration tests.
 - **Lint and types**: `bun lint` (layers, classes, `null`), strict `tsc --noEmit`, `exactOptionalPropertyTypes`, `bun fmt`.
+- **Mobile app** (§26.8): `bun test` on its logic kept in modules without React Native, lint and types like the web; no component tests, no mobile E2E.
 - **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a `v*` tag: bundle build, generation of the manifest and `SHA256SUMS`, GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`.
 - **Versioning**: semver, `main` the only long-lived branch, mandatory PRs, Conventional Commits.
 
@@ -1042,6 +1060,19 @@ Deliverables:
 
 Criterion: *"I update projo from the admin and roll back in one click, I know why a file does not show up without opening a terminal, and a stranger can install projo with the README alone."*
 
+### M6 — Mobile app: my family watches from the iPhone and the iPad
+
+Vertical slices, each usable end to end, in this order (§26):
+1. **Foundation**: `packages/i18n` extracted from the web, `apps/mobile` (Expo, Expo Router, lint, TanStack Query, `hc<AppType>`); server: `POST /auth/login` with `token: true`, pairing (`/auth/pairings`, web "Connect a device" dialog and `/pair` page), the §17.1 compatibility rule and the app's server version check. I connect the app and pick a profile.
+2. **Profiles and account**: "Who's watching?" and PIN, the active profile's settings (§11.1, §12.4, interface language, name, colour), profile management, devices and sign-out. These settings are the server's, so what the app changes holds on the web too; any server change they need lands in the web in the same slice.
+3. **Browsing**: home, Shows, Movies, My list, category pages, search, title pages, long-press actions, iPhone and iPad layouts.
+4. **Player prototype** (dev build) and the decision of §26.6.
+5. **Playback**: capability URLs (§20), subtitles inside HLS and their delay (§10.4), the player, resume and heartbeat, intros and credits, next episode, quality by network, SSE during playback.
+
+The spec of each slice is completed here before its code.
+
+Criterion: *"I pair my iPhone by scanning a code, pick my profile, and binge a show on the iPad: the intro is skipped, the next episode follows, even in Picture-in-Picture or on the TV over AirPlay, with my subtitles."*
+
 ---
 
 ## 24. Default decisions
@@ -1065,8 +1096,10 @@ Decisions taken to move forward, changeable without breaking the model. Values a
 | Home categories | 6 visible titles minimum, 12 rows max, 20 titles per row, batches of 4 rows (fixed) |
 | Profiles per account | 5 (fixed) |
 | Avatars | initial on a coloured tile, six colours, no upload (fixed) |
-| Hero video preview | 20 s from 25 %, 720p, muted by default, desktop only |
+| Hero video preview | 20 s from 25 %, 720p, muted by default, desktop only (and the iPad app on Wi-Fi, §26.5) |
 | Invitation | single use, 7 days |
+| Pairing code | 6 characters, single use, 5 min, 3 live per account (fixed) |
+| App quality (per device) | Original on Wi-Fi, 720p on cellular, changeable by the user |
 | Session | 30 sliding days |
 | TMDB image sizes | poster w500, backdrop w1280, logo w500, still w300, person w185 |
 | HLS segments | 4 s in transcode, 3 to 8 s in remux |
@@ -1099,3 +1132,67 @@ Decisions taken to move forward, changeable without breaking the model. Values a
 - Intro Skipper (Jellyfin, fingerprinting method): https://github.com/intro-skipper/intro-skipper
 - Chromaprint / fpcalc: https://acoustid.org/chromaprint
 - hls.js: https://github.com/video-dev/hls.js
+- AVKit `contextualActions` (Skip intro in the native player): https://developer.apple.com/documentation/avkit/avplayerviewcontroller/contextualactions
+- HLS authoring for Apple devices (subtitle renditions, `X-TIMESTAMP-MAP`): https://developer.apple.com/documentation/http-live-streaming/hls-authoring-specification-for-apple-devices
+
+---
+
+## 26. Mobile app (iOS, iPadOS)
+
+### 26.1 Goal and scope
+
+A native app for iPhone and iPad, on the same server and API as the web. The PWA stays. What the app brings over the web on iOS: the system player integration (reliable Picture-in-Picture, playback in the background and with the screen locked, AirPlay, rotation, Now Playing), native navigation and gestures, and later a presence on the App Store.
+
+- **Targets**: iPhone and iPad, iOS and iPadOS 17 and later. Android builds from the same Expo code without dedicated work nor guarantee.
+- **Viewer only**: sign-in and pairing, "Who's watching?" and PIN, profile settings and management, home, Shows, Movies, My list, category pages, search, title pages, player, account and devices. For an admin, an "Administration" entry opens `<server>/admin` in the system browser; no admin screen in the app, no invitation.
+- **Out of scope**: offline playback and downloads, several servers, push notifications, Chromecast, an embedded admin (§2.3 unchanged otherwise).
+
+### 26.2 Stack, repository, distribution
+
+- Expo on the latest SDK (the one Expo Go supports), Expo Router, TanStack Query with `hc<AppType>`, `expo-video`, `expo-image`, `expo-secure-store`, `expo-camera`.
+- `apps/mobile/src/{app,features/<feature>,shared/{api,i18n,styles}}`, the web's layout. The §5.3 rules apply as on the web (no class, no `null`, `Result`, `bun lint`). Native code (Swift, Expo Modules) only in `apps/mobile/modules/`, the only exception.
+- Shared with the web: `@projo/shared` (schemas, `Result`, error codes), the `AppType` type, and `packages/i18n`: the `fr`/`en` strings and the pure label helpers (genres, versions, editions, item titles, content ratings, errors), moved out of `apps/web/src/shared/i18n`. No shared UI component.
+- Development and iOS builds on macOS with Xcode. Distribution in phases: (1) Expo Go; (2) a dev build signed with a free Apple ID (Personal Team, re-signed every 7 days) for what Expo Go cannot load: the player prototype (§26.6) and any module of `modules/`; (3) TestFlight, household as internal testers (members of the App Store Connect team, no beta review); (4) the App Store, with a public read-only demo server playing open films (Blender) for Apple's review, set up only for the submission.
+- Identity: name "projo", bundle id `dev.leomartin.projo`, its own semver from 1.0.0, independent of the server's.
+
+### 26.3 Server connection and sign-in
+
+- One server URL, the one that works at home and outside (reverse proxy, §20 `TRUST_PROXY`). Plain HTTP is accepted (App Transport Security exception and local network usage description in the dev and store builds).
+- Two ways in: **pairing** (§14: scan the QR code shown by the web from the app's "Scan a code" screen, or type the server URL and the code; `projo://` links come with the dev build) or **sign-in** with username and password (`POST /auth/login` with `token: true` and the device name).
+- The bearer token is kept in the Keychain (`expo-secure-store`); a 401 sends back to the sign-in screen, server URL kept. Then "Who's watching?" by the rules of §13.6, the app install being the device.
+- PIN only, never Face ID or Touch ID: a family iPad is enrolled with a parent's face, biometrics would not tell who holds it.
+
+### 26.4 Compatibility with the server
+
+- The server keeps `/api/v1` additive (§17.1).
+- The app declares the minimum server version it needs and reads `GET /health` at launch and when it comes back to the foreground; an older server shows a blocking "Update your projo server" screen (an admin is told it is done from the web administration).
+- Responses are parsed without rejecting unknown fields.
+
+### 26.5 Screens and navigation
+
+- Identity of the web (§19: dark, Geist, tokens, image formats), idioms of iOS: native stack transitions and back swipe, sheets.
+- iPhone: tab bar Home · Shows · Movies · My list · Search, avatar at the top (as `MobileHome`). iPad: a sidebar with the same entries, in the manner of the Apple TV app, with a layout of its own rather than an enlarged iPhone.
+- A long press on a card opens a native sheet with the §13.3 card actions.
+- Home hero: a fixed backdrop on iPhone; the video preview (§13.3) only on iPad and on Wi-Fi.
+- Profile settings and management, account and devices: same content and same restrictions as the web (§13.6, §14). Device settings of the app: server, quality on Wi-Fi and on cellular, about, sign out.
+- States of §19 (empty, loading, error translated from the code, offline banner).
+- No SSE outside the player: queries are refetched when the app returns to the foreground.
+
+### 26.6 Playback
+
+- **Engine**: AVPlayer through `expo-video`. The client declares `hls: native`, the codecs the device decodes and `subtitleDelivery: hls` (§10.2, §10.4). MKV and the codecs AVPlayer does not read go through `hls_remux` or `hls_transcode` as on Safari. An advanced engine reading MKV, DTS, TrueHD and ASS directly (libmpv or VLCKit, with a `containers` capability) stays a later option, not M6.
+- **Streams**: the session's capability URLs (§20), which AirPlay receivers can fetch.
+- **Subtitles**: inside the HLS stream (§10.4), so they show in Picture-in-Picture and over AirPlay; delay through the server, size through the iOS accessibility settings.
+- **Quality**: a per-device setting for Wi-Fi (default Original) and for cellular (default 720p), changeable by the user, sent as `quality` when the session starts.
+- **One playback logic, whatever is shown**: the §12.4 rules (auto skip of intro and recap, `credits` countdown, `autoplay_next`, `auto_skip_credits`, "watched") run the same whether the controls are visible, in Picture-in-Picture, over AirPlay or with the screen locked; the next episode loads into the same player, which keeps Picture-in-Picture and AirPlay.
+- **Orientation**: landscape forced on iPhone (both sides), free on iPad.
+- Heartbeat (§10.6) every 10 s, on pause, seek and track change, and when the app goes to the background. Playback continues in the background. SSE only while the player is open, for `playback.session_terminated`.
+- **Player interface, decided by a prototype**: either the native player (`AVPlayerViewController`: system controls, audio and subtitle menus from the HLS renditions, speed, AirPlay, Now Playing, with "Skip intro" and "Next episode" through `contextualActions`) or a home-made chrome on top of `expo-video` matching §10.7. The prototype, a dev build, presents `AVPlayerViewController` from an Expo module on a real projo HLS session with a subtitle rendition and a "Skip intro" contextual action, on an iPhone and an iPad. Native if contextual actions show on both and the subtitles follow into Picture-in-Picture and AirPlay; otherwise home-made chrome. Decided after it, and written here: the skip button on touch, the "Next episode" screen, gestures and seeking, Now Playing commands, changing quality or version during playback, turning subtitles on from a `direct` session.
+
+### 26.7 Server changes brought by the app
+
+Pairing and sign-in returning a token (§14, §6.1 `pairings`, §17.2), the compatibility rule (§17.1), capability URLs for every session media (§20, §6.4, §17.2, the web included), the `subtitleDelivery` capability and subtitles inside HLS with their delay (§10.2, §10.4). The web gains the "Connect a device" dialog and the `/pair` page.
+
+### 26.8 Tests
+
+The app's logic (playback state machine, quality choice, version check, parsing of the pairing QR code) lives in modules without React Native, tested with `bun test`. No component tests, no mobile E2E. Server changes follow §22 as usual.
