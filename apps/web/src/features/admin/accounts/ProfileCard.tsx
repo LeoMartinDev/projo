@@ -17,6 +17,7 @@ import { profileUpdated } from '../../../shared/session/session.ts'
 import { Checkrow, Field, SelectChevron, Switch } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { toggleLibrary } from './library-access.ts'
 import { AdminAvatar, ColorPicker, ratingOptions, useRatingLabel } from './parts.tsx'
 import { accountsQueryKey } from './queries.ts'
 
@@ -187,20 +188,6 @@ export const ProfileCard = ({
     event.preventDefault()
     if (!dirty || !nameValid || !pinValid || save.isPending) return
     save.mutate(changes)
-  }
-
-  const toggleLibrary = (libraryId: string, checked: boolean) => {
-    const current =
-      draft.libraryAccess === 'all' ? libraries.map((library) => library.id) : draft.libraryIds
-    const next = checked
-      ? [...current.filter((id) => id !== libraryId), libraryId]
-      : current.filter((id) => id !== libraryId)
-    const everything = libraries.every((library) => next.includes(library.id))
-    set(
-      everything
-        ? { libraryAccess: 'all', libraryIds: [] }
-        : { libraryAccess: 'selected', libraryIds: next },
-    )
   }
 
   return (
@@ -391,7 +378,16 @@ export const ProfileCard = ({
                       checked={
                         draft.libraryAccess === 'all' || draft.libraryIds.includes(library.id)
                       }
-                      onChange={(checked) => toggleLibrary(library.id, checked)}
+                      onChange={(checked) =>
+                        set(
+                          toggleLibrary(
+                            draft,
+                            libraries.map(({ id }) => id),
+                            library.id,
+                            checked,
+                          ),
+                        )
+                      }
                     >
                       <span className="checkrow__label">{library.name}</span>
                     </Checkrow>
