@@ -210,10 +210,15 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
           AND f.updated_at > t.updated_at`)
       db.run(sql`DELETE FROM track_preferences WHERE item_id = ${from}`)
       // Segments (§12): what belongs to the file or the admin (manual, chapters, fingerprint)
-      // follows, per type when the target has none of that type. What the community databases
+      // follows, per type when the target has none of that type; a manual marker first replaces
+      // the target's non-manual segment of its type (§12.1). What the community databases
       // said about the other identity (segments, cached answers) is dropped: a rematch would
       // otherwise carry them over. Negative markers follow and win over the target's non-manual
       // segment of their type.
+      db.run(sql`
+        DELETE FROM segments
+        WHERE item_id = ${into} AND origin <> 'manual'
+          AND type IN (SELECT type FROM segments WHERE item_id = ${from} AND origin = 'manual')`)
       db.run(sql`
         UPDATE segments SET item_id = ${into}
         WHERE item_id = ${from}

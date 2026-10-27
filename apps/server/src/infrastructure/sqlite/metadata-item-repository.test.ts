@@ -92,23 +92,27 @@ describe('moveItemRows (local → TMDB fusion)', () => {
     ])
   })
 
-  test('older local preferences and segments of a type the target has are dropped', () => {
+  test('older local preferences are dropped, a local manual marker wins over a non-manual one', () => {
     db.$client.run(
       `INSERT INTO track_preferences (profile_id, item_id, audio_language, subtitles_enabled, updated_at) VALUES ('${profileId}', 'tmdb', 'eng', 0, '2026-03-01'), ('${profileId}', 'local', 'fra', 1, '2026-02-01')`,
     )
     db.$client.run(
       `INSERT INTO segments (id, item_id, type, start_ms, end_ms, origin, created_at) VALUES
-        ('a', 'tmdb', 'intro', 0, 1000, 'chapter', '2026-01-02'),
+        ('a', 'tmdb', 'intro', 0, 1000, 'introdb', '2026-01-02'),
         ('b', 'local', 'intro', 5, 900, 'manual', '2026-01-02'),
-        ('c', 'local', 'credits', 9000, 9999, 'manual', '2026-01-02')`,
+        ('c', 'local', 'credits', 9000, 9999, 'manual', '2026-01-02'),
+        ('d', 'tmdb', 'credits', 9100, 9999, 'manual', '2026-01-02'),
+        ('e', 'local', 'recap', 0, 500, 'fingerprint', '2026-01-02'),
+        ('f', 'tmdb', 'recap', 0, 600, 'chapter', '2026-01-02')`,
     )
     repo.moveItemRows({ from: 'local', into: 'tmdb' })
     expect(rows('SELECT item_id, audio_language FROM track_preferences')).toEqual([
       { item_id: 'tmdb', audio_language: 'eng' },
     ])
     expect(rows('SELECT id, item_id FROM segments ORDER BY id')).toEqual([
-      { id: 'a', item_id: 'tmdb' },
-      { id: 'c', item_id: 'tmdb' },
+      { id: 'b', item_id: 'tmdb' },
+      { id: 'd', item_id: 'tmdb' },
+      { id: 'f', item_id: 'tmdb' },
     ])
   })
 
