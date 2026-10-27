@@ -75,26 +75,31 @@ const formatOf = (path: string, subtitlePaths: ReadonlySet<string>): SubtitleFor
   return subtitlePaths.has(`${stem}.sub`) || subtitlePaths.has(`${stem}.SUB`) ? 'vobsub' : undefined
 }
 
+/** Lower-case video stem → video; on a duplicate stem the first video wins. */
+const indexStems = (videos: readonly string[]): ReadonlyMap<string, string> => {
+  const index = new Map<string, string>()
+  for (const video of videos) {
+    const stem = stemOf(fileName(video)).toLowerCase()
+    if (!index.has(stem)) index.set(stem, video)
+  }
+  return index
+}
+
 /** Longest video stem that the subtitle stem equals or extends with `.` (Jellyfin) or `-` (Infuse). */
 const matchByName = (
   subtitleStem: string,
-  videos: readonly string[],
+  videos: ReadonlyMap<string, string> | undefined,
 ): { video: string; suffix: string } | undefined => {
+  if (videos === undefined) return undefined
   const lowerStem = subtitleStem.toLowerCase()
-  const candidates = videos.flatMap((video) => {
-    const videoStem = stemOf(fileName(video)).toLowerCase()
-    if (lowerStem === videoStem) return [{ video, suffix: '', length: videoStem.length }]
-    const separator = lowerStem[videoStem.length]
-    if (lowerStem.startsWith(videoStem) && (separator === '.' || separator === '-')) {
-      return [{ video, suffix: subtitleStem.slice(videoStem.length + 1), length: videoStem.length }]
-    }
-    return []
-  })
-  const best = candidates.reduce<(typeof candidates)[number] | undefined>(
-    (acc, c) => (acc === undefined || c.length > acc.length ? c : acc),
-    undefined,
-  )
-  return best === undefined ? undefined : { video: best.video, suffix: best.suffix }
+  const exact = videos.get(lowerStem)
+  if (exact !== undefined) return { video: exact, suffix: '' }
+  for (let cut = lowerStem.length - 1; cut >= 0; cut--) {
+    if (lowerStem[cut] !== '.' && lowerStem[cut] !== '-') continue
+    const video = videos.get(lowerStem.slice(0, cut))
+    if (video !== undefined) return { video, suffix: subtitleStem.slice(cut + 1) }
+  }
+  return undefined
 }
 
 const isSubsFolder = (name: string): boolean => name.toLowerCase() === 'subs'
@@ -103,7 +108,9 @@ const groupByDirectory = (paths: readonly string[]): ReadonlyMap<string, readonl
   const groups = new Map<string, string[]>()
   for (const path of paths) {
     const dir = directoryOf(path)
-    groups.set(dir, [...(groups.get(dir) ?? []), path])
+    const group = groups.get(dir)
+    if (group === undefined) groups.set(dir, [path])
+    else group.push(path)
   }
   return groups
 }
@@ -127,6 +134,7 @@ export const matchExternalSubtitles = ({
   const normalizedSubtitles = subtitlePaths.map((p) => joinPath(splitPath(p.normalize('NFC'))))
   const subtitleSet: ReadonlySet<string> = new Set(normalizedSubtitles)
   const videosByDir = groupByDirectory(normalizedVideos)
+  const stemsByDir = new Map([...videosByDir].map(([dir, videos]) => [dir, indexStems(videos)]))
 
   return normalizedSubtitles.flatMap((subtitlePath): ExternalSubtitle[] => {
     const format = formatOf(subtitlePath, subtitleSet)
@@ -137,7 +145,7 @@ export const matchExternalSubtitles = ({
       { ...tags, subtitlePath, videoPath, format, rendering },
     ]
 
-    const sameFolder = matchByName(stem, videosByDir.get(directoryOf(subtitlePath)) ?? [])
+    const sameFolder = matchByName(stem, stemsByDir.get(directoryOf(subtitlePath)))
     if (sameFolder !== undefined) {
       return build(
         sameFolder.video,
@@ -148,8 +156,9 @@ export const matchExternalSubtitles = ({
     const segments = splitPath(directoryOf(subtitlePath))
     const subsIndex = segments.findLastIndex(isSubsFolder)
     if (subsIndex < 0) return []
-    const ownerVideos = videosByDir.get(joinPath(segments.slice(0, subsIndex))) ?? []
-    const byName = matchByName(stem, ownerVideos)
+    const ownerDir = joinPath(segments.slice(0, subsIndex))
+    const ownerVideos = videosByDir.get(ownerDir) ?? []
+    const byName = matchByName(stem, stemsByDir.get(ownerDir))
     if (byName !== undefined) {
       return build(
         byName.video,

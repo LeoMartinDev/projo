@@ -60,6 +60,15 @@ describe('matchExternalSubtitles', () => {
     ])
   })
 
+  test('même nom pour deux vidéos : la première gagne', () => {
+    expect(
+      matchExternalSubtitles({
+        videoPaths: ['Film.mp4', 'film.mkv'],
+        subtitlePaths: ['Film.fr.srt'],
+      })[0]?.videoPath,
+    ).toBe('Film.mp4')
+  })
+
   test('nom insensible à la casse', () => {
     expect(
       matchExternalSubtitles({
