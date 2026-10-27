@@ -8,7 +8,7 @@ import type { CatalogSort, WatchFilter } from '@projo/shared/api/catalog'
 import { genreIdSchema } from '@projo/shared/api/genres'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { getActiveProfileId } from '../../shared/session/active-profile.ts'
+import { canAdminister, getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import { Field, SelectChevron } from '../../shared/ui/controls.tsx'
 import { FilterIcon } from '../../shared/ui/media-icons.tsx'
@@ -176,7 +176,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
   const [filtersOpen, setFiltersOpen] = useState(false)
   const catalog = useInfiniteQuery(catalogQuery(kind, state))
   const session = useQuery(sessionQuery)
-  const isAdmin = session.data?.status === 'signed_in' && session.data.me.account.role === 'admin'
+  const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
   const filterCount = activeFilterCount(state)
 
   const change = (next: CatalogQueryState) => {

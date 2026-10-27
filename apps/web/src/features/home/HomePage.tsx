@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { HomeRowDto, ResumeFrameDto } from '@projo/shared/api/home'
 
+import { canAdminister } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { homeCategoriesQuery, homeQuery } from '../catalog/queries.ts'
@@ -51,7 +52,7 @@ export const HomePage = () => {
   const home = useQuery(homeQuery)
   const categories = useInfiniteQuery(homeCategoriesQuery)
   const session = useQuery(sessionQuery)
-  const isAdmin = session.data?.status === 'signed_in' && session.data.me.account.role === 'admin'
+  const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
   const [sheet, setSheet] = useState<{ id: string; place: CardPlace }>()
 
   if (home.isError)
