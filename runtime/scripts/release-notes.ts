@@ -36,20 +36,20 @@ export const parseCommit = ({ hash, subject, body }: Commit): ParsedCommit => {
   }
 }
 
-/** Sections in display order; types not listed here land in "Autres changements". */
+/** Sections in display order; types not listed here land in "Other changes". */
 const SECTIONS: ReadonlyArray<{ title: string; types: readonly string[] }> = [
-  { title: 'Nouveautés', types: ['feat'] },
-  { title: 'Corrections', types: ['fix'] },
-  { title: 'Performances', types: ['perf'] },
+  { title: 'Features', types: ['feat'] },
+  { title: 'Fixes', types: ['fix'] },
+  { title: 'Performance', types: ['perf'] },
 ]
-const OTHER_TITLE = 'Autres changements'
-const BREAKING_TITLE = 'Changements incompatibles'
+const OTHER_TITLE = 'Other changes'
+const BREAKING_TITLE = 'Breaking changes'
 /** Release commits (`chore(release): 1.2.0`) say nothing the notes do not already say. */
 const isReleaseCommit = (commit: ParsedCommit) =>
   commit.type === 'chore' && commit.scope === 'release'
 
 const line = (commit: ParsedCommit): string =>
-  `- ${commit.scope === undefined ? '' : `${commit.scope} : `}${commit.description} (${commit.hash.slice(0, 7)})`
+  `- ${commit.scope === undefined ? '' : `${commit.scope}: `}${commit.description} (${commit.hash.slice(0, 7)})`
 
 export type ReleaseNotesInput = {
   version: string
@@ -87,19 +87,19 @@ export const renderReleaseNotes = ({
     OTHER_TITLE,
     parsed.filter((commit) => !known.has(commit.type)),
   )
-  if (blocks.length === 0) blocks.push('Aucun changement notable.')
+  if (blocks.length === 0) blocks.push('No notable changes.')
 
   const footer: string[] = []
   if (runtimeImage !== undefined) {
     footer.push(
-      `Nouvelle image runtime ${runtimeImage} : mettre à jour le conteneur (docker compose pull puis docker compose up -d).`,
+      `New runtime image ${runtimeImage}: update the container (docker compose pull, then docker compose up -d).`,
     )
   }
-  if (runtimeMin !== undefined) footer.push(`Runtime minimal : ${runtimeMin}.`)
+  if (runtimeMin !== undefined) footer.push(`Minimum runtime: ${runtimeMin}.`)
   footer.push(
     previousTag === undefined
-      ? `Historique : https://github.com/${REPOSITORY}/commits/v${version}`
-      : `Changements : https://github.com/${REPOSITORY}/compare/${previousTag}...v${version}`,
+      ? `History: https://github.com/${REPOSITORY}/commits/v${version}`
+      : `Changes: https://github.com/${REPOSITORY}/compare/${previousTag}...v${version}`,
   )
   return `${[...blocks, footer.join('\n\n')].join('\n\n')}\n`
 }

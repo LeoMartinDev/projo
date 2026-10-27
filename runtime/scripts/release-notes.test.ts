@@ -44,41 +44,41 @@ describe('renderReleaseNotes', () => {
       runtimeImage: 'ghcr.io/leomartindev/projo:0.2.0',
       commits: [
         commit('chore(release): 1.1.0', '', '9999999aaaa'),
-        commit('perf(web): moins de rendus', '', '5555555aaaa'),
+        commit('perf(web): fewer renders', '', '5555555aaaa'),
         commit('docs: README', '', '4444444aaaa'),
-        commit('fix(jobs): reprise propre', '', '3333333aaaa'),
-        commit('feat(admin)!: nouveau tableau de bord', '', '2222222aaaa'),
-        commit('feat: export de la base', '', '1111111aaaa'),
+        commit('fix(jobs): clean resume', '', '3333333aaaa'),
+        commit('feat(admin)!: new dashboard', '', '2222222aaaa'),
+        commit('feat: database export', '', '1111111aaaa'),
       ],
     })
     expect(notes).toBe(
       [
-        '## Changements incompatibles',
+        '## Breaking changes',
         '',
-        '- admin : nouveau tableau de bord (2222222)',
+        '- admin: new dashboard (2222222)',
         '',
-        '## Nouveautés',
+        '## Features',
         '',
-        '- admin : nouveau tableau de bord (2222222)',
-        '- export de la base (1111111)',
+        '- admin: new dashboard (2222222)',
+        '- database export (1111111)',
         '',
-        '## Corrections',
+        '## Fixes',
         '',
-        '- jobs : reprise propre (3333333)',
+        '- jobs: clean resume (3333333)',
         '',
-        '## Performances',
+        '## Performance',
         '',
-        '- web : moins de rendus (5555555)',
+        '- web: fewer renders (5555555)',
         '',
-        '## Autres changements',
+        '## Other changes',
         '',
         '- README (4444444)',
         '',
-        'Nouvelle image runtime ghcr.io/leomartindev/projo:0.2.0 : mettre à jour le conteneur (docker compose pull puis docker compose up -d).',
+        'New runtime image ghcr.io/leomartindev/projo:0.2.0: update the container (docker compose pull, then docker compose up -d).',
         '',
-        'Runtime minimal : 0.2.0.',
+        'Minimum runtime: 0.2.0.',
         '',
-        'Changements : https://github.com/LeoMartinDev/projo/compare/v1.0.0...v1.1.0',
+        'Changes: https://github.com/LeoMartinDev/projo/compare/v1.0.0...v1.1.0',
         '',
       ].join('\n'),
     )
@@ -87,7 +87,7 @@ describe('renderReleaseNotes', () => {
   test('first release: the whole history, no compare link', () => {
     const notes = renderReleaseNotes({ version: '1.0.0', commits: [] })
     expect(notes).toBe(
-      'Aucun changement notable.\n\nHistorique : https://github.com/LeoMartinDev/projo/commits/v1.0.0\n',
+      'No notable changes.\n\nHistory: https://github.com/LeoMartinDev/projo/commits/v1.0.0\n',
     )
   })
 })
