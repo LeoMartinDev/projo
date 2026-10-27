@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, spyOn, test } from 'bun:test'
 
 import { createBunPasswordHasher } from './bun-password-hasher.ts'
 import { sessionTokens } from './session-tokens.ts'
@@ -11,6 +11,37 @@ describe('createBunPasswordHasher', () => {
     expect(await hasher.verify('correct horse battery', hash)).toBe(true)
     expect(await hasher.verify('wrong', hash)).toBe(false)
     expect(await hasher.verify('x', 'not-a-hash')).toBe(false)
+  })
+
+  test('runs one hash or verify at a time, and a failure frees the slot', async () => {
+    let active = 0
+    let peak = 0
+    const slow = async (plain: string) => {
+      active += 1
+      peak = Math.max(peak, active)
+      await Bun.sleep(5)
+      active -= 1
+      if (plain === 'boom') throw new Error('boom')
+      return true
+    }
+    const hash = spyOn(Bun.password, 'hash').mockImplementation(
+      async (p) => `${await slow(String(p))}`,
+    )
+    const verify = spyOn(Bun.password, 'verify').mockImplementation((p) => slow(String(p)))
+    try {
+      const hasher = createBunPasswordHasher()
+      const results = await Promise.allSettled([
+        hasher.hash('boom'),
+        hasher.verify('boom', 'h'),
+        ...Array.from({ length: 4 }, () => hasher.hash('a')),
+        ...Array.from({ length: 4 }, () => hasher.verify('a', 'h')),
+      ])
+      expect(peak).toBe(1)
+      expect(results.map((r) => r.status)).toEqual(['rejected', ...Array(9).fill('fulfilled')])
+    } finally {
+      hash.mockRestore()
+      verify.mockRestore()
+    }
   })
 })
 

@@ -7,6 +7,7 @@ import type { Logger } from '../../core/logger.ts'
 import { type TmdbGenreKind, tmdbGenres } from '../../core/metadata/genres.ts'
 import type { TmdbResponseStore } from '../../core/metadata/ports.ts'
 import type { TmdbApi, TmdbError } from '../../core/metadata/tmdb.ts'
+import { createLimiter } from '../rate-limit/concurrency-limiter.ts'
 import {
   alternativeTitlesSchema,
   configurationSchema,
@@ -61,32 +62,6 @@ const MAX_RATE_LIMIT_RETRIES = 5
 const MAX_RETRY_AFTER_MS = 30_000
 const DEFAULT_RETRY_AFTER_MS = 1_000
 const MAX_TRANSIENT_RETRIES = 2
-
-/** Counting semaphore. */
-const createLimiter = (max: number) => {
-  let active = 0
-  const waiting: (() => void)[] = []
-  const acquire = async (): Promise<void> => {
-    if (active < max) {
-      active += 1
-      return
-    }
-    await new Promise<void>((resolve) => waiting.push(resolve))
-  }
-  const release = (): void => {
-    const next = waiting.shift()
-    if (next === undefined) active -= 1
-    else next()
-  }
-  return async <T>(run: () => Promise<T>): Promise<T> => {
-    await acquire()
-    try {
-      return await run()
-    } finally {
-      release()
-    }
-  }
-}
 
 /** v4 read access tokens are JWTs (sent as Bearer); v3 keys go in `api_key`. */
 const isBearerToken = (key: string): boolean => key.startsWith('eyJ') && key.includes('.')
