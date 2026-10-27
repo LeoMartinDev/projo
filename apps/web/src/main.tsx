@@ -11,20 +11,32 @@ import { createRoot } from 'react-dom/client'
 import { createAppQueryClient } from './app/query-client.ts'
 import { createAppRouter } from './app/router.tsx'
 import { setupI18n } from './shared/i18n/index.ts'
-import { signedOut } from './shared/session/session.ts'
+import { setActiveProfileId } from './shared/session/active-profile.ts'
+import { sessionQuery, signedOut } from './shared/session/session.ts'
 import { trackScrollbarWidth } from './shared/styles/scrollbar.ts'
 
 setupI18n()
 trackScrollbarWidth()
 
-const queryClient = createAppQueryClient(() => {
-  if (router.state.location.pathname === '/login') return
-  signedOut(queryClient)
-  void router.navigate({
-    to: '/login',
-    search: { redirect: router.state.location.href },
-    replace: true,
-  })
+const queryClient = createAppQueryClient({
+  onSessionLost: () => {
+    if (router.state.location.pathname === '/login') return
+    signedOut(queryClient)
+    void router.navigate({
+      to: '/login',
+      search: { redirect: router.state.location.href },
+      replace: true,
+    })
+  },
+  onProfileLost: () => {
+    if (router.state.location.pathname === '/profiles') return
+    const redirect = router.state.location.href
+    setActiveProfileId(undefined)
+    // Fresh /auth/me (without the refused profile) before the guard reads it.
+    void queryClient
+      .invalidateQueries({ queryKey: sessionQuery.queryKey, refetchType: 'all' })
+      .then(() => router.navigate({ to: '/profiles', search: { redirect }, replace: true }))
+  },
 })
 const router = createAppRouter(queryClient)
 

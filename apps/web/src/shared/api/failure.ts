@@ -71,3 +71,13 @@ const sessionLostCodes: ReadonlySet<FailureCode> = new Set([
 
 /** The cookie session is gone: the app must go back to the login screen. */
 export const isSessionLost = (failure: ApiFailure): boolean => sessionLostCodes.has(failure.code)
+
+/**
+ * The server refused the active profile itself (§14): its PIN unlock moved to the profile another
+ * tab chose, it was deleted, or none is chosen. `/profiles*` answers `profile/pin_required` for the
+ * profile it acts on, so only a refusal naming the active profile counts.
+ */
+export const isProfileLost = (failure: ApiFailure, activeProfileId: string | undefined): boolean =>
+  failure.code === 'profile/required' ||
+  ((failure.code === 'profile/pin_required' || failure.code === 'profile/forbidden') &&
+    failure.context?.['profileId'] === activeProfileId)
