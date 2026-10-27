@@ -208,7 +208,7 @@ describe('fetch_segments job and its triggers', () => {
     ])
   })
 
-  test('after fetch_images of a movie or an episode: fetch_segments, misses forgotten', async () => {
+  test('after fetch_images of a movie or an episode: fetch_segments, fresh answers kept', async () => {
     const platform = build()
     const segments = createSqliteSegmentRepository({ db, ids: platform.ids, clock: platform.clock })
     segments.saveLookup({
@@ -241,7 +241,9 @@ describe('fetch_segments job and its triggers', () => {
       { type: 'fetch_segments', payload: { itemId: 'e2' }, dedupeKey: 'segments:e2' },
       { type: 'fetch_segments', payload: { itemId: 'm1' }, dedupeKey: 'segments:m1' },
     ])
-    expect(segments.listLookups('e2').map((row) => row.provider)).toEqual(['theintrodb'])
+    // A refresh runs fetch_images again: a fresh `none` is not asked again (§12.2, 30 days).
+    await runJob('fetch_segments', { itemId: 'e2' })
+    expect(fake.calls.map((entry) => entry.provider)).toEqual(['skipdb'])
   })
 
   test('after match_source leaves a file unidentified: its chapters are read at once', async () => {

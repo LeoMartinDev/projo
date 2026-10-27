@@ -137,7 +137,25 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
       for (const key of nullable) {
         if (key in patch) Object.assign(set, { [key]: toNullable(patch[key]) })
       }
+      const before = db
+        .select({ imdbId: items.imdbId, tvdbId: items.tvdbId })
+        .from(items)
+        .where(eq(items.id, id))
+        .get()
       db.update(items).set(set).where(eq(items.id, id)).run()
+      // §12.2: the databases are asked with these ids (an episode with its series'). New ones
+      // void the cached misses of the item and its episodes; a plain refresh keeps them.
+      if (
+        before !== undefined &&
+        (('imdbId' in patch && set.imdbId !== before.imdbId) ||
+          ('tvdbId' in patch && set.tvdbId !== before.tvdbId))
+      ) {
+        db.run(sql`
+          DELETE FROM segment_lookups
+          WHERE outcome IN ('none', 'error') AND provider NOT IN ('chapter', 'fingerprint')
+            AND item_id IN (SELECT ${id} UNION SELECT episode.id FROM items episode
+              CROSS JOIN items season ON season.id = episode.parent_id WHERE season.parent_id = ${id})`)
+      }
     },
 
     replacePeople: ({ itemId, people: credits, newId }) => {

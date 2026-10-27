@@ -2,37 +2,25 @@ import { isPlayableKind } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { SegmentCatalog } from '../../core/segments/catalog.ts'
-import {
-  type SegmentLookupKey,
-  type SegmentRepository,
-  segmentProviderIds,
-} from '../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
 import { requestSegments } from './targets.ts'
 
 type Deps = {
   segmentCatalog: SegmentCatalog
-  segmentRepository: Pick<SegmentRepository, 'listLookups' | 'removeLookup'>
   jobQueue: JobQueue
 }
 
-const providerKeys = new Set<SegmentLookupKey>(segmentProviderIds)
-
 /**
- * §12.2 "after the enrichment of an episode or a movie": the identification may have brought
- * the ids the databases are asked with (or changed them, a rematch), so their cached `none` and
- * `error` answers are forgotten before the chain runs again. `found` answers stay (never retried).
+ * §12.2 "after the enrichment of an episode or a movie", a refresh included: the chain runs
+ * again, and skips the databases whose cached answer is still fresh (`none` for 30 days). The
+ * answers about another identity are dropped where it changes: `moveItemRows` (identification,
+ * rematch) and `writeMetadata` (new external ids).
  */
 export const requestSegmentsAfterEnrichmentFactory =
-  ({ segmentCatalog, segmentRepository, jobQueue }: Deps) =>
+  ({ segmentCatalog, jobQueue }: Deps) =>
   (itemId: string): boolean => {
     const facts = segmentCatalog.findItem(itemId)
     if (facts === undefined || !isPlayableKind(facts.kind) || !facts.detectSegments) return false
-    for (const row of segmentRepository.listLookups(itemId)) {
-      if (providerKeys.has(row.provider) && row.outcome !== 'found') {
-        segmentRepository.removeLookup({ itemId, provider: row.provider })
-      }
-    }
     requestSegments(jobQueue, itemId)
     return true
   }

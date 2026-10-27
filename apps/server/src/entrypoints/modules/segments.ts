@@ -137,7 +137,6 @@ export const buildSegmentsModule = (
   })
   const requestAfterEnrichment = requestSegmentsAfterEnrichmentFactory({
     segmentCatalog,
-    segmentRepository,
     jobQueue,
   })
   const requestMissingSegments = requestMissingSegmentsFactory({

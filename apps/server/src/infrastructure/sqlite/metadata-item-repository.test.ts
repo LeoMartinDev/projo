@@ -172,6 +172,29 @@ describe('writeMetadata', () => {
       },
     ])
   })
+
+  test('new external ids void the cached misses of the series and its episodes (§12.2)', () => {
+    insertItem(db, { id: 'show', kind: 'series', tmdbId: 1 })
+    insertItem(db, { id: 's1', kind: 'season', parentId: 'show', seasonNumber: 1 })
+    insertItem(db, { id: 'e1', kind: 'episode', parentId: 's1', seasonNumber: 1, episodeNumber: 1 })
+    db.$client.run(`UPDATE items SET imdb_id = 'tt0944947' WHERE id = 'show'`)
+    db.$client.run(
+      `INSERT INTO segment_lookups (item_id, provider, checked_at, outcome) VALUES
+        ('e1', 'introdb', '2026-01-02', 'none'),
+        ('e1', 'skipdb', '2026-01-02', 'error'),
+        ('e1', 'theintrodb', '2026-01-02', 'found'),
+        ('e1', 'chapter', '2026-01-02', 'none')`,
+    )
+    const write = (patch: { imdbId?: string; tvdbId?: number }) =>
+      repo.writeMetadata({ id: 'show', patch, language: 'en-US', refreshedAt: new Date() })
+    write({ imdbId: 'tt0944947' })
+    expect(rows('SELECT provider FROM segment_lookups ORDER BY provider')).toHaveLength(4)
+    write({ imdbId: 'tt0944947', tvdbId: 121361 })
+    expect(rows('SELECT provider FROM segment_lookups ORDER BY provider')).toEqual([
+      { provider: 'chapter' },
+      { provider: 'theintrodb' },
+    ])
+  })
 })
 
 describe('imageContext', () => {
