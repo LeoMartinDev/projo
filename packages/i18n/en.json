@@ -1366,6 +1366,7 @@
     "profile/invalid_pin": "Wrong PIN.",
     "profile/rate_limited": "Too many PIN attempts. Wait a minute.",
     "profile/last_profile": "An account keeps at least one profile.",
+    "profile/last_unrestricted": "An administrator account keeps at least one profile without restrictions.",
     "profile/unknown_library": "This library does not exist.",
     "profile/admin_only": "Only an administrator can widen this access.",
     "profile/restricted": "This profile is restricted: switch to an unrestricted profile to manage the account, devices or other profiles.",

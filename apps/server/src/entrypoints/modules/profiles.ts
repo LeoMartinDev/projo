@@ -42,7 +42,7 @@ export const buildProfilesModule = (
       logger,
     }),
     playbackSessions,
-    accountExists: (accountId) => accountRepository.findById(accountId) !== undefined,
+    accountRole: (accountId) => accountRepository.findById(accountId)?.role,
     profileChanged: scopes.invalidate,
     clock,
     ids,

@@ -1,5 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
+import { removesLastUnrestricted } from '../../core/account/last-admin.ts'
 import type { AccountRepository } from '../../core/auth/account.ts'
 import type { LibraryRepository } from '../../core/library/library.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -22,7 +23,9 @@ export type LibraryProfileAccess = {
   hasAccess: boolean
 }
 
-export type LibraryAccessError = AppError<'library/not_found' | 'profile/not_found'>
+export type LibraryAccessError = AppError<
+  'library/not_found' | 'profile/not_found' | 'profile/last_unrestricted'
+>
 
 const sees = (profile: Profile, libraryId: string): boolean =>
   profile.libraryAccess === 'all' || profile.libraryIds.includes(libraryId)
@@ -91,25 +94,44 @@ export const libraryAccessFactory = ({
       }
       const wanted = new Set(profileIds)
       const libraryIds = libraryRepository.list().map((library) => library.id)
-      for (const { profile } of all) {
+      const changes = all.flatMap(({ profile }): Profile[] => {
         const should = wanted.has(profile.id)
-        if (should === sees(profile, libraryId)) continue
-        const next: Profile = should
-          ? {
-              ...profile,
-              libraryAccess: 'selected',
-              libraryIds: [...profile.libraryIds, libraryId],
-            }
-          : {
-              ...profile,
-              libraryAccess: 'selected',
-              libraryIds: (profile.libraryAccess === 'all'
-                ? libraryIds
-                : profile.libraryIds
-              ).filter((id) => id !== libraryId),
-            }
+        if (should === sees(profile, libraryId)) return []
+        return [
+          should
+            ? {
+                ...profile,
+                libraryAccess: 'selected',
+                libraryIds: [...profile.libraryIds, libraryId],
+              }
+            : {
+                ...profile,
+                libraryAccess: 'selected',
+                libraryIds: (profile.libraryAccess === 'all'
+                  ? libraryIds
+                  : profile.libraryIds
+                ).filter((id) => id !== libraryId),
+              },
+        ]
+      })
+      // §14: an admin account keeps at least one unrestricted profile.
+      const lockedOut = accountRepository.list().find((account) => {
+        const before = profileRepository.listByAccount(account.id)
+        const after = before.map((p) => changes.find((next) => next.id === p.id) ?? p)
+        return removesLastUnrestricted({ role: account.role, before, after })
+      })
+      if (lockedOut !== undefined) {
+        return err(
+          appError(
+            'profile/last_unrestricted',
+            'an admin account keeps at least one unrestricted profile',
+            { context: { accountId: lockedOut.id } },
+          ),
+        )
+      }
+      for (const next of changes) {
         profileRepository.update(next)
-        profileChanged(profile.id)
+        profileChanged(next.id)
       }
       logger.info('library access updated', { libraryId, profiles: profileIds.length })
       return ok(view(libraryId))

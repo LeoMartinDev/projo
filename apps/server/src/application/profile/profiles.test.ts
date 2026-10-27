@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
+import type { AccountRole } from '@projo/shared/api/auth'
+
 import {
   createCountingRateLimiter,
   createFakePasswordHasher,
@@ -16,7 +18,10 @@ import { checkPinFactory } from './pin.ts'
 import { type ProfileActor, profilesFactory } from './profiles.ts'
 import { visibilityScopeFactory } from './visibility-scope.ts'
 
-const setup = (profiles: Profile[] = [sampleProfile()]) => {
+const setup = (
+  profiles: Profile[] = [sampleProfile()],
+  roles: Record<string, AccountRole> = { 'account-1': 'user', 'account-2': 'user' },
+) => {
   const clock = createManualClock()
   const store = createInMemoryProfiles(profiles, { libraryIds: ['films', 'series', 'anime'] })
   const sessions = createInMemorySessions()
@@ -43,7 +48,7 @@ const setup = (profiles: Profile[] = [sampleProfile()]) => {
         logger: silentLogger,
       }),
       playbackSessions: { endWithin: (scope) => void endedPlayback.push(scope) },
-      accountExists: (accountId) => accountId === 'account-1' || accountId === 'account-2',
+      accountRole: (accountId) => roles[accountId],
       profileChanged: (id) => {
         changed.push(id)
         scopes.invalidate(id)
@@ -322,6 +327,34 @@ describe('delete', () => {
       (await t.profiles.delete({ actor: user, profileId: 'parent', currentPin: '1234' })).ok,
     ).toBe(true)
     expect(t.store.profiles.map((profile) => profile.id)).toEqual(['profile-1'])
+  })
+})
+
+describe('last unrestricted profile of an admin (§14)', () => {
+  test('neither narrowed nor deleted; another one may be', async () => {
+    const t = setup([sampleProfile(), kid], { 'account-1': 'admin' })
+    for (const input of [
+      { maxContentRating: '16' as const },
+      { libraryAccess: 'selected' as const },
+    ]) {
+      expect(
+        await t.profiles.update({ actor: admin, profileId: 'profile-1', input }),
+      ).toMatchObject({ ok: false, error: { code: 'profile/last_unrestricted' } })
+    }
+    expect(await t.profiles.delete({ actor: admin, profileId: 'profile-1' })).toMatchObject({
+      ok: false,
+      error: { code: 'profile/last_unrestricted' },
+    })
+    expect(t.store.profiles[0]?.libraryAccess).toBe('all')
+    expect(
+      (
+        await t.profiles.update({
+          actor: admin,
+          profileId: 'kid',
+          input: { maxContentRating: '0' },
+        })
+      ).ok,
+    ).toBe(true)
   })
 })
 

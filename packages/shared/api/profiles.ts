@@ -113,7 +113,8 @@ export type UpdateProfileBody = z.infer<typeof updateProfileBodySchema>
 
 /**
  * `DELETE /profiles/:id` (204; body optional). The progress of the profile is lost. 409
- * `profile/last_profile` for the only profile of an account; `currentPin` as for `PATCH`.
+ * `profile/last_profile` for the only profile of an account, `profile/last_unrestricted` for the
+ * last unrestricted profile of an admin account (also on `PATCH`); `currentPin` as for `PATCH`.
  */
 export const deleteProfileBodySchema = z.object({ currentPin: pinSchema.optional() })
 export type DeleteProfileBody = z.infer<typeof deleteProfileBodySchema>

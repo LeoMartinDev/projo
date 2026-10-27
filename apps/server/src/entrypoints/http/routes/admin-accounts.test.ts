@@ -278,6 +278,14 @@ describe('profiles administered from an account or a library (§14, §15)', () =
       profileIds: [leoProfile, zoeProfile],
     })
     expect((await zoeOf())?.libraryIds.sort()).toEqual(['films', 'series'])
+
+    // The admin cannot untick their own last unrestricted profile (§14).
+    const lockout = await admin.send('PUT', '/api/v1/admin/libraries/films/profiles', {
+      profileIds: [zoeProfile],
+    })
+    expect(lockout.status).toBe(409)
+    expect(await errorCode(lockout)).toBe('profile/last_unrestricted')
+    expect((await read()).map((row) => row.hasAccess)).toEqual([true, true])
     expect(
       (await admin.send('PUT', '/api/v1/admin/libraries/nope/profiles', { profileIds: [] })).status,
     ).toBe(404)

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { contentRatingTiers } from '@projo/shared/api/profiles'
 
-import { removesLastAdmin } from '../account/last-admin.ts'
+import { removesLastAdmin, removesLastUnrestricted } from '../account/last-admin.ts'
 import { invitationState } from '../invitation/invitation.ts'
 import {
   allowedRatingsByCountry,
@@ -151,6 +151,22 @@ describe('accounts and invitations', () => {
     expect(
       removesLastAdmin({ target: { role: 'admin', disabledAt: new Date(0) }, enabledAdmins: 1 }),
     ).toBe(false)
+  })
+
+  test('an admin account keeps at least one unrestricted profile', () => {
+    const free: ProfileRestrictions = { libraryAccess: 'all', libraryIds: [] }
+    const kid: ProfileRestrictions = { libraryAccess: 'selected', libraryIds: ['anime'] }
+    const rated: ProfileRestrictions = { ...free, maxContentRating: '12' }
+    const rule = (role: 'admin' | 'user' | undefined, after: ProfileRestrictions[]) =>
+      removesLastUnrestricted({ role, before: [free, kid], after })
+    expect(rule('admin', [kid, kid])).toBe(true)
+    expect(rule('admin', [rated, kid])).toBe(true)
+    expect(rule('admin', [kid])).toBe(true)
+    expect(rule('admin', [free])).toBe(false)
+    expect(rule('user', [kid])).toBe(false)
+    expect(rule(undefined, [kid])).toBe(false)
+    // Already without one (a promoted user): further changes are not blocked.
+    expect(removesLastUnrestricted({ role: 'admin', before: [kid], after: [] })).toBe(false)
   })
 
   test('invitation state', () => {

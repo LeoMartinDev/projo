@@ -11,6 +11,7 @@ export const profileErrorStatus = {
   'profile/invalid_pin': 403,
   'profile/rate_limited': 429,
   'profile/last_profile': 409,
+  'profile/last_unrestricted': 409,
   'profile/unknown_library': 400,
   'profile/admin_only': 403,
   'profile/restricted': 403,

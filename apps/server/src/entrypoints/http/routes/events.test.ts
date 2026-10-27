@@ -132,13 +132,14 @@ describe('GET /events (SSE)', () => {
         .status,
     ).toBe(200)
     publish('after-demotion')
+    // Restricted while a user: an admin cannot narrow their last unrestricted profile.
     expect(
-      (await leo.send('PATCH', `/api/v1/admin/accounts/${zoe.account.id}`, { role: 'admin' }))
+      (await leo.send('PATCH', `/api/v1/profiles/${zoe.profileId}`, { maxContentRating: '12' }))
         .status,
     ).toBe(200)
     // Back to admin, but on a restricted profile: still nothing.
     expect(
-      (await leo.send('PATCH', `/api/v1/profiles/${zoe.profileId}`, { maxContentRating: '12' }))
+      (await leo.send('PATCH', `/api/v1/admin/accounts/${zoe.account.id}`, { role: 'admin' }))
         .status,
     ).toBe(200)
     publish('restricted')

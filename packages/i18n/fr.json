@@ -1366,6 +1366,7 @@
     "profile/invalid_pin": "Code PIN incorrect.",
     "profile/rate_limited": "Trop d’essais de code PIN. Patientez une minute.",
     "profile/last_profile": "Un compte garde au moins un profil.",
+    "profile/last_unrestricted": "Un compte administrateur garde au moins un profil sans restriction.",
     "profile/unknown_library": "Cette bibliothèque n’existe pas.",
     "profile/admin_only": "Seul un administrateur peut élargir ces accès.",
     "profile/restricted": "Ce profil a des restrictions : passez sur un profil sans restriction pour gérer le compte, les appareils ou les autres profils.",

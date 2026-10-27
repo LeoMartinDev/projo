@@ -8,6 +8,7 @@ import type {
   UiLocale,
 } from '@projo/shared/api/profiles'
 
+import { removesLastUnrestricted } from '../../core/account/last-admin.ts'
 import type { PasswordHasher } from '../../core/auth/ports.ts'
 import type { SessionRepository } from '../../core/auth/session.ts'
 import type { Clock } from '../../core/clock.ts'
@@ -44,8 +45,8 @@ type Deps = {
   passwordHasher: PasswordHasher
   checkPin: CheckPin
   playbackSessions: PlaybackSessionTerminator
-  /** `POST /admin/accounts/:id/profiles`: the target account exists. */
-  accountExists: (accountId: string) => boolean
+  /** The role of an account, `undefined` when it does not exist. */
+  accountRole: (accountId: string) => AccountRole | undefined
   /** Called after any change of a profile (cached visibility scopes). */
   profileChanged: (profileId: string) => void
   clock: Clock
@@ -96,11 +97,18 @@ export type CreateProfileError =
   | AppError<'profile/limit_reached' | 'profile/unknown_library' | 'profile/admin_only'>
   | AccountActionError
 export type UpdateProfileError =
-  | AppError<'profile/not_found' | 'profile/unknown_library' | 'profile/admin_only'>
+  | AppError<
+      | 'profile/not_found'
+      | 'profile/unknown_library'
+      | 'profile/admin_only'
+      | 'profile/last_unrestricted'
+    >
   | AccountActionError
   | CheckPinError
 export type DeleteProfileError =
-  AppError<'profile/not_found' | 'profile/last_profile'> | AccountActionError | CheckPinError
+  | AppError<'profile/not_found' | 'profile/last_profile' | 'profile/last_unrestricted'>
+  | AccountActionError
+  | CheckPinError
 export type SelectProfileError = AppError<'profile/not_found'> | CheckPinError
 
 const restrictionsOf = ({
@@ -124,6 +132,15 @@ const adminOnly = () =>
     ),
   )
 
+const lastUnrestricted = (accountId: string) =>
+  err(
+    appError(
+      'profile/last_unrestricted',
+      'an admin account keeps at least one unrestricted profile',
+      { context: { accountId } },
+    ),
+  )
+
 const restrictedActor = () =>
   err(
     appError(
@@ -139,7 +156,7 @@ export const profilesFactory = ({
   passwordHasher,
   checkPin,
   playbackSessions,
-  accountExists,
+  accountRole,
   profileChanged,
   clock,
   ids,
@@ -186,6 +203,16 @@ export const profilesFactory = ({
 
   const hashPin = (pin: string | undefined) =>
     pin === undefined || pin === '' ? Promise.resolve(undefined) : passwordHasher.hash(pin)
+
+  /** §14: the change (`after` maps the account's profiles) leaves an admin account unable to
+   * administer. */
+  const locksOutAdmin = (
+    accountId: string,
+    after: (profiles: Profile[]) => ProfileRestrictions[],
+  ) => {
+    const before = profileRepository.listByAccount(accountId)
+    return removesLastUnrestricted({ role: accountRole(accountId), before, after: after(before) })
+  }
 
   const limitReached = () =>
     err(
@@ -281,7 +308,7 @@ export const profilesFactory = ({
       accountId: string
       input: CreateProfileInput
     }): Promise<Result<Profile, CreateProfileError | AppError<'account/not_found'>>> =>
-      !accountExists(accountId)
+      accountRole(accountId) === undefined
         ? Promise.resolve(
             err(appError('account/not_found', 'account not found', { context: { accountId } })),
           )
@@ -325,6 +352,13 @@ export const profilesFactory = ({
       }
       const unknown = unknownLibraries(restrictions)
       if (unknown !== undefined) return err(unknown)
+      if (
+        locksOutAdmin(profile.accountId, (all) =>
+          all.map((p) => (p.id === profile.id ? restrictions : p)),
+        )
+      ) {
+        return lastUnrestricted(profile.accountId)
+      }
 
       const { pinHash: previousPin, maxContentRating: _previousRating, ...kept } = profile
       const pinHash = input.pin === undefined ? previousPin : await hashPin(input.pin)
@@ -370,6 +404,9 @@ export const profilesFactory = ({
             context: { profileId },
           }),
         )
+      }
+      if (locksOutAdmin(profile.accountId, (all) => all.filter((p) => p.id !== profile.id))) {
+        return lastUnrestricted(profile.accountId)
       }
       // Its playback stops first (ffmpeg, player told): the cascade drops the session rows.
       playbackSessions.endWithin({ profileIds: [profile.id] })

@@ -13,6 +13,7 @@ import type {
 
 import { api, request } from '../../../shared/api/client.ts'
 import { toApiFailure } from '../../../shared/api/failure.ts'
+import { profileUpdated } from '../../../shared/session/session.ts'
 import { Checkrow, Field, SelectChevron, Switch } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
@@ -167,6 +168,7 @@ export const ProfileCard = ({
     onSuccess: async (saved) => {
       setDraft({ ...draftOf({ ...saved, playing: profile.playing }) })
       setChangingPin(false)
+      profileUpdated(queryClient, saved)
       await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
     },
   })
