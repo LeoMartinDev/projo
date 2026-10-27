@@ -308,14 +308,15 @@ export const UpdatesPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: updatesQueryKey }),
   })
 
-  if (status.isError)
+  const data = status.data
+
+  if (status.isError && data === undefined)
     return (
       <div className="admin-page">
         <ErrorState error={status.error} onRetry={() => void status.refetch()} />
       </div>
     )
 
-  const data = status.data
   const busy = data !== undefined && (BUSY.has(data.state) || restarting)
   const checking = check.isPending || data?.state === 'checking'
 
