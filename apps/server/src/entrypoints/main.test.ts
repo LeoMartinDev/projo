@@ -39,6 +39,31 @@ describe('startProjo', () => {
     await started.value.stop()
   })
 
+  test('refuses a chunked body past the upload limit with 413', async () => {
+    temp = createTempDir()
+    const started = startProjo({
+      env: { PORT: '0', DATA_DIR: temp.path, LOG_LEVEL: 'error' },
+      appPaths: resolveAppPaths(import.meta.dir),
+    })
+    if (!started.ok) throw new Error(started.error.message)
+
+    // No Content-Length: only the server's limit stops the read.
+    const body = new ReadableStream<Uint8Array>({
+      start: (controller) => {
+        for (let i = 0; i < 12; i++) controller.enqueue(new Uint8Array(1024 * 1024))
+        controller.close()
+      },
+    })
+    const response = await fetch(new URL('/api/v1/auth/login', started.value.url), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    })
+    expect(response.status).toBe(413)
+
+    await started.value.stop()
+  })
+
   test('recovers from a crash: last-attempt job failed and notified, open scan runs closed', async () => {
     temp = createTempDir()
     const start = () => {

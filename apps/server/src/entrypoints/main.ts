@@ -1,4 +1,5 @@
 import { type AppError, ok, type Result } from '@projo/shared'
+import { maxImageUploadBytes } from '@projo/shared/api/metadata'
 
 import { notifyJobFailureFactory } from '../application/jobs/notify-job-failure.ts'
 import type { LibraryMetadataContextObserver } from '../core/library/library.ts'
@@ -247,6 +248,8 @@ export const startProjo = ({
     fetch: app.fetch,
     // SSE and long streams: SSE must send a keep-alive more often than this.
     idleTimeout: 120,
+    // The largest body is an image upload (§21): caps chunked bodies, which carry no Content-Length.
+    maxRequestBodySize: maxImageUploadBytes + 1024 * 1024,
   })
   // Before the runner: settles the last switch (§16.3) from the runs it finds pending.
   void updates
