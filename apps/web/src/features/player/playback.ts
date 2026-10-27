@@ -146,14 +146,15 @@ const manifestLoadPolicy: HlsConfig['manifestLoadPolicy'] = {
  * Plugs the session's stream into `<video>`: `direct` as a progressive `src`, HLS natively on
  * Safari or through hls.js (MSE) elsewhere. Starts at `startPositionMs`, on the stream timeline
  * of the current part (`- partOffsetMs`). hls.js retries a network and a media error once; the
- * next fatal error is reported; a stuck seek is made again (`watchSeekStalls`). Returns an
- * idempotent cleanup.
+ * next fatal error is reported; a stuck seek is made again (`watchSeekStalls`). Plays once loaded
+ * unless `autoplay` is false. Returns an idempotent cleanup.
  */
 export const attachStream = (
   video: HTMLVideoElement,
   session: PlaybackSessionDto,
   hlsMode: 'native' | 'mse',
   onFatal: (failure: StreamFailure) => void,
+  autoplay = true,
 ): (() => void) => {
   const { stream } = session
   const startSeconds = Math.max(0, session.startPositionMs - session.partOffsetMs) / 1000
@@ -162,7 +163,7 @@ export const attachStream = (
     if (!disposed) onFatal(failure)
   }
   const play = () => {
-    video.play().catch(() => undefined)
+    if (autoplay) video.play().catch(() => undefined)
   }
   const stopSeekWatch = watchSeekStalls(video, {
     delay: (callback, ms) => {

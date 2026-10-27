@@ -5,6 +5,7 @@ import type { PlaybackHeartbeatBody } from '@projo/shared/api/playback'
 import {
   endSession,
   type HeartbeatTransport,
+  sessionTimedOut,
   startHeartbeat,
   type Timers,
   toHeartbeatBody,
@@ -180,4 +181,13 @@ describe('toHeartbeatBody', () => {
       paused: true,
     })
   })
+})
+
+test('a session the server timed out is reopened, an admin stop is not', () => {
+  expect(sessionTimedOut({ code: 'playback/session_expired' })).toBe(true)
+  expect(sessionTimedOut({ code: 'playback/session_not_found' })).toBe(true)
+  expect(sessionTimedOut({ reason: 'timeout' })).toBe(true)
+  expect(sessionTimedOut({ code: 'network' })).toBe(false)
+  expect(sessionTimedOut({ reason: 'admin' })).toBe(false)
+  expect(sessionTimedOut({ reason: 'ended' })).toBe(false)
 })

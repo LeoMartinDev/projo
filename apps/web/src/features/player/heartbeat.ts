@@ -44,6 +44,19 @@ export const endSession = async (
   await transport.end(sessionId).catch(() => undefined)
 }
 
+/**
+ * The server let the session go because it heard nothing for 60 s (a locked phone, a hidden tab
+ * whose timers were spaced out): a heartbeat answered `session_not_found`/`session_expired`, or
+ * a `timeout` termination. The player reopens it at the position like a network loss (§10.7);
+ * an admin stop stays on screen.
+ */
+export const sessionTimedOut = (
+  cause: { code: string } | { reason: 'admin' | 'timeout' | 'ended' },
+): boolean =>
+  'code' in cause
+    ? cause.code === 'playback/session_not_found' || cause.code === 'playback/session_expired'
+    : cause.reason === 'timeout'
+
 export const toHeartbeatBody = ({
   positionMs,
   paused,

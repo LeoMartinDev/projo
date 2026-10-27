@@ -21,7 +21,7 @@ import type {
   TrackPreferencesBody,
 } from '@projo/shared/api/playback'
 
-import { type ApiFailure, toApiFailure } from '../../shared/api/failure.ts'
+import { type ApiFailure, apiFailure, toApiFailure } from '../../shared/api/failure.ts'
 import { useServerEvent } from '../../shared/events/events.ts'
 import { formatClock } from '../../shared/format/format.ts'
 import { useErrorMessage } from '../../shared/i18n/errors.ts'
@@ -41,7 +41,7 @@ import { itemQuery } from '../catalog/queries.ts'
 import { useUpdateProfile } from '../profiles/queries.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
 import { NextUpCard } from './NextUpCard.tsx'
-import { type Heartbeat, startHeartbeat } from './heartbeat.ts'
+import { type Heartbeat, sessionTimedOut, startHeartbeat } from './heartbeat.ts'
 import {
   attachStream,
   createPlaybackSession,
@@ -173,9 +173,6 @@ const endedReturnDelayMs = 5000
 const hudDelayMs = 700
 const countdownTickMs = 250
 
-/** Errors after which the session is gone: "Retry" opens a new one at the position. */
-const sessionGoneCodes = new Set(['playback/session_not_found', 'playback/session_expired'])
-
 type Interruption =
   | { kind: 'failure'; failure: ApiFailure }
   /** Connection lost: retried automatically at the position (§10.7). */
@@ -265,6 +262,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     undefined,
   )
   const lastPositionRef = useRef<number | undefined>(undefined)
+  /** The next stream stays paused: a session reopened (retry) while the video was paused. */
+  const startPausedRef = useRef(false)
   /** Audio changed with the subtitles left to the cascade: remembered once that session opens. */
   const pendingAudioMemoryRef = useRef<{ attempt: number } | undefined>(undefined)
   const gestureRef = useRef<{
@@ -384,6 +383,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     setSwitching({ positionMs: change.type === 'part' ? change.part.offsetMs : at, totalMs })
     setOverlay(undefined)
     const last = teardownRef.current?.() ?? { positionMs: at, paused: false }
+    startPausedRef.current = change.type === 'retry' && last.paused === true
     const nextValue = nextRequest({
       request,
       session,
@@ -416,7 +416,13 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     openingMemoryRef.current ??= { value: memoryAtOpen(session) }
     restoreVolume(video)
     applyRate(video)
-    const detach = attachStream(video, session, hlsMode, (failure) => onStreamFailure(failure))
+    const detach = attachStream(
+      video,
+      session,
+      hlsMode,
+      (failure) => onStreamFailure(failure),
+      !startPausedRef.current,
+    )
     const heartbeat = startHeartbeat({
       sessionId: session.id,
       intervalMs: session.heartbeatIntervalMs,
@@ -435,8 +441,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       },
       onFailure: (failure) => {
         const apiError = toApiFailure(failure)
-        if (sessionGoneCodes.has(apiError.code))
-          onStreamFailure({ failure: apiError, network: false })
+        if (sessionTimedOut(apiError)) onStreamFailure({ failure: apiError, network: true })
       },
     })
     heartbeatRef.current = heartbeat
@@ -498,7 +503,14 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (isSessionLetGo(session.id)) return
     forgetSession(session.id)
     teardownRef.current?.()
-    setInterruption({ kind: 'terminated', reason: payload.reason })
+    setInterruption(
+      sessionTimedOut(payload)
+        ? {
+            kind: 'network',
+            failure: apiFailure(410, 'playback/session_expired', 'playback session ended'),
+          }
+        : { kind: 'terminated', reason: payload.reason },
+    )
   })
 
   // iOS plays fullscreen in its own player: the browser draws the subtitles there.
@@ -545,15 +557,21 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     (interruption?.kind === 'network' || failure.code === 'network') &&
     reconnectDelay(reconnectAttempt) !== undefined
 
-  // Network loss: a new session at the position, after a growing delay or when back online.
+  // Network loss or timed-out session: a new session at the position, after a growing delay or
+  // as soon as the connection or the page (unlocked phone, tab shown again) comes back.
   useEffect(() => {
     if (!networkLost) return
     const timer = setTimeout(() => reconnect(), reconnectDelay(reconnectAttempt))
     const online = () => reconnect()
+    const visible = () => {
+      if (document.visibilityState === 'visible') reconnect()
+    }
     window.addEventListener('online', online)
+    document.addEventListener('visibilitychange', visible)
     return () => {
       clearTimeout(timer)
       window.removeEventListener('online', online)
+      document.removeEventListener('visibilitychange', visible)
     }
   }, [networkLost, reconnectAttempt])
 
