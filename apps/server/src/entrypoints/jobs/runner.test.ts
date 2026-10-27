@@ -23,6 +23,9 @@ const deferred = () => {
   return { promise, resolve }
 }
 
+/** Resolves after the pump `wake` scheduled: timers of equal delay fire in order. */
+const scheduledPump = () => new Promise((resolve) => setTimeout(resolve, 0))
+
 const setup = (handlers: JobHandlers, options: { onFinalFailure?: (job: Job) => void } = {}) => {
   const clock = createManualClock()
   const eventBus = createInMemoryEventBus({ logger: silentLogger })
@@ -119,7 +122,7 @@ describe('createJobRunner', () => {
     })
     runner.start()
     for (const n of [0, 1, 2]) queue.enqueue({ type: 'probe_source', payload: { n } })
-    await Bun.sleep(0)
+    await scheduledPump()
     expect(active).toBe(2)
     for (const gate of gates) gate.resolve()
     await runner.idle()
@@ -224,6 +227,7 @@ describe('createJobRunner', () => {
     })
     runner.start()
     queue.enqueue({ type: 'scan_library', payload: { n: 1 }, dedupeKey: 'library:l1' })
+    await scheduledPump()
     const second = queue.enqueue({
       type: 'scan_library',
       payload: { n: 2 },
@@ -236,7 +240,7 @@ describe('createJobRunner', () => {
     })
     expect(second.deduplicated).toBe(false)
     expect(third).toMatchObject({ deduplicated: true, job: { id: second.job.id } })
-    await Bun.sleep(0)
+    await scheduledPump()
     expect(calls).toBe(1)
     gate.resolve()
     await runner.idle()
@@ -473,6 +477,23 @@ describe('createJobRunner', () => {
     expect(handled).toBe(200)
     expect(handledWhenTimerFired).toBeGreaterThanOrEqual(0)
     expect(handledWhenTimerFired).toBeLessThan(200)
+  })
+
+  test('a burst of enqueues runs a single claim', async () => {
+    const gate = deferred()
+    const { queue, runner, jobRepository } = setup({
+      probe_source: { concurrency: 1, run: () => gate.promise.then(() => ok()) },
+    })
+    const claimNext = jobRepository.claimNext
+    let claims = 0
+    jobRepository.claimNext = (input) => (claims++, claimNext(input))
+    runner.start()
+    for (let n = 0; n < 100; n++) queue.enqueue({ type: 'probe_source', payload: {} })
+    expect(claims).toBe(1)
+    await scheduledPump()
+    expect(claims).toBe(2)
+    gate.resolve()
+    await runner.idle()
   })
 
   test('only claims types that have a handler', async () => {

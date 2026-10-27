@@ -251,7 +251,8 @@ export const createJobRunner = ({
       await Promise.all([...running.values()].map((entry) => entry.done))
       started = false
     },
-    wake: pump,
+    // Each claim reads and sorts the queue: a burst of enqueues (a scan) must cost one pump.
+    wake: schedulePump,
     cancel: (jobId) => {
       const cancelled = jobRepository.cancel({ id: jobId, finishedAt: clock.now() })
       if (cancelled === undefined) return undefined
