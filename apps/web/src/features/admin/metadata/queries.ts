@@ -1,5 +1,6 @@
 import { type QueryClient, queryOptions, useMutation, useQueryClient } from '@tanstack/react-query'
 
+import { profileIdHeader } from '@projo/shared/api/auth'
 import type {
   ChooseItemImageBody,
   EditableField,
@@ -10,6 +11,7 @@ import type {
 
 import { api, apiPrefix, request } from '../../../shared/api/client.ts'
 import { failureFromResponse, networkFailure } from '../../../shared/api/failure.ts'
+import { getActiveProfileId } from '../../../shared/session/active-profile.ts'
 import { invalidateAfterIdentify } from '../identify/queries.ts'
 
 /** `GET /admin/items/:id` (§9.3): values and locks of the editor. */
@@ -77,12 +79,17 @@ export const useRemoveOverride = (itemId: string) => {
  * reads its body itself, outside the RPC types.
  */
 const postImage = async (itemId: string, body: ChooseItemImageBody | FormData) => {
+  const profileId = getActiveProfileId()
+  const profileHeaders = profileId === undefined ? {} : { [profileIdHeader]: profileId }
   const response = await fetch(`${apiPrefix}/admin/items/${encodeURIComponent(itemId)}/images`, {
     method: 'POST',
     credentials: 'same-origin',
     ...(body instanceof FormData
-      ? { body }
-      : { body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }),
+      ? { body, headers: profileHeaders }
+      : {
+          body: JSON.stringify(body),
+          headers: { ...profileHeaders, 'content-type': 'application/json' },
+        }),
   }).catch((cause: unknown): never => {
     throw networkFailure(cause)
   })
