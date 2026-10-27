@@ -23,6 +23,22 @@ export const isSafeBundlePath = (path: string): boolean => {
   return path.split('/').every((segment) => segment !== '' && segment !== '.' && segment !== '..')
 }
 
+/**
+ * §20: a release file URL lies under the download prefix once parsed (`new URL` resolves `..`
+ * and `%2e%2e`, so a string prefix is not enough). Encoded `/` or `\` are refused: a server
+ * decoding them could step out of the prefix.
+ */
+export const isReleaseDownloadUrl = (url: string, prefix: string): boolean => {
+  if (!URL.canParse(url)) return false
+  const target = new URL(url)
+  const allowed = new URL(prefix)
+  return (
+    target.origin === allowed.origin &&
+    target.pathname.startsWith(allowed.pathname.replace(/\/?$/u, '/')) &&
+    !/%(2f|5c)/iu.test(target.pathname)
+  )
+}
+
 export const MANIFEST_ENTRY_FILE = 'server.js'
 
 const manifestSchema = z.object({

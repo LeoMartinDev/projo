@@ -15,7 +15,12 @@ import {
   type ReleaseSourceError,
 } from '../../core/updates/update.ts'
 import { type FetchLike, httpGet, parseJsonBytes, readBytes } from './http.ts'
-import { parseChecksums, parseReleaseManifest, sha256Hex } from './release-files.ts'
+import {
+  isReleaseDownloadUrl,
+  parseChecksums,
+  parseReleaseManifest,
+  sha256Hex,
+} from './release-files.ts'
 
 export const GITHUB_API_BASE_URL = 'https://api.github.com'
 /** §20: release files are downloaded from this prefix only. */
@@ -132,7 +137,7 @@ export const createGithubReleaseSource = (config: GithubReleaseSourceConfig): Re
         })
       }
       const foreign = [archive, checksums, manifestAsset].find(
-        (asset) => !asset.url.startsWith(downloadPrefix),
+        (asset) => !isReleaseDownloadUrl(asset.url, downloadPrefix),
       )
       if (foreign !== undefined)
         return invalid('release file is not hosted on the projo releases', { asset: foreign.name })

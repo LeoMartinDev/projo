@@ -17,6 +17,7 @@ import {
 import { type FetchLike, httpGet, parseJsonBytes, readBytes } from './http.ts'
 import { RELEASE_DOWNLOAD_PREFIX } from './github-release-source.ts'
 import {
+  isReleaseDownloadUrl,
   isSafeBundlePath,
   parseChecksums,
   parseReleaseManifest,
@@ -220,7 +221,7 @@ export const createFsReleaseInstaller = (config: FsReleaseInstallerConfig): Rele
     if (parseSemVer(version) === undefined || version.includes('/'))
       return fail('update/invalid_release', 'release version is not semver', { version })
     const foreign = [release.archive, release.checksums].find(
-      (asset) => !asset.url.startsWith(downloadPrefix),
+      (asset) => !isReleaseDownloadUrl(asset.url, downloadPrefix),
     )
     if (foreign !== undefined)
       return fail('update/invalid_release', 'release file is not hosted on the projo releases', {

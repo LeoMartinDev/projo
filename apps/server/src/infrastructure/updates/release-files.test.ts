@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+  isReleaseDownloadUrl,
   isSafeBundlePath,
   parseChecksums,
   parseReleaseManifest,
@@ -14,6 +15,27 @@ describe('release files', () => {
     expect(isSafeBundlePath('public/index.html')).toBe(true)
     for (const path of ['', '/etc/passwd', '../x', 'a/../../x', 'a//b', './a', 'a\\b', 'C:/x'])
       expect(isSafeBundlePath(path)).toBe(false)
+  })
+
+  test('release file URLs stay under the download prefix once parsed', () => {
+    const prefix = 'https://github.com/LeoMartinDev/projo/releases/download/'
+    expect(isReleaseDownloadUrl(`${prefix}v1.6.0/SHA256SUMS`, prefix)).toBe(true)
+    expect(
+      isReleaseDownloadUrl(
+        'http://127.0.0.1:4000/download/v1.6.0/a',
+        'http://127.0.0.1:4000/download/',
+      ),
+    ).toBe(true)
+    for (const url of [
+      'https://evil.example/LeoMartinDev/projo/releases/download/v1.6.0/SHA256SUMS',
+      'http://github.com/LeoMartinDev/projo/releases/download/v1.6.0/SHA256SUMS',
+      `${prefix}../../../../attacker/x/releases/download/v1/SHA256SUMS`,
+      `${prefix}%2e%2e/%2E%2E/%2e./.%2e/attacker/x`,
+      `${prefix}v1/..%2f..%2fattacker`,
+      'https://github.com/LeoMartinDev/projo/releases/downloadx/v1/a',
+      'not a url',
+    ])
+      expect(isReleaseDownloadUrl(url, prefix)).toBe(false)
   })
 
   test('SHA256SUMS in text and binary mode', () => {
