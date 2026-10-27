@@ -2,7 +2,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
+import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { watchlistQuery } from '../catalog/queries.ts'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
@@ -37,12 +37,14 @@ export const WatchlistPage = () => {
           label={t('nav.watchlist')}
           pending={watchlist.isPending}
           fetchingMore={isFetchingNextPage}
-          hasMore={hasNextPage}
+          hasMore={hasNextPage && !watchlist.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
           renderItem={(item) => <PosterTile item={item} />}
         />
       )}
-      {watchlist.isFetchNextPageError ? <ErrorAlert error={watchlist.error} /> : undefined}
+      {watchlist.isFetchNextPageError ? (
+        <ErrorState error={watchlist.error} onRetry={() => void fetchNextPage()} />
+      ) : undefined}
     </div>
   )
 }

@@ -13,7 +13,7 @@ import { sessionQuery } from '../../shared/session/session.ts'
 import { Field, SelectChevron } from '../../shared/ui/controls.tsx'
 import { FilterIcon } from '../../shared/ui/media-icons.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
-import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
+import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import {
@@ -283,12 +283,14 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
           label={title}
           pending={catalog.isPending}
           fetchingMore={isFetchingNextPage}
-          hasMore={hasNextPage}
+          hasMore={hasNextPage && !catalog.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
           renderItem={(item) => <PosterTile item={item} />}
         />
       )}
-      {catalog.isFetchNextPageError ? <ErrorAlert error={catalog.error} /> : undefined}
+      {catalog.isFetchNextPageError ? (
+        <ErrorState error={catalog.error} onRetry={() => void fetchNextPage()} />
+      ) : undefined}
 
       <Sheet open={filtersOpen} labelledBy={sheetTitleId} onClose={() => setFiltersOpen(false)}>
         <h2 id={sheetTitleId} className="sheet__title">

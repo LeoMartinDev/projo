@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { categoryTitle } from '@projo/i18n/genres'
 import { type HomeCategorySlug, homeCategoryOfSlug } from '@projo/shared/api/home'
 
-import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
+import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { homeCategoryPageQuery } from '../catalog/queries.ts'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
@@ -43,12 +43,14 @@ export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
           label={title}
           pending={page.isPending}
           fetchingMore={isFetchingNextPage}
-          hasMore={hasNextPage}
+          hasMore={hasNextPage && !page.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
           renderItem={(item) => <PosterTile item={item} />}
         />
       )}
-      {page.isFetchNextPageError ? <ErrorAlert error={page.error} /> : undefined}
+      {page.isFetchNextPageError ? (
+        <ErrorState error={page.error} onRetry={() => void fetchNextPage()} />
+      ) : undefined}
     </div>
   )
 }
