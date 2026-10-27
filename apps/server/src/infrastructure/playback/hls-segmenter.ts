@@ -68,6 +68,8 @@ type Deps = {
 }
 
 type Run = {
+  /** Unique per segmenter: names the run's temporary files. */
+  id: number
   proc: Bun.Subprocess<'ignore', 'pipe', 'pipe'>
   fromSegment: number
   /** Segment being accumulated (or about to be). */
@@ -95,7 +97,8 @@ type SessionState = {
   vaapi: boolean | undefined
 }
 
-type Pending = { segment: number; parts: Uint8Array[]; complete: boolean }
+/** Segment being written box by box to `temp` (§21); no sink for an incomplete segment. */
+type Pending = { segment: number; temp: string; sink: Bun.FileSink | undefined }
 
 /** `ffmpeg -filters`: is `name` listed? */
 const hasFilter = (listing: string, name: string): boolean =>
@@ -184,6 +187,7 @@ export const createHlsSegmenter = ({
     return knownFilters
   }
   const sessions = new Map<string, SessionState>()
+  let runCount = 0
   /** Insertion-ordered: a request in flight when its session stopped must not revive it. */
   const stoppedIds = new Set<string>()
   const markStopped = (sessionId: string): void => {
@@ -230,10 +234,42 @@ export const createHlsSegmenter = ({
     run.resume?.()
   }
 
+  const openSegment = (
+    state: SessionState,
+    run: Run,
+    segment: number,
+    complete: boolean,
+  ): Pending => {
+    // Per run: a killed run still closing its file must not share it with the next one.
+    const temp = `${fileFor(state, segment)}.${run.id}.tmp`
+    return { segment, temp, sink: complete ? Bun.file(temp).writer() : undefined }
+  }
+
+  const append = async (pending: Pending | undefined, bytes: Uint8Array): Promise<void> => {
+    if (pending?.sink === undefined) return
+    pending.sink.write(bytes)
+    await pending.sink.flush()
+  }
+
+  /** A killed or failed run: its unfinished segment never becomes visible. */
+  const discard = async (pending: Pending | undefined): Promise<void> => {
+    if (pending === undefined) return
+    try {
+      await pending.sink?.end()
+      rmSync(pending.temp, { force: true })
+    } catch {
+      // The session folder may already be gone (cache removal).
+    }
+  }
+
   const finalize = async (state: SessionState, pending: Pending): Promise<void> => {
-    if (!pending.complete) return
+    const sink = pending.sink
+    if (sink === undefined) return
+    pending.sink = undefined
+    await sink.end()
     const path = fileFor(state, pending.segment)
-    if (!existsSync(path)) await writeAtomically(path, pending.parts)
+    if (existsSync(path)) unlinkSync(pending.temp)
+    else await rename(pending.temp, path)
     const old = state.lastRequested - keepBehind
     if (old >= 0 && old < pending.segment && existsSync(fileFor(state, old))) {
       unlinkSync(fileFor(state, old))
@@ -265,7 +301,7 @@ export const createHlsSegmenter = ({
             const ticks = fragmentStartTicks(box.bytes, video.trackId)
             if (ticks === undefined) {
               // A fragment without video: continuation of the current segment.
-              if (current !== undefined && !skipping) current.parts.push(box.bytes)
+              if (!skipping) await append(current, box.bytes)
               continue
             }
             const time = ticks / video.timescale - outputTimestampOffsetS
@@ -277,14 +313,13 @@ export const createHlsSegmenter = ({
             }
             if (current === undefined || segment !== current.segment) {
               if (current !== undefined) await finalize(state, current)
-              current = { segment, parts: [box.bytes], complete }
+              current = openSegment(state, run, segment, complete)
               run.producing = segment
-            } else {
-              current.parts.push(box.bytes)
             }
+            await append(current, box.bytes)
             skipping = false
           } else if (box.type === 'mdat') {
-            if (current !== undefined && !skipping) current.parts.push(box.bytes)
+            if (!skipping) await append(current, box.bytes)
           } else if (video === undefined) {
             head.push(box.bytes)
             if (box.type === 'moov') {
@@ -333,6 +368,7 @@ export const createHlsSegmenter = ({
       run.finished = true
       reader.releaseLock()
       wakeAll(state)
+      await discard(current)
     }
   }
 
@@ -391,7 +427,9 @@ export const createHlsSegmenter = ({
         stdout: 'pipe',
         stderr: 'pipe',
       })
+      runCount += 1
       const run: Run = {
+        id: runCount,
         proc,
         fromSegment,
         producing: fromSegment,

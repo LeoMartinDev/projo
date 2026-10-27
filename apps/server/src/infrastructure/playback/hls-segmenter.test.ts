@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { createTempDir } from '../../../test/support/database.ts'
@@ -186,6 +186,23 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     expect(Date.now() - startedAt).toBeLessThan(1_000)
     expect((await latest).ok).toBe(true)
     expect(runsStarted()).toHaveLength(2)
+  })
+
+  test('a segment is written to disk as it comes, a killed run leaves no partial file', async () => {
+    const job = await jobFor('killed', files['long'] ?? '')
+    const { segmenter, dir } = newSegmenter({ bufferAhead: 1, waitMs: 6_000 })
+    expect((await segmenter.segment(job, 0)).ok).toBe(true)
+    const temporaries = () =>
+      readdirSync(join(dir, 'killed')).filter((name) => name.endsWith('.tmp'))
+    const until = async (condition: () => boolean) => {
+      for (let tries = 0; tries < 100 && !condition(); tries += 1) await Bun.sleep(20)
+    }
+    // Paused ahead of the player with its next segment open.
+    await until(() => temporaries().length > 0)
+    expect(temporaries()).toHaveLength(1)
+    await segmenter.stopAll()
+    await until(() => temporaries().length === 0)
+    expect(temporaries()).toEqual([])
   })
 })
 
