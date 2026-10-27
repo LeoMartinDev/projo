@@ -1168,7 +1168,7 @@ A native app for iPhone and iPad, on the same server and API as the web. The PWA
 ### 26.4 Compatibility with the server
 
 - The server keeps `/api/v1` additive (§17.1).
-- The app declares the minimum server version it needs, a constant raised whenever it starts relying on something a server release added: 1.5.0 from slice 1 of M6 (sign-in with `token: true`, pairing). It reads `GET /health` at launch and when it comes back to the foreground; an older server shows a blocking "Update your projo server" screen (an admin is told it is done from the web administration).
+- The app declares the minimum server version it needs, a constant raised whenever it starts relying on something a server release added: 1.5.0 from slice 1 of M6 (sign-in with `token: true`, pairing), 1.6.0 from slice 3 ("Continue watching" stills, `resumeFrame.url`). It reads `GET /health` at launch and when it comes back to the foreground; an older server shows a blocking "Update your projo server" screen (an admin is told it is done from the web administration).
 - Responses are parsed without rejecting unknown fields.
 
 ### 26.5 Screens and navigation
