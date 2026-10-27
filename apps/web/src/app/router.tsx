@@ -3,10 +3,12 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  type ErrorComponentProps,
   lazyRouteComponent,
   Link,
   Outlet,
   redirect,
+  useRouter,
 } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -145,10 +147,16 @@ const NotFound = () => {
   )
 }
 
+const RouteError = ({ error }: ErrorComponentProps) => {
+  const router = useRouter()
+  // reset alone re-renders the failed match with its error; invalidate reruns its loaders.
+  return <ErrorState error={error} onRetry={() => void router.invalidate()} />
+}
+
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => <Outlet />,
   pendingComponent: FullPageSpinner,
-  errorComponent: ({ error, reset }) => <ErrorState error={error} onRetry={reset} />,
+  errorComponent: RouteError,
   notFoundComponent: NotFound,
 })
 
