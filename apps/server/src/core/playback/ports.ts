@@ -58,6 +58,8 @@ type HlsJobBase = {
   sessionId: string
   sourcePath: string
   segments: readonly HlsSegment[]
+  /** Where the player starts (s): an `init.mp4` asked before any segment starts ffmpeg there. */
+  startS?: number
   video: { index: number; codec: string }
   audio?: HlsAudio
   /** §10.2 `settings.audio_downmix`, for audio encoded to AAC. */

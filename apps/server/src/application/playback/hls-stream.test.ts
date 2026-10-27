@@ -145,6 +145,7 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
         { index: 0, startS: 0, endS: 4 },
         { index: 1, startS: 4, endS: 8.5 },
       ],
+      startS: 0,
       video: { index: 0, codec: 'hevc' },
       audio: { index: 1, delivery: 'aac', channels: 6 },
       audioDownmix: 'keep',

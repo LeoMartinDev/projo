@@ -196,6 +196,9 @@ export const hlsStreamFactory = ({
     const common = {
       sessionId: session.id,
       sourcePath: source.path,
+      // The plan is built on the first request, before any heartbeat moves the position.
+      // shortcut: timeline position, not the part's (a later part starts too late and restarts once), subtract the part offset if multi-part resumes matter.
+      startS: session.positionMs / 1000,
       video: { index: video.index, codec: video.codec },
       audioDownmix: settings.audioDownmix,
       hwAccel: settings.hwAccel,

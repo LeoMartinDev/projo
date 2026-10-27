@@ -188,6 +188,14 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     expect(runsStarted()).toHaveLength(2)
   })
 
+  test('init asked first starts ffmpeg at the resume segment, not at 0', async () => {
+    const job = { ...(await jobFor('resume', files['long'] ?? '')), startS: 21 }
+    const { segmenter, runsStarted } = newSegmenter({ waitMs: 6_000 })
+    expect((await segmenter.segment(job, 'init')).ok).toBe(true)
+    expect((await segmenter.segment(job, 5)).ok).toBe(true)
+    expect(runsStarted()).toMatchObject([{ fields: { fromSegment: 5 } }])
+  })
+
   test('a segment is written to disk as it comes, a killed run leaves no partial file', async () => {
     const job = await jobFor('killed', files['long'] ?? '')
     const { segmenter, dir } = newSegmenter({ bufferAhead: 1, waitMs: 6_000 })

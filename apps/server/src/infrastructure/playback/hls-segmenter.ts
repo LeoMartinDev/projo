@@ -557,7 +557,12 @@ export const createHlsSegmenter = ({
         const mayRestart =
           which === 'init' ? run === undefined || run.finished : which === state.lastRequested
         if (!inWindow && mayRestart) {
-          started = startRun(state, which === 'init' ? Math.max(0, state.lastRequested) : which)
+          // hls.js asks for init first: start where it resumes, not at 0 (a run it would kill);
+          // counted as requested, or the run would pause ahead of the player before its moov.
+          if (which === 'init' && state.lastRequested < 0) {
+            state.lastRequested = segmentAt(job.segments, job.startS ?? 0)
+          }
+          started = startRun(state, which === 'init' ? state.lastRequested : which)
           if (started === undefined) {
             return err(failed('cannot start ffmpeg', { sessionId: job.sessionId }))
           }
