@@ -107,7 +107,6 @@ export const walkRootFactory =
         entryNames: entries.value.map((entry) => entry.name),
       })
       if (decision.kind === 'skip') {
-        if (decision.reason === 'unsupported_layout') result.unsupportedLayouts.push(relative)
         return {
           mtimeMs: stat.value.mtimeMs,
           cachedAt: now,
@@ -170,7 +169,13 @@ export const walkRootFactory =
       }
       result.directories.add(relative)
       if (relative === '') result.rootEntryCount = entry.entryCount
-      for (const name of entry.directories) stack.push(join(relative, name))
+      for (const name of entry.directories) {
+        const child = join(relative, name)
+        // Name-only rules first (`@eaDir`, `.trickplay`, `Extras`…): such folders are never stat'ed nor read.
+        const byName = filterDirectory({ relativePath: child, entryNames: [] })
+        if (byName.kind === 'descend') stack.push(child)
+        else if (byName.reason === 'unsupported_layout') result.unsupportedLayouts.push(child)
+      }
 
       const videos: string[] = []
       for (const name of entry.files) {
