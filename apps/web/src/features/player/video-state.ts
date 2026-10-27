@@ -64,7 +64,7 @@ const read = (video: HTMLVideoElement, waiting: boolean): VideoState => {
 const same = (a: VideoState, b: VideoState) =>
   (Object.keys(a) as (keyof VideoState)[]).every((key) => a[key] === b[key])
 
-const createVideoStore = (video: HTMLVideoElement) => {
+export const createVideoStore = (video: HTMLVideoElement) => {
   let waiting = true
   let snapshot = read(video, waiting)
   return {
@@ -75,6 +75,14 @@ const createVideoStore = (video: HTMLVideoElement) => {
         if (event.type === 'playing' || event.type === 'canplay' || event.type === 'seeked')
           waiting = false
         if (event.type === 'pause') waiting = false
+        // A stall can resume without `playing` (hls.js nudging past a gap): time moving is proof.
+        if (
+          event.type === 'timeupdate' &&
+          !video.paused &&
+          !video.seeking &&
+          video.currentTime > snapshot.currentTime
+        )
+          waiting = false
         const next = read(video, waiting)
         if (!same(next, snapshot)) {
           snapshot = next
