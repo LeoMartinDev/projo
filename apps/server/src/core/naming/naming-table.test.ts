@@ -574,6 +574,22 @@ describe('§8.2 Séries', () => {
       ],
       ['Mob Psycho 100 05.mkv', 'series', { series: 'Mob Psycho 100', absoluteEpisode: 5 }],
       ['Show 2/Show 2 05.mkv', 'series', { series: 'Show 2', absoluteEpisode: 5 }],
+      // only the title's position counts, not its numbers' values
+      ['9-1-1/9-1-1 - 01.mkv', 'series', { series: '9-1-1', absoluteEpisode: 1 }],
+      [
+        'Stargate SG-1/Stargate SG-1 - 01.mkv',
+        'series',
+        { series: 'Stargate SG-1', absoluteEpisode: 1 },
+      ],
+      ['Babylon 5/Babylon 5 - 05.mkv', 'series', { series: 'Babylon 5', absoluteEpisode: 5 }],
+      ['Station 19/Station 19 - 19.mkv', 'series', { series: 'Station 19', absoluteEpisode: 19 }],
+      ['Station 19/Station 19 19.mkv', 'series', { series: 'Station 19', absoluteEpisode: 19 }],
+      ['9-1-1/Season 1/9-1-1 - 01.mkv', 'auto', { series: '9-1-1', season: 1, episode: 1 }],
+      [
+        'Station 19/19 - Title.mkv',
+        'series',
+        { series: 'Station 19', season: 1, episode: 19, episodeTitle: 'Title' },
+      ],
       // a season marker right before the number
       [
         'Shingeki no Kyojin S3 - 05.mkv',
@@ -596,6 +612,13 @@ describe('§8.2 Séries', () => {
       expect(result.classification).toBe('episode')
       expect(result.parsed).toEqual(parsed)
       expect(result.reviewReason).toBeUndefined()
+    })
+
+    test('un nombre du titre en tête du nom n’est pas un numéro d’épisode', () => {
+      expect(analyze('9-1-1/9-1-1.mkv', 'series')).toMatchObject({
+        parsed: { series: '9-1-1' },
+        reviewReason: 'no_episode_number',
+      })
     })
 
     test('hors contexte série, un nombre isolé reste dans le titre', () => {

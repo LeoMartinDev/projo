@@ -38,7 +38,7 @@ import type {
  * Version of the name analysis rules (§8). Bump it with any change to what `analyzeMediaPath`
  * returns: the next startup reads every name again (§7.4, scan kind `rules_update`).
  */
-export const NAMING_RULES_VERSION = 2
+export const NAMING_RULES_VERSION = 3
 
 type Context = {
   readonly hint: LibraryHint
@@ -290,10 +290,19 @@ const showFolderTitle = (ctx: Context): string => {
     : normalizeTitle(parseTitleFragment(folderName, { detectParts: false, detectYear: true }).title)
 }
 
-/** `Fahrenheit 451/Fahrenheit 451.mkv`: the number belongs to the title, not to an episode. */
-const isNumberPartOfFolderTitle = (ctx: Context, hit: AbsoluteHit): boolean => {
-  const words = showFolderTitle(ctx).split(' ')
-  return words.includes(hit.digits) || words.includes(String(hit.number))
+/**
+ * Where the folder's title ends when the file name starts with it, otherwise 0. A number before
+ * that point belongs to the title, not to an episode: `Fahrenheit 451/Fahrenheit 451.mkv`, but
+ * `Station 19/Station 19 - 19.mkv` is episode 19.
+ */
+const folderTitleEnd = (ctx: Context): number => {
+  const title = showFolderTitle(ctx)
+  const value = ctx.file.value
+  if (title === '') return 0
+  const end = [...value.matchAll(/[\p{L}\p{N}]+/gu)]
+    .map((word) => word.index + word[0].length)
+    .find((wordEnd) => normalizeTitle(value.slice(0, wordEnd)) === title)
+  return end ?? 0
 }
 
 /** Outside a show context, absolute numbering counts only inside a folder named like the show. */
@@ -347,12 +356,12 @@ const showNumbers = (ctx: Context): EpisodeNumbers => {
   if (date !== undefined) return { kind: 'date', hit: date }
 
   const tagsStart = releaseTagIndex(value)
-  const usable = (hit: AbsoluteHit): boolean =>
-    hit.index < tagsStart && !isNumberPartOfFolderTitle(ctx, hit)
+  const titleEnd = folderTitleEnd(ctx)
+  const usable = (hit: AbsoluteHit): boolean => hit.index < tagsStart && hit.index >= titleEnd
   const dash = findDashNumbers(value).find(usable)
   if (dash !== undefined) return numberAfterName(ctx, dash)
   const leading = findLeadingNumber(value)
-  if (leading !== undefined) return { kind: 'standard', hit: leading }
+  if (leading !== undefined && leading.index >= titleEnd) return { kind: 'standard', hit: leading }
   const bare = findBareNumbers(value).filter(usable).at(-1)
   if (bare !== undefined) return numberAfterName(ctx, bare)
   return { kind: 'none' }
@@ -391,7 +400,7 @@ export const analyzeMediaPath = (input: MediaPathInput): MediaPathAnalysis => {
   }
 
   const absolute = findAbsoluteNumber(value)
-  if (absolute !== undefined && !isNumberPartOfFolderTitle(ctx, absolute)) {
+  if (absolute !== undefined && absolute.index >= folderTitleEnd(ctx)) {
     if (isInSeriesFolder(ctx, absolute))
       return episodeResult(ctx, numberAfterName(ctx, absolute), undefined)
     if (absolute.form === 'dash') {
