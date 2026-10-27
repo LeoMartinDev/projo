@@ -1,5 +1,6 @@
 // Release notes from the Conventional Commits since the previous release (PRODUCT.md §22).
-// Plain text that reads as Markdown: GitHub renders it, the admin shows it as is (§15).
+// Plain text that reads as Markdown: GitHub renders it, and so does the admin for this subset
+// (`## ` headings, `- ` lists, paragraphs, `code`, https links: features/admin/updates/release-notes.ts).
 // Usage: bun runtime/scripts/release-notes.ts --tag vX.Y.Z [--from vA.B.C] [--manifest dist/release/manifest.json]
 //          [--runtime-image ghcr.io/leomartindev/projo:A.B.C]
 import { parseArgs } from 'node:util'

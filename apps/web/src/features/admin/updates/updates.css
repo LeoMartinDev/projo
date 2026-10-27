@@ -144,15 +144,36 @@
   color: var(--color-text-strong);
 }
 
-/* Release notes: Markdown source shown as text. */
+/* Release notes: the Markdown subset of release-notes.ts. */
 .upd-release__notes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   padding-top: 16px;
   border-top: 1px solid var(--color-border-subtle);
   color: var(--color-text-secondary);
   font-size: 14px;
   line-height: 1.55;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.upd-release__notes h3 {
+  margin: 8px 0 0;
+  color: var(--color-text-strong);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.upd-release__notes :is(ul, p) {
+  margin: 0;
+}
+
+.upd-release__notes ul {
+  padding-left: 20px;
+}
+
+.upd-release__notes a {
+  color: var(--color-text-strong);
 }
 
 .upd-progress {

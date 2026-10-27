@@ -25,6 +25,7 @@ import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.ts
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { CopyIcon } from '../admin-icons.tsx'
 import { updatesQuery, updatesQueryKey, useLiveUpdates } from './queries.ts'
+import { parseInline, parseReleaseNotes } from './release-notes.ts'
 import '../admin.css'
 import '../accounts/accounts.css'
 import './updates.css'
@@ -105,6 +106,43 @@ const PullCommand = ({ command }: { command: string }) => {
   )
 }
 
+const Inline = ({ text }: { text: string }) =>
+  parseInline(text).map((part, index) =>
+    part.kind === 'code' ? (
+      <code key={index}>{part.text}</code>
+    ) : part.kind === 'link' ? (
+      <a key={index} href={part.href} target="_blank" rel="noreferrer noopener">
+        {part.href}
+      </a>
+    ) : (
+      part.text
+    ),
+  )
+
+const ReleaseNotes = ({ notes }: { notes: string }) => (
+  <div className="upd-release__notes">
+    {parseReleaseNotes(notes).map((block, index) =>
+      block.kind === 'heading' ? (
+        <h3 key={index}>
+          <Inline text={block.text} />
+        </h3>
+      ) : block.kind === 'list' ? (
+        <ul key={index}>
+          {block.items.map((item, itemIndex) => (
+            <li key={itemIndex}>
+              <Inline text={item} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p key={index}>
+          <Inline text={block.text} />
+        </p>
+      ),
+    )}
+  </div>
+)
+
 /** The newer release (version, date, notes) and "Update", or "projo is up to date". */
 const Release = ({
   status,
@@ -149,12 +187,13 @@ const Release = ({
         ) : undefined}
       </div>
       <Progress status={status} />
-      {available.runtimeCompatible || available.pullCommand === undefined ? undefined : (
+      {/* Updater off (`bun run dev`): the runtime is not a version, the image is not the point. */}
+      {!status.enabled ||
+      available.runtimeCompatible ||
+      available.pullCommand === undefined ? undefined : (
         <PullCommand command={available.pullCommand} />
       )}
-      {available.notes.trim() === '' ? undefined : (
-        <div className="upd-release__notes">{available.notes}</div>
-      )}
+      {available.notes.trim() === '' ? undefined : <ReleaseNotes notes={available.notes} />}
     </div>
   )
 }
