@@ -40,6 +40,10 @@ export type JobRunner = {
   stop: () => Promise<void>
   /** Claims runnable jobs now (called by the queue on enqueue). */
   wake: () => void
+  /**
+   * A queued job is `cancelled` at once. A running one is aborted and stays `running` (its dedupe
+   * key held) until its handler returns, then becomes `cancelled` whatever it returned.
+   */
   cancel: (jobId: string) => Job | undefined
   /** Resolves when no job is running (tests). */
   idle: () => Promise<void>
@@ -62,6 +66,7 @@ export const createJobRunner = ({
   onFinalFailure,
 }: Deps): JobRunner => {
   const running = new Map<string, RunningJob>()
+  const cancelling = new Set<string>()
   let started = false
   let stopping = false
   let pollTimer: ReturnType<typeof setInterval> | undefined
@@ -112,6 +117,13 @@ export const createJobRunner = ({
     const jobLogger = logger.child({ jobId: job.id, jobType: job.type })
     const now = clock.now()
 
+    if (cancelling.has(job.id)) {
+      const cancelled = jobRepository.cancel({ id: job.id, finishedAt: now })
+      if (cancelled !== undefined) publish(cancelled)
+      jobLogger.info('job cancelled')
+      return
+    }
+
     if (controller.signal.aborted && stopping) {
       // Clean stop (§18): a job that finished anyway is done (`apply_update` before the exit 75);
       // an interrupted one goes back to `queued` without consuming its attempt.
@@ -124,13 +136,6 @@ export const createJobRunner = ({
       const released = jobRepository.release({ id: job.id })
       if (released !== undefined) publish(released)
       jobLogger.info('job released for the next start')
-      return
-    }
-
-    if (controller.signal.aborted) {
-      const cancelled = jobRepository.findById(job.id)
-      if (cancelled !== undefined) publish(cancelled)
-      jobLogger.info('job cancelled')
       return
     }
 
@@ -189,6 +194,7 @@ export const createJobRunner = ({
       .then((outcome) => settle(job, controller, outcome.ok ? outcome.value : outcome))
       .finally(() => {
         running.delete(job.id)
+        cancelling.delete(job.id)
         schedulePump()
       })
     running.set(job.id, { job, controller, done })
@@ -254,11 +260,14 @@ export const createJobRunner = ({
     // Each claim reads and sorts the queue: a burst of enqueues (a scan) must cost one pump.
     wake: schedulePump,
     cancel: (jobId) => {
-      const cancelled = jobRepository.cancel({ id: jobId, finishedAt: clock.now() })
-      if (cancelled === undefined) return undefined
       const entry = running.get(jobId)
-      if (entry === undefined) publish(cancelled)
-      else entry.controller.abort()
+      if (entry !== undefined) {
+        cancelling.add(jobId)
+        entry.controller.abort()
+        return jobRepository.findById(jobId)
+      }
+      const cancelled = jobRepository.cancel({ id: jobId, finishedAt: clock.now() })
+      if (cancelled !== undefined) publish(cancelled)
       return cancelled
     },
     idle: async () => {

@@ -121,7 +121,10 @@ export const jobTargetKey = (target: JobTargetRef): string => `${target.kind}:${
 
 /** The job runner as the admin drives it (built after the modules, bound later). */
 export type JobControl = {
-  /** Cancels a `queued` or `running` job (aborting it); `undefined` when it is neither. */
+  /**
+   * Cancels a `queued` job, or aborts a `running` one (still `running` until its handler returns,
+   * then `cancelled`); `undefined` when it is neither.
+   */
   cancel: (id: string) => Job | undefined
   /** Claims runnable jobs now (a retried job need not wait for the poll). */
   wake: () => void

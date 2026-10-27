@@ -440,24 +440,35 @@ describe('createJobRunner', () => {
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'done', attempts: 1 })
   })
 
-  test('cancel aborts a running job and marks it cancelled', async () => {
+  test('a cancelled running job holds its dedupe key until its handler returns', async () => {
     const started = deferred()
+    const handlerReturns = deferred()
+    let calls = 0
     const { queue, runner, jobRepository } = setup({
-      trickplay: {
-        concurrency: 1,
+      scan_library: {
+        concurrency: 2,
         run: async (_payload, { signal }) => {
+          calls += 1
+          if (calls > 1) return ok()
           started.resolve()
           await new Promise((resolve) => signal.addEventListener('abort', resolve))
+          await handlerReturns.promise
           return ok()
         },
       },
     })
     runner.start()
-    const { job } = queue.enqueue({ type: 'trickplay', payload: {} })
+    const { job } = queue.enqueue({ type: 'scan_library', payload: {}, dedupeKey: 'library:l1' })
     await started.promise
-    expect(runner.cancel(job.id)?.state).toBe('cancelled')
+    expect(runner.cancel(job.id)?.state).toBe('running')
+    queue.enqueue({ type: 'scan_library', payload: {}, dedupeKey: 'library:l1' })
+    await scheduledPump()
+    expect(calls).toBe(1)
+    expect(jobRepository.findById(job.id)?.state).toBe('running')
+    handlerReturns.resolve()
     await runner.idle()
     expect(jobRepository.findById(job.id)?.state).toBe('cancelled')
+    expect(calls).toBe(2)
   })
 
   test('lets timers and I/O run between jobs that finish without awaiting anything', async () => {
