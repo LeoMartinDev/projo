@@ -5,6 +5,7 @@ import type { JobStateDto, JobTypeDto } from '@projo/shared/api/jobs'
 import type { NotificationStatus } from '@projo/shared/api/notifications'
 
 import { api, request } from '../../../shared/api/client.ts'
+import { refreshLive } from '../../../shared/api/live-refresh.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
 import { createThrottle } from '../live-scans.ts'
 import { notificationsQueryKey } from './unread.ts'
@@ -87,7 +88,7 @@ const refreshIntervalMs = 2000
 const useThrottledInvalidation = (queryKey: readonly string[]) => {
   const queryClient = useQueryClient()
   const [throttle] = useState(() =>
-    createThrottle(() => void queryClient.invalidateQueries({ queryKey }), refreshIntervalMs),
+    createThrottle(() => refreshLive(queryClient, queryKey), refreshIntervalMs),
   )
   useEffect(() => () => throttle.cancel(), [throttle])
   return throttle.trigger

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 
 import type { MeResponse } from '@projo/shared/api/auth'
 
+import { refreshLive } from '../shared/api/live-refresh.ts'
 import { eventHub } from '../shared/events/events.ts'
 
 /** Refetches after the last `catalog.changed` of a burst, never more than once per this delay. */
@@ -23,7 +24,7 @@ export const AuthedLayout = (_props: { me: MeResponse }) => {
       if (timer !== undefined) return
       timer = setTimeout(() => {
         timer = undefined
-        void queryClient.invalidateQueries({ queryKey: ['catalog'] })
+        refreshLive(queryClient, ['catalog'])
       }, catalogRefreshMs)
     })
     return () => {
