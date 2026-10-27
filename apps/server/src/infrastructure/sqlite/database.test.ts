@@ -532,6 +532,76 @@ describe('openDatabase', () => {
     closeDatabase(after.value)
   })
 
+  describe('a later migration', () => {
+    // A migrated database with a library and its root, then one extra migration on top.
+    const migrateWith = (statements: (librariesDdl: string) => string[]) => {
+      const file = join(temp.path, 'projo-fk.db')
+      const before = open(file)
+      if (!before.ok) throw new Error(before.error.message)
+      const client = before.value.$client
+      client.run(
+        `INSERT INTO libraries (id, name, created_at) VALUES ('lib', 'Films', '2026-01-01')`,
+      )
+      client.run(`INSERT INTO library_roots (id, library_id, path) VALUES ('root', 'lib', '/m')`)
+      const ddl = client
+        .query<{ sql: string }, []>("SELECT sql FROM sqlite_master WHERE name = 'libraries'")
+        .get()?.sql
+      closeDatabase(before.value)
+      if (ddl === undefined) throw new Error('no libraries table')
+
+      const extended = join(temp.path, 'migrations-fk')
+      cpSync(migrationsDir, extended, { recursive: true })
+      const journalFile = join(extended, 'meta', '_journal.json')
+      const journal = JSON.parse(readFileSync(journalFile, 'utf8')) as {
+        entries: { idx: number; when: number; tag: string }[]
+      }
+      const last = journal.entries.at(-1)
+      if (last === undefined) throw new Error('empty journal')
+      const tag = `${String(last.idx + 1).padStart(4, '0')}_test`
+      writeFileSync(
+        join(extended, `${tag}.sql`),
+        statements(ddl).join('--> statement-breakpoint\n'),
+      )
+      writeFileSync(
+        journalFile,
+        JSON.stringify({
+          ...journal,
+          entries: [...journal.entries, { ...last, idx: last.idx + 1, when: last.when + 1, tag }],
+        }),
+      )
+      return openDatabase({
+        file,
+        migrationsDir: extended,
+        clock: createManualClock(),
+        logger: silentLogger,
+      })
+    }
+
+    test('rebuilding a parent table keeps its child rows', () => {
+      const opened = migrateWith((ddl) => [
+        ddl.replace(/libraries/, '__new_libraries'),
+        'INSERT INTO `__new_libraries` SELECT * FROM `libraries`;',
+        'DROP TABLE `libraries`;',
+        'ALTER TABLE `__new_libraries` RENAME TO `libraries`;',
+      ])
+      if (!opened.ok) throw new Error(opened.error.message)
+      const client = opened.value.$client
+      expect(client.query('SELECT id, library_id FROM library_roots').all()).toEqual([
+        { id: 'root', library_id: 'lib' },
+      ])
+      expect(
+        client.query<{ foreign_keys: number }, []>('PRAGMA foreign_keys').get()?.foreign_keys,
+      ).toBe(1)
+      closeDatabase(opened.value)
+    })
+
+    test('leaving an orphan row fails the migration', () => {
+      const opened = migrateWith(() => [`DELETE FROM libraries;`])
+      expect(opened.ok).toBe(false)
+      if (!opened.ok) expect(opened.error.code).toBe('db/migration_failed')
+    })
+  })
+
   test('reports a missing migrations folder as a typed error', () => {
     const opened = openDatabase({
       file: ':memory:',

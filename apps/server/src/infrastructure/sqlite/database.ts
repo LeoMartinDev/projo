@@ -117,12 +117,27 @@ export const openDatabase = ({
   const db = drizzle({ client, schema, casing: 'snake_case' })
 
   if (pending > 0) {
+    // Drizzle runs every pending migration in one transaction, where SQLite ignores this pragma:
+    // with foreign keys on, a table rebuild (`DROP TABLE x`) fires each ON DELETE CASCADE of x.
+    // A failure closes the connection, which takes the per-connection pragma with it.
+    let violations: unknown[]
     try {
+      client.run('PRAGMA foreign_keys = OFF')
       migrate(db, { migrationsFolder: migrationsDir })
+      violations = client.query('PRAGMA foreign_key_check').all()
     } catch (cause) {
       release(client)
       return err(appError('db/migration_failed', 'database migration failed', { cause }))
     }
+    if (violations.length > 0) {
+      release(client)
+      return err(
+        appError('db/migration_failed', 'database migration left foreign key violations', {
+          context: { count: violations.length, violations: violations.slice(0, 10) },
+        }),
+      )
+    }
+    client.run('PRAGMA foreign_keys = ON')
     logger.info('database migrated', { applied: pending })
   }
 
