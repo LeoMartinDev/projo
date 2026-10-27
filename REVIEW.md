@@ -12,7 +12,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ## Must fix
 
-### 1. An admin can lock themselves out of the administration for good (done, `2396696`)
+### 1. An admin can lock themselves out of the administration for good
+
+**Status:** done (`2396696`)
 
 `apps/server/src/application/profile/profiles.ts:290-380`, `apps/server/src/application/profile/library-access.ts:76-115`, `apps/web/src/features/admin/accounts/ProfileCard.tsx:159-172`
 
@@ -21,7 +23,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** one rule in `core/`, next to `removesLastAdmin`: an admin account keeps at least one unrestricted profile. The three writers (update, delete, library access) answer 409 otherwise. On the web, also call `profileUpdated` after a save.
 - **If we skip it:** one misclick, and only a hand edit of the SQLite file brings the administration back.
 
-### 2. Ticking every library turns a kids' profile into "All libraries" (done, `db9173e`)
+### 2. Ticking every library turns a kids' profile into "All libraries"
+
+**Status:** done (`db9173e`)
 
 `apps/web/src/features/admin/accounts/ProfileCard.tsx:190-202`
 
@@ -30,7 +34,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** delete the promotion; only the "All libraries" checkbox sets `all`. Move `toggleLibrary` into a pure module with a test.
 - **If we skip it:** the admin later creates "Horror" and the Kids profile sees it.
 
-### 3. Leaving the player while it loads resets the resume point to 0 (done, `c73066c`)
+### 3. Leaving the player while it loads resets the resume point to 0
+
+**Status:** done (`c73066c`)
 
 `apps/web/src/features/player/PlayerPage.tsx:411-417`
 
@@ -39,7 +45,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** in `read`, return `session.startPositionMs` while `video.readyState === 0`, the same guard `beat` already has.
 - **If we skip it:** "Resume at 1:12:03", the spinner turns, the user presses Back: the movie leaves Continue watching and starts over.
 
-### 4. Migrations run with foreign keys on, so a table rebuild empties its child tables (done, `c9f82a6`)
+### 4. Migrations run with foreign keys on, so a table rebuild empties its child tables
+
+**Status:** done (`c9f82a6`)
 
 `apps/server/src/infrastructure/sqlite/database.ts:34`, `apps/server/src/infrastructure/sqlite/database.ts:117-127`
 
@@ -48,7 +56,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `PRAGMA foreign_keys = OFF` before `migrate`, then `PRAGMA foreign_key_check` (any row: `db/migration_failed`), then `ON` again.
 - **If we skip it:** the first migration that rebuilds `profiles`, `items` or `sources` silently deletes progress, watchlists and segments on the real database. Reproduced on a test database.
 
-### 5. An identification moves the locks of edited fields, not their values (done, `b15f2ff`)
+### 5. An identification moves the locks of edited fields, not their values
+
+**Status:** done (`b15f2ff`)
 
 `apps/server/src/infrastructure/sqlite/metadata-item-repository.ts:235`, `apps/server/src/application/metadata/apply-match.ts:240-256`
 
@@ -57,7 +67,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** after `moveItemRows`, write the values again: `overrides.set({ itemId: into, overrides: overrides.get(into) })`.
 - **If we skip it:** a corrected title turns back into "Inception". With an uploaded poster, the target ends with no poster at all (the lock makes `fetch_images` skip it).
 
-### 6. The same merge drops the admin's manual marker (done, `ee2185a`)
+### 6. The same merge drops the admin's manual marker
+
+**Status:** done (`ee2185a`)
 
 `apps/server/src/infrastructure/sqlite/metadata-item-repository.ts:217-222`
 
@@ -66,7 +78,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** before the `UPDATE`, delete the target's non-manual segments of the types where the old item has a manual one. Adjust the existing test.
 - **If we skip it:** admin corrections disappear without a message.
 
-### 7. Queueing N jobs costs O(N²) and blocks the server (done, `1d12c78`)
+### 7. Queueing N jobs costs O(N²) and blocks the server
+
+**Status:** done (`1d12c78`)
 
 `apps/server/src/entrypoints/jobs/runner.ts:254`
 
@@ -75,7 +89,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `wake: schedulePump`. The coalescer already exists (line 215); a burst of enqueues then runs one pump.
 - **If we skip it:** measured: 5,000 enqueues block 2.1 s, 20,000 block 28 s. The API, live events and video segments stop meanwhile.
 
-### 8. Every login attempt runs a 64 MB hash, with no limit on how many run at once (done, `5abf875`)
+### 8. Every login attempt runs a 64 MB hash, with no limit on how many run at once
+
+**Status:** done (`5abf875`)
 
 `apps/server/src/infrastructure/auth/bun-password-hasher.ts:10-27`, `apps/server/src/application/auth/login.ts:85-88`
 
@@ -84,7 +100,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** a tiny queue with concurrency 1–2 around `hash` and `verify` in `createBunPasswordHasher`.
 - **If we skip it:** measured: 10 parallel anonymous logins take memory from 69 to 678 MB. Anyone on the internet can push the server past 300 MB or get the container killed.
 
-### 9. Remux holds a whole segment in memory (done, `aaf74b3`)
+### 9. Remux holds a whole segment in memory
+
+**Status:** done (`aaf74b3`)
 
 `apps/server/src/infrastructure/playback/hls-segmenter.ts:218-236`, `apps/server/src/infrastructure/playback/hls-segmenter.ts:268-287`
 
@@ -93,7 +111,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** open a `Bun.file(tmp).writer()` per segment and write each box as it arrives; `end()` then `rename` when complete.
 - **If we skip it:** measured: a 70 Mb/s UHD remux peaks around 200 MB. Two people watching 4K go past the §21 budget.
 
-### 10. An interrupted probe marks a good file as broken (done, `ad445d1`)
+### 10. An interrupted probe marks a good file as broken
+
+**Status:** done (`ad445d1`)
 
 `apps/server/src/application/scanner/probe-source.ts:137-158`
 
@@ -102,7 +122,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** if `signal.aborted`, return `err(job/cancelled)` without writing. Treat `media/timeout` like `binary_missing` (retry).
 - **If we skip it:** restarting during a verify scan hides the titles being probed until the next scan. Reproduced.
 
-### 11. Cancelling a running job frees its key before the job really stops (done, `4a34d95`)
+### 11. Cancelling a running job frees its key before the job really stops
+
+**Status:** done (`4a34d95`)
 
 `apps/server/src/entrypoints/jobs/runner.ts:255-262`
 
@@ -111,7 +133,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** for a running job, `cancel` only aborts; `settle` writes `cancelled` when the handler returns.
 - **If we skip it:** two scans of the same library run at once (reproduced), and `stop()` can close the database under a handler it no longer tracks.
 
-### 12. Leaving while the session is being created leaves a ghost session (done, `d4ed141`)
+### 12. Leaving while the session is being created leaves a ghost session
+
+**Status:** done (`d4ed141`)
 
 `apps/web/src/features/player/PlayerPage.tsx:285-293`
 
@@ -120,7 +144,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `queryFn: ({ signal }) => …`; if `signal.aborted` after the POST, end the session that was just created.
 - **If we skip it:** with the default limit of 2 transcodes, someone who opens a movie and backs out quickly sees "Too many playbacks running on the server" for a minute.
 
-### 13. The poster grid asks for the next page in a loop after an error (done, `b2d0339`)
+### 13. The poster grid asks for the next page in a loop after an error
+
+**Status:** done (`b2d0339`)
 
 `apps/web/src/features/media/VirtualGrid.tsx:105-108`
 
@@ -129,7 +155,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `hasMore={hasNextPage && !isFetchNextPageError}`, as `CategoryRows.tsx:40` already does, or the guard once in `VirtualGrid`.
 - **If we skip it:** a lasting error on one page sends requests in a loop for as long as the tab stays open.
 
-### 14. Markers of a multi-episode file are sent to the public databases (done, `54cb5f0`)
+### 14. Markers of a multi-episode file are sent to the public databases
+
+**Status:** done (`54cb5f0`)
 
 `apps/server/src/application/segments/submit-segment.ts:53-63`
 
@@ -138,7 +166,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `if (!target.ok || target.value.sharesFile) return ok('skipped')`.
 - **If we skip it:** projo publishes an E02 intro at 44:10, wrong data for every other user of those databases.
 
-### 15. Shows with numbers in their name get the wrong episode number (done, `327a9e0`)
+### 15. Shows with numbers in their name get the wrong episode number
+
+**Status:** done (`327a9e0`)
 
 `apps/server/src/core/naming/analyze.ts:293-297`, `apps/server/src/core/naming/analyze.ts:349-357`
 
@@ -149,7 +179,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ## Should fix
 
-### 16. A tab gets stuck when the server refuses its profile (done, `cea327c`)
+### 16. A tab gets stuck when the server refuses its profile
+
+**Status:** done (`cea327c`)
 
 `apps/web/src/app/query-client.ts:10-23`
 
@@ -158,7 +190,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** in `onError`, also handle `profile/pin_required`, `profile/forbidden` and `profile/required`: clear the active profile, invalidate `/auth/me`, go to `/profiles?redirect=…`.
 - **If we skip it:** every page of that tab shows an error until a reload.
 
-### 17. Live events never reconnect after a non-200 answer (done, `7e4d425`)
+### 17. Live events never reconnect after a non-200 answer
+
+**Status:** done (`7e4d425`)
 
 `apps/web/src/shared/events/events.ts:32-67`
 
@@ -167,7 +201,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** on `error` with `readyState === 2`: close, reopen after a delay, re-wire the listened types, invalidate `['catalog']`.
 - **If we skip it:** after an update behind a proxy, no more scan progress, badges or session ends until a reload.
 
-### 18. A pause on a locked iPad ends on an error screen (done, `20c11db`)
+### 18. A pause on a locked iPad ends on an error screen
+
+**Status:** done (`20c11db`)
 
 `apps/web/src/features/player/PlayerPage.tsx:419-427`, `apps/web/src/features/player/PlayerPage.tsx:481-489`
 
@@ -178,6 +214,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 19. The next episode closes fullscreen and Picture-in-Picture
 
+**Status:** to do
+
 `apps/web/src/app/router.tsx:358`
 
 - **What this is:** the route renders `<PlayerPage key={itemId}>`, and fullscreen is requested on the player's container.
@@ -185,7 +223,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** request fullscreen on `document.documentElement`. To keep PiP, keep the same `<video>` (no `key`).
 - **If we skip it:** binge-watching needs a click on fullscreen at every episode.
 
-### 20. "Retry" on the root error screen does nothing (done, `de2f499`)
+### 20. "Retry" on the root error screen does nothing
+
+**Status:** done (`de2f499`)
 
 `apps/web/src/app/router.tsx:151`
 
@@ -194,7 +234,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `onRetry={() => void router.invalidate()}`.
 - **If we skip it:** opening the app during a server restart leaves a dead button; only a reload helps.
 
-### 21. Escape in a nested dialog also closes the parent dialog (done, `11756bb`)
+### 21. Escape in a nested dialog also closes the parent dialog
+
+**Status:** done (`11756bb`)
 
 `apps/web/src/shared/ui/Dialog.tsx:41-45`
 
@@ -203,7 +245,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** ignore the event when `event.target !== event.currentTarget`.
 - **If we skip it:** Escape on "Delete the profile" also closes the account dialog and loses unsaved edits.
 
-### 22. Deleting one of your own PIN-protected profiles is a dead end (done, `b474f53`)
+### 22. Deleting one of your own PIN-protected profiles is a dead end
+
+**Status:** done (`b474f53`)
 
 `apps/web/src/features/admin/accounts/ProfileCard.tsx:84-107`
 
@@ -212,7 +256,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** show the PIN field in `DeleteProfileDialog` when `profile.hasPin`.
 - **If we skip it:** the admin cannot delete the PIN-protected Kids profile of their own account.
 
-### 23. Removing a root folder and saving deletes its sources without confirmation (done, `9402964`)
+### 23. Removing a root folder and saving deletes its sources without confirmation
+
+**Status:** done (`9402964`)
 
 `apps/web/src/features/admin/LibraryForm.tsx:218-225`
 
@@ -221,7 +267,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** on save, confirm by naming each removed root with its file count.
 - **If we skip it:** one stray click wipes the analysis of thousands of files.
 
-### 24. Every image refresh wipes the intro databases' cache (done, `644b28c`)
+### 24. Every image refresh wipes the intro databases' cache
+
+**Status:** done (`644b28c`)
 
 `apps/server/src/application/segments/request-segments.ts:26-38`
 
@@ -232,6 +280,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 25. Matching subtitles to videos is quadratic per folder
 
+**Status:** to do
+
 `apps/server/src/core/naming/subtitles.ts:79-108`
 
 - **What this is:** on every scan, each subtitle is compared with each video of its folder.
@@ -240,6 +290,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** measured: 2.9 s blocked for 5,000 movies with subtitles in one folder, on every scan.
 
 ### 26. "Up next" forgets a show once its watched seasons are deleted
+
+**Status:** to do
 
 `apps/server/src/infrastructure/sqlite/progress-repository.ts:98-117`
 
@@ -250,6 +302,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 27. Editing a library accepts a root that overlaps a kept symlinked root
 
+**Status:** to do
+
 `apps/server/src/application/library/validate-roots.ts:56-60`
 
 - **What this is:** roots already saved skip `realPath`.
@@ -257,7 +311,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** always resolve with `realPath`; keep the shortcut for the disk checks only.
 - **If we skip it:** with `/alias → /mnt/media` and `/mnt/media/movies`, every file counts twice.
 
-### 28. The update download URL check is only a string prefix (done, `b03264c`)
+### 28. The update download URL check is only a string prefix
+
+**Status:** done (`b03264c`)
 
 `apps/server/src/infrastructure/updates/github-release-source.ts:134-136`, `apps/server/src/infrastructure/updates/release-installer.ts:222-228`
 
@@ -266,7 +322,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** compare `origin` and `pathname` of `new URL(url)`. Add a test with a foreign host and one with `..`.
 - **If we skip it:** the §20 rule holds by luck. Exploiting it still needs a tampered API answer.
 
-### 29. The Updates page answers 500 after going back to an older version (done, `83915a5`)
+### 29. The Updates page answers 500 after going back to an older version
+
+**Status:** done (`83915a5`)
 
 `apps/server/src/infrastructure/sqlite/update-repository.ts:12`
 
@@ -276,6 +334,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** the page that holds "Update" and "Go back" no longer opens.
 
 ### 30. Six stores only grow
+
+**Status:** to do
 
 - **What this is:** nothing deletes:
   - images of purged titles (files and rows);
@@ -288,7 +348,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** extend the hourly `purge-jobs` task to delete unreferenced images, `tmdb_responses` older than 30 days (and store `parsed.data` only), resolved notifications older than 30 days (with an index on `(kind, resolved_at)`), old `scan_runs`, and backups beyond the last N. Keyframes of gone sources belong in `media-assets-cleanup`.
 - **If we skip it:** `/data` slowly fills until the `disk_low` alert fires.
 
-### 31. The 10 MB image limit can be bypassed with a chunked body (done, `712fdec`)
+### 31. The 10 MB image limit can be bypassed with a chunked body
+
+**Status:** done (`712fdec`)
 
 `apps/server/src/entrypoints/http/routes/admin-items.ts:89-121`
 
@@ -299,6 +361,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 32. Whoever reaches a fresh install first becomes its admin
 
+**Status:** to do
+
 `apps/server/src/application/setup/complete-setup.ts:40-54`
 
 - **What this is:** `POST /setup` is public while no account exists; §15 states this.
@@ -306,7 +370,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** print a one-time code in the startup logs and require it for setup (a spec proposal).
 - **If we skip it:** on an exposed VPS, a scanner can finish the setup before the owner.
 
-### 33. Accepting an invitation while signed in keeps the other account's cache (done, `a7b2eba`)
+### 33. Accepting an invitation while signed in keeps the other account's cache
+
+**Status:** done (`a7b2eba`)
 
 `apps/web/src/features/invite/InvitePage.tsx:87-90`
 
@@ -317,6 +383,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 34. A library can stay "Scanning…" forever
 
+**Status:** to do
+
 `apps/web/src/features/admin/live-scans.ts:146-172`
 
 - **What this is:** only `scan.finished` removes the live "running" state.
@@ -324,7 +392,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** keep `scanRunId` in the live state and treat it as stale once `lastScan` of that run has a `finishedAt`.
 - **If we skip it:** a frozen bar and a disabled Sync button.
 
-### 35. The Updates page shows an error during the restart (done, `e083d36`)
+### 35. The Updates page shows an error during the restart
+
+**Status:** done (`e083d36`)
 
 `apps/web/src/features/admin/updates/UpdatesPage.tsx:311-316`
 
@@ -333,7 +403,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** show the error only when `status.data === undefined`, as `DashboardPage` does.
 - **If we skip it:** the admin thinks the update failed while it is in progress.
 
-### 36. "Copy" for the docker command fails on plain HTTP (done, `6a16279`)
+### 36. "Copy" for the docker command fails on plain HTTP
+
+**Status:** done (`6a16279`)
 
 `apps/web/src/features/admin/updates/UpdatesPage.tsx:83-85`
 
@@ -342,7 +414,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** move `copyText` from `Invitations.tsx:19-32` to `shared/ui` and use it here too.
 - **If we skip it:** on a LAN install over HTTP, the click copies nothing and shows nothing.
 
-### 37. The image upload does not send `X-Profile-Id` (done, `e50a544`)
+### 37. The image upload does not send `X-Profile-Id`
+
+**Status:** done (`e50a544`)
 
 `apps/web/src/features/admin/metadata/queries.ts:79-91`
 
@@ -351,7 +425,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** add the active profile header, as the `hc` client does.
 - **If we skip it:** random 403s when choosing a poster.
 
-### 38. A library is created even when saving its access fails (done, `7c35eca`)
+### 38. A library is created even when saving its access fails
+
+**Status:** done (`7c35eca`)
 
 `apps/web/src/features/admin/LibraryForm.tsx:110-128`
 
@@ -360,7 +436,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** after a successful POST, switch the form to edit mode.
 - **If we skip it:** the chosen access is lost, and the retry fails with `library/name_taken`.
 
-### 39. "Check again" stays disabled after one click (done, `8dfaa01`)
+### 39. "Check again" stays disabled after one click
+
+**Status:** done (`8dfaa01`)
 
 `apps/web/src/features/admin/operations/SourceStatePages.tsx:103-113`
 
@@ -371,6 +449,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 40. Safari does not retry while the keyframe index is not ready
 
+**Status:** to do
+
 `apps/web/src/features/player/playback.ts:174-183`
 
 - **What this is:** with hls.js, a 503 `keyframes_unavailable` is retried for about 5 minutes. Safari uses its native HLS player.
@@ -379,6 +459,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** the first play of a big file on a network share fails on Safari and works on Chrome.
 
 ### 41. Resuming starts a wasted ffmpeg run at segment 0
+
+**Status:** to do
 
 `apps/server/src/infrastructure/playback/hls-segmenter.ts:522`
 
@@ -389,6 +471,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 42. Live refreshes refetch every loaded page
 
+**Status:** to do
+
 `apps/web/src/app/AuthedLayout.tsx:20-32`, `apps/web/src/features/admin/operations/queries.ts:86-114`
 
 - **What this is:** a live event calls `invalidateQueries`, at most every 1.5 to 2 s.
@@ -397,6 +481,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** during a long identification, a tab scrolled far down sends 10 to 20 requests a second.
 
 ### 43. /home computes Up next in quadratic time, twice
+
+**Status:** to do
 
 `apps/server/src/application/home/get-home.ts:61-80`
 
@@ -407,6 +493,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 44. Excluded folders are read on every scan
 
+**Status:** to do
+
 `apps/server/src/application/scanner/walk-root.ts:91-118`
 
 - **What this is:** each subfolder gets a `stat` and a `readdir` before the code decides to skip it.
@@ -415,6 +503,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** on a Synology NAS, 3,000 `@eaDir` folders add an estimated 6 to 12 s to every incremental scan.
 
 ### 45. The image visibility check is optional
+
+**Status:** to do
 
 `apps/server/src/entrypoints/http/routes/images.ts:25-41`
 
@@ -425,6 +515,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 46. No test covers `X-Forwarded-For`
 
+**Status:** to do
+
 `apps/server/src/entrypoints/http/client-info.ts:20-41`
 
 - **What this is:** the client IP behind every per-IP rate limit.
@@ -433,6 +525,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** a one-character regression removes the brute-force protection.
 
 ### 47. The player's session lifecycle has no test
+
+**Status:** to do
 
 `apps/web/src/features/player/PlayerPage.tsx:229-545`
 
@@ -443,6 +537,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 48. The §21 performance test skips categories and restricted profiles
 
+**Status:** to do
+
 `apps/server/test/integration/catalog-perf.test.ts:159-168`
 
 - **What this is:** it measures /home, /movies, /series and /search without restrictions.
@@ -452,6 +548,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 49. No PWA at all
 
+**Status:** to do
+
 `apps/web/index.html`
 
 - **What this is:** no manifest, no icons, no service worker; `public/` is empty.
@@ -460,6 +558,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** "Add to Home Screen" only creates a bookmark.
 
 ### 50. Near-copies that must change together
+
+**Status:** to do
 
 - **What this is:**
   - two ffprobe adapters and two parsers, with copy-pasted HDR detection (`infrastructure/playback/ffprobe.ts`, `infrastructure/media/ffprobe.ts`); the playback one has no timeout;
@@ -475,6 +575,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 51. Dead code
 
+**Status:** to do
+
 - **What this is:**
   - 14 error codes the server never sends (`auth/password_too_weak`, `source/too_small`, …), each present in 4 places;
   - `accounts/summary.ts`, the profile summary §15 asks for but nothing renders;
@@ -489,6 +591,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 52. Grouping sources by root is quadratic
 
+**Status:** to do
+
 `apps/server/src/core/scanner/sync.ts:15-18`
 
 - **What this is:** each source copies its root's whole array.
@@ -497,6 +601,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** a fixed cost on every scan that grows fast with the library.
 
 ### 53. Invitation tokens appear in debug logs
+
+**Status:** to do
 
 `apps/server/src/entrypoints/http/app.ts:34-41`
 
@@ -507,6 +613,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 54. Search does not fold ligatures
 
+**Status:** to do
+
 `apps/server/src/core/catalog/search.ts:12-19`, `apps/server/drizzle/0002_search.sql:11`
 
 - **What this is:** the FTS5 index removes accents but does not split œ, æ, ß.
@@ -515,6 +623,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** some French titles cannot be found the way people type them.
 
 ### 55. Trickplay sheets stay cached a day after regeneration
+
+**Status:** to do
 
 `apps/server/src/entrypoints/http/routes/trickplay.ts:64`
 
@@ -525,6 +635,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 56. Two database exports in the same second
 
+**Status:** to do
+
 `apps/server/src/core/stats/stats.ts:58-62`
 
 - **What this is:** the export file name has second precision.
@@ -532,7 +644,9 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** add milliseconds to the name.
 - **If we skip it:** a double click answers 500 although the first export worked.
 
-### 57. An admin on the Kids profile sees the admin's empty state (done, `c24b485`)
+### 57. An admin on the Kids profile sees the admin's empty state
+
+**Status:** done (`c24b485`)
 
 `apps/web/src/features/home/HomePage.tsx:54`, `apps/web/src/features/catalog/CatalogPage.tsx:179`
 
@@ -543,6 +657,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 58. English shows "Cancel" where the spec says "Undo"
 
+**Status:** to do
+
 `apps/web/src/features/player/SkipSegment.tsx:73`, `apps/web/src/features/player/TrackToast.tsx:54`
 
 - **What this is:** both toasts use `common.cancel`.
@@ -551,6 +667,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** the English copy does not follow the spec.
 
 ### 59. Every card downloads a hidden 1280 px backdrop
+
+**Status:** to do
 
 `apps/web/src/features/media/MediaCard.tsx:248-250`
 
@@ -561,6 +679,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 60. The weekly refresh includes shows without any file
 
+**Status:** to do
+
 `apps/server/src/infrastructure/sqlite/metadata-editing-repository.ts:213-228`
 
 - **What this is:** the query takes every show in production.
@@ -569,6 +689,8 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **If we skip it:** TMDB quota spent every week for nothing.
 
 ### 61. §9.1 says the TMDB key is embedded; it is not
+
+**Status:** to do
 
 - **What this is:** the README says a key is required.
 - **Problem:** the spec is wrong on this point.
