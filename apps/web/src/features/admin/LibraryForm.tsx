@@ -71,6 +71,9 @@ export const LibraryForm = ({
   const [browserOpen, setBrowserOpen] = useState(false)
   const [confirmingRemoval, setConfirmingRemoval] = useState(false)
   const [touched, setTouched] = useState(false)
+  /** Created by a save whose access update failed: a retry updates it instead of creating another. */
+  const [created, setCreated] = useState<LibraryDto>()
+  const existing = library ?? created
 
   const nameValid = name.trim().length > 0
   const rootsValid = roots.length > 0
@@ -92,7 +95,7 @@ export const LibraryForm = ({
       quietPeriodSeconds,
       ...options,
     }
-    return library === undefined
+    return existing === undefined
       ? request(() =>
           api.admin.libraries.$post({
             json: {
@@ -103,7 +106,7 @@ export const LibraryForm = ({
         )
       : request(() =>
           api.admin.libraries[':id'].$patch({
-            param: { id: library.id },
+            param: { id: existing.id },
             json: { ...common, metadataLanguage },
           }),
         )
@@ -115,6 +118,7 @@ export const LibraryForm = ({
   const save = useMutation({
     mutationFn: async () => {
       const saved = await saveLibrary()
+      setCreated(saved)
       if (profileChoice !== undefined) {
         await request(() =>
           api.admin.libraries[':id'].profiles.$put({
