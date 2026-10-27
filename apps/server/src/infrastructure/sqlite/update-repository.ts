@@ -1,15 +1,14 @@
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { errorCodes } from '@projo/shared'
-
 import { byVersionDescending } from '../../core/updates/semver.ts'
 import type { AppVersion, UpdateRepository, UpdateRun } from '../../core/updates/update.ts'
 import type { Db } from './database.ts'
 import { fromIso, parseJsonColumn, stripNulls, toIso, toNullable } from './rows.ts'
 import { appVersions, updateRuns } from './schema/ops.ts'
 
-const runErrorSchema = z.object({ code: z.enum(errorCodes), message: z.string() })
+/** `code` read as any string: a newer version may have written a code this one does not declare. */
+const runErrorSchema = z.object({ code: z.string(), message: z.string() })
 
 const toAppVersion = (row: typeof appVersions.$inferSelect): AppVersion => ({
   version: row.version,
@@ -26,7 +25,11 @@ const toRun = (row: typeof updateRuns.$inferSelect): UpdateRun => {
     ...(finishedAt === undefined ? {} : { finishedAt: fromIso(finishedAt) }),
     ...(error === undefined
       ? {}
-      : { error: parseJsonColumn(runErrorSchema, error, 'update_runs.error') }),
+      : {
+          error: parseJsonColumn(runErrorSchema, error, 'update_runs.error') as NonNullable<
+            UpdateRun['error']
+          >,
+        }),
   }
 }
 

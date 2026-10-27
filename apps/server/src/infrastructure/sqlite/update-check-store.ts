@@ -1,8 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { errorCodes } from '@projo/shared'
-
 import { settingKeys } from '../../core/settings/settings.ts'
 import type { UpdateCheckRecord, UpdateCheckStore } from '../../core/updates/update.ts'
 import type { Db } from './database.ts'
@@ -25,7 +23,8 @@ const recordSchema = z.object({
       runtimeMin: z.string(),
     })
     .optional(),
-  error: z.object({ code: z.enum(errorCodes), message: z.string() }).optional(),
+  // any string: a newer version may have written a code this one does not declare
+  error: z.object({ code: z.string(), message: z.string() }).optional(),
 })
 
 /**
@@ -47,7 +46,7 @@ export const createSqliteUpdateCheckStore = ({ db }: { db: Db }): UpdateCheckSto
       ...(latest === undefined
         ? {}
         : { latest: { ...latest, publishedAt: new Date(latest.publishedAt) } }),
-      ...(error === undefined ? {} : { error }),
+      ...(error === undefined ? {} : { error: error as NonNullable<UpdateCheckRecord['error']> }),
     }
   },
   write: (record) => {
