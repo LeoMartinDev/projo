@@ -100,16 +100,12 @@ export const PendingPage = () => {
   const locale = currentLocale()
   const queryClient = useQueryClient()
   const list = useInfiniteQuery(sourcesByStateQuery('pending'))
-  const [requested, setRequested] = useState<ReadonlySet<string>>(() => new Set())
   const [hiding, setHiding] = useState<SourceDto>()
   useLiveSources()
   const recheck = useMutation({
     mutationFn: (id: string) =>
       request(() => api.admin.sources[':id'].recheck.$post({ param: { id } })),
-    onSuccess: (_job, id) => {
-      setRequested((current) => new Set(current).add(id))
-      void queryClient.invalidateQueries({ queryKey: sourcesByStateQueryKey })
-    },
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: sourcesByStateQueryKey }),
   })
   const sources = list.data?.pages.flatMap((page) => page.items) ?? []
   const total = list.data?.pages[0]?.total ?? 0
@@ -153,7 +149,6 @@ export const PendingPage = () => {
             <EmptyState title={t('admin.pending.empty')} />
           ) : undefined}
           {sources.map((source) => {
-            const asked = requested.has(source.id)
             const busy = recheck.isPending && recheck.variables === source.id
             return (
               <div key={source.id} className="adm-tr pending-tr" role="row">
@@ -178,14 +173,14 @@ export const PendingPage = () => {
                   <button
                     type="button"
                     className="button button--glass button--small"
-                    disabled={busy || asked}
+                    disabled={busy}
                     aria-label={t('admin.pending.recheckNamed', {
                       name: fileName(source.relativePath),
                     })}
                     onClick={() => recheck.mutate(source.id)}
                   >
                     {busy ? <span className="spinner" aria-hidden="true" /> : undefined}
-                    {asked ? t('admin.pending.rechecking') : t('admin.pending.recheck')}
+                    {t('admin.pending.recheck')}
                   </button>
                   <button
                     type="button"

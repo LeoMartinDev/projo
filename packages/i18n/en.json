@@ -974,8 +974,7 @@
         "too_small": "Too small"
       },
       "recheck": "Check again",
-      "recheckNamed": "Check {{name}} again",
-      "rechecking": "Check requested"
+      "recheckNamed": "Check {{name}} again"
     },
     "missing": {
       "title": "Missing",

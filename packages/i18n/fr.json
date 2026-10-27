@@ -974,8 +974,7 @@
         "too_small": "Trop petit"
       },
       "recheck": "Revérifier",
-      "recheckNamed": "Revérifier {{name}}",
-      "rechecking": "Vérification demandée"
+      "recheckNamed": "Revérifier {{name}}"
     },
     "missing": {
       "title": "Manquants",
