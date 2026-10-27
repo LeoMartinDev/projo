@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -13,7 +13,7 @@ import type {
 
 import { api, request } from '../../../shared/api/client.ts'
 import { toApiFailure } from '../../../shared/api/failure.ts'
-import { profileUpdated } from '../../../shared/session/session.ts'
+import { profileUpdated, sessionQuery } from '../../../shared/session/session.ts'
 import { Checkrow, Field, SelectChevron, Switch } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
@@ -85,15 +85,16 @@ const pinPattern = /^\d{4}$/u
 
 const DeleteProfileDialog = ({
   profile,
-  currentPin,
   onClose,
 }: {
   profile: AdminProfileDto
-  currentPin: string
   onClose: () => void
 }) => {
   const { t } = useTranslation()
+  const id = useId()
   const queryClient = useQueryClient()
+  const session = useQuery(sessionQuery).data
+  const [currentPin, setCurrentPin] = useState('')
   const remove = useMutation({
     mutationFn: () =>
       request(() =>
@@ -107,6 +108,15 @@ const DeleteProfileDialog = ({
       await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
     },
   })
+  const failureCode = remove.isError ? toApiFailure(remove.error).code : undefined
+  // The server asks for the PIN of a locked profile of one's own account that is not the active one.
+  const askPin =
+    profile.hasPin &&
+    ((session?.status === 'signed_in' &&
+      session.me.activeProfileId !== profile.id &&
+      session.me.profiles.some((own) => own.id === profile.id)) ||
+      failureCode === 'profile/pin_required' ||
+      failureCode === 'profile/invalid_pin')
   return (
     <Dialog
       open
@@ -120,7 +130,7 @@ const DeleteProfileDialog = ({
           <button
             type="button"
             className="button button--danger"
-            disabled={remove.isPending}
+            disabled={remove.isPending || (askPin && !pinPattern.test(currentPin))}
             onClick={() => remove.mutate()}
           >
             {remove.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
@@ -130,6 +140,27 @@ const DeleteProfileDialog = ({
       }
     >
       <p className="dialog__text">{t('admin.accounts.profile.deleteText')}</p>
+      {askPin ? (
+        <Field
+          id={`${id}-current-pin`}
+          label={t('admin.accounts.profile.currentPin')}
+          invalid={failureCode === 'profile/invalid_pin'}
+          compact
+        >
+          <input
+            id={`${id}-current-pin`}
+            className="field__input mono"
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={4}
+            placeholder={t('admin.accounts.profile.currentPin')}
+            aria-invalid={failureCode === 'profile/invalid_pin'}
+            value={currentPin}
+            onChange={(event) => setCurrentPin(event.target.value.replace(/\D/gu, ''))}
+          />
+        </Field>
+      ) : undefined}
       {remove.isError ? <ErrorAlert error={remove.error} /> : undefined}
     </Dialog>
   )
@@ -420,11 +451,7 @@ export const ProfileCard = ({
       </div>
 
       {deleting ? (
-        <DeleteProfileDialog
-          profile={profile}
-          currentPin={currentPin}
-          onClose={() => setDeleting(false)}
-        />
+        <DeleteProfileDialog profile={profile} onClose={() => setDeleting(false)} />
       ) : undefined}
     </form>
   )
