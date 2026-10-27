@@ -885,6 +885,7 @@
       "runtimeTooOld": "Cette version demande une image Docker plus récente :",
       "copy": "Copier la commande",
       "copied": "Copiée",
+      "copyFailed": "Copie impossible : sélectionnez la commande et copiez-la.",
       "state": {
         "checking": "Vérification…",
         "downloading": "Téléchargement… {{percent}}",

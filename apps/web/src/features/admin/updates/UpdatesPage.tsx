@@ -18,9 +18,11 @@ import {
   formatRelative,
 } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
+import { copyText } from '../../../shared/ui/copy-text.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
-import { SyncIcon } from '../../../shared/ui/icons.tsx'
+import { CheckIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { useElement } from '../../../shared/ui/use-element.ts'
 import { CopyIcon } from '../admin-icons.tsx'
 import { updatesQuery, updatesQueryKey, useLiveUpdates } from './queries.ts'
 import '../admin.css'
@@ -69,24 +71,36 @@ const Progress = ({ status }: { status: UpdatesStatusDto }) => {
 
 const PullCommand = ({ command }: { command: string }) => {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
+  const [input, inputRef] = useElement<HTMLInputElement>()
+  const [copied, setCopied] = useState<boolean>()
   return (
     <div className="upd-pull">
       <p className="upd-pull__text">{t('admin.updates.runtimeTooOld')}</p>
       <div className="upd-pull__row">
-        <code className="upd-pull__command">{command}</code>
+        {/* An input, not <code>: the plain-HTTP copy fallback selects a field. */}
+        <input
+          ref={inputRef}
+          className="upd-pull__command"
+          readOnly
+          value={command}
+          aria-label={t('admin.updates.runtimeTooOld')}
+          onFocus={(event) => event.target.select()}
+        />
         <button
           type="button"
           className="icon-button"
-          aria-label={copied ? t('admin.updates.copied') : t('admin.updates.copy')}
-          title={copied ? t('admin.updates.copied') : t('admin.updates.copy')}
+          aria-label={copied === true ? t('admin.updates.copied') : t('admin.updates.copy')}
+          title={copied === true ? t('admin.updates.copied') : t('admin.updates.copy')}
           onClick={() => {
-            void navigator.clipboard.writeText(command).then(() => setCopied(true))
+            void copyText(command, input).then(setCopied)
           }}
         >
-          <CopyIcon />
+          {copied === true ? <CheckIcon /> : <CopyIcon />}
         </button>
       </div>
+      {copied === false ? (
+        <p className="hint hint--error">{t('admin.updates.copyFailed')}</p>
+      ) : undefined}
     </div>
   )
 }

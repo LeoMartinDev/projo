@@ -8,28 +8,13 @@ import { api, request } from '../../../shared/api/client.ts'
 import { formatDate } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field } from '../../../shared/ui/controls.tsx'
+import { copyText } from '../../../shared/ui/copy-text.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { CheckIcon, CloseIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { CopyIcon, LinkIcon } from '../admin-icons.tsx'
 import { invitationLink, invitationsQuery, invitationsQueryKey } from './queries.ts'
-
-/** Selects the field and runs the `copy` command: works over plain HTTP on a LAN. */
-const copyBySelection = (input: HTMLInputElement | undefined): boolean => {
-  if (input === undefined) return false
-  input.select()
-  return document.execCommand('copy')
-}
-
-/** Clipboard API where available (HTTPS, localhost), the selection otherwise or when refused. */
-const copyText = async (text: string, input: HTMLInputElement | undefined): Promise<boolean> => {
-  if (!window.isSecureContext || navigator.clipboard === undefined) return copyBySelection(input)
-  return navigator.clipboard.writeText(text).then(
-    () => true,
-    () => copyBySelection(input),
-  )
-}
 
 /** The link of a new invitation, shown this once (§14: only its hash is stored). */
 export const InvitationCreatedDialog = ({
