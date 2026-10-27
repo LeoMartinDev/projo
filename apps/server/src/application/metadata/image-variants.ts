@@ -8,7 +8,8 @@ type Deps = { variants: ImageVariants; logger: Logger }
 
 /**
  * Right after an image is written (§9.1): its WebP variants. A failure only costs size (the
- * original is served meanwhile) and the daily `image_variants` retries it: logged, never raised.
+ * original is served meanwhile) and `image_variants` ("Optimize images") retries it: logged, never
+ * raised.
  */
 export const encodeVariantsFactory =
   ({ variants, logger }: Deps) =>
@@ -20,9 +21,9 @@ export const encodeVariantsFactory =
   }
 
 /**
- * Job `image_variants` (§9.1, §18): the missing variants of every stored image, after an update
- * that brought them or changed their widths, or after a failure. Idempotent: an image whose
- * variants all exist costs a header read. Stops at the first `media/binary_missing`.
+ * Job `image_variants` (§9.1, §18, launched by hand): the missing variants of every stored image,
+ * those stored before the variants existed or after a failure. Idempotent: an image whose
+ * variants all exist costs a file read. Stops at the first `media/binary_missing`.
  */
 export const generateImageVariantsFactory =
   ({ images, variants, logger }: Deps & { images: Pick<ImageRepository, 'localPaths'> }) =>

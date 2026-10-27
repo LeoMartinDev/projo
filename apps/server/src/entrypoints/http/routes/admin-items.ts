@@ -135,16 +135,20 @@ const readImageChoice = async (request: Request): Promise<Result<ImageChoice, Ch
 /**
  * §17.2 Admin items: TMDB search for "To review" and "Fix the match",
  * re-identification of an item (M2); editing with locks, images, refresh (§9.3, §9.4, M5), and
- * "Refresh the whole library" (`/libraries/:id/refresh-metadata`). Mounted at `/api/v1/admin`.
+ * "Refresh the whole library" (`/libraries/:id/refresh-metadata`), "Optimize the images"
+ * (`/images/optimize`, §9.1). Mounted at `/api/v1/admin`.
  */
 export const adminItemsRoutes = ({
   review,
   tmdbPoster,
   editing,
+  optimizeImages,
 }: {
   review: Review
   tmdbPoster: TmdbPosterProxy
   editing: MetadataEditing
+  /** Queues `image_variants`: the WebP variants of the images stored without them. */
+  optimizeImages: () => { id: string }
 }) =>
   new Hono<AppEnv>()
     .get('/tmdb/search', validate('query', tmdbSearchQuerySchema), async (c) => {
@@ -284,5 +288,6 @@ export const adminItemsRoutes = ({
         ? c.json({ jobId: result.value.id } satisfies JobRef, 202)
         : respondError(c, result.error)
     })
+    .post('/images/optimize', (c) => c.json({ jobId: optimizeImages().id } satisfies JobRef, 202))
 
 export type AdminItemsRoutes = ReturnType<typeof adminItemsRoutes>

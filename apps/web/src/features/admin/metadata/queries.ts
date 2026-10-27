@@ -120,6 +120,10 @@ export const useRefreshItem = () =>
       request(() => api.admin.items[':id'].refresh.$post({ param: { id: itemId } })),
   })
 
+/** `POST /admin/images/optimize` ("Optimize the images", §9.1): one `image_variants` job. */
+export const useOptimizeImages = () =>
+  useMutation({ mutationFn: () => request(() => api.admin.images.optimize.$post()) })
+
 /** `POST /admin/libraries/:id/refresh-metadata` ("Refresh the whole library"). */
 export const useRefreshLibrary = () =>
   useMutation({

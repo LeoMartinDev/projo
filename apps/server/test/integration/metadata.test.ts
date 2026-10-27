@@ -173,8 +173,8 @@ describe('TMDB identification (§9.2)', () => {
     const fallback = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
     expect(fallback.headers.get('content-type')).toBe('image/jpeg')
     expect(fallback.headers.get('cache-control')).toBe('private, max-age=3600')
-    // The daily `image_variants` encodes it again.
-    world.jobQueue.enqueue({ type: 'image_variants', payload: {} })
+    // "Optimize the images" (admin, by hand) encodes it again.
+    expect((await world.request('/images/optimize', { method: 'POST' })).status).toBe(202)
     await world.runJobs(['image_variants'])
     expect(
       (await world.requestApi(`/images/${movie?.poster_image_id}`)).headers.get('content-type'),

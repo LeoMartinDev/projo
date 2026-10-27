@@ -1127,7 +1127,8 @@
         "logs": "Logs"
       },
       "export": "Export the database",
-      "exported": "{{file}} · {{size}}"
+      "exported": "{{file}} · {{size}}",
+      "maintenance": "Maintenance"
     },
     "editItem": {
       "action": "Edit",
@@ -1160,6 +1161,10 @@
       "action": "Refresh metadata",
       "actionOf": "Refresh the metadata of {{name}}",
       "queued": "Refresh queued"
+    },
+    "imageOptimize": {
+      "action": "Optimize images",
+      "queued": "Optimization queued"
     }
   },
   "genres": {

@@ -13,6 +13,7 @@ import { Field } from '../../../shared/ui/controls.tsx'
 import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
 import { DatabaseIcon, ServerIcon } from '../admin-icons.tsx'
+import { OptimizeImagesSetting } from '../metadata/RefreshLibrary.tsx'
 import { statsQuery } from '../operations/queries.ts'
 import { settingsQuery, useUpdateSettings } from './queries.ts'
 import '../admin.css'
@@ -166,7 +167,8 @@ const ExportDatabase = () => {
 
 /**
  * `/admin/server` (§15 "Server"): the name; port, `TRUST_PROXY` and the data folder read-only
- * (environment variables, §5.4); space used under it by category; "Exporter la base".
+ * (environment variables, §5.4); space used under it by category; maintenance: "Exporter la
+ * base", "Optimiser les images".
  */
 export const ServerPage = () => {
   const { t } = useTranslation()
@@ -213,7 +215,14 @@ export const ServerPage = () => {
         ) : (
           <Storage storage={stats.data?.storage} />
         )}
+      </section>
+
+      <section className="settings-section" aria-labelledby="server-maintenance">
+        <h2 id="server-maintenance" className="admin-section__title">
+          {t('admin.server.maintenance')}
+        </h2>
         <ExportDatabase />
+        <OptimizeImagesSetting />
       </section>
     </div>
   )

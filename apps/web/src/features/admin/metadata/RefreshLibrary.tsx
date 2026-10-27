@@ -6,11 +6,58 @@ import { Field, SelectChevron } from '../../../shared/ui/controls.tsx'
 import { CheckIcon, LayersIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { librariesQuery } from '../queries.ts'
-import { useRefreshLibrary } from './queries.ts'
+import { useOptimizeImages, useRefreshLibrary } from './queries.ts'
 import './editing.css'
 
 /** How long "Refresh started" stays before the button can be used again. */
 const queuedMs = 4000
+
+/** A button that queues a job: a spinner while asked, then "queued" for a few seconds. */
+const QueueJobButton = ({
+  job,
+  label,
+  queuedLabel,
+  ariaLabel,
+  className,
+  disabled = false,
+  onClick,
+}: {
+  job: { isPending: boolean; isSuccess: boolean; error: unknown; reset: () => void }
+  label: string
+  queuedLabel: string
+  ariaLabel?: string
+  className: string
+  disabled?: boolean
+  onClick: () => void
+}) => {
+  const { isSuccess, reset } = job
+  useEffect(() => {
+    if (!isSuccess) return
+    const timer = setTimeout(reset, queuedMs)
+    return () => clearTimeout(timer)
+  }, [isSuccess, reset])
+  return (
+    <>
+      <button
+        type="button"
+        className={className}
+        disabled={disabled || job.isPending || isSuccess}
+        {...(ariaLabel === undefined ? {} : { 'aria-label': ariaLabel })}
+        onClick={onClick}
+      >
+        {job.isPending ? (
+          <span className="spinner" aria-hidden="true" />
+        ) : isSuccess ? (
+          <CheckIcon size={16} />
+        ) : (
+          <SyncIcon />
+        )}
+        {isSuccess ? queuedLabel : label}
+      </button>
+      {job.error ? <ErrorAlert error={job.error} /> : undefined}
+    </>
+  )
+}
 
 /**
  * "Refresh the whole library" (§9.4, §15): one low-priority job per identified movie or
@@ -27,36 +74,38 @@ export const RefreshLibraryButton = ({
 }) => {
   const { t } = useTranslation()
   const refresh = useRefreshLibrary()
-  const { isSuccess, reset } = refresh
-  useEffect(() => {
-    if (!isSuccess) return
-    const timer = setTimeout(reset, queuedMs)
-    return () => clearTimeout(timer)
-  }, [isSuccess, reset])
   return (
-    <>
-      <button
-        type="button"
-        className={className}
-        disabled={libraryId === undefined || refresh.isPending || refresh.isSuccess}
-        {...(name === undefined
-          ? {}
-          : { 'aria-label': t('admin.metadataRefresh.actionOf', { name }) })}
-        onClick={() => {
-          if (libraryId !== undefined) refresh.mutate(libraryId)
-        }}
-      >
-        {refresh.isPending ? (
-          <span className="spinner" aria-hidden="true" />
-        ) : refresh.isSuccess ? (
-          <CheckIcon size={16} />
-        ) : (
-          <SyncIcon />
-        )}
-        {refresh.isSuccess ? t('admin.metadataRefresh.queued') : t('admin.metadataRefresh.action')}
-      </button>
-      {refresh.isError ? <ErrorAlert error={refresh.error} /> : undefined}
-    </>
+    <QueueJobButton
+      job={refresh}
+      label={t('admin.metadataRefresh.action')}
+      queuedLabel={t('admin.metadataRefresh.queued')}
+      {...(name === undefined ? {} : { ariaLabel: t('admin.metadataRefresh.actionOf', { name }) })}
+      className={className}
+      disabled={libraryId === undefined}
+      onClick={() => {
+        if (libraryId !== undefined) refresh.mutate(libraryId)
+      }}
+    />
+  )
+}
+
+/**
+ * "Optimize the images" (§9.1): the WebP variants of the images stored without them (before
+ * they existed). Followed in "Jobs".
+ */
+export const OptimizeImagesSetting = () => {
+  const { t } = useTranslation()
+  const optimize = useOptimizeImages()
+  return (
+    <div className="settings-block refresh-library">
+      <QueueJobButton
+        job={optimize}
+        label={t('admin.imageOptimize.action')}
+        queuedLabel={t('admin.imageOptimize.queued')}
+        className="button button--glass"
+        onClick={() => optimize.mutate()}
+      />
+    </div>
   )
 }
 

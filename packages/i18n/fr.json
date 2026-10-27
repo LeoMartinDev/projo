@@ -1127,7 +1127,8 @@
         "logs": "Journaux"
       },
       "export": "Exporter la base",
-      "exported": "{{file}} · {{size}}"
+      "exported": "{{file}} · {{size}}",
+      "maintenance": "Maintenance"
     },
     "editItem": {
       "action": "Modifier",
@@ -1160,6 +1161,10 @@
       "action": "Rafraîchir les métadonnées",
       "actionOf": "Rafraîchir les métadonnées de {{name}}",
       "queued": "Rafraîchissement lancé"
+    },
+    "imageOptimize": {
+      "action": "Optimiser les images",
+      "queued": "Optimisation lancée"
     }
   },
   "genres": {

@@ -224,15 +224,6 @@ export const buildMetadataModule = (
         refresh.queueInProductionSeries()
       },
     },
-    {
-      // §9.1: soon after startup, so an update that brings or changes the variants encodes them.
-      name: 'image-variants',
-      initialDelayMs: 2 * 60_000,
-      intervalMs: 24 * hour,
-      run: () => {
-        jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
-      },
-    },
   ]
 
   return {
@@ -263,6 +254,9 @@ export const buildMetadataModule = (
         review,
         tmdbPoster: (path, size) => tmdb.downloadImage({ path, size }),
         editing,
+        optimizeImages: () =>
+          jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
+            .job,
       }),
       adminSettings: adminSettingsRoutes({
         metadata: metadataSettings,
