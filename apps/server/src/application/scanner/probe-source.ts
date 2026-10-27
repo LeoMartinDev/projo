@@ -1,4 +1,4 @@
-import { type AppError, err, ok, type Result } from '@projo/shared'
+import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
@@ -49,11 +49,16 @@ type Deps = {
   logger: Logger
 }
 
-/** Failures that say nothing about the file: the job is retried instead (ffmpeg not installed…). */
-export type ProbeSourceError = AppError<'media/binary_missing'>
+/**
+ * Failures that say nothing about the file, nothing written: retried (ffmpeg not installed, too
+ * slow) or interrupted (cancel, clean stop: released by the runner, §18).
+ */
+export type ProbeSourceError = AppError<'media/binary_missing' | 'media/timeout' | 'job/cancelled'>
 
-const isToolFailure = (error: MediaError): error is ProbeSourceError =>
-  error.code === 'media/binary_missing'
+const isToolFailure = (
+  error: MediaError,
+): error is AppError<'media/binary_missing' | 'media/timeout'> =>
+  error.code === 'media/binary_missing' || error.code === 'media/timeout'
 
 /**
  * Job `probe_source` (§7.3 step 4–5): ffprobe (duration > 0, a video stream), then three 2 s
@@ -112,6 +117,12 @@ export const probeSourceFactory = ({
     const path = sourceRepository.absolutePathOf(sourceId)
     if (source === undefined || path === undefined || !runnable(source, mode)) return ok('skipped')
     const withSignal = signal === undefined ? {} : { signal }
+    // An abort reaches here as `media/ffmpeg_failed`: the signal tells it apart.
+    const notTheFile = (error: MediaError): ProbeSourceError | undefined => {
+      if (signal?.aborted === true)
+        return appError('job/cancelled', 'probe interrupted', { context: { sourceId } })
+      return isToolFailure(error) ? error : undefined
+    }
 
     // Bytes must be the ones the quiet period vouched for.
     const before = await fileSystem.stat(path)
@@ -136,7 +147,8 @@ export const probeSourceFactory = ({
 
     const probe = await prober.probe({ path, ...withSignal })
     if (!probe.ok) {
-      if (isToolFailure(probe.error)) return err(probe.error)
+      const failure = notTheFile(probe.error)
+      if (failure !== undefined) return err(failure)
       return ok(toPending(source, 'probe_failed', probe.error))
     }
     const defect = probeDefect(probe.value)
@@ -152,7 +164,8 @@ export const probeSourceFactory = ({
         ...withSignal,
       })
       if (!decoded.ok) {
-        if (isToolFailure(decoded.error)) return err(decoded.error)
+        const failure = notTheFile(decoded.error)
+        if (failure !== undefined) return err(failure)
         return ok(toPending(source, 'decode_failed', decoded.error))
       }
     }
