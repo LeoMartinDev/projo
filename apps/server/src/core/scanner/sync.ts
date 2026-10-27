@@ -14,7 +14,9 @@ export const planStacks = (
 ): { id: string; patch: SourcePatch }[] => {
   const byRoot = new Map<string, SourceSnapshot[]>()
   for (const source of snapshots.filter(isPresent)) {
-    byRoot.set(source.rootId, [...(byRoot.get(source.rootId) ?? []), source])
+    const sources = byRoot.get(source.rootId)
+    if (sources === undefined) byRoot.set(source.rootId, [source])
+    else sources.push(source)
   }
   const desired = new Map<string, { stackGroupId: string; partIndex: number }>()
   for (const [rootId, sources] of byRoot) {
