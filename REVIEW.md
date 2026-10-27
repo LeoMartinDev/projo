@@ -280,7 +280,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 25. Matching subtitles to videos is quadratic per folder
 
-**Status:** to do
+**Status:** done (`5785f45`)
 
 `apps/server/src/core/naming/subtitles.ts:79-108`
 
@@ -460,7 +460,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 41. Resuming starts a wasted ffmpeg run at segment 0
 
-**Status:** to do
+**Status:** done (`7c97aa5`)
 
 `apps/server/src/infrastructure/playback/hls-segmenter.ts:522`
 
@@ -471,7 +471,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 42. Live refreshes refetch every loaded page
 
-**Status:** to do
+**Status:** done (`d3ad69d`)
 
 `apps/web/src/app/AuthedLayout.tsx:20-32`, `apps/web/src/features/admin/operations/queries.ts:86-114`
 
@@ -482,7 +482,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 43. /home computes Up next in quadratic time, twice
 
-**Status:** to do
+**Status:** done (`1c8f585`)
 
 `apps/server/src/application/home/get-home.ts:61-80`
 
@@ -493,7 +493,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 44. Excluded folders are read on every scan
 
-**Status:** to do
+**Status:** done (`ee0245f`)
 
 `apps/server/src/application/scanner/walk-root.ts:91-118`
 
@@ -591,7 +591,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 52. Grouping sources by root is quadratic
 
-**Status:** to do
+**Status:** done (`36d076a`)
 
 `apps/server/src/core/scanner/sync.ts:15-18`
 
@@ -668,7 +668,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 59. Every card downloads a hidden 1280 px backdrop
 
-**Status:** to do
+**Status:** done (`4c99892`)
 
 `apps/web/src/features/media/MediaCard.tsx:248-250`
 
@@ -700,6 +700,6 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 ## Summary
 
 - **Verdict:** fix 1 to 15 first; 1 to 9 are the most urgent.
-- **Done:** 1 to 18, 20 to 24, 28, 29, 31, 33, 35 to 39, 57 (2026-10-27, commit hash on each heading).
+- **Done:** 1 to 18, 20 to 25, 28, 29, 31, 33, 35 to 39, 41 to 44, 52, 57, 59 (2026-10-27, commit hash on each heading).
 - **Lean:** about −500 lines possible.
 - **Not checked:** nothing was run in a real browser (Safari, iOS, PiP) or in the Linux Docker image; argon2 and remux memory were measured on macOS. The §20 capability URLs are not built yet (M6 slice 5). The VAAPI/HDR commit `f9f9d7b` landed during the review and is only partly covered.
