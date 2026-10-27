@@ -411,8 +411,12 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     const heartbeat = startHeartbeat({
       sessionId: session.id,
       intervalMs: session.heartbeatIntervalMs,
+      // Before the first frame currentTime is 0: report the resume point, not the start.
       read: () => ({
-        positionMs: itemPositionMs(session, video.currentTime),
+        positionMs:
+          video.readyState > 0
+            ? itemPositionMs(session, video.currentTime)
+            : session.startPositionMs,
         paused: video.paused,
       }),
       transport: playbackTransport,
