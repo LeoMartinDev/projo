@@ -10,6 +10,7 @@ import {
   type PlayedItem,
   seriesPlayTarget,
   upNext,
+  upNextCandidates,
 } from './rows.ts'
 
 const day = (n: number) => new Date(Date.UTC(2026, 0, n))
@@ -155,6 +156,22 @@ describe('§13.1 À suivre', () => {
     // Started under 2 % then left: not "started".
     const barely = [episode('show-s1e1', 'show', { ratio: 0.01 })]
     expect(upNext({ played: barely, episodes: show, hiddenSeries: none })).toEqual([])
+  })
+
+  test('candidates: a watched episode, none in progress, not removed, in order of first play', () => {
+    const played = [
+      episode('b1', 'b', { watched: true }),
+      movie('m', { watched: true }),
+      episode('a1', 'a', { watched: true }),
+      episode('busy1', 'busy', { watched: true }),
+      episode('busy2', 'busy', { ratio: 0.5 }),
+      episode('h1', 'hidden', { watched: true }),
+      episode('n1', 'never', { ratio: 0.01 }),
+      episode('b2', 'b', { watched: true }),
+    ]
+    const candidates = upNextCandidates(played, new Set(['hidden']))
+    expect([...candidates.keys()]).toEqual(['b', 'a'])
+    expect(candidates.get('b')?.map((entry) => entry.itemId)).toEqual(['b1', 'b2'])
   })
 
   test('"Nouvel épisode": its file arrived after the last play on the series', () => {

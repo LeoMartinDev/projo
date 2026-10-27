@@ -6,6 +6,7 @@ import {
   pickHero,
   type ProgressQueries,
   upNext,
+  upNextCandidates,
 } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
 import type { CatalogEntries, CatalogEntry } from '../catalog/catalog-entries.ts'
@@ -66,13 +67,7 @@ export const getHomeFactory =
     )
 
     const continueRow = continueWatching({ played, hiddenSeries })
-    // "Up next" candidates: a watched episode, none in progress, not removed.
-    const candidates = playedSeries.filter(
-      (seriesId) =>
-        !hiddenSeries.has(seriesId) &&
-        played.some((entry) => entry.seriesId === seriesId && entry.progress.watched) &&
-        !played.some((entry) => entry.seriesId === seriesId && isResumable(entry.progress)),
-    )
+    const candidates = [...upNextCandidates(played, hiddenSeries).keys()]
     const upNextRow = upNext({
       played,
       episodes: catalogRepository.listSeriesEpisodes({ seriesIds: candidates, scope }),

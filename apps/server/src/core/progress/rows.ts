@@ -99,6 +99,26 @@ const groupBySeries = <T extends { seriesId?: string }>(values: readonly T[]) =>
 }
 
 /**
+ * "Up next" candidates, in order of first appearance in `played`: series with a watched episode,
+ * none in progress, not removed by the profile, with their played episodes. Linear in `played`.
+ */
+export const upNextCandidates = (
+  played: readonly PlayedItem[],
+  hiddenSeries: ReadonlySet<string>,
+): Map<string, PlayedItem[]> => {
+  const groups = groupBySeries(played)
+  for (const [seriesId, seriesPlayed] of groups) {
+    if (
+      hiddenSeries.has(seriesId) ||
+      !seriesPlayed.some((entry) => entry.progress.watched) ||
+      seriesPlayed.some((entry) => isResumable(entry.progress))
+    )
+      groups.delete(seriesId)
+  }
+  return groups
+}
+
+/**
  * "Up next": for each series with a watched episode and none in progress, the next episode
  * (`nextEpisode`); a series whose present episodes are all watched, or removed by the profile,
  * leaves the row. Most recent activity on the series first.
@@ -117,10 +137,7 @@ export const upNext = ({
 }): UpNextEntry[] => {
   const episodesBySeries = groupBySeries(episodes)
   const entries: UpNextEntry[] = []
-  for (const [seriesId, seriesPlayed] of groupBySeries(played)) {
-    if (hiddenSeries.has(seriesId)) continue
-    if (!seriesPlayed.some((entry) => entry.progress.watched)) continue
-    if (seriesPlayed.some((entry) => isResumable(entry.progress))) continue
+  for (const [seriesId, seriesPlayed] of upNextCandidates(played, hiddenSeries)) {
     const progress = new Map(seriesPlayed.map((entry) => [entry.itemId, entry.progress]))
     const next = nextEpisode(regularEpisodes(episodesBySeries.get(seriesId) ?? []), progress)
     if (next === undefined) continue
