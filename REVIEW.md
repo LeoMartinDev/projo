@@ -185,7 +185,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** request fullscreen on `document.documentElement`. To keep PiP, keep the same `<video>` (no `key`).
 - **If we skip it:** binge-watching needs a click on fullscreen at every episode.
 
-### 20. "Retry" on the root error screen does nothing
+### 20. "Retry" on the root error screen does nothing (done, `de2f499`)
 
 `apps/web/src/app/router.tsx:151`
 
@@ -194,7 +194,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** `onRetry={() => void router.invalidate()}`.
 - **If we skip it:** opening the app during a server restart leaves a dead button; only a reload helps.
 
-### 21. Escape in a nested dialog also closes the parent dialog
+### 21. Escape in a nested dialog also closes the parent dialog (done, `11756bb`)
 
 `apps/web/src/shared/ui/Dialog.tsx:41-45`
 
@@ -203,7 +203,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** ignore the event when `event.target !== event.currentTarget`.
 - **If we skip it:** Escape on "Delete the profile" also closes the account dialog and loses unsaved edits.
 
-### 22. Deleting one of your own PIN-protected profiles is a dead end
+### 22. Deleting one of your own PIN-protected profiles is a dead end (done, `b474f53`)
 
 `apps/web/src/features/admin/accounts/ProfileCard.tsx:84-107`
 
@@ -212,7 +212,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** show the PIN field in `DeleteProfileDialog` when `profile.hasPin`.
 - **If we skip it:** the admin cannot delete the PIN-protected Kids profile of their own account.
 
-### 23. Removing a root folder and saving deletes its sources without confirmation
+### 23. Removing a root folder and saving deletes its sources without confirmation (done, `9402964`)
 
 `apps/web/src/features/admin/LibraryForm.tsx:218-225`
 
@@ -266,7 +266,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** compare `origin` and `pathname` of `new URL(url)`. Add a test with a foreign host and one with `..`.
 - **If we skip it:** the §20 rule holds by luck. Exploiting it still needs a tampered API answer.
 
-### 29. The Updates page answers 500 after going back to an older version
+### 29. The Updates page answers 500 after going back to an older version (done, `83915a5`)
 
 `apps/server/src/infrastructure/sqlite/update-repository.ts:12`
 
@@ -306,7 +306,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** print a one-time code in the startup logs and require it for setup (a spec proposal).
 - **If we skip it:** on an exposed VPS, a scanner can finish the setup before the owner.
 
-### 33. Accepting an invitation while signed in keeps the other account's cache
+### 33. Accepting an invitation while signed in keeps the other account's cache (done, `a7b2eba`)
 
 `apps/web/src/features/invite/InvitePage.tsx:87-90`
 
@@ -324,7 +324,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** keep `scanRunId` in the live state and treat it as stale once `lastScan` of that run has a `finishedAt`.
 - **If we skip it:** a frozen bar and a disabled Sync button.
 
-### 35. The Updates page shows an error during the restart
+### 35. The Updates page shows an error during the restart (done, `e083d36`)
 
 `apps/web/src/features/admin/updates/UpdatesPage.tsx:311-316`
 
@@ -333,7 +333,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** show the error only when `status.data === undefined`, as `DashboardPage` does.
 - **If we skip it:** the admin thinks the update failed while it is in progress.
 
-### 36. "Copy" for the docker command fails on plain HTTP
+### 36. "Copy" for the docker command fails on plain HTTP (done, `6a16279`)
 
 `apps/web/src/features/admin/updates/UpdatesPage.tsx:83-85`
 
@@ -342,7 +342,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** move `copyText` from `Invitations.tsx:19-32` to `shared/ui` and use it here too.
 - **If we skip it:** on a LAN install over HTTP, the click copies nothing and shows nothing.
 
-### 37. The image upload does not send `X-Profile-Id`
+### 37. The image upload does not send `X-Profile-Id` (done, `e50a544`)
 
 `apps/web/src/features/admin/metadata/queries.ts:79-91`
 
@@ -351,7 +351,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** add the active profile header, as the `hc` client does.
 - **If we skip it:** random 403s when choosing a poster.
 
-### 38. A library is created even when saving its access fails
+### 38. A library is created even when saving its access fails (done, `7c35eca`)
 
 `apps/web/src/features/admin/LibraryForm.tsx:110-128`
 
@@ -360,7 +360,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** after a successful POST, switch the form to edit mode.
 - **If we skip it:** the chosen access is lost, and the retry fails with `library/name_taken`.
 
-### 39. "Check again" stays disabled after one click
+### 39. "Check again" stays disabled after one click (done, `8dfaa01`)
 
 `apps/web/src/features/admin/operations/SourceStatePages.tsx:103-113`
 
@@ -532,7 +532,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Fix:** add milliseconds to the name.
 - **If we skip it:** a double click answers 500 although the first export worked.
 
-### 57. An admin on the Kids profile sees the admin's empty state
+### 57. An admin on the Kids profile sees the admin's empty state (done, `c24b485`)
 
 `apps/web/src/features/home/HomePage.tsx:54`, `apps/web/src/features/catalog/CatalogPage.tsx:179`
 
@@ -578,6 +578,6 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 ## Summary
 
 - **Verdict:** fix 1 to 15 first; 1 to 9 are the most urgent.
-- **Done:** 1 to 18, 24, 28, 31 (2026-10-27, commit hash on each heading).
+- **Done:** 1 to 18, 20 to 24, 28, 29, 31, 33, 35 to 39, 57 (2026-10-27, commit hash on each heading).
 - **Lean:** about −500 lines possible.
 - **Not checked:** nothing was run in a real browser (Safari, iOS, PiP) or in the Linux Docker image; argon2 and remux memory were measured on macOS. The §20 capability URLs are not built yet (M6 slice 5). The VAAPI/HDR commit `f9f9d7b` landed during the review and is only partly covered.
