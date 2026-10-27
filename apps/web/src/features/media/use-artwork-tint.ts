@@ -16,7 +16,8 @@ const sampleSize = 24
 const sample = async (src: string) => {
   const image = new Image()
   image.decoding = 'async'
-  image.src = src
+  // The smallest WebP variant (§9.1): plenty for a 24 px average.
+  image.src = `${src}?w=185`
   await image.decode()
   const canvas = document.createElement('canvas')
   canvas.width = sampleSize
@@ -29,8 +30,8 @@ const sample = async (src: string) => {
 }
 
 /**
- * Samples the tint of `src` once (from the browser's cache: the card already shows it, or its
- * preview loaded it). A failed sample leaves the neutral panel.
+ * Samples the tint of `src` once, from its smallest variant (a few kB, fetched on the first
+ * hover). A failed sample leaves the neutral panel.
  */
 export const requestArtworkTint = (src: string | undefined) => {
   if (src === undefined || requested.has(src)) return

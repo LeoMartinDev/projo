@@ -1038,7 +1038,8 @@
         "check_updates": "Update check",
         "apply_update": "Update",
         "cleanup_cache": "Cache cleanup",
-        "purge_missing": "Missing files purge"
+        "purge_missing": "Missing files purge",
+        "image_variants": "Image optimization"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Due {{date}}",

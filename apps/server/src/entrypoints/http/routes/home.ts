@@ -24,9 +24,8 @@ import { currentProfileId } from '../principal.ts'
 import { validate } from '../validation.ts'
 import { toItemSummaryDto, toPlayTargetDto } from './catalog.ts'
 
-const toResumeFrameDto = ({ sourceId, sheet, ...cell }: ResumeFrame): ResumeFrameDto => ({
-  url: `/api/v1/trickplay/${encodeURIComponent(sourceId)}/${sheet}.jpg`,
-  ...cell,
+const toResumeFrameDto = ({ sourceId, second }: ResumeFrame): ResumeFrameDto => ({
+  url: `/api/v1/trickplay/${encodeURIComponent(sourceId)}/frames/${second}.webp`,
 })
 
 /** §13.3 hero video preview (`preview_clip`): the clip URL when ready; missing clips requested. */

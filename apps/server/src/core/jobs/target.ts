@@ -29,12 +29,13 @@ const targetKinds: Record<JobType, readonly (readonly [JobTargetRef['kind'], str
   apply_update: [['version', 'version']],
   cleanup_cache: [],
   purge_missing: [],
+  image_variants: [],
 }
 
 /**
  * "Cible" of a job (§15), read from its payload: the first field of its type that is set.
  * `undefined` for the jobs without a subject (`watch_pending`, `check_updates`, `cleanup_cache`,
- * `purge_missing`) and for a payload that does not carry the expected field.
+ * `purge_missing`, `image_variants`) and for a payload that does not carry the expected field.
  */
 export const jobTargetOf = (type: JobType, payload: unknown): JobTargetRef | undefined => {
   for (const [kind, field] of targetKinds[type]) {

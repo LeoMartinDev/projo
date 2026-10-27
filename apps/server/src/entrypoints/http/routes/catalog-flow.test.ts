@@ -114,18 +114,7 @@ describe('GET /home', () => {
     app = createCatalogTestApp({
       homeResumeFrames: (input) => {
         asked.push(input)
-        return input.itemId === 'heat'
-          ? {
-              sourceId: 'f-heat',
-              sheet: 1,
-              x: 640,
-              y: 180,
-              width: 320,
-              height: 180,
-              sheetWidth: 3200,
-              sheetHeight: 1800,
-            }
-          : undefined
+        return input.itemId === 'heat' ? { sourceId: 'f-heat', second: 1800 } : undefined
       },
     })
     seedViewer(app.db, 'leo')
@@ -144,15 +133,7 @@ describe('GET /home', () => {
     expect(items.map((item) => item.id)).toEqual(['other', 'heat'])
     // No sprites for "other": no frame, the card keeps its image.
     expect(items[0]).not.toHaveProperty('resumeFrame')
-    expect(items[1]?.resumeFrame).toEqual({
-      url: '/api/v1/trickplay/f-heat/1.jpg',
-      x: 640,
-      y: 180,
-      width: 320,
-      height: 180,
-      sheetWidth: 3200,
-      sheetHeight: 1800,
-    })
+    expect(items[1]?.resumeFrame).toEqual({ url: '/api/v1/trickplay/f-heat/frames/1800.webp' })
     expect(asked).toContainEqual({
       itemId: 'heat',
       positionMs: hour / 2,

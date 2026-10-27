@@ -47,7 +47,7 @@ import {
   createSequentialIds,
 } from '../support/fakes.ts'
 import { silentLogger } from '../support/logger.ts'
-import { generateVideo, hasFfmpeg } from '../support/media.ts'
+import { generateVideo, hasFfmpeg, hasFfmpegEncoder } from '../support/media.ts'
 import { videoWithEmbeddedSubtitles } from '../support/media-fixtures.ts'
 
 /**
@@ -303,19 +303,20 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
     expect(frame(25_000)).toBeUndefined()
     await run(assets.jobHandlers.trickplay, { sourceId: 'source-movie' })
 
-    // 22 s: the nearest thumbnail is the one at 20 s, the third cell.
-    expect(frame(22_000)).toEqual({
-      sourceId: 'source-movie',
-      sheet: 0,
-      x: 640,
-      y: 0,
-      width: 320,
-      height: 180,
-      sheetWidth: 3200,
-      sheetHeight: 1800,
-    })
-    // Past the last thumbnail: the last one; a profile that cannot see the item: none.
-    expect(frame(9_999_000)).toMatchObject({ sheet: 0, x: 3200 - 320, y: 1800 - 180 })
+    // 22 s: the nearest thumbnail is the one at 20 s, its still extracted from the video.
+    expect(frame(22_000)).toEqual({ sourceId: 'source-movie', second: 20 })
+    if (hasFfmpegEncoder('libwebp')) {
+      const still = await get('/trickplay/source-movie/frames/20.webp')
+      expect(still.status).toBe(200)
+      expect(still.headers.get('content-type')).toBe('image/webp')
+    }
+    // Only the instants of the index (one file per thumbnail at most), only for who may play it.
+    expect((await get('/trickplay/source-movie/frames/25.webp')).status).toBe(404)
+    expect((await get('/trickplay/source-movie/frames/40.webp')).status).toBe(404)
+    expect((await get('/trickplay/source-movie/frames/20.webp', kid)).status).toBe(404)
+    // Past the last thumbnail: the last one (the file probes a hair over 30 s: the one at 30 s);
+    // a profile that cannot see the item: none.
+    expect(frame(9_999_000)).toEqual({ sourceId: 'source-movie', second: 30 })
     expect(frame(25_000, 'profile-kid')).toBeUndefined()
 
     // The file changed: the sprites are stale, no frame.

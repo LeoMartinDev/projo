@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { posterOf, progressRatioOf, resumeFrameLayout, wideArtOf } from '@projo/i18n/media'
+import { posterOf, progressRatioOf, wideArtOf } from '@projo/i18n/media'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
 
@@ -9,16 +9,6 @@ import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 import { Artwork } from './Artwork.tsx'
 import { type CardPlace, isPosterPlace, useCardText } from './card-text.ts'
 import { ProgressBar } from './parts.tsx'
-
-/** The frame "Continue watching" stopped at (§10.5): a cell of the timeline sprites, as `cover`. */
-const ResumeFrame = ({ frame, toneId }: { frame: ResumeFrameDto; toneId: string }) => {
-  const { box, sheet } = resumeFrameLayout(frame)
-  return (
-    <View style={[styles.frame, box]}>
-      <Artwork path={frame.url} style={[styles.frame, sheet]} tinted={false} toneId={toneId} />
-    </View>
-  )
-}
 
 /**
  * A card of a home row (§13.3, artboard `MobileHome`): 16:9 with a still or a backdrop (Continue
@@ -63,9 +53,13 @@ export const MediaCard = ({
         toneId={item.id}
       />
       {resumeFrame === undefined ? undefined : (
-        <View style={[styles.art, styles.wide, styles.overlay]}>
-          <ResumeFrame frame={resumeFrame} toneId={item.id} />
-        </View>
+        // The frame it stopped at (§10.5), over the metadata picture until it loads.
+        <Artwork
+          path={resumeFrame.url}
+          style={[styles.art, styles.wide, styles.overlay]}
+          tinted={false}
+          toneId={item.id}
+        />
       )}
       <View style={[styles.art, poster ? styles.poster : styles.wide, styles.overlay]}>
         <View style={[StyleSheet.absoluteFill, poster ? styles.posterShade : styles.wideShade]} />
@@ -105,7 +99,6 @@ const styles = StyleSheet.create({
   wide: { aspectRatio: 16 / 9 },
   poster: { aspectRatio: 2 / 3 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0 },
-  frame: { position: 'absolute', overflow: 'hidden' },
   wideShade: {
     backgroundImage: 'linear-gradient(0deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 55%)',
   },

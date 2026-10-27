@@ -1,5 +1,4 @@
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
-import type { ResumeFrameDto } from '@projo/shared/api/home'
 
 import { episodeCode } from './item-titles.ts'
 
@@ -143,39 +142,4 @@ export const listTargetOf = (
   }
   if (item.kind !== 'episode' || item.series?.inWatchlist === undefined) return undefined
   return { id: item.series.id, inWatchlist: item.series.inWatchlist }
-}
-
-/**
- * Placement of a resume frame (a cell of a timeline sprite sheet, §10.5) in a 16:9 card, like
- * `object-fit: cover`: `box` is the frame centred and cropped by the card, `sheet` the whole sheet
- * inside it, shifted so that only the cell shows. All in percentages: it scales with the card.
- */
-export type ResumeFrameLayout = {
-  box: { left: string; top: string; width: string; height: string }
-  sheet: { left: string; top: string; width: string; height: string }
-}
-
-const percent = (value: number): string => `${Math.round(value * 1e4) / 1e2}%`
-
-export const resumeFrameLayout = (
-  frame: Pick<ResumeFrameDto, 'x' | 'y' | 'width' | 'height' | 'sheetWidth' | 'sheetHeight'>,
-  cardRatio = 16 / 9,
-): ResumeFrameLayout => {
-  const wider = frame.width / frame.height >= cardRatio
-  const width = wider ? frame.width / frame.height / cardRatio : 1
-  const height = wider ? 1 : cardRatio / (frame.width / frame.height)
-  return {
-    box: {
-      left: percent((1 - width) / 2),
-      top: percent((1 - height) / 2),
-      width: percent(width),
-      height: percent(height),
-    },
-    sheet: {
-      left: percent(-frame.x / frame.width),
-      top: percent(-frame.y / frame.height),
-      width: percent(frame.sheetWidth / frame.width),
-      height: percent(frame.sheetHeight / frame.height),
-    },
-  }
 }

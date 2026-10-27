@@ -52,6 +52,7 @@ export const jobDefaults: Record<JobType, { priority: number; maxAttempts: numbe
   apply_update: { priority: 100, maxAttempts: 1 },
   cleanup_cache: { priority: 20, maxAttempts: 3 },
   purge_missing: { priority: 20, maxAttempts: 3 },
+  image_variants: { priority: 10, maxAttempts: 3 },
 }
 
 const dayMs = 24 * 60 * 60_000

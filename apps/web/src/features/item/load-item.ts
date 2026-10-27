@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 
+import { fullWidthSizes, logoSizes } from '../../shared/ui/Artwork.tsx'
 import { picturesDecoded } from '../../shared/ui/preload-pictures.ts'
 import { childrenQuery, itemQuery } from '../catalog/queries.ts'
 import { bySeason, selectedSeasonOf } from './seasons.ts'
@@ -29,8 +30,11 @@ export const loadItem = async (
   }
   await Promise.all([
     picturesDecoded([
-      item.images.still ?? item.images.backdrop ?? item.series?.images?.backdrop,
-      item.kind === 'episode' ? undefined : item.images.logo,
+      {
+        src: item.images.still ?? item.images.backdrop ?? item.series?.images?.backdrop,
+        sizes: fullWidthSizes,
+      },
+      { src: item.kind === 'episode' ? undefined : item.images.logo, sizes: logoSizes },
     ]),
     loadEpisodes(),
   ])

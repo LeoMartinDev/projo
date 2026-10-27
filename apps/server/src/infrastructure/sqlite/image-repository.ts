@@ -79,6 +79,13 @@ export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository
     db.update(people).set({ profileImageId: imageId }).where(eq(people.id, personId)).run()
   },
 
+  localPaths: () =>
+    db
+      .select({ localPath: images.localPath })
+      .from(images)
+      .all()
+      .map((row) => row.localPath),
+
   deleteIfUnused: (id) => {
     const used = db.$client
       .query(

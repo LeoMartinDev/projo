@@ -1038,7 +1038,8 @@
         "check_updates": "Recherche de mise à jour",
         "apply_update": "Mise à jour",
         "cleanup_cache": "Nettoyage du cache",
-        "purge_missing": "Purge des manquants"
+        "purge_missing": "Purge des manquants",
+        "image_variants": "Optimisation des images"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Prévu {{date}}",

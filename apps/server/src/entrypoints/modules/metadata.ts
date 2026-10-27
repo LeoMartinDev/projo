@@ -5,6 +5,10 @@ import { ok } from '@projo/shared'
 import { applyMatchFactory } from '../../application/metadata/apply-match.ts'
 import { fetchImagesFactory } from '../../application/metadata/fetch-images.ts'
 import { getImageFactory } from '../../application/metadata/get-image.ts'
+import {
+  encodeVariantsFactory,
+  generateImageVariantsFactory,
+} from '../../application/metadata/image-variants.ts'
 import { matchSourceFactory } from '../../application/metadata/match-source.ts'
 import { metadataEditingFactory } from '../../application/metadata/metadata-editing.ts'
 import { metadataSettingsFactory } from '../../application/metadata/metadata-settings.ts'
@@ -19,6 +23,7 @@ import type { ImageReencoder } from '../../core/metadata/editing.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { createImageFiles } from '../../infrastructure/fs/image-files.ts'
 import { createFfmpegImageReencoder } from '../../infrastructure/media/ffmpeg-image-reencoder.ts'
+import { createFfmpegImageVariants } from '../../infrastructure/media/ffmpeg-image-variants.ts'
 import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteImageRepository } from '../../infrastructure/sqlite/image-repository.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
@@ -105,6 +110,8 @@ export const buildMetadataModule = (
   const items = createSqliteMetadataItemRepository({ db })
   const images = createSqliteImageRepository({ db })
   const files = createImageFiles({ imagesDir: paths.images.dir })
+  const variants = createFfmpegImageVariants({ files })
+  const encodeVariants = encodeVariantsFactory({ variants, logger: moduleLogger })
   const sourceRepository = createSqliteSourceRepository({ db, ids })
   const libraryRepository = createSqliteLibraryRepository({ db })
   const manualMatches = createSqliteManualMatchRepository({ db })
@@ -140,6 +147,7 @@ export const buildMetadataModule = (
     items,
     images,
     files,
+    encodeVariants,
     settings,
     ids,
     logger: moduleLogger,
@@ -175,6 +183,7 @@ export const buildMetadataModule = (
     items,
     images,
     files,
+    encodeVariants,
     tmdb,
     refresh,
     fetchImages,
@@ -190,6 +199,12 @@ export const buildMetadataModule = (
 
   metadataSettings.notifyIfKeyMissing()
 
+  const generateImageVariants = generateImageVariantsFactory({
+    images,
+    variants,
+    logger: moduleLogger,
+  })
+
   const scheduledTasks: ScheduledTask[] = [
     {
       // §9.4: in-production series a week after their last refresh; checked every 6 h so a
@@ -199,6 +214,15 @@ export const buildMetadataModule = (
       intervalMs: 6 * hour,
       run: () => {
         refresh.queueInProductionSeries()
+      },
+    },
+    {
+      // §9.1: soon after startup, so an update that brings or changes the variants encodes them.
+      name: 'image-variants',
+      initialDelayMs: 2 * 60_000,
+      intervalMs: 24 * hour,
+      run: () => {
+        jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
       },
     },
   ]
@@ -260,6 +284,14 @@ export const buildMetadataModule = (
             return ok()
           }
           const result = await refresh.refreshItem({ itemId: payload.itemId })
+          return result.ok ? ok() : result
+        },
+      }),
+      image_variants: defineJobHandler({
+        payload: z.object({}),
+        concurrency: 1,
+        run: async (_payload, { signal, reportProgress }) => {
+          const result = await generateImageVariants({ signal, reportProgress })
           return result.ok ? ok() : result
         },
       }),

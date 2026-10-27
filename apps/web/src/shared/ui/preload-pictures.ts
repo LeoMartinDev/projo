@@ -1,9 +1,17 @@
+import { artworkSources } from './Artwork.tsx'
+
 /** Longest wait for a page's head pictures; past it the page shows and they fade in on arrival. */
 export const pictureWaitMs = 700
 
-/** Resolves once the picture is decoded, failed, or `ms` passed. */
-const decoded = (src: string, ms: number): Promise<void> => {
+/**
+ * Resolves once the picture is decoded, failed, or `ms` passed. Same sources as its `Artwork`
+ * (`sizes` included), so the browser picks the same variant and the page finds it in the cache.
+ */
+const decoded = (picture: { src: string; sizes: string }, ms: number): Promise<void> => {
   const image = new Image()
+  const { srcSet, sizes, src } = artworkSources(picture.src, picture.sizes)
+  if (sizes !== undefined) image.sizes = sizes
+  if (srcSet !== undefined) image.srcset = srcSet
   image.src = src
   return Promise.race([
     image.decode().catch(() => undefined),
@@ -17,9 +25,10 @@ const decoded = (src: string, ms: number): Promise<void> => {
  * sizes the title, never pushes the text after the first frame.
  */
 export const picturesDecoded = async (
-  sources: ReadonlyArray<string | undefined>,
+  pictures: ReadonlyArray<{ src: string | undefined; sizes: string }>,
   ms = pictureWaitMs,
 ): Promise<void> => {
-  const pictures = sources.filter((src) => src !== undefined)
-  await Promise.all(pictures.map((src) => decoded(src, ms)))
+  await Promise.all(
+    pictures.flatMap(({ src, sizes }) => (src === undefined ? [] : [decoded({ src, sizes }, ms)])),
+  )
 }

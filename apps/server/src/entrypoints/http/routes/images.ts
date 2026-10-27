@@ -1,9 +1,12 @@
 import { Hono } from 'hono'
 
+import { imageQuerySchema } from '@projo/shared/api/catalog'
+
 import type { GetImage } from '../../../application/metadata/get-image.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { currentProfileId } from '../principal.ts'
+import { validate } from '../validation.ts'
 
 export type ImageFileOpener = (path: string) => { exists: () => Promise<boolean> } & Blob
 
@@ -16,11 +19,18 @@ const notFound = (id: string) => ({
   context: { id },
 })
 
+const image = (file: Blob, contentType: string, cacheControl: string) =>
+  new Response(file, {
+    status: 200,
+    headers: { 'Content-Type': contentType, 'Cache-Control': cacheControl },
+  })
+
 /**
- * `GET /images/:id` (§9.1, §17.2 Catalogue): the stored image of an item visible to users (or of
- * a person credited on one), never a TMDB URL; with `canView`, only through an item the active
- * profile may see (`X-Profile-Id` or the session's last profile: `<img>` sends no header). The id
- * changes when the image changes: `immutable`.
+ * `GET /images/:id?w=` (§9.1, §17.2 Catalogue): the stored image of an item visible to users (or
+ * of a person credited on one), never a TMDB URL; with `canView`, only through an item the active
+ * profile may see (`X-Profile-Id` or the session's last profile: `<img>` sends no header). Its
+ * WebP variant of width `w` (or full size), else the original while the variants are not encoded:
+ * the id changes when the image changes, so a variant is `immutable`, the original only an hour.
  */
 export const imagesRoutes = ({
   getImage,
@@ -31,7 +41,7 @@ export const imagesRoutes = ({
   open: ImageFileOpener
   canView?: ImageAccess
 }) =>
-  new Hono<AppEnv>().get('/images/:id', async (c) => {
+  new Hono<AppEnv>().get('/images/:id', validate('query', imageQuerySchema), async (c) => {
     const id = c.req.param('id')
     if (canView !== undefined) {
       const profileId = currentProfileId(c)
@@ -39,19 +49,20 @@ export const imagesRoutes = ({
       if (!canView({ imageId: id, profileId: profileId.value }))
         return respondError(c, notFound(id))
     }
-    const image = getImage({ id })
-    if (!image.ok) return respondError(c, image.error)
-    const file = open(image.value.path)
+    const { w } = c.req.valid('query')
+    const found = getImage({ id, ...(w === undefined ? {} : { width: w }) })
+    if (!found.ok) return respondError(c, found.error)
+    for (const path of found.value.variants) {
+      const variant = open(path)
+      if (await variant.exists()) {
+        return image(variant, 'image/webp', 'private, max-age=31536000, immutable')
+      }
+    }
+    const file = open(found.value.path)
     if (!(await file.exists())) {
       return respondError(c, notFound(id))
     }
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': image.value.contentType,
-        'Cache-Control': 'private, max-age=31536000, immutable',
-      },
-    })
+    return image(file, found.value.contentType, 'private, max-age=3600')
   })
 
 export type ImagesRoutes = ReturnType<typeof imagesRoutes>

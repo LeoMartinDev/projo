@@ -3,6 +3,7 @@ import { dirname, join, normalize } from 'node:path'
 
 import { appError, err, ok } from '@projo/shared'
 
+import { allVariantPathsOf } from '../../core/metadata/image-variants.ts'
 import type { ImageFiles } from '../../core/metadata/ports.ts'
 
 /**
@@ -38,8 +39,13 @@ export const createImageFiles = ({ imagesDir }: { imagesDir: string }): ImageFil
         )
       }
     },
+    // With its WebP variants (§9.1).
     remove: async (relativePath) => {
-      await rm(absolutePath(relativePath), { force: true }).catch(() => {})
+      await Promise.all(
+        [relativePath, ...allVariantPathsOf(relativePath)].map((path) =>
+          rm(absolutePath(path), { force: true }).catch(() => {}),
+        ),
+      )
     },
   }
 }

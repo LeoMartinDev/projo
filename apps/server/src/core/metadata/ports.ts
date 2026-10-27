@@ -111,6 +111,8 @@ export type ImageRepository = {
   insert: (image: StoredImage) => void
   setItemImage: (input: { itemId: string; slot: ImageSlot; imageId: string }) => void
   setPersonImage: (input: { personId: string; imageId: string }) => void
+  /** Files of every stored image (`image_variants`). */
+  localPaths: () => string[]
   /** Deletes the row when nothing references it any more; returns it so the file can go too. */
   deleteIfUnused: (id: string) => StoredImage | undefined
   /**

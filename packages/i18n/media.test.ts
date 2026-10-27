@@ -16,7 +16,6 @@ import {
   progressRatioOf,
   qualityLabel,
   remainingMsOf,
-  resumeFrameLayout,
   wideArtOf,
   yearsLabel,
 } from './media.ts'
@@ -125,29 +124,4 @@ test('quality badge', () => {
   expect(qualityLabel({ resolution: '1080p', dynamicRange: 'sdr' })).toBe('HD')
   expect(qualityLabel({ resolution: '2160p', dynamicRange: 'dv' })).toBe('4K Dolby Vision')
   expect(qualityLabel(undefined)).toBeUndefined()
-})
-
-describe('resumeFrameLayout', () => {
-  const sheet = { sheetWidth: 3200, sheetHeight: 1800 }
-
-  test('a 16:9 frame fills the card; the sheet is shifted to its cell', () => {
-    expect(resumeFrameLayout({ x: 640, y: 360, width: 320, height: 180, ...sheet })).toEqual({
-      box: { left: '0%', top: '0%', width: '100%', height: '100%' },
-      sheet: { left: '-200%', top: '-200%', width: '1000%', height: '1000%' },
-    })
-  })
-
-  test('a wider frame overflows the card sideways, centred (cover)', () => {
-    const { box } = resumeFrameLayout({ x: 0, y: 0, width: 320, height: 134, ...sheet })
-    expect(box.height).toBe('100%')
-    expect(box.width).toBe('134.33%')
-    expect(box.left).toBe('-17.16%')
-  })
-
-  test('a narrower frame overflows the card vertically, centred', () => {
-    const { box } = resumeFrameLayout({ x: 0, y: 0, width: 320, height: 240, ...sheet })
-    expect(box.width).toBe('100%')
-    expect(box.height).toBe('133.33%')
-    expect(box.top).toBe('-16.67%')
-  })
 })

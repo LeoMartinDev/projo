@@ -42,19 +42,10 @@ export type UpNextEntryDto = z.infer<typeof upNextEntryDtoSchema>
 
 /**
  * The frame a "Continue watching" card shows (§13.3): the timeline thumbnail (§10.5) at the
- * resume position, as a cell of a sprite sheet (`/api/v1/trickplay/:sourceId/<n>.jpg`). `x`, `y`,
- * `width`, `height` locate the cell in the sheet of `sheetWidth × sheetHeight` pixels. Absent
- * until the sprites of the file exist: the card keeps its metadata image.
+ * resume position, as a 640 px still of the video (`/api/v1/trickplay/:sourceId/frames/<s>.webp`).
+ * Absent until the sprites of the file exist: the card keeps its metadata image.
  */
-export const resumeFrameDtoSchema = z.object({
-  url: z.string(),
-  x: z.number().int().min(0),
-  y: z.number().int().min(0),
-  width: z.number().int().positive(),
-  height: z.number().int().positive(),
-  sheetWidth: z.number().int().positive(),
-  sheetHeight: z.number().int().positive(),
-})
+export const resumeFrameDtoSchema = z.object({ url: z.string() })
 export type ResumeFrameDto = z.infer<typeof resumeFrameDtoSchema>
 
 /** A card of "Continue watching": the item, and the frame it stopped at when known. */

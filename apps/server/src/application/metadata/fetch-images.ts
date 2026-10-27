@@ -25,6 +25,8 @@ type Deps = {
   items: Pick<MetadataItemRepository, 'imageContext' | 'lockedFields' | 'peopleOf'>
   images: ImageRepository
   files: ImageFiles
+  /** WebP variants of a written image (§9.1). */
+  encodeVariants: (localPath: string) => Promise<void>
   settings: Pick<MetadataSettings, 'language'>
   ids: IdGenerator
   logger: Logger
@@ -64,10 +66,20 @@ type Wanted = { choices: ImageChoice[]; people: Map<number, string> }
 /**
  * Job `fetch_images` (§9.1, §18, by item): downloads the chosen TMDB images (poster w500,
  * backdrop w1280, logo w500 PNG, still w300) and the cast photos (w185) into
- * `/data/images/<kind>/<id>.<ext>`; never hotlinked. Idempotent: an image already stored for
- * the same TMDB path is kept; a locked poster or backdrop (§9.3) is never replaced.
+ * `/data/images/<kind>/<id>.<ext>` with their WebP variants; never hotlinked. Idempotent: an image
+ * already stored for the same TMDB path is kept; a locked poster or backdrop (§9.3) is never
+ * replaced.
  */
-export const fetchImagesFactory = ({ tmdb, items, images, files, settings, ids, logger }: Deps) => {
+export const fetchImagesFactory = ({
+  tmdb,
+  items,
+  images,
+  files,
+  encodeVariants,
+  settings,
+  ids,
+  logger,
+}: Deps) => {
   const wantedFor = async (
     context: ItemImageContext,
     language: string,
@@ -141,7 +153,9 @@ export const fetchImagesFactory = ({ tmdb, items, images, files, settings, ids, 
     const id = ids.next()
     const localPath = `${folderOf[kind]}/${id}.${extensionOf(fetched.value.contentType, path)}`
     const written = await files.write({ relativePath: localPath, bytes: fetched.value.bytes })
-    return written.ok ? ok({ id, localPath }) : written
+    if (!written.ok) return written
+    await encodeVariants(localPath)
+    return ok({ id, localPath })
   }
 
   return async ({

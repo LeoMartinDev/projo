@@ -4,25 +4,25 @@ import {
   isTextSubtitle,
   previewWindow,
   sameFingerprint,
-  trickplayFrameAt,
   trickplayHeight,
+  trickplayInstantAt,
 } from './media-assets.ts'
 
-describe('trickplayFrameAt', () => {
+describe('trickplayInstantAt', () => {
   const index = { interval: 10, width: 320, height: 180, columns: 10, rows: 10, sheets: [0, 1] }
   test('the thumbnail nearest to the second', () => {
-    expect(trickplayFrameAt(index, 0)).toEqual({ sheet: 0, column: 0, row: 0 })
-    expect(trickplayFrameAt(index, 54.9)).toEqual({ sheet: 0, column: 5, row: 0 })
-    expect(trickplayFrameAt(index, 59.9)).toEqual({ sheet: 0, column: 6, row: 0 })
-    expect(trickplayFrameAt(index, 123)).toEqual({ sheet: 0, column: 2, row: 1 })
+    expect(trickplayInstantAt(index, 0, 3600)).toBe(0)
+    expect(trickplayInstantAt(index, 54.9, 3600)).toBe(50)
+    expect(trickplayInstantAt(index, 59.9, 3600)).toBe(60)
+    expect(trickplayInstantAt(index, 1234, 3600)).toBe(1230)
   })
-  test('the next sheet after 100 thumbnails, the last thumbnail past the end', () => {
-    expect(trickplayFrameAt(index, 1000)).toEqual({ sheet: 1, column: 0, row: 0 })
-    expect(trickplayFrameAt(index, 99_999)).toEqual({ sheet: 1, column: 9, row: 9 })
+  test('the last started interval past the end', () => {
+    expect(trickplayInstantAt(index, 99_999, 3605)).toBe(3600)
+    expect(trickplayInstantAt(index, 99_999, 3600)).toBe(3590)
   })
   test('a negative second is the first thumbnail, no sheet means none', () => {
-    expect(trickplayFrameAt(index, -5)).toEqual({ sheet: 0, column: 0, row: 0 })
-    expect(trickplayFrameAt({ ...index, sheets: [] }, 5)).toBeUndefined()
+    expect(trickplayInstantAt(index, -5, 3600)).toBe(0)
+    expect(trickplayInstantAt({ ...index, sheets: [] }, 5, 3600)).toBeUndefined()
   })
 })
 

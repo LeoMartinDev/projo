@@ -88,6 +88,20 @@ export const itemImagesDtoSchema = z.object({
 })
 export type ItemImagesDto = z.infer<typeof itemImagesDtoSchema>
 
+/**
+ * §9.1 WebP widths of every stored image (those under its own width), for `srcset`. One ladder
+ * for every kind: a client does not know whether a 16:9 URL is a still or a backdrop.
+ */
+export const imageWidths = [185, 342, 500, 780, 1280] as const
+
+/** `GET /images/:id?w=`: a width of the ladder (wider than the image: the full-size WebP). */
+export const imageQuerySchema = z.object({
+  w: z.coerce
+    .number()
+    .refine((w) => (imageWidths as readonly number[]).includes(w))
+    .optional(),
+})
+
 /** Best quality among the ready files ("4K HDR": `2160p` + `hdr`; `dv` = Dolby Vision). */
 export const videoQualityDtoSchema = z.object({
   resolution: resolutionSchema,

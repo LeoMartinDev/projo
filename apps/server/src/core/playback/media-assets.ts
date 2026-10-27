@@ -81,28 +81,20 @@ export const trickplayHeight = (video: { width?: number; height?: number }): num
   return Math.max(2, Math.round((trickplaySpec.width * height) / width / 2) * 2)
 }
 
-/** Where the thumbnail of a stream second sits: its sheet and its cell in it. */
-export type TrickplayFrame = { sheet: number; column: number; row: number }
-
 /**
- * The thumbnail nearest to stream second `seconds` (thumbnail `i` stands for `i × interval`;
- * the last one past the end), `undefined` when the index has no sheet. Same arithmetic as the
- * player's `thumbnailAt` (the web).
+ * The instant (s) of the thumbnail nearest to stream second `seconds`: thumbnail `i` stands for
+ * `i × interval`, the last one for the last started interval of a `durationS` stream (past the
+ * end: that one). `undefined` when the index has no sheet. Same rounding as the player's
+ * `thumbnailAt` (the web).
  */
-export const trickplayFrameAt = (
+export const trickplayInstantAt = (
   index: TrickplayIndex,
   seconds: number,
-): TrickplayFrame | undefined => {
-  const perSheet = index.columns * index.rows
-  if (index.sheets.length === 0 || perSheet <= 0 || index.interval <= 0) return undefined
-  const position = Math.min(
-    Math.max(0, Math.round(Math.max(0, seconds) / index.interval)),
-    index.sheets.length * perSheet - 1,
-  )
-  const sheet = index.sheets[Math.floor(position / perSheet)]
-  if (sheet === undefined) return undefined
-  const within = position % perSheet
-  return { sheet, column: within % index.columns, row: Math.floor(within / index.columns) }
+  durationS: number,
+): number | undefined => {
+  if (index.sheets.length === 0 || index.interval <= 0) return undefined
+  const last = Math.max(0, Math.ceil(durationS / index.interval) - 1)
+  return Math.min(Math.round(Math.max(0, seconds) / index.interval), last) * index.interval
 }
 
 export type TrickplayStore = {
@@ -121,6 +113,16 @@ export type TrickplayStore = {
   }) => Promise<Result<TrickplayIndex, MediaError>>
   /** Absolute path of a sheet that exists. */
   sheetPath: (input: { sourceId: string; sheet: number }) => string | undefined
+  /**
+   * Absolute path of a 640 px still of the video's frame at `second`, extracted on the first call
+   * and kept with the sprites (gone when they are rebuilt); `undefined` when they do not exist.
+   */
+  framePath: (input: {
+    sourceId: string
+    path: string
+    videoStreamIndex: number
+    second: number
+  }) => Promise<Result<string | undefined, MediaError>>
   /** Folder names that are valid ids only. */
   listSourceIds: () => string[]
   remove: (sourceId: string) => void

@@ -1,49 +1,20 @@
 import type { CatalogRepository, VisibilityScopeResolver } from '../../core/catalog/catalog.ts'
 import {
   sameFingerprint,
-  type TrickplayIndex,
-  trickplayFrameAt,
+  trickplayInstantAt,
   type TrickplayStore,
 } from '../../core/playback/media-assets.ts'
 import { groupVersions, partAt, partsTimeline, rankVersions } from '../../core/playback/versions.ts'
 import { sourceFingerprint } from './trickplay.ts'
 
-/** A timeline thumbnail (§10.5) of a source: its sheet, the cell in it and the sizes (pixels). */
-export type ResumeFrame = {
-  sourceId: string
-  sheet: number
-  x: number
-  y: number
-  width: number
-  height: number
-  sheetWidth: number
-  sheetHeight: number
-}
-
-const frameOf = (
-  sourceId: string,
-  index: TrickplayIndex,
-  seconds: number,
-): ResumeFrame | undefined => {
-  const frame = trickplayFrameAt(index, seconds)
-  if (frame === undefined) return undefined
-  return {
-    sourceId,
-    sheet: frame.sheet,
-    x: frame.column * index.width,
-    y: frame.row * index.height,
-    width: index.width,
-    height: index.height,
-    sheetWidth: index.columns * index.width,
-    sheetHeight: index.rows * index.height,
-  }
-}
+/** A timeline thumbnail instant (§10.5) of a source, in seconds of that file. */
+export type ResumeFrame = { sourceId: string; second: number }
 
 /**
- * "Continue watching" cards (§13.3): the existing timeline thumbnail (§10.5) showing the
- * position the profile stopped at, from the best version that has up-to-date sprites. Nothing
- * is generated here: without sprites (still queued, disabled, source gone) the answer is
- * `undefined` and the card keeps its metadata image. Positions are on the item timeline, so a
+ * "Continue watching" cards (§13.3): the timeline thumbnail instant (§10.5) nearest to the
+ * position the profile stopped at, from the best version that has up-to-date sprites (its still
+ * is extracted when the card asks for it). Without sprites (still queued, disabled, source gone)
+ * the answer is `undefined` and the card keeps its metadata image. Positions are on the item timeline, so a
  * stack of parts (§8.4) is walked to the part holding the position.
  */
 export const resumeFramesFactory =
@@ -85,8 +56,12 @@ export const resumeFramesFactory =
       ) {
         continue
       }
-      const frame = frameOf(source.id, stored.index, (positionMs - part.offsetMs) / 1000)
-      if (frame !== undefined) return frame
+      const second = trickplayInstantAt(
+        stored.index,
+        (positionMs - part.offsetMs) / 1000,
+        (source.media?.durationMs ?? 0) / 1000,
+      )
+      if (second !== undefined) return { sourceId: source.id, second }
     }
     return undefined
   }

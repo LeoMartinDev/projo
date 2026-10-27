@@ -45,6 +45,9 @@ const indexSchema = z.object({
 const generationVersion = 2
 const generationSchema = z.object({ generation: z.literal(generationVersion) })
 
+/** Width of the resume stills: a "Continue watching" card on a 2× screen. */
+const frameWidth = 640
+
 /** A long film decoded on a small CPU: generous, the job is the lowest priority anyway. */
 const generationTimeoutMs = 3 * 60 * 60_000
 
@@ -186,6 +189,74 @@ export const createTrickplayStore = ({
     sheetPath: ({ sourceId, sheet }) => {
       const path = join(dirOf(sourceId), `${sheet}.jpg`)
       return Number.isInteger(sheet) && sheet >= 0 && fileExists(path) ? path : undefined
+    },
+
+    framePath: async ({ sourceId, path: video, videoStreamIndex, second }) => {
+      const dir = dirOf(sourceId)
+      if (!Number.isInteger(second) || second < 0 || !fileExists(join(dir, 'index.json'))) {
+        return ok(undefined)
+      }
+      const path = join(dir, `frame-${second}.webp`)
+      if (fileExists(path)) return ok(path)
+      // Unique: two cards asking for the same still at once each write their own, the last rename wins.
+      const temporary = `${path}.tmp-${process.pid}-${crypto.randomUUID()}`
+      const run = await runProcess({
+        command: ffmpeg,
+        args: [
+          '-nostdin',
+          '-hide_banner',
+          '-v',
+          'error',
+          '-y',
+          // The exact frame: decoded from the keyframe before it (0.6 s for a 4K HEVC film on a PC,
+          // a few on a NAS, once). `-skip_frame nokey` with a seek lands on the wrong scene in MKV.
+          '-ss',
+          String(second),
+          '-i',
+          `file:${toHostPath(video)}`,
+          '-map',
+          `0:${videoStreamIndex}`,
+          '-vf',
+          `scale='min(${frameWidth},iw)':-2:flags=lanczos`,
+          '-frames:v',
+          '1',
+          '-map_metadata',
+          '-1',
+          '-c:v',
+          'libwebp',
+          '-quality',
+          '82',
+          '-f',
+          'webp',
+          `file:${temporary}`,
+        ],
+        timeoutMs: 30_000,
+      })
+      if (!run.ok) {
+        removePath(temporary)
+        return err(run.error)
+      }
+      // Exit 0 without a picture: a second past the last keyframe the demuxer could seek to.
+      if (run.value.exitCode !== 0 || !fileExists(temporary)) {
+        removePath(temporary)
+        return err(
+          appError('media/ffmpeg_failed', 'ffmpeg could not extract the resume frame', {
+            context: {
+              sourceId,
+              exitCode: run.value.exitCode,
+              stderr: stderrTail(run.value.stderr),
+            },
+          }),
+        )
+      }
+      // The sprites may have been rebuilt meanwhile: the folder is gone, the temporary with it.
+      return attemptFs(
+        () => {
+          renameSync(temporary, path)
+          return path
+        },
+        { sourceId },
+      )
     },
 
     listSourceIds: () =>

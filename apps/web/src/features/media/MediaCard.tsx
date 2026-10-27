@@ -38,7 +38,6 @@ import {
   posterOf,
   progressRatioOf,
   qualityLabel,
-  resumeFrameLayout,
   toneOf,
   wideArtOf,
 } from './media.ts'
@@ -215,11 +214,14 @@ const Preview = ({
   place,
   text,
   placement,
+  opened,
 }: {
   item: ItemSummaryDto
   place: CardPlace
   text: CardText
   placement: PreviewPlacement | undefined
+  /** Opened at least once: the closed preview counts as visible, so its art would load for every card. */
+  opened: boolean
 }) => {
   const { t } = useTranslation()
   const ratio = progressRatioOf(item)
@@ -246,7 +248,11 @@ const Preview = ({
       style={style}
     >
       <div className="preview__art" aria-hidden="true">
-        <Artwork src={art} className="cover-img preview__img" />
+        <Artwork
+          src={opened ? art : undefined}
+          className="cover-img preview__img"
+          sizes="auto, 25vw"
+        />
       </div>
       <div className="preview__head">
         <span className="preview__title" aria-hidden="true">
@@ -282,19 +288,6 @@ const Preview = ({
 }
 
 /**
- * The frame "Continue watching" stopped at (a cell of the timeline sprites, §10.5) over the
- * metadata image, which stays under it until the sheet loads or when it cannot.
- */
-const ResumeFrame = ({ frame }: { frame: ResumeFrameDto }) => {
-  const { box, sheet } = resumeFrameLayout(frame)
-  return (
-    <span className="card__frame" aria-hidden="true" style={box}>
-      <Artwork src={frame.url} className="card__frame-sheet" style={sheet} />
-    </span>
-  )
-}
-
-/**
  * A card of a home row (§13.3): 16:9 with a still or backdrop (Continue watching, Up next,
  * Ma liste) or a 2:3 poster (Recently added, the category rows). The picture carries the
  * title, a progress bar and the "New episode" badge; hover or focus opens the preview with the
@@ -326,6 +319,7 @@ export const MediaCard = ({
   // Open while hovered or holding the focus (the CSS shows it on `:hover` / `:focus-within`).
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
+  const opened = hovered || focused || placement !== undefined
   const update = useCallback(
     (element: HTMLElement) => setPlacement(measurePreview(element, poster)),
     [poster],
@@ -352,8 +346,11 @@ export const MediaCard = ({
   const body = (
     <>
       <span className={`card__art tone-${toneOf(item.id)}`}>
-        <Artwork src={art} className="cover-img" />
-        {resumeFrame === undefined ? undefined : <ResumeFrame frame={resumeFrame} />}
+        <Artwork src={art} className="cover-img" {...(poster ? {} : { sizes: 'auto, 25vw' })} />
+        {/* The thumbnail it stopped at (§10.5) over the metadata image, kept under it until it loads or when it cannot. */}
+        {resumeFrame === undefined ? undefined : (
+          <Artwork src={resumeFrame.url} className="cover-img" />
+        )}
         <span className="card__shade" aria-hidden="true" />
         {isNew ? <span className="card__badge">{t('card.newEpisode')}</span> : undefined}
         <span className="card__title">{text.title}</span>
@@ -402,7 +399,7 @@ export const MediaCard = ({
           {body}
         </Link>
       )}
-      <Preview item={item} place={place} text={text} placement={placement} />
+      <Preview item={item} place={place} text={text} placement={placement} opened={opened} />
     </div>
   )
 }

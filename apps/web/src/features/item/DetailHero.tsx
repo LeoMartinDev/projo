@@ -7,7 +7,7 @@ import { itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, PersonDto } from '@projo/shared/api/catalog'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { Artwork } from '../../shared/ui/Artwork.tsx'
+import { Artwork, fullWidthSizes, logoSizes } from '../../shared/ui/Artwork.tsx'
 import { ChevronLeftIcon, StarIcon } from '../../shared/ui/media-icons.tsx'
 import { qualityLabel, toneOf, yearsLabel } from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
@@ -118,7 +118,12 @@ export const DetailHero = ({
   return (
     <section className="detail-hero" aria-labelledby="detail-title">
       <div className={`detail-hero__media tone-${toneOf(item.id)}`} aria-hidden="true">
-        <Artwork src={backdrop} className="cover-img detail-hero__img" eager />
+        <Artwork
+          src={backdrop}
+          className="cover-img detail-hero__img"
+          eager
+          sizes={fullWidthSizes}
+        />
         <span className="detail-hero__shade" />
       </div>
       <div className="detail-hero__top">
@@ -135,6 +140,7 @@ export const DetailHero = ({
               alt={title}
               className="detail-hero__logo"
               eager
+              sizes={logoSizes}
               fallback={title}
             />
           )}

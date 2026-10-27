@@ -74,7 +74,7 @@ const CardSheetBody = ({
     <div className="card-sheet">
       <div className="card-sheet__head">
         <span className={`card-sheet__art tone-${toneOf(item.id)}`} aria-hidden="true">
-          <Artwork src={wideArtOf(item)} className="cover-img" />
+          <Artwork src={wideArtOf(item)} className="cover-img" sizes="auto, 100vw" />
         </span>
         <div className="card-sheet__who">
           <h2 id={titleId} className="card-sheet__title">

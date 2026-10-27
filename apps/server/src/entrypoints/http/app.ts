@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { compress } from 'hono/compress'
 import { HTTPException } from 'hono/http-exception'
 
 import { appError } from '@projo/shared'
@@ -41,6 +42,8 @@ export const createHttpApp = ({ api, health, logger, ids, webFiles }: Deps) => {
     })
   })
   app.use('*', securityHeaders())
+  // gzip for text (JS, CSS, JSON, VTT); never media, ranges or SSE (Hono's content-type filter).
+  app.use('*', compress())
 
   app.route('/', healthRoutes(health))
   app.route('/api/v1', api)

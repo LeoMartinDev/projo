@@ -40,6 +40,8 @@ type Deps = {
   items: Pick<MetadataItemRepository, 'imageContext'>
   images: ImageRepository
   files: ImageFiles
+  /** WebP variants of a written image (§9.1). */
+  encodeVariants: (localPath: string) => Promise<void>
   tmdb: Pick<TmdbApi, 'images' | 'downloadImage'>
   refresh: Pick<RefreshMetadata, 'currentMetadata'>
   fetchImages: FetchImages
@@ -118,6 +120,7 @@ export const metadataEditingFactory = ({
   items,
   images,
   files,
+  encodeVariants,
   tmdb,
   refresh,
   fetchImages,
@@ -228,6 +231,7 @@ export const metadataEditingFactory = ({
     const localPath = `${folderOf[kind]}/${id}.${extensionOf(fetched.value.contentType, tmdbPath)}`
     const written = await files.write({ relativePath: localPath, bytes: fetched.value.bytes })
     if (!written.ok) return written
+    await encodeVariants(localPath)
     images.insert({
       id,
       kind,
@@ -265,6 +269,7 @@ export const metadataEditingFactory = ({
     const localPath = `custom/${id}.${encoded.value.extension}`
     const written = await files.write({ relativePath: localPath, bytes: encoded.value.bytes })
     if (!written.ok) return written
+    await encodeVariants(localPath)
     images.insert({
       id,
       kind,

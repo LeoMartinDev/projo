@@ -5,7 +5,7 @@ import { genreLabels } from '@projo/i18n/genres'
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import type { HomeHeroDto } from '@projo/shared/api/home'
 
-import { Artwork } from '../../shared/ui/Artwork.tsx'
+import { Artwork, fullWidthSizes, logoSizes } from '../../shared/ui/Artwork.tsx'
 import { MutedIcon, PlayIcon, VolumeIcon } from '../../shared/ui/icons.tsx'
 import { AddedIcon, AddIcon, InfoIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
@@ -64,7 +64,12 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
   return (
     <section className="hero" aria-labelledby="hero-title">
       <div className={`hero__media tone-${toneOf(item.id)}`} aria-hidden="true">
-        <Artwork src={item.images.backdrop} className="cover-img hero__img" eager />
+        <Artwork
+          src={item.images.backdrop}
+          className="cover-img hero__img"
+          eager
+          sizes={fullWidthSizes}
+        />
         {preview.active ? (
           <video
             {...preview.videoProps}
@@ -83,6 +88,7 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
             alt={title}
             className="hero__logo"
             eager
+            sizes={logoSizes}
             fallback={title}
           />
         </h1>

@@ -28,6 +28,8 @@ export const jobTypes = [
   'apply_update',
   'cleanup_cache',
   'purge_missing',
+  // §9.1: WebP variants of the stored images that miss them (daily, and after an update).
+  'image_variants',
 ] as const
 export const jobTypeSchema = z.enum(jobTypes)
 export type JobTypeDto = z.infer<typeof jobTypeSchema>

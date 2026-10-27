@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
 import { createTempDir } from '../../../test/support/database.ts'
-import { hasFfmpeg } from '../../../test/support/media.ts'
+import { hasFfmpeg, hasFfmpegEncoder } from '../../../test/support/media.ts'
 import { createTrickplayStore } from './trickplay-store.ts'
 
 /**
@@ -135,6 +135,59 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
     expect(Math.abs((await luma(sheet, 0)) - fullRange(40))).toBeLessThan(8)
     expect(await luma(sheet, 1)).toBeLessThan(4)
   })
+
+  test.skipIf(!hasFfmpegEncoder('libwebp'))(
+    'the still of an instant is extracted from the video once, kept with the sprites',
+    async () => {
+      const store = createTrickplayStore({ trickplayDir: join(dir.path, 'frames') })
+      const still = (sourceId: string) =>
+        store.framePath({ sourceId, path: videos.long, videoStreamIndex: 0, second: 20 })
+      expect(await still('src')).toEqual({ ok: true, value: undefined })
+      await store.generate({
+        sourceId: 'src',
+        path: videos.long,
+        videoStreamIndex: 0,
+        height: 180,
+        durationMs: 25_000,
+        fingerprint,
+      })
+      const extracted = await still('src')
+      expect(extracted).toEqual({
+        ok: true,
+        value: join(dir.path, 'frames', 'src', 'frame-20.webp'),
+      })
+      if (!extracted.ok || extracted.value === undefined) return
+      // The frame at 20 s itself, not the keyframe at 15 s of its thumbnail; never upscaled.
+      const mean = await run([
+        'ffmpeg',
+        '-hide_banner',
+        '-loglevel',
+        'error',
+        '-i',
+        extracted.value,
+        '-vf',
+        'scale=1:1:flags=area,format=gray',
+        '-f',
+        'rawvideo',
+        '-',
+      ])
+      expect(Math.abs((mean[0] ?? 0) - fullRange(40 + 6 * 20))).toBeLessThan(8)
+      const bytes = await Bun.file(extracted.value).bytes()
+      expect(new TextDecoder().decode(bytes.subarray(8, 12))).toBe('WEBP')
+
+      expect(await still('src')).toEqual(extracted)
+      // The sprites are rebuilt (the file changed): the still goes with them.
+      await store.generate({
+        sourceId: 'src',
+        path: videos.long,
+        videoStreamIndex: 0,
+        height: 180,
+        durationMs: 25_000,
+        fingerprint,
+      })
+      expect(await Bun.file(extracted.value).exists()).toBe(false)
+    },
+  )
 
   test('sheets of the previous generation are not served', async () => {
     const trickplayDir = join(dir.path, 'legacy')

@@ -10,6 +10,7 @@ import {
   sameFingerprint,
   type TrickplayIndex,
   trickplayHeight,
+  trickplayInstantAt,
   type TrickplayStore,
 } from '../../core/playback/media-assets.ts'
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
@@ -121,7 +122,10 @@ export type TrickplayUrl = ReturnType<typeof trickplayUrlFactory>
 
 export type TrickplayAccessError = AppError<'playback/trickplay_not_found'>
 
-/** `GET /trickplay/:sourceId/index.json` and `/:sheet.jpg`, for a profile that may play the source. */
+/**
+ * `GET /trickplay/:sourceId/index.json`, `/:sheet.jpg` and `/frames/:second.webp`, for a profile
+ * that may play the source.
+ */
 export const trickplayFilesFactory = ({
   catalogRepository,
   trickplayStore,
@@ -170,6 +174,40 @@ export const trickplayFilesFactory = ({
       if (fresh(sourceId, profileId) === undefined) return notFound(sourceId)
       const path = trickplayStore.sheetPath({ sourceId, sheet })
       return path === undefined ? notFound(sourceId) : ok(path)
+    },
+    /**
+     * The still of a thumbnail instant, sharper than its cell: what a "Continue watching" card
+     * shows (§13.3). Only the instants of the index, so at most one file per thumbnail.
+     */
+    frame: async ({
+      sourceId,
+      second,
+      profileId,
+    }: {
+      sourceId: string
+      second: number
+      profileId: string
+    }): Promise<Result<string, TrickplayAccessError | MediaError>> => {
+      const stored = fresh(sourceId, profileId)
+      const source = stored === undefined ? undefined : catalogRepository.findSource(sourceId)
+      const video = source?.media?.video[0]
+      const durationS = (source?.media?.durationMs ?? 0) / 1000
+      if (
+        stored === undefined ||
+        source === undefined ||
+        video === undefined ||
+        trickplayInstantAt(stored.index, second, durationS) !== second
+      ) {
+        return notFound(sourceId)
+      }
+      const path = await trickplayStore.framePath({
+        sourceId,
+        path: source.path,
+        videoStreamIndex: video.index,
+        second,
+      })
+      if (!path.ok) return path
+      return path.value === undefined ? notFound(sourceId) : ok(path.value)
     },
   }
 }
