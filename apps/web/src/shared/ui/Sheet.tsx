@@ -31,8 +31,12 @@ export const Sheet = ({
       ref={ref}
       className="sheet"
       aria-labelledby={labelledBy}
-      onClose={onClose}
+      // React propagates cancel and close up the tree: ignore those of a nested dialog.
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return
         event.preventDefault()
         onClose()
       }}

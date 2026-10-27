@@ -79,8 +79,12 @@ export const SearchOverlay = ({ open, onClose }: { open: boolean; onClose: () =>
       ref={ref}
       className="search"
       aria-label={t('search.label')}
-      onClose={onClose}
+      // React propagates cancel and close up the tree: ignore those of a nested dialog.
+      onClose={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
       onCancel={(event) => {
+        if (event.target !== event.currentTarget) return
         event.preventDefault()
         onClose()
       }}
