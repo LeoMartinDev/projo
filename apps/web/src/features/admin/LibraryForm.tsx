@@ -8,6 +8,7 @@ import { api, request } from '../../shared/api/client.ts'
 import { formatNumber } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Field, SelectChevron, Switch } from '../../shared/ui/controls.tsx'
+import { Dialog } from '../../shared/ui/Dialog.tsx'
 import { CheckIcon, CloseIcon, FolderIcon, PlusIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { FolderBrowser } from './FolderBrowser.tsx'
@@ -68,6 +69,7 @@ export const LibraryForm = ({
   const [profileChoice, setProfileChoice] = useState<ReadonlySet<string>>()
   const selectedProfiles = profileChoice ?? access.initial ?? new Set<string>()
   const [browserOpen, setBrowserOpen] = useState(false)
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false)
   const [touched, setTouched] = useState(false)
 
   const nameValid = name.trim().length > 0
@@ -107,6 +109,9 @@ export const LibraryForm = ({
         )
   }
 
+  /** Saving without these deletes their sources and stops their playbacks: confirmed first (§15). */
+  const removedRoots = library?.roots.filter((root) => !roots.includes(root.path)) ?? []
+
   const save = useMutation({
     mutationFn: async () => {
       const saved = await saveLibrary()
@@ -130,7 +135,9 @@ export const LibraryForm = ({
   const submit = (event: FormEvent) => {
     event.preventDefault()
     setTouched(true)
-    if (nameValid && rootsValid && numbersValid && !save.isPending) save.mutate()
+    if (!nameValid || !rootsValid || !numbersValid || save.isPending) return
+    if (removedRoots.length > 0) setConfirmingRemoval(true)
+    else save.mutate()
   }
 
   const addRoot = (path: string) => {
@@ -277,6 +284,49 @@ export const LibraryForm = ({
           onClose={() => setBrowserOpen(false)}
           onPick={addRoot}
         />
+      ) : undefined}
+
+      {confirmingRemoval ? (
+        <Dialog
+          open
+          title={t('admin.form.removeFoldersTitle', { count: removedRoots.length })}
+          onClose={() => setConfirmingRemoval(false)}
+          footer={
+            <>
+              <button type="button" className="button" onClick={() => setConfirmingRemoval(false)}>
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                className="button button--danger"
+                onClick={() => {
+                  setConfirmingRemoval(false)
+                  save.mutate()
+                }}
+              >
+                {t('admin.form.removeFoldersConfirm')}
+              </button>
+            </>
+          }
+        >
+          <ul className="root-list well">
+            {removedRoots.map((root) => (
+              <li key={root.path} className="root-item">
+                <FolderIcon size={16} />
+                <span className="root-item__path mono" title={root.path}>
+                  <bdi>{root.path}</bdi>
+                </span>
+                <span className="root-item__meta">
+                  {t('admin.root.files', {
+                    count: root.lastFileCount,
+                    formatted: formatNumber(root.lastFileCount, locale),
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="dialog__text">{t('admin.form.removeFoldersText')}</p>
+        </Dialog>
       ) : undefined}
     </>
   )
