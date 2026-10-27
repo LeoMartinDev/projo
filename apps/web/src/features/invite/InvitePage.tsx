@@ -9,7 +9,7 @@ import { api, request } from '../../shared/api/client.ts'
 import { toApiFailure } from '../../shared/api/failure.ts'
 import { Backdrop } from '../../shared/backdrops/Backdrop.tsx'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { profileSelected } from '../../shared/session/session.ts'
+import { signedIn, signedOut } from '../../shared/session/session.ts'
 import { Field, RevealButton, ValidMark } from '../../shared/ui/controls.tsx'
 import { ArrowRightIcon, LockIcon, ShieldIcon, UserIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert, FullPageSpinner } from '../../shared/ui/states.tsx'
@@ -85,7 +85,9 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
         }),
       ),
     onSuccess: async (me) => {
-      profileSelected(queryClient, me)
+      // An account switch when someone was signed in: nothing of the previous account stays.
+      signedOut(queryClient)
+      signedIn(queryClient, me)
       await navigate({ to: '/', replace: true })
     },
   })
