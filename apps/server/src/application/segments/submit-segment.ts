@@ -52,7 +52,9 @@ export const submitSegmentFactory =
     const segment = segmentRepository.find({ itemId, type })
     if (segment === undefined || segment.origin !== 'manual') return ok('skipped')
     const target = segmentTarget(itemId)
-    if (!target.ok) return ok('skipped')
+    // A file holding several episodes (§8.4): the marker is on the file's timeline, not the
+    // episode's, so the databases would get E02's intro minutes in (same rule as fetch_segments).
+    if (!target.ok || target.value.sharesFile) return ok('skipped')
     const { startMs, endMs } = segment
     const log = logger.child({ itemId, type })
 

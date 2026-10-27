@@ -20,13 +20,14 @@ let submissions: ReturnType<typeof inMemorySubmissions>
 const build = (
   settings: Partial<SegmentSettings>,
   failing: Parameters<typeof fakeSegmentProviders>[1] = {},
+  sharesFile = false,
 ) => {
   const fake = fakeSegmentProviders({}, failing)
   const { logger, lines } = createCapturingLogger()
   const submit = submitSegmentFactory({
     segmentTarget: segmentTargetFactory({
       segmentCatalog: inMemorySegmentCatalog([
-        { itemId: 'm1', kind: 'movie', tmdbId: 603, detectSegments: true },
+        { itemId: 'm1', kind: 'movie', tmdbId: 603, detectSegments: true, sharesFile },
       ]),
       catalogRepository: { listReadySources: () => [] } as unknown as CatalogRepository,
     }),
@@ -84,6 +85,13 @@ describe('submit_segment (§12.5)', () => {
     const notManual = build(on)
     expect(await notManual.submit()).toEqual({ ok: true, value: 'skipped' })
     expect([...off.fake.submitted, ...notManual.fake.submitted]).toEqual([])
+    expect(submissions.rows).toEqual([])
+  })
+
+  test('a file holding several episodes: nothing sent (file timeline, §8.4)', async () => {
+    const { submit, fake } = build(on, {}, true)
+    expect(await submit()).toEqual({ ok: true, value: 'skipped' })
+    expect(fake.submitted).toEqual([])
     expect(submissions.rows).toEqual([])
   })
 
