@@ -284,7 +284,16 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   const playback = useQuery({
     queryKey: ['playback', itemId, request],
-    queryFn: () => createPlaybackSession(itemId, request),
+    queryFn: async ({ signal }) => {
+      const started = await createPlaybackSession(itemId, request)
+      // Left before the answer: the query dropped it (a remount refetches), so nobody else ends it.
+      if (signal.aborted)
+        void endSessionOnce(started.session.id, {
+          positionMs: started.session.startPositionMs,
+          paused: true,
+        })
+      return started
+    },
     gcTime: 0,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
