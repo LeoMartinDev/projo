@@ -26,6 +26,7 @@ import { SearchOverlay } from '../search/SearchOverlay.tsx'
 import { Avatar } from './Avatar.tsx'
 import { Logo } from './Logo.tsx'
 import './shell.css'
+import { usePillMerge } from './use-pill-merge.ts'
 
 const closePopover = (event: MouseEvent<HTMLElement>) => {
   event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover()
@@ -130,7 +131,7 @@ const subscribeScroll = (notify: () => void) => {
   return () => window.removeEventListener('scroll', notify)
 }
 
-/** The header turns into glass once the page scrolls under it. */
+/** The header turns into glass (phone) or one pill (wider) once the page scrolls under it. */
 const useScrolled = () =>
   useSyncExternalStore(
     subscribeScroll,
@@ -153,6 +154,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
   const session = useQuery(sessionQuery)
   const me = session.data?.status === 'signed_in' ? session.data.me : initial
   const scrolled = useScrolled()
+  const headerRef = usePillMerge(scrolled)
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
@@ -171,7 +173,35 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
       <a className="skip-link" href="#main">
         {t('shell.skipToContent')}
       </a>
-      <header className="shell__header" data-scrolled={scrolled}>
+      <header className="shell__header" data-scrolled={scrolled} ref={headerRef}>
+        <span className="pill-merge__glass" aria-hidden="true" />
+        <svg className="pill-merge__paint" aria-hidden="true">
+          <defs>
+            <path id="pill-merge-shape" />
+            <filter id="pill-merge-shadow" x="-10%" y="-60%" width="120%" height="220%">
+              <feGaussianBlur stdDeviation="10" />
+            </filter>
+            <filter id="pill-merge-edge">
+              <feMorphology in="SourceGraphic" operator="erode" radius="1" result="inner" />
+              <feComposite in="SourceGraphic" in2="inner" operator="out" />
+            </filter>
+            <filter id="pill-merge-blur-logo" x="-20%" width="140%">
+              <feGaussianBlur stdDeviation="0 0" />
+            </filter>
+            <filter id="pill-merge-blur-actions" x="-20%" width="140%">
+              <feGaussianBlur stdDeviation="0 0" />
+            </filter>
+            <mask id="pill-merge-outside" maskUnits="userSpaceOnUse">
+              <rect width="100%" height="100%" fill="#fff" />
+              <use href="#pill-merge-shape" fill="#000" />
+            </mask>
+          </defs>
+          <g mask="url(#pill-merge-outside)">
+            <use href="#pill-merge-shape" y="6" className="pill-merge__shadow" />
+          </g>
+          <use href="#pill-merge-shape" className="pill-merge__tint" />
+          <use href="#pill-merge-shape" className="pill-merge__edge" />
+        </svg>
         <Link to="/" className="shell__logo" aria-label={t('shell.home')}>
           <Logo />
         </Link>

@@ -109,6 +109,65 @@ html:has(dialog:modal) .shell__header {
   gap: 4px;
 }
 
+/* Wider than a phone, the pill's glass is one shape drawn by use-pill-merge.ts: the navigation
+   alone, then, once the page scrolls, the wordmark and the actions fused into it. */
+.pill-merge__glass,
+.pill-merge__paint {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pill-merge__glass {
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+}
+
+.pill-merge__shadow {
+  fill: rgba(0, 0, 0, 0.45);
+  filter: url(#pill-merge-shadow);
+}
+
+.pill-merge__tint {
+  fill: rgba(40, 40, 44, 0.42);
+}
+
+.pill-merge__edge {
+  fill: rgba(255, 255, 255, 0.09);
+  filter: url(#pill-merge-edge);
+}
+
+@media (min-width: 641px) {
+  .shell__header[data-scrolled='true']::before {
+    opacity: 0;
+  }
+
+  .shell__logo,
+  .pill-nav,
+  .shell__actions {
+    position: relative;
+  }
+
+  .shell__logo {
+    transform: translateX(var(--logo-x, 0px));
+  }
+
+  .shell__actions {
+    transform: translateX(var(--actions-x, 0px));
+  }
+
+  .shell__header .pill-nav {
+    border-color: transparent;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+}
+
 .shell__icon-button {
   display: flex;
   align-items: center;
@@ -230,7 +289,9 @@ html:has(dialog:modal) .shell__header {
     padding: 0 16px;
   }
 
-  .shell__search {
+  .shell__search,
+  .pill-merge__glass,
+  .pill-merge__paint {
     display: none;
   }
 
