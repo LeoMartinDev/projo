@@ -1,5 +1,6 @@
 import type { Clock } from '../../core/clock.ts'
 import type { IdGenerator } from '../../core/ids.ts'
+import type { ItemOverrideRepository } from '../../core/metadata/editing.ts'
 import {
   episodeMetadata,
   type ItemMetadata,
@@ -24,6 +25,7 @@ import type { Resolution, TmdbReviewReason } from './resolve-match.ts'
 
 type Deps = {
   items: MetadataItemRepository
+  overrides: Pick<ItemOverrideRepository, 'get' | 'set'>
   sourceRepository: Pick<SourceRepository, 'patch'>
   playbackSessions: PlaybackSessionTerminator
   ids: IdGenerator
@@ -49,11 +51,18 @@ type Matched = Exclude<Resolution, { kind: 'review' }>
  */
 export const applyMatchFactory = ({
   items,
+  overrides,
   sourceRepository,
   playbackSessions,
   ids,
   clock,
 }: Deps) => {
+  // The edits that moved are locks on the target: their values replace TMDB's (§9.3).
+  const moveItemRows = (pair: { from: string; into: string }) => {
+    items.moveItemRows(pair)
+    overrides.set({ itemId: pair.into, overrides: overrides.get(pair.into), at: clock.now() })
+  }
+
   const write = (id: string, metadata: ItemMetadata, language: string) =>
     items.writeMetadata({
       id,
@@ -238,7 +247,7 @@ export const applyMatchFactory = ({
         // file, §7.8) go to their replacements, and those of their season and series to the new
         // season and series.
         for (const pair of pairReplacedItems(links, targets, orphaned)) {
-          items.moveItemRows(pair)
+          moveItemRows(pair)
           const left = links.find((link) => link.id === pair.from)
           if (left === undefined || parents === undefined) continue
           const { season, series } = ancestorsOf(left)
@@ -252,7 +261,7 @@ export const applyMatchFactory = ({
               ancestor.id !== into &&
               (isLocal(ancestor) || withoutFile(ancestor.id))
             ) {
-              items.moveItemRows({ from: ancestor.id, into })
+              moveItemRows({ from: ancestor.id, into })
             }
           }
         }

@@ -2,8 +2,14 @@ import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { ok } from '@projo/shared'
+
 import type { LibraryDto, SourcesPage } from '@projo/shared/api/libraries'
-import type { AssignResponse, TmdbSearchResponse } from '@projo/shared/api/metadata'
+import type {
+  AssignResponse,
+  ItemMetadataDto,
+  TmdbSearchResponse,
+} from '@projo/shared/api/metadata'
 import type { AdminSettingsDto } from '@projo/shared/api/settings'
 
 import { seedViewer } from '../support/catalog-fixtures.ts'
@@ -864,6 +870,51 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     expect(world.endedItems.flat()).toEqual(
       [inception?.id ?? '', other?.id ?? ''].filter((id) => id !== kept),
     )
+  })
+
+  test('the edits of a local item merged into a TMDB item show on it (§9.3)', async () => {
+    // Uploads re-encoded as they are (ffmpeg is tested on its own).
+    await world.stop()
+    world = createMetadataWorld({
+      imageReencoder: {
+        reencode: async ({ bytes }) => ok({ bytes, extension: 'png', width: 1000, height: 1500 }),
+      },
+    })
+    await world.setKey()
+    place('Inception (2010).mkv')
+    const library = await createLibrary('movies')
+    await settle()
+    const [movie] = items()
+    expect(movie?.tmdb_id).toBe(27205)
+    // Without key, a second file of the movie gets a local item; the admin edits it.
+    await world.setKey('')
+    place('Autre nom [tmdbid-27205].mkv')
+    await fullScan(library.id)
+    await settle()
+    const local = items().find((row) => row.tmdb_id === undefined)
+    const edited = await world.request(`/items/${local?.id}`, {
+      method: 'PATCH',
+      json: { title: 'Inception, version longue' },
+    })
+    expect(edited.status).toBe(200)
+    const form = new FormData()
+    form.set('kind', 'poster')
+    form.set(
+      'file',
+      new File([Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1])], 'p.png'),
+    )
+    const uploaded = await world.request(`/items/${local?.id}/images`, {
+      method: 'POST',
+      body: form,
+    })
+    const poster = ((await uploaded.json()) as ItemMetadataDto).images.poster?.split('/').pop()
+
+    await world.setKey()
+    await world.runJobs(['match_source'])
+    await world.runJobs(['fetch_images'])
+    expect(items().map((row) => [row.id, row.title, row.poster_image_id])).toEqual([
+      [movie?.id, 'Inception, version longue', poster],
+    ])
   })
 
   test('an episode joining a known series: its local series rows move to the TMDB series', async () => {

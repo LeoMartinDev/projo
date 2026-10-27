@@ -117,7 +117,15 @@ export const buildMetadataModule = (
   const manualMatches = createSqliteManualMatchRepository({ db })
 
   const resolveMatch = resolveMatchFactory({ tmdb, clock })
-  const applyMatch = applyMatchFactory({ items, sourceRepository, playbackSessions, ids, clock })
+  const overrides = createSqliteItemOverrideRepository({ db })
+  const applyMatch = applyMatchFactory({
+    items,
+    overrides,
+    sourceRepository,
+    playbackSessions,
+    ids,
+    clock,
+  })
   const requestMatch = requestMatchFactory({ settings, notifier, jobQueue })
   const refresh = refreshMetadataFactory({
     details: tmdbDetailsFactory({ tmdb }),
@@ -179,7 +187,7 @@ export const buildMetadataModule = (
   })
 
   const editing = metadataEditingFactory({
-    overrides: createSqliteItemOverrideRepository({ db }),
+    overrides,
     items,
     images,
     files,
