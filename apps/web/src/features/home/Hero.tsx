@@ -80,6 +80,13 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
         ) : undefined}
         <span className="hero__shade" />
       </div>
+      {/* Phone: the whole card opens the details, in place of the info button. */}
+      <Link
+        to="/items/$itemId"
+        params={{ itemId: item.id }}
+        className="hero__open"
+        aria-label={t('card.infoOn', { title })}
+      />
       <div className="hero__content">
         <span className="hero__eyebrow rise">{eyebrow}</span>
         <h1 id="hero-title" className="hero__title rise r1">

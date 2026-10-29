@@ -74,6 +74,12 @@
   );
 }
 
+.hero__open {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+
 .hero__content {
   position: absolute;
   right: var(--gutter);
@@ -393,9 +399,9 @@
   }
 
   .hero__content {
-    right: 20px;
-    bottom: 20px;
-    left: 20px;
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
     align-items: center;
     gap: 12px;
     text-align: center;
@@ -425,7 +431,7 @@
   .hero__actions {
     flex-wrap: nowrap;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
     padding-top: 0;
   }
 
@@ -435,31 +441,32 @@
     font-size: 15px;
   }
 
-  .hero__play {
+  .hero__actions .hero__play {
     flex: 1 1 0;
+    gap: 8px;
+    padding: 0 10px;
   }
 
   .hero__list {
-    flex: 1 1 0;
-    width: auto;
-    border-radius: var(--radius-button) !important;
-  }
-
-  .hero__list-label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-  }
-
-  .hero__info {
     flex: 0 0 48px;
     padding: 0 !important;
   }
 
-  .hero__info-label {
-    display: none;
+  .hero__info {
+    display: none !important;
+  }
+
+  .hero__open {
+    display: block;
+  }
+
+  /* Taps on the title and metadata reach the card link underneath. */
+  .hero__content {
+    pointer-events: none;
+  }
+
+  .hero__actions {
+    pointer-events: auto;
   }
 
   .home__rows {
@@ -475,10 +482,4 @@
 
 .hero__actions svg {
   flex: 0 0 auto;
-}
-
-@media (max-width: 640px) {
-  .hero__info {
-    order: 3;
-  }
 }
