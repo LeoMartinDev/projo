@@ -1,4 +1,3 @@
-import { Link, useCanGoBack, useRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -8,30 +7,10 @@ import type { ItemDetailDto, PersonDto } from '@projo/shared/api/catalog'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Artwork, fullWidthSizes, logoSizes } from '../../shared/ui/Artwork.tsx'
+import { BackLink } from '../../shared/ui/BackLink.tsx'
 import { ChevronLeftIcon, StarIcon } from '../../shared/ui/media-icons.tsx'
 import { qualityLabel, toneOf, yearsLabel } from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
-
-/** "Retour": the previous page when there is one, the home otherwise. */
-const BackLink = () => {
-  const { t } = useTranslation()
-  const router = useRouter()
-  const canGoBack = useCanGoBack()
-  return (
-    <Link
-      to="/"
-      className="detail-hero__back"
-      onClick={(event) => {
-        if (!canGoBack) return
-        event.preventDefault()
-        router.history.back()
-      }}
-    >
-      <ChevronLeftIcon size={18} />
-      <span className="detail-hero__back-label">{t('common.back')}</span>
-    </Link>
-  )
-}
 
 const names = (people: readonly PersonDto[], max: number) =>
   people
@@ -127,7 +106,10 @@ export const DetailHero = ({
         <span className="detail-hero__shade" />
       </div>
       <div className="detail-hero__top">
-        <BackLink />
+        <BackLink className="detail-hero__back">
+          <ChevronLeftIcon size={18} />
+          <span className="detail-hero__back-label">{t('common.back')}</span>
+        </BackLink>
       </div>
       <div className="detail-hero__content">
         {eyebrow}

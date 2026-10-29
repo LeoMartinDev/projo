@@ -30,7 +30,7 @@
   width: min(960px, 100%);
   height: 100%;
   margin: 0 auto;
-  padding: clamp(16px, 6vh, 64px) var(--gutter) 0;
+  padding: calc(clamp(16px, 6vh, 64px) + env(safe-area-inset-top)) var(--gutter) 0;
   animation: rise 0.45s var(--ease) both;
 }
 
@@ -183,7 +183,7 @@
 
 @media (max-width: 640px) {
   .search__panel {
-    padding: 12px 12px 0;
+    padding: calc(12px + env(safe-area-inset-top)) 12px 0;
   }
 
   .search__bar {

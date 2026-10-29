@@ -72,7 +72,8 @@ const measurePreview = (wrapper: HTMLElement, poster: boolean): PreviewPlacement
   if (!preview || preview.offsetWidth === 0) return undefined
   const root = document.documentElement
   const row = wrapper.closest('.row__viewport')?.getBoundingClientRect()
-  const header = Number.parseFloat(getComputedStyle(wrapper).getPropertyValue('--header-height'))
+  // `--header-height` is a calc() with the status bar's inset: the header itself says where it ends.
+  const header = document.querySelector('.shell__header')?.getBoundingClientRect().bottom ?? 0
   const box = wrapper.getBoundingClientRect()
   return placePreview({
     card: {
@@ -86,7 +87,7 @@ const measurePreview = (wrapper: HTMLElement, poster: boolean): PreviewPlacement
     bounds: {
       left: Math.max(row?.left ?? edgePx, 0),
       right: Math.min(row?.right ?? root.clientWidth - edgePx, root.clientWidth),
-      top: (Number.isNaN(header) ? 0 : header) + edgePx,
+      top: header + edgePx,
       bottom: root.clientHeight - edgePx,
     },
     // The resting place of artboard `Home`.

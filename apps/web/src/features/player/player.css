@@ -6,7 +6,11 @@
  */
 
 .player {
-  --player-gutter: clamp(16px, 3vw, 40px);
+  --player-gutter: max(
+    clamp(16px, 3vw, 40px),
+    env(safe-area-inset-left),
+    env(safe-area-inset-right)
+  );
   --player-chrome-bottom: 148px;
   position: fixed;
   inset: 0;

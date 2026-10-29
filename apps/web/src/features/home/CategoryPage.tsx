@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { categoryTitle } from '@projo/i18n/genres'
 import { type HomeCategorySlug, homeCategoryOfSlug } from '@projo/shared/api/home'
 
+import { BackLink } from '../../shared/ui/BackLink.tsx'
+import { ChevronLeftIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { homeCategoryPageQuery } from '../catalog/queries.ts'
 import { useGridCardSheet } from '../media/CardSheet.tsx'
@@ -26,7 +28,12 @@ export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
   return (
     <div className="page catalog">
       <div className="catalog__header">
-        <h1 className="page__title">{title}</h1>
+        <div className="page__heading">
+          <BackLink className="page__back" label={t('common.back')}>
+            <ChevronLeftIcon size={18} />
+          </BackLink>
+          <h1 className="page__title">{title}</h1>
+        </div>
       </div>
       {page.isError && items.length === 0 ? (
         <ErrorState error={page.error} onRetry={() => void page.refetch()} />

@@ -18,7 +18,7 @@
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 16px;
-  padding: 24px var(--gutter);
+  padding: calc(24px + env(safe-area-inset-top)) var(--gutter) 24px;
 }
 
 .onb__progress {
@@ -176,7 +176,7 @@
   .onb__header {
     position: relative;
     grid-template-columns: auto 1fr;
-    padding-top: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top));
     padding-bottom: 8px;
   }
 

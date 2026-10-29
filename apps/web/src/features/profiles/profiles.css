@@ -8,7 +8,7 @@
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: 28px var(--gutter);
+  padding: calc(28px + env(safe-area-inset-top)) var(--gutter) 28px;
   overflow: hidden;
   background: var(--color-bg);
 }
@@ -200,7 +200,7 @@
 
 @media (max-width: 640px) {
   .who {
-    padding: 20px 16px;
+    padding: calc(20px + env(safe-area-inset-top)) 16px 20px;
   }
 
   .who__main {

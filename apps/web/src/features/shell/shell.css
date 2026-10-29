@@ -26,7 +26,7 @@
 /* ── Spectator shell (artboards `Home`, `MobileHome`) ───────────────────── */
 
 .shell {
-  --header-height: 80px;
+  --header-height: calc(80px + env(safe-area-inset-top));
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -63,7 +63,7 @@
   align-items: center;
   gap: 12px;
   height: var(--header-height);
-  padding: 0 var(--gutter);
+  padding: env(safe-area-inset-top) var(--gutter) 0;
   background: linear-gradient(180deg, rgba(10, 10, 11, 0.55) 0%, rgba(10, 10, 11, 0) 100%);
   transition:
     background-color 0.35s ease,
@@ -214,6 +214,32 @@ html:has(dialog:modal) .shell__header {
   padding-left: var(--gutter);
 }
 
+.page__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The installed web app has no browser back button (iOS has none either): its pages bring one. */
+.page__back {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  background: var(--color-glass-strong);
+  color: var(--color-text);
+}
+
+@media (display-mode: standalone) {
+  .page__back {
+    display: flex;
+  }
+}
+
 .page__title {
   font-size: clamp(32px, 4.5vw, 48px);
   font-weight: 700;
@@ -281,12 +307,14 @@ html:has(dialog:modal) .shell__header {
 /* Phone: the navigation floats at the bottom of the screen (artboard MobileHome). */
 @media (max-width: 640px) {
   .shell {
-    --header-height: 66px;
+    --header-height: calc(66px + env(safe-area-inset-top));
+    /* Room the pages keep below their content for the floating navigation. */
+    --nav-room: calc(112px + env(safe-area-inset-bottom));
   }
 
   .shell__header {
     grid-template-columns: 1fr auto;
-    padding: 0 16px;
+    padding: env(safe-area-inset-top) 16px 0;
   }
 
   .shell__search,
@@ -297,7 +325,7 @@ html:has(dialog:modal) .shell__header {
 
   .page {
     padding-right: 16px;
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: var(--nav-room);
     padding-left: 16px;
   }
 
@@ -341,6 +369,66 @@ html:has(dialog:modal) .shell__header {
 
   .pill-nav__icon,
   .pill-nav__search {
+    display: flex;
+  }
+}
+
+/* In a browser tab the bottom edge is Safari's toolbar: the navigation joins the header as a
+   second row, and floats at the bottom only in the installed web app (manifest.webmanifest). */
+@media (max-width: 640px) and (display-mode: browser) {
+  .shell {
+    --header-height: calc(116px + env(safe-area-inset-top));
+    --nav-room: 48px;
+  }
+
+  .shell__header {
+    grid-template-rows: 56px 46px;
+    align-content: start;
+    padding-bottom: 14px;
+    transition:
+      height 0.3s var(--ease),
+      background-color 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .shell__header .pill-nav {
+    position: static;
+    grid-row: 2;
+    grid-column: 1 / -1;
+    padding: 4px;
+    border-radius: var(--radius-pill);
+    box-shadow: none;
+    transition:
+      opacity 0.2s ease,
+      translate 0.3s var(--ease),
+      visibility 0.3s;
+  }
+
+  /* Scrolling down folds the navigation row away (AppShell `useFolded`); scrolling up brings it
+     back, like Safari's own toolbar. */
+  .shell__header[data-folded='true']:not(:focus-within) {
+    height: calc(56px + env(safe-area-inset-top));
+  }
+
+  .shell__header[data-folded='true']:not(:focus-within) .pill-nav {
+    opacity: 0;
+    translate: 0 -12px;
+    visibility: hidden;
+  }
+
+  .pill-nav__link {
+    flex-direction: row;
+    height: 36px;
+    border-radius: var(--radius-pill);
+    font-size: 14px;
+  }
+
+  .pill-nav__icon,
+  .pill-nav__search {
+    display: none;
+  }
+
+  .shell__search {
     display: flex;
   }
 }

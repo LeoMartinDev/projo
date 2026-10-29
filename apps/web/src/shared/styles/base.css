@@ -7,6 +7,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  /* No grey box on every tap (iOS): buttons and cards have their own `:active` state. */
+  -webkit-tap-highlight-color: transparent;
   /* The scrollbar is always there (an empty track on a short page): the layout never shifts when
      the page grows past the window. `scrollbar-gutter: stable` would do it without the track, but
      Chromium ignores it on the root. */
@@ -553,6 +555,16 @@ img[data-pending] {
 
 select.field__input {
   cursor: pointer;
+}
+
+/* iOS Safari zooms into any field under 16 px it focuses, and stays zoomed: touch screens get
+   16 px (the search field is larger, the PIN's field is invisible but still counts). */
+@media (pointer: coarse) {
+  input:not(.search__input),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 .field__input option {
@@ -1233,7 +1245,7 @@ select.field__input {
 
 .menu {
   position: fixed;
-  inset: 68px var(--gutter) auto auto;
+  inset: calc(68px + env(safe-area-inset-top)) var(--gutter) auto auto;
   margin: 0;
   min-width: 240px;
   padding: 8px;

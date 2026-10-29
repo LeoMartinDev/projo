@@ -11,7 +11,8 @@ import { formatRelative } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Field, RevealButton, ValidMark } from '../../shared/ui/controls.tsx'
 import { LockIcon, ShieldIcon } from '../../shared/ui/icons.tsx'
-import { DevicesIcon } from '../../shared/ui/media-icons.tsx'
+import { BackLink } from '../../shared/ui/BackLink.tsx'
+import { ChevronLeftIcon, DevicesIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
 import { passwordScore } from '../setup/password-strength.ts'
@@ -269,6 +270,9 @@ export const AccountPage = ({ me }: { me: MeResponse }) => {
   return (
     <div className="page page--narrow settings">
       <div className="settings__head">
+        <BackLink className="page__back" label={t('common.back')}>
+          <ChevronLeftIcon size={18} />
+        </BackLink>
         <div className="settings__who">
           <h1 className="page__title">{t('account.title')}</h1>
           <span className="account__username">

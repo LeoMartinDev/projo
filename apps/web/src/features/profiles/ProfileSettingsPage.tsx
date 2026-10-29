@@ -17,7 +17,9 @@ import {
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { pickActiveProfile } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
+import { BackLink } from '../../shared/ui/BackLink.tsx'
 import { Field, SelectChevron, Switch } from '../../shared/ui/controls.tsx'
+import { ChevronLeftIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorAlert } from '../../shared/ui/states.tsx'
 import { languageName } from '../item/media-labels.ts'
 import { Avatar } from '../shell/Avatar.tsx'
@@ -215,6 +217,9 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   return (
     <div className="page page--narrow settings">
       <div className="settings__head">
+        <BackLink className="page__back" label={t('common.back')}>
+          <ChevronLeftIcon size={18} />
+        </BackLink>
         <Avatar name={profile.name} color={profile.avatarColor} size="xlarge" />
         <div className="settings__who">
           <h1 className="page__title">{profile.name}</h1>

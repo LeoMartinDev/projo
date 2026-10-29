@@ -13,7 +13,7 @@
   top: 0;
   left: 0;
   z-index: 5;
-  padding: 24px var(--gutter);
+  padding: calc(24px + env(safe-area-inset-top)) var(--gutter) 24px;
 }
 
 .auth__main {
@@ -50,12 +50,12 @@
 @media (max-width: 720px) {
   .auth__header {
     position: relative;
-    padding-top: 20px;
+    padding-top: calc(20px + env(safe-area-inset-top));
   }
 
   .auth__main {
     justify-content: center;
-    min-height: calc(100dvh - 72px);
+    min-height: calc(100dvh - 72px - env(safe-area-inset-top));
     padding-top: 24px;
   }
 

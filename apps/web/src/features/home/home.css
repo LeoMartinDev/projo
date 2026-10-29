@@ -376,7 +376,7 @@
 
 @media (max-width: 640px) {
   .home {
-    padding-bottom: calc(112px + env(safe-area-inset-bottom));
+    padding-bottom: var(--nav-room);
   }
 
   .hero {
