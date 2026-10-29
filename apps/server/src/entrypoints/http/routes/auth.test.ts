@@ -9,6 +9,16 @@ import {
 type ErrorBody = { error: { code: string; context?: Record<string, unknown> } }
 const errorCode = async (response: Response) => ((await response.json()) as ErrorBody).error.code
 
+describe('stream URLs (§20)', () => {
+  test('a capability URL needs no session; any other stream path still does', async () => {
+    const t = createAuthTestApp()
+    await t.completeSetup()
+    const capability = await t.request('/api/v1/stream/s1/secret/index.m3u8')
+    expect(capability.status).not.toBe(401)
+    expect((await t.request('/api/v1/stream/s1/index.m3u8')).status).toBe(401)
+  })
+})
+
 describe('setup', () => {
   test('status, then the wizard creates the admin and its profile and signs in', async () => {
     const t = createAuthTestApp()

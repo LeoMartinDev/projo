@@ -23,6 +23,11 @@ export type PlaybackSession = {
    * transcode: always `aac`).
    */
   audioDelivery?: 'copy' | 'aac'
+  /**
+   * §20: hash of the secret of the stream URLs (`/stream/:id/:secret/…`), which carry no cookie.
+   * Absent on sessions made before it: their stream URLs no longer work.
+   */
+  streamSecretHash?: string
   startedAt: Date
   lastHeartbeatAt: Date
   positionMs: number

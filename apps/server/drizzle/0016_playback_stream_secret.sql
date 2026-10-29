@@ -1,0 +1,1 @@
+ALTER TABLE `playback_sessions` ADD `stream_secret_hash` text;

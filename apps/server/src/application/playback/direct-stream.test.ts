@@ -36,7 +36,7 @@ const streamOf = (current: PlayableSource) =>
   directStreamFactory({
     authorize: () => ok(session),
     catalogRepository: { findSource: () => current } as unknown as CatalogRepository,
-  })({ sessionId: 's1', accountId: 'account-1', profileId: 'profile-1', sourceId: source.id })
+  })({ sessionId: 's1', secret: 'secret-1' })
 
 describe('directStream', () => {
   test('serves the file of a ready source', async () => {

@@ -221,7 +221,7 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     }>(created)
     expect(session).toMatchObject({
       mode: 'hls_remux',
-      stream: { type: 'hls', url: `/api/v1/stream/${session.id}/index.m3u8` },
+      stream: { type: 'hls' },
       startPositionMs: 0,
       heartbeatIntervalMs: 10_000,
       audioTracks: [{ index: 1, codec: 'ac3', delivery: 'aac' }],
@@ -239,6 +239,10 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     await runQueuedKeyframeJobs()
     expect(existsSync(`${data.path}/cache/keyframes/mkv-source.json`)).toBe(true)
 
+    // §20: under the session's capability prefix, a 256-bit secret in base64url.
+    expect(session.stream.url).toMatch(
+      new RegExp(`^/api/v1/stream/${session.id}/[\\w-]{43}/index\\.m3u8$`),
+    )
     const playlistPath = session.stream.url.replace('/api/v1', '')
     const playlist = await call(playlistPath)
     expect(playlist.status).toBe(200)
@@ -255,8 +259,9 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect((await segment.arrayBuffer()).byteLength).toBeGreaterThan(1000)
     expect((await call(`${base}seg-00099.m4s`)).status).toBe(404)
     expect((await call(`${base}../../etc`)).status).toBe(404)
-    // Another account cannot read this session's stream.
-    expect((await call(playlistPath, { as: 'intruder' })).status).toBe(404)
+    // §20: the secret is the credential, whoever asks; a wrong one names no session.
+    expect((await call(playlistPath, { as: 'intruder' })).status).toBe(200)
+    expect((await call(playlistPath.replace(/\/[^/]+\/index/, '/wrong/index'))).status).toBe(404)
 
     clock.advance(10_000)
     const beat = await call(`/playback/sessions/${session.id}/heartbeat`, {
@@ -291,6 +296,40 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
       }),
     )
     expect(resumed).toMatchObject({ startPositionMs: 12_000 })
+  })
+
+  test('a subtitle rendition of master.m3u8 lasts as long as the video playlist (§10.4)', async () => {
+    db.insert(sourceSubtitles)
+      .values({
+        id: 'mkv-fr',
+        sourceId: 'mkv-source',
+        kind: 'external',
+        path: '/media/mkv.fr.srt',
+        language: 'fr',
+        format: 'srt',
+      })
+      .run()
+    const session = await body<{ stream: { url: string } }>(
+      await call('/playback/sessions', {
+        method: 'POST',
+        json: {
+          itemId: 'mkv-movie',
+          subtitleTrackId: 'mkv-fr',
+          capabilities: { ...chrome, hls: 'native', subtitleDelivery: 'hls' },
+        },
+      }),
+    )
+    await runQueuedKeyframeJobs()
+    const base = session.stream.url.replace('/api/v1', '').replace('master.m3u8', '')
+    const seconds = (playlist: string) =>
+      [...playlist.matchAll(/#EXTINF:([\d.]+),/g)].reduce((sum, [, s]) => sum + Number(s), 0)
+    const video = await (await call(`${base}index.m3u8`)).text()
+    const rendition = await call(`${base}subtitles/mkv-fr.m3u8?subtitleOffsetMs=250`)
+    expect(rendition.status).toBe(200)
+    const text = await rendition.text()
+    expect(text).toContain('\nmkv-fr.vtt?subtitleOffsetMs=250\n')
+    expect(seconds(text)).toBeCloseTo(seconds(video), 3)
+    expect((await call(`${base}subtitles/nope.m3u8`)).status).toBe(404)
   })
 
   test('a deleted profile or account: its sessions end cleanly first (§10.6, §14)', async () => {
@@ -363,10 +402,8 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect(outside.status).toBe(416)
     expect(outside.headers.get('content-range')).toBe(`bytes */${file.length}`)
 
-    expect((await call('/stream/direct/mp4-source')).status).toBe(400)
-    expect((await call('/stream/direct/mp4-source?session=nope')).status).toBe(404)
-    expect((await call(url, { as: 'intruder' })).status).toBe(404)
-    expect((await call(url.replace('mp4-source', 'mkv-source'))).status).toBe(422)
+    expect((await call(url.replace(/\/[^/]+\/direct$/, '/wrong/direct'))).status).toBe(404)
+    expect((await call(url.replace('/direct', '/index.m3u8'))).status).toBe(422)
 
     // `navigator.sendBeacon(url, JSON.stringify(body))` on page close: POST in text/plain.
     const beacon = (text: string) =>
@@ -398,7 +435,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     )
     const url = session.stream.url.replace('/api/v1', '')
     const kid = { 'x-profile': 'profile-kid' }
-    expect((await call(url, { headers: kid })).status).toBe(404)
     const beat = await call(`/playback/sessions/${session.id}/heartbeat`, {
       method: 'PUT',
       headers: kid,
@@ -527,6 +563,32 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     }
   }
 
+  test('subtitles inside the stream for an iOS client: remux and master.m3u8 (§10.4, §20)', async () => {
+    seedAnime()
+    const tracks = { itemId: 'a1', audioStreamIndex: 1, subtitleTrackId: 'a1-fr' }
+    // A browser drawing the subtitles itself plays the MP4 as is.
+    expect((await play(tracks)).session).toMatchObject({ mode: 'direct' })
+
+    const ios = { ...chrome, hls: 'native', subtitleDelivery: 'hls' }
+    const { session } = await play({ ...tracks, capabilities: ios })
+    expect(session).toMatchObject({ mode: 'hls_remux', selectedSubtitleTrackId: 'a1-fr' })
+    const url = (session.stream as { url: string }).url.replace('/api/v1', '')
+    expect(url).toMatch(/\/master\.m3u8$/)
+    // The secret is enough: AVPlayer and AirPlay receivers send no cookie.
+    const master = await call(url, { as: 'airplay' })
+    expect(master.headers.get('content-type')).toBe('application/vnd.apple.mpegurl')
+    const text = await master.text()
+    expect(text).toContain(
+      'NAME="fr",LANGUAGE="fr",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="subtitles/a1-fr.m3u8?subtitleOffsetMs=0"',
+    )
+    expect(text).not.toContain('a1-pgs')
+    expect(text).toContain('SUBTITLES="subs"\nindex.m3u8')
+    expect(await (await call(`${url}?subtitleOffsetMs=750`)).text()).toContain(
+      'subtitleOffsetMs=750',
+    )
+    expect((await call(`${url}?subtitleOffsetMs=60000`)).status).toBe(400)
+  })
+
   test('the cascade, the series memory, PUT / DELETE track-preferences', async () => {
     seedAnime()
     const first = await play({ itemId: 'a1' })
@@ -652,7 +714,7 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     expect(session).toMatchObject({
       sourceId: 'cd2',
       mode: 'direct',
-      stream: { url: expect.stringContaining('/stream/direct/cd2?session=') },
+      stream: { url: expect.stringMatching(/\/direct$/) },
       durationMs: 3_000_000,
       startPositionMs: 1_500_000,
       partOffsetMs: 1_000_000,

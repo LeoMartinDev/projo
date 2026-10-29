@@ -116,6 +116,8 @@ type DecideInput = {
   quality: PlaybackQuality
   /** A bitmap subtitle track is burnt into the video (§10.4). */
   burnIn?: boolean
+  /** A text subtitle track is shown: inside the stream for an `hls` client (§10.4), never direct. */
+  textSubtitle?: boolean
 }
 
 /** Target height of each lower quality (§10.2: 8 / 4 / 1.5 Mb/s). */
@@ -211,6 +213,7 @@ export const decidePlayback = ({
   audioStreamIndex,
   quality,
   burnIn = false,
+  textSubtitle = false,
 }: DecideInput): Result<PlaybackPlan, DecidePlaybackError> => {
   const video = media.video[0]
   if (video === undefined) {
@@ -246,7 +249,9 @@ export const decidePlayback = ({
   // Safari plays HEVC tagged `hvc1` only: an `hev1` file goes through the remux, which retags it.
   // A probe without the tag (stored before it was read) is trusted as before.
   const directTag = video.codecTag?.toLowerCase() !== 'hev1'
+  const subtitlesInStream = textSubtitle && capabilities.subtitleDelivery === 'hls'
   if (
+    !subtitlesInStream &&
     mimeType !== undefined &&
     audioIsFirst &&
     directTag &&

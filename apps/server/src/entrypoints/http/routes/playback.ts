@@ -63,8 +63,14 @@ export const toSubtitleTrackDto = (
   }
 }
 
-export const toPlaybackSessionDto = (created: CreatedPlaybackSession): PlaybackSessionDto => {
+export const toPlaybackSessionDto = (
+  created: CreatedPlaybackSession,
+  /** The client shows subtitles from the stream (§10.4): HLS starts at `master.m3u8`. */
+  { hlsSubtitles }: { hlsSubtitles: boolean },
+): PlaybackSessionDto => {
   const { session, plan, media, startPositionMs, durationMs, mediaSegments, tracks } = created
+  // §20: the capability prefix of every stream URL of the session.
+  const streamBase = `${apiPrefix}/stream/${encode(session.id)}/${encode(created.streamSecret)}`
   return {
     id: session.id,
     itemId: session.itemId,
@@ -72,12 +78,8 @@ export const toPlaybackSessionDto = (created: CreatedPlaybackSession): PlaybackS
     mode: plan.mode,
     stream:
       plan.mode === 'direct'
-        ? {
-            type: 'direct',
-            url: `${apiPrefix}/stream/direct/${encode(session.sourceId)}?session=${encode(session.id)}`,
-            mimeType: plan.mimeType,
-          }
-        : { type: 'hls', url: `${apiPrefix}/stream/${encode(session.id)}/index.m3u8` },
+        ? { type: 'direct', url: `${streamBase}/direct`, mimeType: plan.mimeType }
+        : { type: 'hls', url: `${streamBase}/${hlsSubtitles ? 'master' : 'index'}.m3u8` },
     ...optional('durationMs', durationMs),
     startPositionMs,
     heartbeatIntervalMs: sessionTimings.heartbeatIntervalMs,
@@ -197,7 +199,12 @@ export const playbackRoutes = ({
           ...optional('startPositionMs', body.startPositionMs),
         })
         return result.ok
-          ? c.json(toPlaybackSessionDto(result.value), 201)
+          ? c.json(
+              toPlaybackSessionDto(result.value, {
+                hlsSubtitles: body.capabilities.subtitleDelivery === 'hls',
+              }),
+              201,
+            )
           : respondError(c, result.error)
       })
       .put('/playback/sessions/:id/heartbeat', validate('json', playbackHeartbeatBodySchema), (c) =>

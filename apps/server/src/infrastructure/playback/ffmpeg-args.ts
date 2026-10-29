@@ -1,6 +1,6 @@
 import type { PlaybackQuality } from '@projo/shared/api/playback'
 
-import { transcodeSegmentS } from '../../core/playback/hls-playlist.ts'
+import { outputTimestampOffsetS, transcodeSegmentS } from '../../core/playback/hls-playlist.ts'
 import type { BurnInSubtitle, HlsAudio } from '../../core/playback/ports.ts'
 import { fileInput } from './ffprobe.ts'
 
@@ -8,13 +8,7 @@ import { fileInput } from './ffprobe.ts'
 
 export type AudioDownmix = 'stereo' | 'keep'
 
-/**
- * Constant shift of every output timestamp. Timestamps are those of the source (0 = file start)
- * whatever the seek point, so a segment produced by any ffmpeg run has the same `tfdt`. The AAC
- * encoder primes 1024 samples before the first one: without the shift, the first audio fragment
- * of a run starting at 0 would have a negative (wrapped) `tfdt`.
- */
-export const outputTimestampOffsetS = 10
+export { outputTimestampOffsetS }
 
 const head = ['-hide_banner', '-nostdin', '-loglevel', 'error']
 

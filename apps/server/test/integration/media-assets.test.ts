@@ -13,6 +13,7 @@ import { basename, join } from 'node:path'
 import { eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 
+import { appError, err, ok } from '@projo/shared'
 import { trickplayIndexDtoSchema } from '@projo/shared/api/playback'
 
 import { dataPathsFor } from '../../src/core/data-paths.ts'
@@ -173,7 +174,34 @@ beforeEach(() => {
     .run()
 
   const scopes = (profileId: string) => (profileId === 'profile-kid' ? { libraryIds: [] } : {})
-  assets = buildMediaAssetsModule(platform, { visibilityScope: scopes }, { cores: 8 })
+  assets = buildMediaAssetsModule(
+    platform,
+    {
+      visibilityScope: scopes,
+      // One playback session, on `source-movie`, reached by its capability URL (§20).
+      authorizeStream: ({ sessionId, secret }) =>
+        sessionId === 'session-1' && secret === 'secret-1'
+          ? ok({
+              id: 'session-1',
+              profileId: 'profile-of-leo',
+              authSessionId: 'session-of-leo',
+              accountId: 'leo',
+              sourceId: 'source-movie',
+              itemId: 'movie',
+              mode: 'hls_remux',
+              burnIn: false,
+              startedAt: new Date(0),
+              lastHeartbeatAt: new Date(0),
+              positionMs: 0,
+            })
+          : err(
+              appError('playback/session_not_found', 'no playback session', {
+                context: { sessionId },
+              }),
+            ),
+    },
+    { cores: 8 },
+  )
   app = new Hono<AppEnv>()
     .use('*', async (c, next) => {
       c.set('account', { id: 'leo', username: 'leo', role: 'admin' })
@@ -211,6 +239,20 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
     expect(text.startsWith('WEBVTT')).toBe(true)
     expect(text).toContain('Été, déjà là')
     expect(existsSync(join(data.path, 'cache/subtitles/source-movie/track-fr.vtt'))).toBe(true)
+  })
+
+  test('a rendition of master.m3u8: under the capability URL, mapped on the HLS timeline', async () => {
+    const plain = new Hono<AppEnv>().route('/', assets.routes.subtitles)
+    const response = await plain.request(
+      '/stream/session-1/secret-1/subtitles/track-fr.vtt?subtitleOffsetMs=500',
+    )
+    expect(response.status).toBe(200)
+    const text = await response.text()
+    expect(text).toStartWith('WEBVTT')
+    expect(text).toContain('\nX-TIMESTAMP-MAP=MPEGTS:945000,LOCAL:00:00:00.000\n')
+    expect(text).toContain('Été, déjà là')
+    const wrong = await plain.request('/stream/session-1/nope/subtitles/track-fr.vtt')
+    expect(wrong.status).toBe(404)
   })
 
   test('an embedded text track is extracted', async () => {

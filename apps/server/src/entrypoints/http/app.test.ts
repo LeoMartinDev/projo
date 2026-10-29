@@ -12,7 +12,8 @@ import { createTempDir } from '../../../test/support/database.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createStaticFiles } from '../../infrastructure/http/static-files.ts'
 import { createUuidV7Generator } from '../../infrastructure/ids/uuid-v7.ts'
-import { silentLogger } from '../../../test/support/logger.ts'
+import { createCapturingLogger, silentLogger } from '../../../test/support/logger.ts'
+import type { Logger } from '../../core/logger.ts'
 import { type ApiRoutes, createApi } from './api.ts'
 import { createHttpApp } from './app.ts'
 import type { AppEnv } from './context.ts'
@@ -74,7 +75,7 @@ const routes: ApiRoutes = {
   adminUpdates: unwired<'adminUpdates'>(),
 }
 
-const buildApp = () => {
+const buildApp = (logger: Logger = silentLogger) => {
   const api = createApi({
     routes: { ...routes, catalog: sampleRoutes() as unknown as ApiRoutes['catalog'] },
     middleware: {
@@ -96,7 +97,7 @@ const buildApp = () => {
   return createHttpApp({
     api,
     health: { version: '1.2.3', runtime: '0.1.0' },
-    logger: silentLogger,
+    logger,
     ids: createUuidV7Generator({ clock: createManualClock() }),
     webFiles: createStaticFiles({ root: web.path }),
   })
@@ -163,6 +164,15 @@ describe('createHttpApp', () => {
     )
     const admin = await app.request('/api/v1/admin/libraries')
     expect(admin.status).toBe(401)
+  })
+
+  test('the secret of a stream URL never reaches the logs (§20)', async () => {
+    const { logger, lines } = createCapturingLogger()
+    await buildApp(logger).request('/api/v1/stream/s1/the-secret/seg-00001.m4s')
+    expect(lines.find((line) => line.message === 'http request')?.fields).toMatchObject({
+      path: '/api/v1/stream/s1/***/seg-00001.m4s',
+    })
+    expect(JSON.stringify(lines)).not.toContain('the-secret')
   })
 
   test('serves the web app with SPA fallback and immutable assets', async () => {

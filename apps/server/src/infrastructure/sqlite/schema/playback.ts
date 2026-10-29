@@ -93,6 +93,8 @@ export const playbackSessions = sqliteTable(
     burnIn: integer({ mode: 'boolean' }).notNull().default(false),
     // HLS remux: the chosen audio track copied as is or transcoded to AAC (depends on the client).
     audioDelivery: text({ enum: ['copy', 'aac'] }),
+    // §20: SHA-256 hex of the capability secret of the stream URLs; null on rows made before it.
+    streamSecretHash: text(),
     startedAt: text().notNull(),
     lastHeartbeatAt: text().notNull(),
     positionMs: integer().notNull().default(0),

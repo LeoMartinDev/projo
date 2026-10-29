@@ -14,7 +14,7 @@ import type { PlaybackSession } from '../../core/playback/session.ts'
 import type { SubtitleTrack, SubtitleTrackRepository } from '../../core/playback/subtitles.ts'
 import { defaultPlaybackSettings, type PlaybackSettings } from '../../core/settings/settings.ts'
 import { hlsStreamFactory } from './hls-stream.ts'
-import type { AuthorizePlayback, SessionAccessError } from './session-lifecycle.ts'
+import type { AuthorizeStream, SessionAccessError } from './session-lifecycle.ts'
 
 const source: PlayableSource = {
   id: 'source-1',
@@ -50,7 +50,7 @@ const session: PlaybackSession = {
 
 const noSubtitles: SubtitleTrackRepository = { listForSource: () => [], findById: () => undefined }
 
-const access = { sessionId: 's1', accountId: 'account-1', profileId: 'p' }
+const access = { sessionId: 's1', secret: 'secret-1' }
 
 /** A stream over one source and one session, recording the jobs handed to the segmenter. */
 const streamFor = ({
@@ -266,7 +266,7 @@ describe('hlsStream: session ended while waiting for the keyframe index (§10.3,
   test('the request is re-authorized after the wait: no plan kept, no ffmpeg started', async () => {
     let ended = false
     let index: StoredKeyframeIndex | undefined
-    const authorize: AuthorizePlayback = (): Result<PlaybackSession, SessionAccessError> =>
+    const authorize: AuthorizeStream = (): Result<PlaybackSession, SessionAccessError> =>
       ended ? err(appError('playback/session_expired', 'playback session ended')) : ok(session)
     const keyframeStore: KeyframeStore = { read: () => index, write: () => ok() }
     const segmentCalls: string[] = []
@@ -303,8 +303,7 @@ describe('hlsStream: session ended while waiting for the keyframe index (§10.3,
     expect(
       await stream.segment({
         sessionId: 's1',
-        accountId: 'account-1',
-        profileId: 'p',
+        secret: 'secret-1',
         name: 'init.mp4',
       }),
     ).toMatchObject({ ok: false, error: { code: 'playback/session_expired' } })

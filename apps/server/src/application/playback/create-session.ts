@@ -9,6 +9,7 @@ import {
   type PlayableSource,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
+import type { SessionTokens } from '../../core/auth/ports.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { IdGenerator } from '../../core/ids.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
@@ -68,6 +69,8 @@ type Deps = {
   jobQueue: JobQueue
   /** §10.5: the trickplay sprites of a source are ready (written by the `trickplay` job). */
   trickplayReady?: (sourceId: string) => boolean
+  /** §20: the secret of the session's stream URLs, stored hashed. */
+  streamSecrets: SessionTokens
   clock: Clock
   ids: IdGenerator
   logger: Logger
@@ -87,6 +90,8 @@ export type CreatePlaybackSessionError = AppError<
 export type VersionChoice = { sourceId: string; version: SourceVersion; selected: boolean }
 
 export type CreatedPlaybackSession = {
+  /** §20: the capability secret of the stream URLs, returned once and never stored. */
+  streamSecret: string
   session: PlaybackSession
   plan: PlaybackPlan
   /** The part played (the source itself when unstacked). */
@@ -160,6 +165,7 @@ export const createPlaybackSessionFactory = ({
   keyframeStore,
   jobQueue,
   trickplayReady,
+  streamSecrets,
   clock,
   ids,
   logger,
@@ -356,13 +362,14 @@ export const createPlaybackSessionFactory = ({
     })
     if (!tracks.ok) return tracks
 
-    const decideWith = (burnIn: boolean, audioStreamIndex: number | undefined) =>
+    const decideWith = (candidate: ResolvedTracks, audioStreamIndex: number | undefined) =>
       decidePlayback({
         media,
         extension: source.extension,
         capabilities,
         quality: input.quality,
-        burnIn,
+        burnIn: candidate.burnIn,
+        textSubtitle: candidate.subtitle !== undefined && !candidate.burnIn,
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
 
@@ -399,7 +406,7 @@ export const createPlaybackSessionFactory = ({
     const planFor = (
       candidate: ResolvedTracks,
     ): Result<PlaybackPlan, CreatePlaybackSessionError> => {
-      const decided = decideWith(candidate.burnIn, candidate.audio?.index)
+      const decided = decideWith(candidate, candidate.audio?.index)
       return decided.ok ? withinTranscodeLimit(decided.value) : decided
     }
 
@@ -428,7 +435,7 @@ export const createPlaybackSessionFactory = ({
       })
     }
     const decide = (audioStreamIndex: number | undefined) =>
-      decideWith(selectedTracks.burnIn, audioStreamIndex)
+      decideWith(selectedTracks, audioStreamIndex)
 
     if (plan.mode === 'hls_remux' && !isFreshIndex(keyframeStore.read(source.id), source)) {
       requestKeyframes(jobQueue, source.id, keyframePriority.interactive)
@@ -436,6 +443,7 @@ export const createPlaybackSessionFactory = ({
 
     const audio = plan.mode === 'direct' ? plan.audio : plan.audio?.stream
     const subtitle = selectedTracks.subtitle
+    const streamSecret = streamSecrets.generate()
     const session: PlaybackSession = {
       id: ids.next(),
       profileId,
@@ -451,6 +459,7 @@ export const createPlaybackSessionFactory = ({
       ...(plan.mode !== 'direct' && plan.audio !== undefined
         ? { audioDelivery: plan.audio.delivery }
         : {}),
+      streamSecretHash: streamSecrets.hash(streamSecret),
       startedAt: now,
       lastHeartbeatAt: now,
       positionMs: startPositionMs,
@@ -487,6 +496,7 @@ export const createPlaybackSessionFactory = ({
     })
 
     return ok({
+      streamSecret,
       session,
       plan,
       source,

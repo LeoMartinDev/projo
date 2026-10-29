@@ -10,6 +10,7 @@ import type { PlaybackSession, PlaybackSessionRepository } from '../../core/play
 import type { ItemProgress, ProgressRepository } from '../../core/progress/progress.ts'
 import {
   authorizePlaybackFactory,
+  authorizeStreamFactory,
   endPlaybackSessionFactory,
   endPlaybackSessionsWithinFactory,
   heartbeatFactory,
@@ -128,6 +129,12 @@ const build = () => {
     clock,
   })
   return {
+    authorizeStream: authorizeStreamFactory({
+      sessionRepository: sessions,
+      endSession,
+      hashSecret: (secret) => `h(${secret})`,
+      clock,
+    }),
     heartbeat: heartbeatFactory({
       authorize,
       sessionRepository: sessions,
@@ -163,6 +170,7 @@ const open = (id: string, { sourceId = source.id, itemId = 'movie-1' } = {}) =>
     itemId,
     mode: 'hls_remux',
     burnIn: false,
+    streamSecretHash: `h(secret-${id})`,
     startedAt: clock.now(),
     lastHeartbeatAt: clock.now(),
     positionMs: 0,
@@ -421,5 +429,46 @@ describe('stop', () => {
     expect(
       await lifecycle.stop({ sessionId: 's1', accountId: 'account-1', profileId: 'profile-1' }),
     ).toMatchObject({ ok: true })
+  })
+})
+
+describe('authorizeStream (§20)', () => {
+  test('the secret alone opens the session; a wrong or missing one names none', () => {
+    open('s1')
+    expect(lifecycle.authorizeStream({ sessionId: 's1', secret: 'secret-s1' })).toMatchObject({
+      ok: true,
+      value: { id: 's1' },
+    })
+    for (const access of [
+      { sessionId: 's1', secret: 'secret-s2' },
+      { sessionId: 's2', secret: 'secret-s2' },
+    ]) {
+      expect(lifecycle.authorizeStream(access)).toMatchObject({
+        ok: false,
+        error: { code: 'playback/session_not_found' },
+      })
+    }
+  })
+
+  test('a session made before the secrets has no stream URL left', () => {
+    open('s1')
+    const row = sessions.rows.get('s1')
+    if (row === undefined) throw new Error('the session was opened')
+    const { streamSecretHash: _hash, ...legacy } = row
+    sessions.rows.set('s1', legacy)
+    expect(lifecycle.authorizeStream({ sessionId: 's1', secret: 'secret-s1' })).toMatchObject({
+      ok: false,
+      error: { code: 'playback/session_not_found' },
+    })
+  })
+
+  test('60 s without heartbeat: ended on the spot, the URL stops working', () => {
+    open('s1')
+    clock.advance(60_000)
+    expect(lifecycle.authorizeStream({ sessionId: 's1', secret: 'secret-s1' })).toMatchObject({
+      ok: false,
+      error: { code: 'playback/session_expired' },
+    })
+    expect(stopped).toEqual(['s1'])
   })
 })

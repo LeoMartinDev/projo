@@ -145,6 +145,45 @@ export const authorizePlaybackFactory =
 
 export type AuthorizePlayback = ReturnType<typeof authorizePlaybackFactory>
 
+/** A stream URL (§20): the session it names and the secret it carries, nothing else. */
+export type StreamAccess = { sessionId: string; secret: string }
+
+/**
+ * The session a capability URL names, when its secret is the session's (no cookie, no profile:
+ * AirPlay receivers and AVPlayer sub-requests carry none) and the session is not over (past 60 s
+ * without heartbeat it is ended on the spot). A wrong secret is the same as no session.
+ */
+export const authorizeStreamFactory =
+  ({
+    sessionRepository,
+    endSession,
+    hashSecret,
+    clock,
+  }: {
+    sessionRepository: PlaybackSessionRepository
+    endSession: EndPlaybackSession
+    /** The hash stored by `create-session` (`SessionTokens.hash`). */
+    hashSecret: (secret: string) => string
+    clock: Clock
+  }) =>
+  ({ sessionId, secret }: StreamAccess): Result<PlaybackSession, SessionAccessError> => {
+    const session = sessionRepository.findById(sessionId)
+    if (
+      session?.streamSecretHash === undefined ||
+      session.streamSecretHash !== hashSecret(secret)
+    ) {
+      return notFound(sessionId)
+    }
+    if (session.endedAt !== undefined) return expired(sessionId)
+    if (isExpired(session, clock.now())) {
+      endSession({ session, reason: 'timeout' })
+      return expired(sessionId)
+    }
+    return ok(session)
+  }
+
+export type AuthorizeStream = ReturnType<typeof authorizeStreamFactory>
+
 /**
  * Item duration of the version a session plays (§8.4): the source's, or the parts of its stack
  * added up. Undefined when a part has no stored duration.

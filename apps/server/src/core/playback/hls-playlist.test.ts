@@ -7,9 +7,12 @@ import {
   planFixedSegments,
   planSegments,
   remuxSegmentPolicy,
+  renderMasterPlaylist,
   renderPlaylist,
+  renderSubtitlePlaylist,
   segmentAt,
   segmentFileName,
+  toHlsWebVtt,
 } from './hls-playlist.ts'
 
 const every = (step: number, durationS: number): number[] =>
@@ -260,5 +263,72 @@ describe('planFixedSegments (§10.3: 4 s segments in transcode)', () => {
     expect(segments).toHaveLength(1800)
     expect(segments.every((segment) => segment.startS === segment.index * 4)).toBe(true)
     expect(renderPlaylist(segments)).toContain('#EXT-X-TARGETDURATION:4\n')
+  })
+})
+
+describe('subtitles inside HLS (§10.4)', () => {
+  const french = { id: 'fr-1', name: 'Français', language: 'fr', forced: false, sdh: false }
+
+  test('master: one WebVTT rendition per text track, the resolved one by default', () => {
+    const master = renderMasterPlaylist({
+      bandwidth: 4_000_000.4,
+      subtitles: [
+        { ...french, selected: true },
+        {
+          id: 'en 2',
+          name: 'English SDH',
+          language: 'en',
+          forced: false,
+          sdh: true,
+          selected: false,
+        },
+        { id: 'fr-f', name: 'Forcés', language: 'fr', forced: true, sdh: false, selected: false },
+      ],
+      subtitleOffsetMs: -250,
+    })
+    expect(master.split('\n')).toEqual([
+      '#EXTM3U',
+      '#EXT-X-VERSION:7',
+      '#EXT-X-INDEPENDENT-SEGMENTS',
+      '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Français",LANGUAGE="fr",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="subtitles/fr-1.m3u8?subtitleOffsetMs=-250"',
+      '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English SDH",LANGUAGE="en",DEFAULT=NO,AUTOSELECT=YES,FORCED=NO,CHARACTERISTICS="public.accessibility.transcribes-spoken-dialog,public.accessibility.describes-music-and-sound",URI="subtitles/en%202.m3u8?subtitleOffsetMs=-250"',
+      '#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Forcés",LANGUAGE="fr",DEFAULT=NO,AUTOSELECT=YES,FORCED=YES,URI="subtitles/fr-f.m3u8?subtitleOffsetMs=-250"',
+      '#EXT-X-STREAM-INF:BANDWIDTH=4000000,SUBTITLES="subs"',
+      'index.m3u8',
+      '',
+    ])
+  })
+
+  test('master without text track: the variant alone, no subtitle group', () => {
+    const master = renderMasterPlaylist({ bandwidth: 1, subtitles: [], subtitleOffsetMs: 0 })
+    expect(master).toContain('#EXT-X-STREAM-INF:BANDWIDTH=1\nindex.m3u8')
+    expect(master).not.toContain('SUBTITLES')
+  })
+
+  test('rendition: the whole file as one segment over the video duration', () => {
+    expect(
+      renderSubtitlePlaylist({ durationS: 125.5, trackId: 'fr-1', subtitleOffsetMs: 500 }),
+    ).toBe(
+      [
+        '#EXTM3U',
+        '#EXT-X-VERSION:7',
+        '#EXT-X-TARGETDURATION:126',
+        '#EXT-X-MEDIA-SEQUENCE:0',
+        '#EXT-X-PLAYLIST-TYPE:VOD',
+        '#EXTINF:125.500000,',
+        'fr-1.vtt?subtitleOffsetMs=500',
+        '#EXT-X-ENDLIST',
+        '',
+      ].join('\n'),
+    )
+  })
+
+  test('WebVTT mapped on the segments timeline (10 s = 900000 at 90 kHz); the delay moves it', () => {
+    const vtt = 'WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nBonjour\n'
+    expect(toHlsWebVtt(vtt, 0)).toBe(
+      'WEBVTT\nX-TIMESTAMP-MAP=MPEGTS:900000,LOCAL:00:00:00.000\n\n00:00:01.000 --> 00:00:02.000\nBonjour\n',
+    )
+    expect(toHlsWebVtt(vtt, 500)).toContain('MPEGTS:945000,')
+    expect(toHlsWebVtt(vtt, -10_000)).toContain('MPEGTS:0,')
   })
 })

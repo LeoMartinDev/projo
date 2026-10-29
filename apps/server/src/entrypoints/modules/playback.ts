@@ -14,6 +14,7 @@ import {
 } from '../../application/playback/index-keyframes.ts'
 import {
   authorizePlaybackFactory,
+  authorizeStreamFactory,
   endPlaybackSessionFactory,
   endPlaybackSessionsWithinFactory,
   heartbeatFactory,
@@ -26,6 +27,7 @@ import {
   setTrackPreferencesFactory,
 } from '../../application/playback/track-preferences.ts'
 import { type PlaybackSessionTerminator, sessionTimings } from '../../core/playback/session.ts'
+import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { createFfprobe } from '../../infrastructure/playback/ffprobe.ts'
 import {
   createHlsSegmenter,
@@ -96,8 +98,14 @@ export const buildPlaybackModule = (
     isItemVisible,
     clock,
   })
+  const authorizeStream = authorizeStreamFactory({
+    sessionRepository,
+    endSession,
+    hashSecret: sessionTokens.hash,
+    clock,
+  })
   const hlsStream = hlsStreamFactory({
-    authorize,
+    authorize: authorizeStream,
     catalogRepository,
     keyframeStore,
     mediaProber: ffprobe,
@@ -153,6 +161,8 @@ export const buildPlaybackModule = (
   })
 
   return {
+    /** For the media-assets module: subtitle renditions under the capability URLs (§20). */
+    authorizeStream,
     /** For the libraries and scanner modules (§10.6). */
     playbackSessions,
     /** For the admin playback module: "Stop" (§10.6, reason `admin`). */
@@ -165,6 +175,7 @@ export const buildPlaybackModule = (
         subtitleTrackRepository,
         trackPreferenceRepository,
         trickplayReady: (sourceId) => trickplayUrl(sourceId) !== undefined,
+        streamSecrets: sessionTokens,
         // §11.1 settings of the profile, for the §11.2 cascade.
         profileTracks: (profileId) => {
           const profile = profileRepository.findById(profileId)
@@ -210,7 +221,7 @@ export const buildPlaybackModule = (
       scopeFor: visibilityScope,
     }),
     streamRoutes: streamRoutes({
-      directStream: directStreamFactory({ authorize, catalogRepository }),
+      directStream: directStreamFactory({ authorize: authorizeStream, catalogRepository }),
       hlsStream,
       mediaFiles: createMediaFiles(),
     }),

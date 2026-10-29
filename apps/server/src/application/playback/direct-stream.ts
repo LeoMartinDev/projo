@@ -2,33 +2,31 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { CatalogRepository } from '../../core/catalog/catalog.ts'
 import { directMimeType } from '../../core/playback/decide-mode.ts'
-import type { AuthorizePlayback, PlaybackAccess, SessionAccessError } from './session-lifecycle.ts'
+import type { AuthorizeStream, SessionAccessError, StreamAccess } from './session-lifecycle.ts'
 
 export type DirectStreamError =
   SessionAccessError | AppError<'playback/source_unavailable' | 'playback/mode_unsupported'>
 
 /**
- * `GET /stream/direct/:sourceId?session=` (§10.2 `direct`, §20): the file of an active session
- * of this account, nothing else, while the source is `ready` (a file being replaced is not).
+ * `GET /stream/:sessionId/:secret/direct` (§10.2 `direct`, §20): the file of an active `direct`
+ * session, nothing else, while the source is `ready` (a file being replaced is not).
  */
 export const directStreamFactory =
   ({
     authorize,
     catalogRepository,
   }: {
-    authorize: AuthorizePlayback
+    authorize: AuthorizeStream
     catalogRepository: CatalogRepository
   }) =>
-  async ({
-    sourceId,
-    ...access
-  }: PlaybackAccess & {
-    sourceId: string
-  }): Promise<Result<{ path: string; mimeType: string }, DirectStreamError>> => {
+  async (
+    access: StreamAccess,
+  ): Promise<Result<{ path: string; mimeType: string }, DirectStreamError>> => {
     const { sessionId } = access
     const session = authorize(access)
     if (!session.ok) return session
-    if (session.value.sourceId !== sourceId || session.value.mode !== 'direct') {
+    const { sourceId, mode } = session.value
+    if (mode !== 'direct') {
       return err(
         appError('playback/mode_unsupported', 'this session does not stream this file directly', {
           context: { sessionId, sourceId },

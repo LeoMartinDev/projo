@@ -12,6 +12,7 @@ import {
   requestPreviewClip,
 } from '../../application/playback/preview-clip.ts'
 import { resumeFramesFactory } from '../../application/playback/resume-frames.ts'
+import type { AuthorizeStream } from '../../application/playback/session-lifecycle.ts'
 import {
   getSubtitleVttFactory,
   preExtractSubtitlesFactory,
@@ -53,7 +54,12 @@ const hour = 60 * 60_000
  */
 export const buildMediaAssetsModule = (
   { db, clock, logger, eventBus, jobQueue, jobRepository, paths }: Platform,
-  { visibilityScope = allVisible }: ScopeDeps = {},
+  {
+    visibilityScope = allVisible,
+    authorizeStream,
+  }: ScopeDeps & {
+    /** The playback module's: the capability URLs of a session (§20). */ authorizeStream: AuthorizeStream
+  },
   { cores = availableParallelism() }: { cores?: number } = {},
 ) => {
   const moduleLogger = logger.child({ module: 'media-assets' })
@@ -170,6 +176,7 @@ export const buildMediaAssetsModule = (
           canAccessSource,
           subtitleCache,
         }),
+        authorizeStream,
         mediaFiles,
       }),
       trickplay: trickplayRoutes({

@@ -15,8 +15,14 @@ import { clearSessionCookie, readSessionCredential, setSessionCookie } from './s
 
 const apiPrefix = '/api/v1'
 
-/** Routes reachable without an account (§17.2): wizard, login, logout, pairing claim, invitations. */
+/**
+ * Routes reachable without an account (§17.2): wizard, login, logout, pairing claim, invitations,
+ * and the stream URLs of a playback session, whose secret is the credential (§20).
+ */
+const streamPath = /^\/stream\/[^/]+\/[^/]+\/.+$/
 const publicRoutes: { method: string; path: RegExp }[] = [
+  { method: 'GET', path: streamPath },
+  { method: 'HEAD', path: streamPath },
   { method: 'GET', path: /^\/setup\/status$/ },
   { method: 'POST', path: /^\/setup$/ },
   { method: 'POST', path: /^\/auth\/login$/ },

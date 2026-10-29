@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { ok } from '@projo/shared'
 import type { ClientCapabilities, PlaybackQuality } from '@projo/shared/api/playback'
 
+import { createFakeSessionTokens } from '../../../test/support/auth.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createRecordingJobQueue, createSequentialIds } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
@@ -162,6 +163,7 @@ const build = (world: World) => {
     trickplayReady: (sourceId) => sourceId === 'h264-1080p',
     clock,
     ids: createSequentialIds('ps-'),
+    streamSecrets: createFakeSessionTokens(),
     logger: silentLogger,
   })
   const play = (

@@ -19,7 +19,7 @@ const build = () => {
       c.set('logger', logger.logger)
       await next()
     })
-    .get('/api/v1/stream/direct/:id', (c) => respondError(c, unreadable))
+    .get('/api/v1/stream/:sessionId/:secret/direct', (c) => respondError(c, unreadable))
     .get('/api/v1/admin/fs/directories', (c) => respondError(c, unreadable))
   return { app, logger }
 }
@@ -27,7 +27,7 @@ const build = () => {
 describe('respondError: no server path outside /admin (§20)', () => {
   test('a non-admin response loses the absolute paths of the context, the log keeps them', async () => {
     const { app, logger } = build()
-    const response = await app.request('/api/v1/stream/direct/source-1')
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual({
       error: {

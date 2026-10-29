@@ -55,6 +55,7 @@ const decide = (input: {
   audioStreamIndex?: number
   quality?: 'original' | '1080p' | '720p' | '480p'
   burnIn?: boolean
+  textSubtitle?: boolean
 }) => decidePlayback({ quality: 'original', ...input })
 
 describe('decidePlayback (§10.2)', () => {
@@ -313,5 +314,25 @@ describe('qualities (§10.2)', () => {
     expect(effectiveQuality(video(1280, 720), '1080p')).toBe('720p')
     expect(effectiveQuality(video(640, 360), '480p')).toBe('original')
     expect(effectiveQuality(video(1920, 1080), '480p')).toBe('480p')
+  })
+})
+
+describe('decidePlayback: subtitles inside the stream (§10.4)', () => {
+  const file = media('h264', [audio(1, 'aac', { isDefault: true })])
+  const iosWeb: ClientCapabilities = { ...safari, subtitleDelivery: 'hls' }
+
+  test('a text subtitle never plays direct for an `hls` client: remux carries the renditions', () => {
+    expect(
+      decide({ media: file, extension: 'mp4', capabilities: iosWeb, textSubtitle: true }),
+    ).toMatchObject({ ok: true, value: { mode: 'hls_remux' } })
+  })
+
+  test('without subtitles, or for an overlay client, direct play stays', () => {
+    expect(decide({ media: file, extension: 'mp4', capabilities: iosWeb })).toMatchObject({
+      value: { mode: 'direct' },
+    })
+    expect(
+      decide({ media: file, extension: 'mp4', capabilities: safari, textSubtitle: true }),
+    ).toMatchObject({ value: { mode: 'direct' } })
   })
 })

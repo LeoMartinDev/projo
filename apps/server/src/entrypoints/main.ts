@@ -103,7 +103,10 @@ export const startProjo = ({
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)
   // Subtitles, trickplay, hero previews (§10.4, §10.5, §13.3); before catalog: the home hero.
-  const mediaAssets = buildMediaAssetsModule(platform, { visibilityScope })
+  const mediaAssets = buildMediaAssetsModule(platform, {
+    visibilityScope,
+    authorizeStream: playback.authorizeStream,
+  })
   const adminPlayback = buildAdminPlaybackModule(platform, { endSession: playback.endSession })
   const catalog = buildCatalogModule(platform, {
     visibilityScope,

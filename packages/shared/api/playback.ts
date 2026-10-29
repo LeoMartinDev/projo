@@ -29,8 +29,36 @@ export const clientCapabilitiesSchema = z.object({
   audioCodecs: z.array(audioCodecIdSchema),
   hls: z.enum(['native', 'mse', 'none']),
   screenHeight: z.number().int().positive().optional(),
+  /**
+   * How text subtitles are shown (§10.4): `overlay` (absent: the default) = WebVTT files drawn by
+   * the client; `hls` = renditions of the HLS stream, drawn by the platform player (iOS app, the
+   * web on iOS/iPadOS Safari), so they follow into Picture-in-Picture and AirPlay.
+   */
+  subtitleDelivery: z.enum(['overlay', 'hls']).optional(),
 })
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>
+
+/** `?subtitleOffsetMs=` of `master.m3u8` and its renditions (§10.4): the subtitle delay. */
+export const subtitleOffsetQuerySchema = z.object({
+  subtitleOffsetMs: z.coerce.number().int().min(-10_000).max(10_000).optional(),
+})
+
+/**
+ * `NAME` of each text subtitle rendition of a master playlist (§10.4), in the order of the
+ * session's text tracks: the title, else the language, unique within the group. The web finds the
+ * rendition among `video.textTracks` by this label.
+ */
+export const subtitleRenditionNames = (
+  tracks: readonly { title?: string | undefined; language?: string | undefined }[],
+): string[] => {
+  const seen = new Map<string, number>()
+  return tracks.map((track) => {
+    const base = (track.title ?? track.language ?? '').replace(/["\r\n]/g, '').trim() || 'Subtitles'
+    const count = (seen.get(base) ?? 0) + 1
+    seen.set(base, count)
+    return count === 1 ? base : `${base} (${count})`
+  })
+}
 
 /**
  * `Original` keeps the source (transcoded at its own resolution, CRF 21, when it must be);
@@ -269,8 +297,3 @@ export const playbackSessionEndedSchema = z.object({
   endedAt: z.string(),
 })
 export type PlaybackSessionEnded = z.infer<typeof playbackSessionEndedSchema>
-
-/** Query of `GET /stream/direct/:sourceId`: the playback session the URL is bound to (§20). */
-export const directStreamQuerySchema = z.object({
-  session: z.string().min(1),
-})

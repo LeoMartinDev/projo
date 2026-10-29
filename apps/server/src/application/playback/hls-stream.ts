@@ -1,4 +1,5 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import { subtitleRenditionNames } from '@projo/shared/api/playback'
 
 import type { CatalogRepository } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
@@ -6,7 +7,9 @@ import {
   parseSegmentName,
   planFixedSegments,
   planSegments,
+  renderMasterPlaylist,
   renderPlaylist,
+  renderSubtitlePlaylist,
 } from '../../core/playback/hls-playlist.ts'
 import type { MediaInfo, MediaProber } from '../../core/playback/media-info.ts'
 import {
@@ -23,10 +26,10 @@ import type { PlaybackSession } from '../../core/playback/session.ts'
 import { isBitmapSubtitle, type SubtitleTrackRepository } from '../../core/playback/subtitles.ts'
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
 import { keyframePriority, requestKeyframes } from './index-keyframes.ts'
-import type { AuthorizePlayback, PlaybackAccess, SessionAccessError } from './session-lifecycle.ts'
+import type { AuthorizeStream, SessionAccessError, StreamAccess } from './session-lifecycle.ts'
 
 type Deps = {
-  authorize: AuthorizePlayback
+  authorize: AuthorizeStream
   catalogRepository: CatalogRepository
   keyframeStore: KeyframeStore
   mediaProber: MediaProber
@@ -56,7 +59,7 @@ export type HlsStreamError =
 type SubtitleError = AppError<'playback/subtitle_not_found' | 'playback/subtitle_unsupported'>
 
 /**
- * `GET /stream/:sessionId/index.m3u8` and `/:segment` for `hls_remux` and `hls_transcode`
+ * `GET /stream/:sessionId/:secret/index.m3u8` and `/:segment` for `hls_remux` and `hls_transcode`
  * sessions, run as the session row says (mode, quality, audio track and delivery, burnt-in
  * track): the mode is decided when the session is created. The plan (remux: keyframes →
  * segments; transcode: fixed 4 s segments from the duration) is computed once per session and
@@ -150,7 +153,7 @@ export const hlsStreamFactory = ({
 
   const jobFor = async (
     session: PlaybackSession,
-    access: PlaybackAccess,
+    access: StreamAccess,
   ): Promise<Result<HlsJob, HlsStreamError>> => {
     const cached = jobs.get(session.id)
     if (cached !== undefined) return ok(cached)
@@ -247,25 +250,94 @@ export const hlsStreamFactory = ({
     return ok(job)
   }
 
-  const authorizedJob = async (input: PlaybackAccess): Promise<Result<HlsJob, HlsStreamError>> => {
-    const access = {
-      sessionId: input.sessionId,
-      accountId: input.accountId,
-      profileId: input.profileId,
-    }
+  const authorizedJob = async (input: StreamAccess): Promise<Result<HlsJob, HlsStreamError>> => {
+    const access = { sessionId: input.sessionId, secret: input.secret }
     const session = authorize(access)
     return session.ok ? jobFor(session.value, access) : session
   }
 
+  /** Text tracks of the session's source, the renditions of `master.m3u8` (§10.4). */
+  const textTracks = (sourceId: string) =>
+    subtitleTrackRepository.listForSource(sourceId).filter((track) => !isBitmapSubtitle(track))
+
   return {
-    playlist: async (input: PlaybackAccess): Promise<Result<string, HlsStreamError>> => {
+    playlist: async (input: StreamAccess): Promise<Result<string, HlsStreamError>> => {
       const job = await authorizedJob(input)
       return job.ok ? ok(renderPlaylist(job.value.segments)) : job
     },
 
+    /**
+     * `master.m3u8` (§10.4): the text tracks as WebVTT renditions, the resolved one by default,
+     * then `index.m3u8`.
+     */
+    master: (
+      input: StreamAccess & { subtitleOffsetMs: number },
+    ): Result<string, HlsStreamError> => {
+      const session = authorize(input)
+      if (!session.ok) return session
+      const { sourceId, subtitleTrackId, mode } = session.value
+      const source = catalogRepository.findSource(sourceId)
+      if (mode === 'direct' || source === undefined) {
+        return err(
+          appError('playback/mode_unsupported', 'not an HLS session', {
+            context: { sessionId: input.sessionId, mode },
+          }),
+        )
+      }
+      const tracks = textTracks(sourceId)
+      const names = subtitleRenditionNames(tracks)
+      const durationS = (source.media?.durationMs ?? 0) / 1000
+      return ok(
+        renderMasterPlaylist({
+          // shortcut: the source's average bitrate, not the variant's peak; AVPlayer has one variant to pick.
+          bandwidth: durationS > 0 ? (source.sizeBytes * 8) / durationS : 8_000_000,
+          subtitles: tracks.map((track, index) => ({
+            id: track.id,
+            name: names[index] ?? track.id,
+            ...(track.language === undefined ? {} : { language: track.language }),
+            forced: track.forced,
+            sdh: track.sdh,
+            selected: track.id === subtitleTrackId,
+          })),
+          subtitleOffsetMs: input.subtitleOffsetMs,
+        }),
+      )
+    },
+
+    /** `subtitles/<trackId>.m3u8`: one segment over the video playlist's duration. */
+    subtitlePlaylist: async (
+      input: StreamAccess & { trackId: string; subtitleOffsetMs: number },
+    ): Promise<Result<string, HlsStreamError>> => {
+      const access = { sessionId: input.sessionId, secret: input.secret }
+      const session = authorize(access)
+      if (!session.ok) return session
+      const track = subtitleTrackRepository.findById(input.trackId)
+      if (
+        track === undefined ||
+        track.sourceId !== session.value.sourceId ||
+        isBitmapSubtitle(track)
+      ) {
+        return err(
+          appError('playback/subtitle_not_found', 'subtitle track not found', {
+            context: { sessionId: input.sessionId, trackId: input.trackId },
+          }),
+        )
+      }
+      // The video playlist's plan, so both end together.
+      const job = await jobFor(session.value, access)
+      if (!job.ok) return job
+      return ok(
+        renderSubtitlePlaylist({
+          durationS: job.value.segments.at(-1)?.endS ?? 0,
+          trackId: track.id,
+          subtitleOffsetMs: input.subtitleOffsetMs,
+        }),
+      )
+    },
+
     /** Absolute path of `init.mp4` or `seg-NNNNN.m4s`, produced on demand. */
     segment: async (
-      input: PlaybackAccess & { name: string; signal?: AbortSignal },
+      input: StreamAccess & { name: string; signal?: AbortSignal },
     ): Promise<Result<string, HlsStreamError>> => {
       const which = parseSegmentName(input.name)
       if (which === undefined) {

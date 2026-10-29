@@ -24,6 +24,15 @@ export const remuxSegmentPolicy: SegmentPolicy = { minS: 3, targetS: 6, maxS: 8 
 
 const epsilon = 1e-6
 
+/**
+ * Constant shift of every output timestamp. Timestamps are those of the source (0 = file start)
+ * whatever the seek point, so a segment produced by any ffmpeg run has the same `tfdt`. The AAC
+ * encoder primes 1024 samples before the first one: without the shift, the first audio fragment
+ * of a run starting at 0 would have a negative (wrapped) `tfdt`. The WebVTT renditions are mapped
+ * on it (`toHlsWebVtt`).
+ */
+export const outputTimestampOffsetS = 10
+
 /** §24 "4 s en transcode": also the `-force_key_frames` period of the encoder. */
 export const transcodeSegmentS = 4
 
@@ -160,4 +169,103 @@ export const nearestKeyframe = (keyframes: readonly number[], timeS: number): nu
     Math.abs((keyframes[previous] ?? 0) - timeS) <= Math.abs((keyframes[low] ?? 0) - timeS)
     ? previous
     : low
+}
+
+// ── Subtitles inside HLS (§10.4) ─────────────────────────────────────────────
+
+export type SubtitleRendition = {
+  /** `source_subtitles.id`: the rendition is `subtitles/<id>.m3u8`. */
+  id: string
+  /** Unique in the group (`subtitleRenditionNames`). */
+  name: string
+  language?: string
+  forced: boolean
+  sdh: boolean
+  /** The track the session resolved (§11.2): `DEFAULT=YES`. */
+  selected: boolean
+}
+
+const sdhCharacteristics =
+  'public.accessibility.transcribes-spoken-dialog,public.accessibility.describes-music-and-sound'
+
+const offsetQuery = (offsetMs: number) => `subtitleOffsetMs=${Math.round(offsetMs)}`
+
+/**
+ * Master playlist of a session for a client that shows subtitles from the stream: every text track
+ * as a WebVTT rendition, then the single variant (`index.m3u8`). URIs are relative: they stay
+ * under the session's capability prefix (§20).
+ */
+export const renderMasterPlaylist = ({
+  bandwidth,
+  subtitles,
+  subtitleOffsetMs,
+}: {
+  /** Peak bits per second of the variant (required by HLS). */
+  bandwidth: number
+  subtitles: readonly SubtitleRendition[]
+  subtitleOffsetMs: number
+}): string => {
+  const media = subtitles.map((track) =>
+    [
+      '#EXT-X-MEDIA:TYPE=SUBTITLES',
+      'GROUP-ID="subs"',
+      `NAME="${track.name}"`,
+      ...(track.language === undefined ? [] : [`LANGUAGE="${track.language}"`]),
+      `DEFAULT=${track.selected ? 'YES' : 'NO'}`,
+      'AUTOSELECT=YES',
+      `FORCED=${track.forced ? 'YES' : 'NO'}`,
+      ...(track.sdh ? [`CHARACTERISTICS="${sdhCharacteristics}"`] : []),
+      `URI="subtitles/${encodeURIComponent(track.id)}.m3u8?${offsetQuery(subtitleOffsetMs)}"`,
+    ].join(','),
+  )
+  const lines = [
+    '#EXTM3U',
+    '#EXT-X-VERSION:7',
+    '#EXT-X-INDEPENDENT-SEGMENTS',
+    ...media,
+    `#EXT-X-STREAM-INF:BANDWIDTH=${Math.max(1, Math.round(bandwidth))}${subtitles.length > 0 ? ',SUBTITLES="subs"' : ''}`,
+    'index.m3u8',
+  ]
+  return `${lines.join('\n')}\n`
+}
+
+/**
+ * Playlist of a subtitle rendition: the whole WebVTT file as one segment over the video's
+ * duration (allowed by RFC 8216 for VOD).
+ * shortcut: one segment, not cut on the video's; cut it with the segment plan if a player chokes.
+ */
+export const renderSubtitlePlaylist = ({
+  durationS,
+  trackId,
+  subtitleOffsetMs,
+}: {
+  durationS: number
+  trackId: string
+  subtitleOffsetMs: number
+}): string => {
+  const lines = [
+    '#EXTM3U',
+    '#EXT-X-VERSION:7',
+    `#EXT-X-TARGETDURATION:${Math.max(1, Math.ceil(durationS - epsilon))}`,
+    '#EXT-X-MEDIA-SEQUENCE:0',
+    '#EXT-X-PLAYLIST-TYPE:VOD',
+    `#EXTINF:${durationS.toFixed(6)},`,
+    `${encodeURIComponent(trackId)}.vtt?${offsetQuery(subtitleOffsetMs)}`,
+    '#EXT-X-ENDLIST',
+  ]
+  return `${lines.join('\n')}\n`
+}
+
+/**
+ * The cached WebVTT of a track, mapped on the HLS timeline: `X-TIMESTAMP-MAP` puts its 0 at the
+ * segments' first timestamp (`outputTimestampOffsetS`, 90 kHz). The delay moves that anchor rather
+ * than the cues: positive = later.
+ */
+export const toHlsWebVtt = (vtt: string, subtitleOffsetMs: number): string => {
+  const mpegts = Math.max(0, Math.round((outputTimestampOffsetS * 1000 + subtitleOffsetMs) * 90))
+  const map = `X-TIMESTAMP-MAP=MPEGTS:${mpegts},LOCAL:00:00:00.000`
+  const newline = vtt.indexOf('\n')
+  return newline === -1
+    ? `${vtt}\n${map}\n`
+    : `${vtt.slice(0, newline + 1)}${map}\n${vtt.slice(newline + 1)}`
 }
