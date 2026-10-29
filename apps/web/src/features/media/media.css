@@ -722,10 +722,6 @@
   font-size: 12px;
 }
 
-.card-sheet__head .round-button {
-  align-self: flex-start;
-}
-
 .card-sheet__play {
   width: 100%;
 }

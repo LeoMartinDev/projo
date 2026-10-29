@@ -107,14 +107,6 @@ const CardSheetBody = ({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          className="round-button round-button--soft"
-          aria-label={t('common.close')}
-          onClick={onClose}
-        >
-          <RemoveIcon size={14} />
-        </button>
       </div>
 
       {ratio === undefined ? undefined : (

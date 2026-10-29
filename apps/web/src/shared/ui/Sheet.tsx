@@ -1,11 +1,16 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useEffectEvent } from 'react'
 
 import { useElement } from './use-element.ts'
 import './sheet.css'
 
+/** Drag past which releasing the sheet dismisses it. */
+const dismissDistance = 80
+const reducedMotion = '(prefers-reduced-motion: reduce)'
+
 /**
  * Bottom sheet of artboard `MobileHome` (long press on a card, catalog filters): a native modal
- * `<dialog>` (focus trap, Escape) that slides up from the bottom edge; a tap outside closes it.
+ * `<dialog>` (focus trap, Escape) that slides up from the bottom edge; a tap outside or a drag
+ * down from its top closes it.
  */
 export const Sheet = ({
   open,
@@ -19,12 +24,64 @@ export const Sheet = ({
   children: ReactNode
 }) => {
   const [dialog, ref] = useElement<HTMLDialogElement>()
+  // The touch listeners outlive renders (a refetch during a drag) yet call the latest onClose.
+  const dismiss = useEffectEvent(() => onClose())
 
   useEffect(() => {
     if (dialog === undefined) return
     if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
+    if (!open && dialog.open) {
+      dialog.close()
+      dialog.style.removeProperty('translate')
+    }
   }, [dialog, open])
+
+  // A <dialog> has no native swipe: the sheet follows a finger dragging down from its top.
+  useEffect(() => {
+    if (dialog === undefined) return
+    let startY = 0
+    let offset = 0
+    const onStart = (event: TouchEvent) => {
+      startY = event.touches[0]?.clientY ?? 0
+      offset = 0
+      dialog.style.transition = 'none'
+    }
+    const onMove = (event: TouchEvent) => {
+      const y = event.touches[0]?.clientY
+      if (y === undefined) return
+      // Scrolled content scrolls back first; the drag starts once it is at the top.
+      if (dialog.scrollTop > 0 || y < startY) startY = y
+      offset = y - startY
+      if (offset > 0) event.preventDefault()
+      dialog.style.translate = `0 ${offset}px`
+    }
+    const onEnd = () => {
+      dialog.style.removeProperty('transition')
+      if (offset < dismissDistance) return dialog.style.removeProperty('translate')
+      if (matchMedia(reducedMotion).matches) return dismiss()
+      dialog.style.translate = '0 100%'
+    }
+    const onSlidOut = (event: TransitionEvent) => {
+      if (
+        event.target === dialog &&
+        event.propertyName === 'translate' &&
+        offset >= dismissDistance
+      )
+        dismiss()
+    }
+    dialog.addEventListener('touchstart', onStart, { passive: true })
+    dialog.addEventListener('touchmove', onMove, { passive: false })
+    dialog.addEventListener('touchend', onEnd)
+    dialog.addEventListener('touchcancel', onEnd)
+    dialog.addEventListener('transitionend', onSlidOut)
+    return () => {
+      dialog.removeEventListener('touchstart', onStart)
+      dialog.removeEventListener('touchmove', onMove)
+      dialog.removeEventListener('touchend', onEnd)
+      dialog.removeEventListener('touchcancel', onEnd)
+      dialog.removeEventListener('transitionend', onSlidOut)
+    }
+  }, [dialog])
 
   return (
     <dialog
