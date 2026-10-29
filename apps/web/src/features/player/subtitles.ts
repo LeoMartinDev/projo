@@ -1,4 +1,8 @@
-import type { PlaybackSessionDto, SubtitleTrackDto } from '@projo/shared/api/playback'
+import {
+  type PlaybackSessionDto,
+  type SubtitleTrackDto,
+  subtitleRenditionNames,
+} from '@projo/shared/api/playback'
 
 /**
  * Text subtitles (§10.4): WebVTT tracks are rendered by the player itself (size, position above
@@ -107,12 +111,34 @@ export type SubtitleChoice = { kind: 'off' } | { kind: 'track'; track: SubtitleT
 
 /**
  * Picking a subtitle track needs a new session when it must be burnt in, or when the current
- * session burns one in (its video carries it). A WebVTT track or "off" is switched in place.
+ * session burns one in (its video carries it), or when the subtitles come from the stream
+ * (`hls`, §10.4) and a `direct` session has none. A WebVTT track or "off" is switched in place.
  */
 export const needsNewSession = (
-  session: Pick<PlaybackSessionDto, 'burnIn'>,
+  session: Pick<PlaybackSessionDto, 'burnIn' | 'mode'>,
   choice: SubtitleChoice,
-): boolean => session.burnIn || (choice.kind === 'track' && choice.track.delivery === 'burn_in')
+  delivery: 'overlay' | 'hls' = 'overlay',
+): boolean =>
+  session.burnIn ||
+  (choice.kind === 'track' &&
+    (choice.track.delivery === 'burn_in' || (delivery === 'hls' && session.mode === 'direct')))
+
+/**
+ * The label of the selected track among the stream's renditions (§10.4): the `NAME` the server
+ * gave it in `master.m3u8`, which Safari exposes as `TextTrack.label`.
+ */
+export const renditionLabel = (
+  tracks: readonly SubtitleTrackDto[],
+  selectedId: string | undefined,
+): string | undefined => {
+  const text = tracks.filter((track) => track.delivery === 'vtt')
+  const index = text.findIndex((track) => track.id === selectedId)
+  return index === -1 ? undefined : subtitleRenditionNames(text)[index]
+}
+
+/** `master.m3u8` with the subtitle delay, applied by the server to the renditions (§10.4). */
+export const withSubtitleOffset = (url: string, delayMs: number): string =>
+  `${url.split('?')[0] ?? url}?subtitleOffsetMs=${Math.round(delayMs)}`
 
 export const canChoose = (track: SubtitleTrackDto) => track.delivery !== 'unsupported'
 

@@ -183,6 +183,7 @@ export const LanguagesMenu = ({
   onSubtitle,
   subtitleSettings,
   onSubtitleSettings,
+  sizeAdjustable,
 }: {
   session: PlaybackSessionDto
   audioIndex: number | undefined
@@ -194,6 +195,8 @@ export const LanguagesMenu = ({
   onSubtitle: (choice: SubtitleChoice) => void
   subtitleSettings: SubtitleSettings
   onSubtitleSettings: (update: (settings: SubtitleSettings) => SubtitleSettings) => void
+  /** False when iOS draws the stream's subtitles: their size is its accessibility setting (§10.4). */
+  sizeAdjustable: boolean
 }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -313,27 +316,29 @@ export const LanguagesMenu = ({
   const sizeIndex = subtitleSizes.indexOf(subtitleSettings.size)
   const subtitleStyle = (
     <div className={`menu-style${subtitlesOff ? ' menu-style--off' : ''}`}>
-      <div className="menu-setting">
-        <span className="menu-setting__label">{t('player.menu.size')}</span>
-        <div className="menu-segments" role="radiogroup" aria-label={t('player.menu.size')}>
-          <SegmentIndicator index={sizeIndex} count={subtitleSizes.length} />
-          {subtitleSizes.map((size) => (
-            <button
-              key={size}
-              type="button"
-              role="radio"
-              className={`menu-segments__item menu-size--${size}`}
-              aria-checked={subtitleSettings.size === size}
-              aria-label={t(`player.menu.sizes.${size}`)}
-              title={t(`player.menu.sizes.${size}`)}
-              disabled={subtitlesOff}
-              onClick={() => onSubtitleSettings((settings) => ({ ...settings, size }))}
-            >
-              A
-            </button>
-          ))}
+      {sizeAdjustable ? (
+        <div className="menu-setting">
+          <span className="menu-setting__label">{t('player.menu.size')}</span>
+          <div className="menu-segments" role="radiogroup" aria-label={t('player.menu.size')}>
+            <SegmentIndicator index={sizeIndex} count={subtitleSizes.length} />
+            {subtitleSizes.map((size) => (
+              <button
+                key={size}
+                type="button"
+                role="radio"
+                className={`menu-segments__item menu-size--${size}`}
+                aria-checked={subtitleSettings.size === size}
+                aria-label={t(`player.menu.sizes.${size}`)}
+                title={t(`player.menu.sizes.${size}`)}
+                disabled={subtitlesOff}
+                onClick={() => onSubtitleSettings((settings) => ({ ...settings, size }))}
+              >
+                A
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : undefined}
       <div className="menu-setting">
         <span className="menu-setting__label">{t('player.menu.delay')}</span>
         <div className="menu-stepper">

@@ -494,6 +494,7 @@
       "original": "Original",
       "speed": "Speed",
       "pip": "Picture-in-Picture",
+      "airplay": "AirPlay",
       "chapterNumber": "Chapter {{number}}",
       "origin": {
         "external": "Separate file",

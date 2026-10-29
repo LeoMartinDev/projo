@@ -67,6 +67,22 @@ describe('detectCapabilities', () => {
     })
   })
 
+  test('an iPhone or iPad with native HLS asks for subtitles inside the stream (§10.4)', async () => {
+    const safari = {
+      canPlayType: (type: string) => (/avc1|mp4a|mpegurl/.test(type) ? 'probably' : ''),
+      hlsJsSupported: true,
+      preferNativeHls: true,
+    }
+    expect(await detectCapabilities({ ...safari, appleTouch: true })).toMatchObject({
+      hls: 'native',
+      subtitleDelivery: 'hls',
+    })
+    expect(await detectCapabilities(safari)).not.toHaveProperty('subtitleDelivery')
+    expect(
+      await detectCapabilities({ ...safari, preferNativeHls: false, appleTouch: true }),
+    ).not.toHaveProperty('subtitleDelivery')
+  })
+
   test('falls back to the second probe of a codec (hev1)', async () => {
     const capabilities = await detectCapabilities(
       chromeLike({ isTypeSupported: (type) => type.includes('hev1') }),

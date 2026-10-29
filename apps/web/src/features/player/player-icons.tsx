@@ -83,6 +83,13 @@ export const PlusSmallIcon = ({ size = 18 }: IconProps) => (
   </svg>
 )
 
+export const AirPlayIcon = ({ size = 20 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.6}>
+    <path d="M6 17H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-1" />
+    <path d="M12 15l5 6H7z" fill="currentColor" stroke="none" />
+  </svg>
+)
+
 export const PictureInPictureIcon = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)} strokeWidth={1.6}>
     <rect x="3" y="5" width="18" height="14" rx="2" />

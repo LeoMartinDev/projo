@@ -32,6 +32,13 @@
   background: #000000;
 }
 
+/* The `<track>` is `showing` for Firefox's own PiP; in the page `.captions` draws the cues. */
+.player__video:not(.player__video--native-cues)::cue {
+  color: transparent;
+  background: transparent;
+  text-shadow: none;
+}
+
 .player__surface {
   position: absolute;
   inset: 0;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { SubtitleTrackDto } from '@projo/shared/api/playback'
+import { type SubtitleTrackDto, subtitleRenditionNames } from '@projo/shared/api/playback'
 
 import { parseSubtitleSettings } from './player-settings.ts'
 import {
@@ -8,9 +8,11 @@ import {
   needsNewSession,
   normalizeLanguage,
   parseCueText,
+  renditionLabel,
   shiftCue,
   toggledSubtitle,
   vttTrackOf,
+  withSubtitleOffset,
 } from './subtitles.ts'
 
 const track = (overrides: Partial<SubtitleTrackDto> & { id: string }): SubtitleTrackDto => ({
@@ -98,10 +100,40 @@ describe('choices', () => {
   const vobsub = track({ id: 'sub', format: 'dvd_subtitle', delivery: 'unsupported' })
 
   test('only burning in (or leaving a burnt-in track) needs a new session', () => {
-    expect(needsNewSession({ burnIn: false }, { kind: 'track', track: fr })).toBe(false)
-    expect(needsNewSession({ burnIn: false }, { kind: 'off' })).toBe(false)
-    expect(needsNewSession({ burnIn: false }, { kind: 'track', track: pgs })).toBe(true)
-    expect(needsNewSession({ burnIn: true }, { kind: 'off' })).toBe(true)
+    expect(
+      needsNewSession({ burnIn: false, mode: 'hls_remux' }, { kind: 'track', track: fr }),
+    ).toBe(false)
+    expect(needsNewSession({ burnIn: false, mode: 'hls_remux' }, { kind: 'off' })).toBe(false)
+    expect(
+      needsNewSession({ burnIn: false, mode: 'hls_remux' }, { kind: 'track', track: pgs }),
+    ).toBe(true)
+    expect(needsNewSession({ burnIn: true, mode: 'hls_remux' }, { kind: 'off' })).toBe(true)
+  })
+
+  test('subtitles from the stream (§10.4): a direct session has none, a new one carries them', () => {
+    const direct = { burnIn: false, mode: 'direct' } as const
+    expect(needsNewSession(direct, { kind: 'track', track: fr }, 'hls')).toBe(true)
+    expect(needsNewSession(direct, { kind: 'off' }, 'hls')).toBe(false)
+    expect(needsNewSession(direct, { kind: 'track', track: fr })).toBe(false)
+    expect(
+      needsNewSession({ burnIn: false, mode: 'hls_remux' }, { kind: 'track', track: fr }, 'hls'),
+    ).toBe(false)
+  })
+
+  test('the rendition is found by the NAME the server gave it, among text tracks only', () => {
+    const fr2 = track({ id: 'fr2', language: 'fr', delivery: 'vtt' })
+    expect(renditionLabel([pgs, fr, fr2], 'fr2')).toBe(subtitleRenditionNames([fr, fr2])[1])
+    expect(renditionLabel([pgs, fr], 'pgs')).toBeUndefined()
+    expect(renditionLabel([fr], undefined)).toBeUndefined()
+  })
+
+  test('the delay goes in the master URL, replacing the previous one', () => {
+    expect(withSubtitleOffset('/api/v1/stream/s/k/master.m3u8', 250)).toBe(
+      '/api/v1/stream/s/k/master.m3u8?subtitleOffsetMs=250',
+    )
+    expect(withSubtitleOffset('/m.m3u8?subtitleOffsetMs=250', -500.4)).toBe(
+      '/m.m3u8?subtitleOffsetMs=-500',
+    )
   })
 
   test('the <track> is the selected WebVTT one', () => {

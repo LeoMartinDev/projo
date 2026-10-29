@@ -6,9 +6,11 @@ import {
   useCallback,
   useEffect,
   useEffectEvent,
+  useMemo,
   useRef,
   useState,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
@@ -39,7 +41,13 @@ import {
 import { useElement } from '../../shared/ui/use-element.ts'
 import { itemQuery } from '../catalog/queries.ts'
 import { useUpdateProfile } from '../profiles/queries.ts'
+import {
+  documentPictureInPictureSupported,
+  openDocumentPictureInPicture,
+  showInDocumentPictureInPicture,
+} from './document-pip.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
+import { nowPlayingOf } from './media-session.ts'
 import { NextUpCard } from './NextUpCard.tsx'
 import { type Heartbeat, sessionTimedOut, startHeartbeat } from './heartbeat.ts'
 import {
@@ -54,10 +62,12 @@ import {
   preloadImages,
   putTrackPreferences,
   releaseSession,
+  reloadStream,
   retainSession,
   type StreamFailure,
 } from './playback.ts'
 import {
+  AirPlayIcon,
   ChaptersIcon,
   CornersIcon,
   CornersInIcon,
@@ -117,7 +127,14 @@ import {
 } from './shortcuts.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
 import { SubtitleOverlay } from './SubtitleOverlay.tsx'
-import { needsNewSession, type SubtitleChoice, toggledSubtitle, vttTrackOf } from './subtitles.ts'
+import {
+  needsNewSession,
+  renditionLabel,
+  type SubtitleChoice,
+  toggledSubtitle,
+  vttTrackOf,
+  withSubtitleOffset,
+} from './subtitles.ts'
 import {
   chapterIndexAt,
   chaptersOnItem,
@@ -147,18 +164,22 @@ import {
 } from './track-memory.ts'
 import { TrackToast } from './TrackToast.tsx'
 import { sheetUrls, thumbnailAt } from './trickplay.ts'
+import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import {
+  pictureInPictureShowsTextTracks,
   pictureInPictureSupported,
   restoreVolume,
   saveVolume,
   seekTo,
   setPlaybackRate,
   setVolumeLevel,
+  showAirPlayPicker,
   toggleFullscreen,
   toggleMuted,
   togglePictureInPicture,
   togglePlayback,
+  useAirPlayAvailable,
   useIsFullscreen,
   usePictureInPicture,
   useVideoState,
@@ -279,7 +300,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useVideoState(video)
   const fullscreen = useIsFullscreen()
-  const pip = usePictureInPicture(video)
+  const [pipStage, setPipStage] = useState<HTMLElement>()
+  const pip = usePictureInPicture(video) || pipStage !== undefined
+  const airPlay = useAirPlayAvailable(video)
 
   const playback = useQuery({
     queryKey: ['playback', itemId, request],
@@ -301,6 +324,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   })
   const session: PlaybackSessionDto | undefined = playback.data?.session
   const hlsMode = playback.data?.hls ?? 'mse'
+  // §10.4: iOS shows the stream's subtitle renditions itself (PiP, AirPlay), no `<track>`.
+  const hlsSubtitles = playback.data?.subtitles === 'hls'
 
   // ── Timeline ────────────────────────────────────────────────────────────────
   const streamMs = state.duration * 1000
@@ -335,7 +360,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         ? subtitleChoice.id
         : session.selectedSubtitleTrackId
   const vttTrack =
-    session === undefined ? undefined : vttTrackOf(session.subtitleTracks, subtitleId)
+    session === undefined || hlsSubtitles
+      ? undefined
+      : vttTrackOf(session.subtitleTracks, subtitleId)
   const scope = item.data?.kind === 'episode' ? 'series' : 'movie'
 
   // The player never stays in the history: quitting goes back to the page it was opened from
@@ -409,6 +436,24 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (followingPart !== undefined) void switchSession({ type: 'part', part: followingPart })
   })
 
+  /** The stream to attach: the renditions of `master.m3u8` carry the subtitle delay (§10.4). */
+  const streamedSession = useEffectEvent((current: PlaybackSessionDto) =>
+    hlsSubtitles && current.stream.type === 'hls'
+      ? {
+          ...current,
+          stream: {
+            ...current.stream,
+            url: withSubtitleOffset(current.stream.url, subtitleSettings.delayMs),
+          },
+        }
+      : current,
+  )
+
+  useEffect(() => {
+    if (pipStage === undefined || video === undefined) return
+    return showInDocumentPictureInPicture(pipStage, video, () => setPipStage(undefined))
+  }, [pipStage, video])
+
   // Stream attachment and session lifecycle.
   useEffect(() => {
     if (video === undefined || session === undefined) return
@@ -418,7 +463,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     applyRate(video)
     const detach = attachStream(
       video,
-      session,
+      streamedSession(session),
       hlsMode,
       (failure) => onStreamFailure(failure),
       !startPausedRef.current,
@@ -512,6 +557,30 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         : { kind: 'terminated', reason: payload.reason },
     )
   })
+
+  // §10.4: Safari lists the stream's subtitle renditions as text tracks; the chosen one shows.
+  useEffect(() => {
+    if (video === undefined || session === undefined || !hlsSubtitles) return
+    const label = renditionLabel(session.subtitleTracks, subtitleId)
+    const apply = () => {
+      for (const track of Array.from(video.textTracks)) {
+        if (track.kind !== 'subtitles' && track.kind !== 'captions') continue
+        track.mode = label !== undefined && track.label === label ? 'showing' : 'disabled'
+      }
+    }
+    apply()
+    video.textTracks.addEventListener('addtrack', apply)
+    return () => video.textTracks.removeEventListener('addtrack', apply)
+  }, [video, session, subtitleId, hlsSubtitles])
+
+  // §10.4: a new delay reloads the same session's master at the current time, once it settles.
+  useEffect(() => {
+    if (video === undefined || session?.stream.type !== 'hls' || !hlsSubtitles) return
+    const url = withSubtitleOffset(session.stream.url, subtitleSettings.delayMs)
+    if (video.src.endsWith(url)) return
+    const timer = setTimeout(() => reloadStream(video, url), 800)
+    return () => clearTimeout(timer)
+  }, [video, session, hlsSubtitles, subtitleSettings.delayMs])
 
   // iOS plays fullscreen in its own player: the browser draws the subtitles there.
   useEffect(() => {
@@ -632,7 +701,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       audio: session.audioTracks.find((track) => track.index === audioIndex),
       subtitle: choice.kind === 'off' ? undefined : choice.track,
     })
-    if (needsNewSession(session, choice)) {
+    if (needsNewSession(session, choice, playback.data?.subtitles)) {
       void switchSession({ type: 'subtitles', trackId: id ?? 'off' })
       return
     }
@@ -885,6 +954,19 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (launch) playNext()
   }, [launch])
 
+  // Now Playing: lock screen, Control Center, headset keys (§10.7).
+  const posterUrl = item.data?.series?.images?.poster ?? item.data?.images.poster
+  const nowPlaying = useMemo(
+    () => (title === '' ? undefined : nowPlayingOf({ title, subtitle, posterUrl })),
+    [title, subtitle, posterUrl],
+  )
+  useMediaSession({
+    video,
+    metadata: nowPlaying,
+    seekBy,
+    next: nextEpisode === undefined ? undefined : () => playEpisode(nextEpisode),
+  })
+
   // "Vu" on entering the credits (§13.1): the server hears of the position right away.
   const creditsKey = trigger?.kind === 'credits' ? trigger.key : undefined
   useEffect(() => {
@@ -1094,15 +1176,30 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         )}
       </video>
 
-      <SubtitleOverlay
-        key={vttTrack === undefined ? 'off' : `${session?.id ?? ''}-${vttTrack.id}`}
-        element={vttTrack === undefined ? undefined : trackElement}
-        delayMs={subtitleSettings.delayMs}
-        size={subtitleSettings.size}
-        raised={chromeVisible}
-        aboveToast={(toast !== undefined || skipped !== undefined) && !blocked}
-        native={nativeFullscreen}
-      />
+      {pipStage === undefined ? (
+        <SubtitleOverlay
+          key={vttTrack === undefined ? 'off' : `${session?.id ?? ''}-${vttTrack.id}`}
+          element={vttTrack === undefined ? undefined : trackElement}
+          delayMs={subtitleSettings.delayMs}
+          size={subtitleSettings.size}
+          raised={chromeVisible}
+          aboveToast={(toast !== undefined || skipped !== undefined) && !blocked}
+          native={nativeFullscreen || (pip && pictureInPictureShowsTextTracks(video))}
+        />
+      ) : (
+        createPortal(
+          <SubtitleOverlay
+            key={vttTrack === undefined ? 'off' : `${session?.id ?? ''}-${vttTrack.id}`}
+            element={vttTrack === undefined ? undefined : trackElement}
+            delayMs={subtitleSettings.delayMs}
+            size={subtitleSettings.size}
+            raised={false}
+            aboveToast={false}
+            native={false}
+          />,
+          pipStage,
+        )
+      )}
 
       <div
         className="player__surface"
@@ -1316,6 +1413,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               onSubtitle={chooseSubtitle}
               subtitleSettings={subtitleSettings}
               onSubtitleSettings={changeSubtitleSettings}
+              sizeAdjustable={!hlsSubtitles}
             />
           ) : overlay === 'speed' ? (
             <SpeedMenu rate={rate} onRate={changeRate} onClose={closeOverlay} />
@@ -1487,10 +1585,24 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               aria-label={t('player.menu.pip')}
               aria-pressed={pip}
               onClick={() => {
-                if (video !== undefined) togglePictureInPicture(video)
+                if (video === undefined) return
+                if (pipStage !== undefined) setPipStage(undefined)
+                else if (documentPictureInPictureSupported())
+                  void openDocumentPictureInPicture(video).then(setPipStage)
+                else togglePictureInPicture(video)
               }}
             >
               <PictureInPictureIcon size={21} />
+            </button>
+          ) : undefined}
+          {airPlay && video !== undefined ? (
+            <button
+              type="button"
+              className="player__control"
+              aria-label={t('player.menu.airplay')}
+              onClick={() => showAirPlayPicker(video)}
+            >
+              <AirPlayIcon size={21} />
             </button>
           ) : undefined}
           <button

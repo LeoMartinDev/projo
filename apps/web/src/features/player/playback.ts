@@ -43,7 +43,12 @@ export const playbackTransport: HeartbeatTransport = {
     ),
 }
 
-export type StartedPlayback = { session: PlaybackSessionDto; hls: 'native' | 'mse' }
+export type StartedPlayback = {
+  session: PlaybackSessionDto
+  hls: 'native' | 'mse'
+  /** `hls`: the platform player shows the stream's subtitle renditions (§10.4), not a `<track>`. */
+  subtitles: 'overlay' | 'hls'
+}
 
 /** The browser's codecs do not change while the page lives: detected once. */
 let capabilities: Promise<ClientCapabilities> | undefined
@@ -70,7 +75,11 @@ export const createPlaybackSession = async (
       json: { ...toCreateBody(itemId, sessionRequest), capabilities: detected },
     }),
   )
-  return { session, hls: detected.hls === 'native' ? 'native' : 'mse' }
+  return {
+    session,
+    hls: detected.hls === 'native' ? 'native' : 'mse',
+    subtitles: detected.subtitleDelivery ?? 'overlay',
+  }
 }
 
 // ── End of session ───────────────────────────────────────────────────────────
@@ -105,6 +114,18 @@ export const retainSession = sessionEnds.retain
 export const releaseSession = sessionEnds.release
 
 // ── Stream attachment ────────────────────────────────────────────────────────
+
+/** A delay reload of the native stream (`reloadStream`) not loaded yet. */
+const pendingReloads = new WeakMap<
+  HTMLVideoElement,
+  { at: number; playing: boolean; cancel: () => void }
+>()
+
+/** The stream is detached (next episode, new session): a pending reload must not seek it. */
+const cancelReload = (video: HTMLVideoElement) => {
+  pendingReloads.get(video)?.cancel()
+  pendingReloads.delete(video)
+}
 
 /** `network`: the connection dropped (resumed automatically); otherwise the media failed. */
 export type StreamFailure = { failure: ApiFailure; network: boolean }
@@ -186,6 +207,7 @@ export const attachStream = (
       if (disposed) return
       disposed = true
       cancelSeek()
+      cancelReload(video)
       stopSeekWatch()
       video.removeEventListener('error', failed)
       video.removeEventListener('loadedmetadata', play)
@@ -234,10 +256,35 @@ export const attachStream = (
     if (disposed) return
     disposed = true
     stopSeekWatch()
+    cancelReload(video)
     destroy()
     video.removeAttribute('src')
     video.load()
   }
+}
+
+/**
+ * Same native stream at another URL (the subtitle delay of `master.m3u8`, §10.4): back at the
+ * current time, playing again if it was.
+ */
+export const reloadStream = (video: HTMLVideoElement, url: string): void => {
+  // A reload still loading has reset the element to 0: its target stands.
+  const pending = pendingReloads.get(video)
+  pending?.cancel()
+  const at = pending?.at ?? video.currentTime
+  const playing = pending?.playing ?? !video.paused
+  const restore = () => {
+    pendingReloads.delete(video)
+    video.currentTime = at
+    if (playing) video.play().catch(() => undefined)
+  }
+  video.addEventListener('loadedmetadata', restore, { once: true })
+  pendingReloads.set(video, {
+    at,
+    playing,
+    cancel: () => video.removeEventListener('loadedmetadata', restore),
+  })
+  video.src = url
 }
 
 // ── Track memory (§11.3) and trickplay (§10.5) ───────────────────────────────

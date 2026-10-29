@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
 /** What the controls render, read from `<video>` on its own events (no polling). */
 export type VideoState = {
@@ -127,14 +127,23 @@ const fullscreenElement = (): Element | undefined =>
 export const useIsFullscreen = (): boolean =>
   useSyncExternalStore(subscribeFullscreen, () => fullscreenElement() !== undefined)
 
+/** `lock` is Android only (and absent from the DOM types); iOS rotates its own fullscreen. */
+const orientation = () =>
+  screen.orientation as
+    (ScreenOrientation & { lock?: (orientation: 'landscape') => Promise<void> }) | undefined
+
 /** Container fullscreen where supported, the video's own on iOS Safari. */
 export const toggleFullscreen = (container: HTMLElement, video: HTMLVideoElement): void => {
   if (fullscreenElement() !== undefined) {
+    orientation()?.unlock?.()
     void document.exitFullscreen().catch(() => undefined)
     return
   }
   if (typeof container.requestFullscreen === 'function') {
-    void container.requestFullscreen().catch(() => undefined)
+    void container
+      .requestFullscreen()
+      .then(() => orientation()?.lock?.('landscape'))
+      .catch(() => undefined)
     return
   }
   const webkitVideo = video as unknown as { webkitEnterFullscreen?: () => void }
@@ -230,6 +239,10 @@ export const pictureInPictureSupported = (video: HTMLVideoElement | undefined): 
   return webkit(video).webkitSupportsPresentationMode?.('picture-in-picture') === true
 }
 
+/** WebKit draws a `showing` text track in its PiP window; Chromium's shows the video frames only. */
+export const pictureInPictureShowsTextTracks = (video: HTMLVideoElement | undefined): boolean =>
+  video !== undefined && webkit(video).webkitPresentationMode === 'picture-in-picture'
+
 const inPictureInPicture = (video: HTMLVideoElement) =>
   document.pictureInPictureElement === video ||
   webkit(video).webkitPresentationMode === 'picture-in-picture'
@@ -268,4 +281,26 @@ export const usePictureInPicture = (video: HTMLVideoElement | undefined): boolea
     [video],
   )
   return useSyncExternalStore(store.subscribe, store.getSnapshot)
+}
+
+// ── AirPlay (Safari) ─────────────────────────────────────────────────────────
+
+type WebkitPlaybackTarget = { webkitShowPlaybackTargetPicker?: () => void }
+
+/** An AirPlay receiver is reachable (Safari's `webkitplaybacktargetavailabilitychanged`). */
+export const useAirPlayAvailable = (video: HTMLVideoElement | undefined): boolean => {
+  const [available, setAvailable] = useState(false)
+  useEffect(() => {
+    if (video === undefined) return
+    const changed = (event: Event) =>
+      setAvailable((event as Event & { availability?: string }).availability === 'available')
+    video.addEventListener('webkitplaybacktargetavailabilitychanged', changed)
+    return () => video.removeEventListener('webkitplaybacktargetavailabilitychanged', changed)
+  }, [video])
+  return available
+}
+
+/** The system's list of AirPlay receivers. */
+export const showAirPlayPicker = (video: HTMLVideoElement): void => {
+  ;(video as unknown as WebkitPlaybackTarget).webkitShowPlaybackTargetPicker?.()
 }

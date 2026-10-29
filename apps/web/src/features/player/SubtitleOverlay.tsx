@@ -36,10 +36,18 @@ const setMode = (track: TextTrack, mode: TextTrackMode): void => {
   track.mode = mode
 }
 
+/** Firefox's PiP shows a `showing` track only; `native` lets the browser's cues show in the page. */
+const showTrack = (element: HTMLTrackElement, native: boolean): void => {
+  setMode(element.track, 'showing')
+  element.parentElement?.classList.toggle('player__video--native-cues', native)
+}
+
 /**
- * The selected WebVTT track (§10.4), drawn by the player: its `<track>` stays `hidden` and the
- * active cues are rendered here, at the chosen size, above the chrome when it is shown. In the
- * native fullscreen of iOS (`native`), the browser draws them itself. The delay shifts the cues.
+ * The selected WebVTT track (§10.4), drawn by the player: its `<track>` is `showing` for the
+ * system PiP that reads it (Firefox's, which tells the page nothing), its cues transparent in the
+ * page, and the active cues are rendered here, at the chosen size, above the chrome when it is
+ * shown. In the native fullscreen of iOS and in WebKit's Picture-in-Picture (`native`), the
+ * browser draws them itself: the page is not shown there. The delay shifts the cues.
  * Mount it with `key` = the track, so a new track starts empty.
  */
 export const SubtitleOverlay = ({
@@ -62,13 +70,14 @@ export const SubtitleOverlay = ({
   useEffect(() => {
     if (element === undefined) return
     const track = element.track
-    setMode(track, native ? 'showing' : 'hidden')
+    showTrack(element, native)
     const update = () => setCues(native ? [] : activeCues(track))
     const loaded = () => {
       applyCueDelay(track, delayMs)
       update()
     }
-    applyCueDelay(track, delayMs)
+    // Remounted mid-cue (into the PiP window): the current cue shows without waiting for the next.
+    loaded()
     element.addEventListener('load', loaded)
     track.addEventListener('cuechange', update)
     return () => {

@@ -19,6 +19,8 @@ export type MediaEnvironment = {
   preferNativeHls: boolean
   /** Physical pixels of the screen height. */
   screenHeight?: number
+  /** iPhone or iPad (iPadOS says it is a Mac: Apple vendor with touch points). */
+  appleTouch?: boolean
 }
 
 /** Probe strings: a common profile per codec, in an MP4 container (what fMP4 HLS carries). */
@@ -99,10 +101,13 @@ export const detectCapabilities = async (env: MediaEnvironment): Promise<ClientC
     detectList(env, 'video', videoProbes),
     detectList(env, 'audio', audioProbes),
   ])
+  const hls = hlsSupport(env)
   return {
     videoCodecs,
     audioCodecs,
-    hls: hlsSupport(env),
+    hls,
+    // iOS shows subtitles from the stream in Picture-in-Picture and over AirPlay, never a `<track>`.
+    ...(hls === 'native' && env.appleTouch === true ? { subtitleDelivery: 'hls' as const } : {}),
     ...(env.screenHeight === undefined || env.screenHeight <= 0
       ? {}
       : { screenHeight: Math.round(env.screenHeight) }),
@@ -130,6 +135,7 @@ export const browserMediaEnvironment = (hlsJsSupported: boolean): MediaEnvironme
       : { decodingInfo: (configuration) => capabilities.decodingInfo(configuration) }),
     hlsJsSupported,
     preferNativeHls: navigator.vendor.startsWith('Apple'),
+    appleTouch: navigator.vendor.startsWith('Apple') && navigator.maxTouchPoints > 1,
     screenHeight: window.screen.height * window.devicePixelRatio,
   }
 }
