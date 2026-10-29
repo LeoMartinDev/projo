@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { watchlistQuery } from '../catalog/queries.ts'
+import { useGridCardSheet } from '../media/CardSheet.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import '../catalog/catalog.css'
@@ -13,6 +14,7 @@ export const WatchlistPage = () => {
   const { t } = useTranslation()
   const watchlist = useInfiniteQuery(watchlistQuery)
   const items = watchlist.data?.pages.flatMap((page) => page.items) ?? []
+  const cardSheet = useGridCardSheet(items)
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = watchlist
   return (
     <div className="page catalog">
@@ -39,12 +41,13 @@ export const WatchlistPage = () => {
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !watchlist.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} />}
+          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
         />
       )}
       {watchlist.isFetchNextPageError ? (
         <ErrorState error={watchlist.error} onRetry={() => void fetchNextPage()} />
       ) : undefined}
+      {cardSheet.sheet}
     </div>
   )
 }

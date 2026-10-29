@@ -14,6 +14,7 @@ import { Field, SelectChevron } from '../../shared/ui/controls.tsx'
 import { FilterIcon } from '../../shared/ui/media-icons.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
+import { useGridCardSheet } from '../media/CardSheet.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import {
@@ -194,6 +195,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
   }, [sort, profileId, kind, navigate])
 
   const items = catalog.data?.pages.flatMap((page) => page.items) ?? []
+  const cardSheet = useGridCardSheet(items)
   const title = kind === 'movies' ? t('nav.movies') : t('nav.series')
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = catalog
 
@@ -285,7 +287,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !catalog.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} />}
+          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
         />
       )}
       {catalog.isFetchNextPageError ? (
@@ -323,6 +325,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
           </button>
         </div>
       </Sheet>
+      {cardSheet.sheet}
     </div>
   )
 }

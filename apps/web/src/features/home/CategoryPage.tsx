@@ -7,6 +7,7 @@ import { type HomeCategorySlug, homeCategoryOfSlug } from '@projo/shared/api/hom
 
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { homeCategoryPageQuery } from '../catalog/queries.ts'
+import { useGridCardSheet } from '../media/CardSheet.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import '../catalog/catalog.css'
@@ -19,6 +20,7 @@ export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
   const { t } = useTranslation()
   const page = useInfiniteQuery(homeCategoryPageQuery(category))
   const items = page.data?.pages.flatMap((batch) => batch.items) ?? []
+  const cardSheet = useGridCardSheet(items)
   const title = categoryTitle(t, homeCategoryOfSlug(category))
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = page
   return (
@@ -45,12 +47,13 @@ export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !page.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} />}
+          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
         />
       )}
       {page.isFetchNextPageError ? (
         <ErrorState error={page.error} onRetry={() => void fetchNextPage()} />
       ) : undefined}
+      {cardSheet.sheet}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
@@ -41,6 +41,24 @@ export const CardSheet = ({
       )}
     </Sheet>
   )
+}
+
+/**
+ * The long-press sheet of a poster grid (Movies, Shows, My list, category page). It follows the
+ * fresh grid data, and closes when its item leaves the grid (removed from My list).
+ */
+export const useGridCardSheet = (items: ItemSummaryDto[]) => {
+  const [id, setId] = useState<string>()
+  return {
+    onLongPress: (item: ItemSummaryDto) => setId(item.id),
+    sheet: (
+      <CardSheet
+        item={id === undefined ? undefined : items.find((item) => item.id === id)}
+        place="grid"
+        onClose={() => setId(undefined)}
+      />
+    ),
+  }
 }
 
 const CardSheetBody = ({
