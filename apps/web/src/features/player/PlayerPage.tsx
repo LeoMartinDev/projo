@@ -1163,7 +1163,12 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         if (event.pointerType === 'mouse') wake()
       }}
     >
-      <video ref={videoRef} className="player__video" playsInline preload="auto">
+      <video
+        ref={videoRef}
+        className={`player__video${hlsSubtitles ? ' player__video--native-cues' : ''}`}
+        playsInline
+        preload="auto"
+      >
         {vttTrack === undefined || vttTrack.url === undefined ? undefined : (
           <track
             key={`${session?.id ?? ''}-${vttTrack.id}`}

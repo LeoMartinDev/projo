@@ -36,7 +36,8 @@
   background: #000000;
 }
 
-/* The `<track>` is `showing` for Firefox's own PiP; in the page `.captions` draws the cues. */
+/* The `<track>` is `showing` for Firefox's own PiP; in the page `.captions` draws the cues.
+   Subtitles from the HLS stream (iOS) have no `.captions`: their cues stay visible. */
 .player__video:not(.player__video--native-cues)::cue {
   color: transparent;
   background: transparent;
