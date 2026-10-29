@@ -17,7 +17,7 @@ import { useElement } from '../../shared/ui/use-element.ts'
 
 const gapPx = 14
 
-const finePointer = '(hover: hover) and (pointer: fine)'
+const finePointer = '(hover: hover) and (pointer: fine) and (min-width: 641px)'
 const subscribePointer = (notify: () => void) => {
   const query = window.matchMedia(finePointer)
   query.addEventListener('change', notify)
@@ -26,7 +26,8 @@ const subscribePointer = (notify: () => void) => {
 
 /**
  * Mouse and trackpad: rows page with the arrows (artboard `Home`) so the card previews can grow
- * over their neighbours. Touch screens scroll the row natively.
+ * over their neighbours. Touch screens and phone widths (a touch laptop reports a fine pointer)
+ * scroll the row natively, without previews.
  */
 const useFinePointer = () =>
   useSyncExternalStore(
