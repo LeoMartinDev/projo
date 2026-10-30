@@ -447,16 +447,19 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(missing.status).toBe(422)
 
     const rushes = sourceRow('Rushes.mkv')
+    const rushesItems = linksOf(rushes?.id ?? '')
+    expect(rushesItems).toHaveLength(1)
     const rejected = await world.request(`/sources/${rushes?.id}/reject`, { method: 'POST' })
     expect(rejected.status).toBe(204)
     expect(sourceRow('Rushes.mkv')?.state).toBe('rejected')
     expect(linksOf(rushes?.id ?? '')).toEqual([])
 
-    // Shown again: back in "To review".
+    // Shown again: back in "To review", on its item kept with its history (§7.8).
     await world.request(`/sources/${rushes?.id}/restore`, { method: 'POST' })
     await world.runJobs(['probe_source'])
     await world.runJobs(['match_source'])
     expect(sourceRow('Rushes.mkv')).toMatchObject({ state: 'ready', match_state: 'needs_review' })
+    expect(linksOf(rushes?.id ?? '')).toEqual(rushesItems)
   })
 
   test('"c\'est un épisode de…" takes along the other files to review of the series', async () => {

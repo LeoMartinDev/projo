@@ -83,10 +83,13 @@ export const ServerConnectionProvider = ({
     mutationFn: async (input: string): Promise<{ url: string; status: ServerStatus }> => {
       const normalized = await unwrap(normalizeServerUrl(input))
       const status = await unwrap(checkServer(normalized))
+      // Another server (`/health` names none): the previous one's token must never reach it.
+      if (normalized !== url) await unwrap(sessionStore.clear())
       await unwrap(store.save(normalized))
       return { url: normalized, status }
     },
     onSuccess: ({ url: connected, status }) => {
+      if (connected !== url) queryClient.removeQueries({ queryKey: [sessionQueryPrefix] })
       queryClient.setQueryData(healthKey(connected), status)
       queryClient.setQueryData(storedUrlKey, { url: connected })
     },

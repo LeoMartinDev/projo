@@ -191,6 +191,8 @@ export const SessionProvider = ({
   const pair = useMutation({
     mutationFn: async ({ serverUrl, code }: { serverUrl: string; code: string }) => {
       const status = await unwrap(connection.check(serverUrl))
+      // Another server: the previous one's token and profile must never reach it.
+      if (serverUrl !== url) await unwrap(store.clear())
       // Too old for the app: its "Update your projo server" screen; the code stays unused.
       if (status.kind === 'outdated') return unwrap(connection.adopt(serverUrl, status))
       const claimed = await unwrap(

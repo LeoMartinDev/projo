@@ -16,13 +16,17 @@ const SERIES = 600
 const RUNS = 40
 const TARGET_P95_MS = 100
 
-const app = createCatalogTestApp()
+// `kid`: a §14 kids profile (selected libraries and a maximum rating), the slowest scope.
+const app = createCatalogTestApp({
+  scopes: { 'profile-of-kid': { libraryIds: ['library-1'], allowedRatings: { FR: ['TP', '12'] } } },
+})
 const words = ['amour', 'nuit', 'été', 'guerre', 'étoile', 'ville', 'mer', 'ombre', 'cœur', 'feu']
 const genres = ['action', 'drama', 'comedy', 'thriller', 'science_fiction', 'animation']
 
 const seed = () => {
   const client = app.db.$client
   seedViewer(app.db, 'leo')
+  seedViewer(app.db, 'kid')
   insertLibrary(app.db)
   const base = Date.parse('2025-01-01T00:00:00.000Z')
   const iso = (minutes: number) => new Date(base + minutes * 60_000).toISOString()
@@ -139,13 +143,13 @@ const seed = () => {
   }
 }
 
-const p95 = async (path: string): Promise<number> => {
-  const response = await app.call(path)
+const p95 = async (path: string, as: string): Promise<number> => {
+  const response = await app.call(path, { as })
   expect(response.status).toBe(200)
   const times: number[] = []
   for (let i = 0; i < RUNS; i += 1) {
     const start = performance.now()
-    const run = await app.call(path)
+    const run = await app.call(path, { as })
     await run.arrayBuffer()
     times.push(performance.now() - start)
   }
@@ -155,26 +159,31 @@ const p95 = async (path: string): Promise<number> => {
 
 beforeAll(seed)
 
+const paths = [
+  '/home',
+  '/movies',
+  '/movies?sort=added',
+  '/movies?sort=year&genre=drama',
+  '/movies?sort=rating&decade=1990&watch=unwatched',
+  '/series?sort=added',
+  '/search?q=amo',
+  '/search?q=ete%20etoi',
+]
+
 describe('§21 catalog API performance (indicative)', () => {
-  test.each([
-    '/home',
-    '/movies',
-    '/movies?sort=added',
-    '/movies?sort=year&genre=drama',
-    '/movies?sort=rating&decade=1990&watch=unwatched',
-    '/series?sort=added',
-    '/search?q=amo',
-    '/search?q=ete%20etoi',
-  ])(`p95 of %s under ${TARGET_P95_MS} ms`, async (path) => {
-    const ms = await p95(path)
-    if (path.startsWith('/search')) {
-      const found = (await (await app.call(path)).json()) as {
-        movies: unknown[]
-        series: unknown[]
+  test.each(['leo', 'kid'].flatMap((as) => paths.map((path) => [as, path] as const)))(
+    `p95 for %s of %s under ${TARGET_P95_MS} ms`,
+    async (as, path) => {
+      const ms = await p95(path, as)
+      if (path.startsWith('/search')) {
+        const found = (await (await app.call(path, { as })).json()) as {
+          movies: unknown[]
+          series: unknown[]
+        }
+        expect(found.movies.length + found.series.length).toBeGreaterThan(0)
       }
-      expect(found.movies.length + found.series.length).toBeGreaterThan(0)
-    }
-    console.info(`[perf] ${path}: p95 ${ms.toFixed(1)} ms`)
-    expect(ms).toBeLessThan(TARGET_P95_MS)
-  })
+      console.info(`[perf] ${as} ${path}: p95 ${ms.toFixed(1)} ms`)
+      expect(ms).toBeLessThan(TARGET_P95_MS)
+    },
+  )
 })

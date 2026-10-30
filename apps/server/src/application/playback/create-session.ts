@@ -4,6 +4,7 @@ import type { ClientCapabilities, PlaybackQuality } from '@projo/shared/api/play
 import {
   type CatalogItem,
   type CatalogRepository,
+  everything,
   isPlayableKind,
   type MediaSegment,
   type PlayableSource,
@@ -51,6 +52,7 @@ import {
   type ProgressRepository,
   resumePositionMs,
 } from '../../core/progress/progress.ts'
+import { itemTimeline, segmentsForVersion } from '../../core/segments/chapters.ts'
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
 import { keyframePriority, requestKeyframes } from './index-keyframes.ts'
 import { memoryTargetOf } from './track-preferences.ts'
@@ -503,7 +505,11 @@ export const createPlaybackSessionFactory = ({
       media,
       startPositionMs,
       ...(durationMs === undefined ? {} : { durationMs }),
-      mediaSegments: catalogRepository.listMediaSegments(itemId),
+      mediaSegments: segmentsForVersion(catalogRepository.listMediaSegments(itemId), {
+        referenceMs: itemTimeline(catalogRepository.listReadySources({ itemId, scope: everything }))
+          .durationMs,
+        playedMs: total > 0 ? total : undefined,
+      }),
       audioTracks: media.audio.map((stream) => {
         const alternative = decide(stream.index)
         const delivery: AudioDelivery | undefined = !alternative.ok

@@ -103,3 +103,20 @@ export const itemTimeline = (sources: readonly PlayableSource[]): ItemTimeline =
   }
   return { ...(offsetMs === undefined ? {} : { durationMs: offsetMs }), chapters }
 }
+
+/** Versions whose lengths differ by less than this are one cut (container and encode drift). */
+const SAME_CUT_TOLERANCE_MS = 5_000
+
+/**
+ * §12, §7.7: segments are timed on `itemTimeline`'s version. Another version of another length
+ * (another cut) gets none, rather than credits or an intro at the wrong time.
+ */
+export const segmentsForVersion = <S>(
+  segments: S[],
+  { referenceMs, playedMs }: { referenceMs: number | undefined; playedMs: number | undefined },
+): S[] =>
+  referenceMs === undefined ||
+  playedMs === undefined ||
+  Math.abs(referenceMs - playedMs) <= SAME_CUT_TOLERANCE_MS
+    ? segments
+    : []

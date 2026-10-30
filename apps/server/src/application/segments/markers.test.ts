@@ -200,6 +200,22 @@ describe('POST /admin/items/:id/segments/apply-to-season', () => {
     expect(store.lookups.get(`e3/${noSegmentKey('credits')}`)?.outcome).toBe('no_segment')
   })
 
+  test('credits keep their distance to the end of each episode', () => {
+    sources['e2'] = [readySource('f2', 65 * minute)]
+    const markers = build()
+    // e1 (45 min): credits from 43:30 to the end.
+    markers.setManualSegment({
+      itemId: 'e1',
+      type: 'credits',
+      marker: { startMs: 43.5 * minute, endMs: 45 * minute },
+    })
+    markers.applyToSeason({ itemId: 'e1', types: ['credits'] })
+    expect(store.repository.find({ itemId: 'e2', type: 'credits' })).toMatchObject({
+      startMs: 63.5 * minute,
+      endMs: 65 * minute,
+    })
+  })
+
   test('only the asked types', () => {
     const markers = build()
     markers.setManualSegment({ itemId: 'e1', type: 'intro', marker: intro })

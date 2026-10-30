@@ -170,7 +170,6 @@ export const buildMetadataModule = (
     libraryRepository,
     manualMatches,
     settings,
-    playbackSessions,
     jobQueue,
     clock,
     logger: moduleLogger,

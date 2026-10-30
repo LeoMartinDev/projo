@@ -19,6 +19,7 @@ import {
   type ItemProgress,
   type ProgressRepository,
 } from '../../core/progress/progress.ts'
+import { itemTimeline, segmentsForVersion } from '../../core/segments/chapters.ts'
 
 export type EndedSession = PlaybackSession & { endedAt: Date }
 
@@ -243,7 +244,8 @@ export const heartbeatFactory =
 
     const { profileId } = session
     const previous = progressRepository.find({ profileId, itemId: session.itemId })
-    const durationMs = versionDurationMs(catalogRepository, session) ?? previous?.durationMs
+    const versionMs = versionDurationMs(catalogRepository, session)
+    const durationMs = versionMs ?? previous?.durationMs
     if (durationMs === undefined || durationMs <= 0) return ok({ session: updated })
     const itemIds = new Set([
       session.itemId,
@@ -260,7 +262,14 @@ export const heartbeatFactory =
           durationMs,
           at,
           // §12.4: entering the credits marks it watched, like 93 %.
-          ...creditsStartOf(catalogRepository.listMediaSegments(itemId)),
+          ...creditsStartOf(
+            segmentsForVersion(catalogRepository.listMediaSegments(itemId), {
+              referenceMs: itemTimeline(
+                catalogRepository.listReadySources({ itemId, scope: everything }),
+              ).durationMs,
+              playedMs: versionMs,
+            }),
+          ),
         },
       )
       progressRepository.save(saved)

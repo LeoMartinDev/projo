@@ -11,7 +11,6 @@ import type {
 } from '../../core/metadata/ports.ts'
 import type { TmdbApi, TmdbError, TmdbSearchHit } from '../../core/metadata/tmdb.ts'
 import { analyzeMediaPath, MIN_VIDEO_SIZE_BYTES, showFolderOf } from '../../core/naming/index.ts'
-import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { matchStateFor } from '../../core/scanner/scan-plan.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
 import type { ApplyMatch } from './apply-match.ts'
@@ -33,7 +32,6 @@ type Deps = {
   libraryRepository: Pick<LibraryRepository, 'findById'>
   manualMatches: ManualMatchRepository
   settings: Pick<MetadataSettings, 'language'>
-  playbackSessions: PlaybackSessionTerminator
   jobQueue: JobQueue
   clock: Clock
   logger: Logger
@@ -99,7 +97,6 @@ export const reviewFactory = ({
   libraryRepository,
   manualMatches,
   settings,
-  playbackSessions,
   jobQueue,
   clock,
   logger,
@@ -337,7 +334,6 @@ export const reviewFactory = ({
       if (source === undefined) return sourceNotFound(sourceId)
       const settle = refresh.filesLeaving({ sourceIds: [sourceId] })
       items.transaction(() => {
-        const previous = items.linkedItems(sourceId).map((item) => item.id)
         // Back to "not identified": if a full scan presents it again, the matching (and a
         // correction remembered for it) runs again.
         sourceRepository.patch(sourceId, {
@@ -345,8 +341,8 @@ export const reviewFactory = ({
           matchState: 'unmatched',
           reviewReason: undefined,
         })
+        // §7.8: its items stay, invisible without a file, with their history for "Show again".
         items.replaceLinks({ sourceId, itemIds: [] })
-        items.pruneOrphans(previous, (pruned) => playbackSessions.endWithin({ itemIds: pruned }))
       })
       settle()
       logger.info('source rejected', { sourceId })

@@ -187,6 +187,7 @@ export const segmentMarkersFactory = ({
       (type) => segments.get(type)?.origin === 'manual' || absent.has(type),
     )
     const applied = (types ?? manualTypes).filter((type) => manualTypes.includes(type))
+    const sourceDurationMs = target.value.ref.durationMs
 
     let updated = 0
     let skipped = 0
@@ -213,10 +214,21 @@ export const segmentMarkersFactory = ({
           changed = true
           continue
         }
+        // Credits and preview keep their distance to the end (a longer finale ends later).
+        const shift =
+          (type === 'credits' || type === 'preview') &&
+          durationMs !== undefined &&
+          sourceDurationMs !== undefined
+            ? durationMs - sourceDurationMs
+            : 0
+        const startMs = Math.max(0, segment.startMs + shift)
         // A shorter episode keeps what fits of the marker.
-        const endMs = durationMs === undefined ? segment.endMs : Math.min(segment.endMs, durationMs)
-        if (endMs <= segment.startMs) continue
-        markManual(episodeId, type, segment.startMs, endMs)
+        const endMs =
+          durationMs === undefined
+            ? segment.endMs + shift
+            : Math.min(segment.endMs + shift, durationMs)
+        if (endMs <= startMs) continue
+        markManual(episodeId, type, startMs, endMs)
         changed = true
       }
       if (changed) updated += 1

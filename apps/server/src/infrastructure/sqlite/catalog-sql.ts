@@ -19,11 +19,14 @@ const list = (values: readonly string[]): SQL =>
     sql`, `,
   )
 
-/** Library access (§14): sources of the listed libraries only. */
+/**
+ * Library access (§14): sources of the listed libraries only. `+library_id`: never drive the query
+ * from the library index (every source of the library, seconds on 20,000 items).
+ */
 export const libraryFilter = (scope: VisibilityScope, sourceAlias = 's'): SQL => {
   if (scope.libraryIds === undefined) return sql``
   if (scope.libraryIds.length === 0) return sql` AND 0`
-  return sql` AND ${ref(sourceAlias, 'library_id')} IN (${list(scope.libraryIds)})`
+  return sql` AND +${ref(sourceAlias, 'library_id')} IN (${list(scope.libraryIds)})`
 }
 
 /**

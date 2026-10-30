@@ -205,6 +205,28 @@ describe('supervisor', () => {
     expect(children).toHaveLength(2)
   })
 
+  test('a stop while the switch begins rolls it back before the new version runs', async () => {
+    let finishBegin: () => void = () => undefined
+    const { supervisor, children, switchCalls, running } = setup({
+      switchHandler: {
+        begin: async (from) => {
+          // The database copy, during which the container is stopped.
+          await new Promise<void>((resolve) => (finishBegin = resolve))
+          return { from: from.version, to: '1.3.0' }
+        },
+        confirm: async ({ to }) => void switchCalls.push(`confirm ${to}`),
+        rollback: async ({ to }, reason) => void switchCalls.push(`rollback ${to} ${reason}`),
+      },
+    })
+    await flush()
+    await children[0]?.exit({ kind: 'code', code: SWITCH_EXIT_CODE })
+    supervisor.stop('SIGTERM')
+    finishBegin()
+    expect(await running).toBe(0)
+    expect(switchCalls).toEqual(['rollback 1.3.0 stopped'])
+    expect(children).toHaveLength(1)
+  })
+
   test('exit code 75 without a version to switch to relaunches the same one', async () => {
     const { children, advance, switches, codes } = setup()
     await flush()

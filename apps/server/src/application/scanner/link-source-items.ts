@@ -1,9 +1,11 @@
 import type { Clock } from '../../core/clock.ts'
 import type { IdGenerator } from '../../core/ids.ts'
+import { pairReplacedItems } from '../../core/metadata/linking.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import {
   type EpisodeTarget,
   episodeTitle,
+  type LinkedItem,
   type LinkTarget,
   linkTargetsFor,
   type LocalItemRepository,
@@ -63,7 +65,10 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
     })
   }
 
-  const episodeItem = (target: EpisodeTarget): string => {
+  /** A linked item, with its season and series for an episode. */
+  type Linked = { id: string; episodeNumber?: number; ancestors: string[] }
+
+  const episodeItem = (target: EpisodeTarget): Linked => {
     const title = episodeTitle(target)
     const seriesId = rootItem('series', target.series.title, target.series.year)
     const seasonId =
@@ -76,7 +81,7 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
         seasonNumber: target.seasonNumber,
         createdAt: clock.now(),
       })
-    return (
+    const id =
       localItems.findChild({ parentId: seasonId, kind: 'episode', number: target.episodeNumber }) ??
       create({
         id: ids.next(),
@@ -88,11 +93,41 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
         episodeNumber: target.episodeNumber,
         createdAt: clock.now(),
       })
-    )
+    return { id, episodeNumber: target.episodeNumber, ancestors: [seasonId, seriesId] }
   }
 
-  const itemFor = (target: LinkTarget): string =>
-    target.kind === 'movie' ? rootItem('movie', target.title, target.year) : episodeItem(target)
+  const itemFor = (target: LinkTarget): Linked =>
+    target.kind === 'movie'
+      ? { id: rootItem('movie', target.title, target.year), ancestors: [] }
+      : episodeItem(target)
+
+  /**
+   * §7.6: each item the source leaves, and its season and series, → the item replacing it, so
+   * that progress, My list… follow a renamed file instead of going with the pruned item.
+   */
+  const replacementsOf = (current: LinkedItem[], linked: Linked[]): Map<string, string> => {
+    const replacements = new Map<string, string>()
+    const previous = current.map(({ itemId, kind, tmdbId, episodeNumber }) => ({
+      id: itemId,
+      kind,
+      ...(tmdbId === undefined ? {} : { tmdbId }),
+      ...(episodeNumber === undefined ? {} : { episodeNumber }),
+    }))
+    for (const { from, into } of pairReplacedItems(previous, linked)) {
+      replacements.set(from, into)
+      const season = localItems.parentOf(from)
+      const series = season === undefined ? undefined : localItems.parentOf(season)
+      const [nextSeason, nextSeries] = linked.find((item) => item.id === into)?.ancestors ?? []
+      for (const [ancestor, target] of [
+        [season, nextSeason],
+        [series, nextSeries],
+      ] as const) {
+        if (ancestor !== undefined && target !== undefined && ancestor !== target)
+          replacements.set(ancestor, target)
+      }
+    }
+    return replacements
+  }
 
   return (source: LinkSourceInput): LinkOutcome =>
     localItems.transaction(() => {
@@ -106,15 +141,25 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
       if (sameKind && current.some((link) => link.tmdbId !== undefined)) return { kind: 'kept' }
       const targets = linkTargetsFor(source)
       if (targets.length === 0 && current.length === 0) return { kind: 'none' }
-      const itemIds = [...new Set(targets.map(itemFor))]
+      const linked = targets.map(itemFor)
+      const itemIds = [...new Set(linked.map((item) => item.id))]
       const currentIds = current.map((link) => link.itemId)
       const changed =
         itemIds.length !== currentIds.length || itemIds.some((id) => !currentIds.includes(id))
       if (changed) {
         localItems.replaceLinks({ sourceId: source.id, itemIds })
+        const replacements = replacementsOf(current, linked)
         localItems.pruneOrphans(
           currentIds.filter((id) => !itemIds.includes(id)),
-          (pruned) => playbackSessions.endWithin({ itemIds: pruned }),
+          (pruned) => {
+            // Their sessions end first (§10.6), while they still point at the pruned items.
+            playbackSessions.endWithin({ itemIds: pruned })
+            // Only the items that go hand their rows over: one that keeps a file keeps them.
+            for (const from of pruned) {
+              const into = replacements.get(from)
+              if (into !== undefined) localItems.moveItemRows({ from, into })
+            }
+          },
         )
       }
       if (itemIds.length > 0) localItems.markAdded({ itemIds, at: source.readyAt ?? clock.now() })

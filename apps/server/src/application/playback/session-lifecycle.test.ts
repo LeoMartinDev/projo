@@ -77,10 +77,16 @@ const part = (id: string, partIndex: number, durationMs: number): PlayableSource
 /** A movie in two parts (§7.7) and a two-episode file (§8.4). */
 const parts = [part('cd1', 1, 1_000_000), part('cd2', 2, 2_000_000)]
 const double: PlayableSource = { ...source, id: 'e01-e02' }
-const sourcesById = new Map([source, ...parts, double].map((entry) => [entry.id, entry]))
+/** A longer cut of `movie-2` (§7.7): 90 min against 60. */
+const extended: PlayableSource = {
+  ...source,
+  id: 'extended',
+  media: { durationMs: 5_400_000, video: [], audio: [], subtitles: [] },
+}
+const sourcesById = new Map([source, ...parts, double, extended].map((entry) => [entry.id, entry]))
 const catalog = {
   findSource: (id: string) => sourcesById.get(id),
-  listReadySources: () => parts,
+  listReadySources: ({ itemId }: { itemId: string }) => (itemId === 'movie-2' ? [source] : parts),
   listSourceItemIds: (id: string) => (id === double.id ? ['e1', 'e2'] : []),
   // §12.4: `movie-2` has end credits from 50 min.
   listMediaSegments: (itemId: string) =>
@@ -225,6 +231,20 @@ describe('heartbeat', () => {
     })
     // The session keeps the real position (the player's), the progress says "vu".
     expect(sessions.rows.get('s1')?.positionMs).toBe(3_010_000)
+  })
+
+  test('§12.4 credits timed on another cut do not mark a longer version watched', async () => {
+    open('s1', { itemId: 'movie-2', sourceId: 'extended' })
+    const result = await lifecycle.heartbeat({
+      sessionId: 's1',
+      accountId: 'account-1',
+      profileId: 'profile-1',
+      positionMs: 3_010_000,
+    })
+    expect(result).toMatchObject({
+      ok: true,
+      value: { progress: { watched: false, positionMs: 3_010_000 } },
+    })
   })
 
   test('a part of a stack: the position is cumulative, measured against all the parts', async () => {

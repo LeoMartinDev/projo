@@ -215,6 +215,9 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
       })
       if ((await clock.sleep(next.delayMs, stopController.signal)) === 'aborted') break
     }
+    // Stopped once `current` points to the new version, before it ran: a later boot must not take
+    // it for a confirmed one (no `pending` left, so no health window, no rollback).
+    if (switching !== undefined) await switchHandler.rollback(switching, 'stopped')
     return 0
   }
 

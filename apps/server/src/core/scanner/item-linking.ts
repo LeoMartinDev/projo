@@ -123,12 +123,20 @@ export type NewLocalItem = {
   createdAt: Date
 }
 
-export type LinkedItem = { itemId: string; kind: LocalItemKind; tmdbId?: number }
+export type LinkedItem = {
+  itemId: string
+  kind: LocalItemKind
+  tmdbId?: number
+  episodeNumber?: number
+}
 
 /** Writes of the M1 local items (`items`, `source_items`). Synchronous (bun:sqlite). */
 export type LocalItemRepository = {
   transaction: <T>(run: () => T) => T
   linksOf: (sourceId: string) => LinkedItem[]
+  parentOf: (id: string) => string | undefined
+  /** Per-profile rows, segments, sessions of `from` onto `into` (see `MetadataItemRepository`). */
+  moveItemRows: (input: { from: string; into: string }) => void
   /** Top-level local items (`tmdb_id` NULL, no parent) of a kind with this `sort_title`. */
   findLocalRoots: (input: { kind: 'movie' | 'series'; sortTitle: string }) => LocalCandidate[]
   findChild: (input: {

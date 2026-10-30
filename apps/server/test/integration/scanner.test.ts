@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import type { LibraryDto, SourcesPage } from '@projo/shared/api/libraries'
 
-import { insertLibrary } from '../support/catalog-fixtures.ts'
+import { insertLibrary, seedViewer } from '../support/catalog-fixtures.ts'
 import { createTempDir } from '../support/database.ts'
 import { silentLogger } from '../support/logger.ts'
 import {
@@ -430,6 +430,58 @@ describe('scanner on a messy folder (§7, §8)', () => {
     expect(sourceAt('Archive/Dune Part Two (2024).mkv').state).toBe('pending')
     expect(links()).toEqual(linksBefore)
     expect(visibleTitles()).toEqual([])
+  })
+
+  test('a rename that changes the title hands progress and My list over (§7.6)', async () => {
+    const root = tmp.path
+    placeVideo(root, 'Home Video.mkv')
+    placeVideo(root, 'Show/Season 1/Show S01E01.mkv', otherVideo())
+    const library = await createLibrary([root])
+    await world.runJobs(['scan_library'])
+    await settle()
+    const { profileId } = seedViewer(world.db, 'viewer')
+    const itemOf = (path: string) =>
+      world.query<{ item_id: string }>(
+        'SELECT item_id FROM source_items WHERE source_id = ?',
+        sourceAt(path).id,
+      )[0]?.item_id ?? ''
+    const seriesOf = (episodeId: string) =>
+      world.query<{ id: string }>(
+        'SELECT s.parent_id AS id FROM items e JOIN items s ON s.id = e.parent_id WHERE e.id = ?',
+        episodeId,
+      )[0]?.id ?? ''
+    const movie = itemOf('Home Video.mkv')
+    const episode = itemOf('Show/Season 1/Show S01E01.mkv')
+    const progress = world.db.$client.prepare(
+      `INSERT INTO playback_progress (profile_id, item_id, position_ms, duration_ms, watched,
+        play_count, last_played_at) VALUES (?, ?, 60000, 180000, 0, 0, '2026-01-01T00:00:00.000Z')`,
+    )
+    progress.run(profileId, movie)
+    progress.run(profileId, episode)
+    world.db.$client.run(
+      `INSERT INTO watchlist (profile_id, item_id, added_at) VALUES (?, ?, '2026-01-01T00:00:00.000Z')`,
+      [profileId, seriesOf(episode)],
+    )
+
+    renameSync(join(root, 'Home Video.mkv'), join(root, 'Family Trip (2019).mkv'))
+    renameSync(join(root, 'Show'), join(root, 'Lost'))
+    renameSync(
+      join(root, 'Lost/Season 1/Show S01E01.mkv'),
+      join(root, 'Lost/Season 1/Lost S01E01.mkv'),
+    )
+    await scan(library.id)
+
+    const newMovie = itemOf('Family Trip (2019).mkv')
+    const newEpisode = itemOf('Lost/Season 1/Lost S01E01.mkv')
+    expect(newMovie).not.toBe(movie)
+    expect(newEpisode).not.toBe(episode)
+    expect(
+      world.query('SELECT item_id, position_ms FROM playback_progress ORDER BY item_id'),
+    ).toEqual([newMovie, newEpisode].sort().map((item_id) => ({ item_id, position_ms: 60_000 })))
+    expect(world.query('SELECT item_id FROM watchlist')).toEqual([
+      { item_id: seriesOf(newEpisode) },
+    ])
+    expect(world.query('SELECT id FROM items WHERE id IN (?, ?)', movie, episode)).toEqual([])
   })
 
   test('missing files come back without loss; a replaced file goes back to quarantine (§7.3, §7.5)', async () => {

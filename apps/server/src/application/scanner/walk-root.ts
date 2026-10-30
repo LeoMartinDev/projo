@@ -124,6 +124,11 @@ export const walkRootFactory =
         if (kind === 'directory') directories.push(entry.name)
         else if (kind === 'file' && CANDIDATE_EXTENSIONS.has(extensionOf(entry.name)))
           files.push(entry.name)
+        else if (kind === 'unreachable') {
+          // A link to an unmounted share: what it holds is not gone (§7.5), like an unreadable folder.
+          result.failedDirectories.push(join(relative, entry.name))
+          result.errors += 1
+        }
       }
       const fresh: CachedDirectory = {
         mtimeMs: stat.value.mtimeMs,
@@ -140,14 +145,14 @@ export const walkRootFactory =
     const resolveKind = async (
       parent: string,
       entry: DirectoryEntry,
-    ): Promise<'file' | 'directory' | 'other'> => {
+    ): Promise<'file' | 'directory' | 'other' | 'unreachable'> => {
       if (entry.kind !== 'symlink') return entry.kind
       const target = joinAbsolute(parent, entry.name)
       const stat = await fileSystem.stat(target)
-      if (!stat.ok) return 'other'
+      if (!stat.ok) return 'unreachable'
       if (stat.value.kind !== 'directory') return stat.value.kind
       const real = await fileSystem.realPath(target)
-      if (!real.ok) return 'other'
+      if (!real.ok) return 'unreachable'
       // Back into the root (or a loop): the content is already walked through its real path.
       if (realRoot.ok && relativeTo(realRoot.value, real.value) !== undefined) return 'other'
       if (followedTargets.has(real.value)) return 'other'

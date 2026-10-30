@@ -741,7 +741,7 @@ A single episode in the season: no fingerprinting. Thresholds are in `settings.f
 
 ### 12.5 Manual markers and contribution
 
-On an episode or a movie, the admin sets or adjusts one segment per type with two time fields and a preview, and "Apply to the whole season". Manual markers are exported in the backup like everything else.
+On an episode or a movie, the admin sets or adjusts one segment per type with two time fields and a preview, and "Apply to the whole season" (intro and recap at the same time; credits and preview at the same distance from each episode's end). Manual markers are exported in the backup like everything else.
 
 Contributing back: `settings.segment_contribution = off | manual_only` (default `off`). When enabled, markers of origin `manual` are submitted to TheIntroDB (admin key required) and to SkipDB (anonymous key created automatically). Never the results of fingerprinting or chapters. Each submission is logged.
 
