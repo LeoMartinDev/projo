@@ -2,6 +2,8 @@
  * Full-bleed illustrations behind the first-launch and login screens (artboards Onb*, kit
  * `img-*`). Self-hosted (§20 CSP); a slow Ken Burns that `prefers-reduced-motion` stops.
  */
+
+@import '../styles/media.css';
 .backdrop {
   position: absolute;
   inset: 0;
@@ -77,7 +79,8 @@
   background: linear-gradient(0deg, rgba(10, 10, 11, 0.72) 0%, rgba(10, 10, 11, 0) 45%);
 }
 
-@media (max-width: 720px) {
+/* Panel centred (login, steps): an even dim. */
+@media not (--wide) {
   .backdrop--split::before {
     background: rgba(10, 10, 11, 0.45);
   }

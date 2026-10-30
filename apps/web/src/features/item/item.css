@@ -1,5 +1,7 @@
 /* Detail pages (§13.5, artboards `Series`, `MobileSeries`). */
 
+@import '../../shared/styles/media.css';
+
 .detail {
   display: flex;
   flex-direction: column;
@@ -683,7 +685,7 @@
 }
 
 /* Touch screens swipe the row; the arrows are for mouse and trackpad (as the home rows). */
-@media not ((hover: hover) and (pointer: fine)) {
+@media not (--fine-pointer) {
   .cast__pager {
     display: none;
   }
@@ -778,7 +780,7 @@
 
 /* ── Phone (artboard `MobileSeries`) ────────────────────────────────────── */
 
-@media (max-width: 640px) {
+@media (--compact) {
   .detail-hero {
     min-height: 0;
     padding: 0;
@@ -1017,7 +1019,7 @@
   flex: 0 0 auto;
 }
 
-@media (min-width: 641px) {
+@media not (--compact) {
   .detail-hero__actions {
     width: max-content;
     max-width: calc(100vw - 2 * var(--gutter));
@@ -1025,7 +1027,7 @@
 }
 
 /* Phone: lines wrap, a separator would start a line. */
-@media (max-width: 640px) {
+@media (--compact) {
   .detail-hero__meta {
     gap: 6px 12px;
   }
@@ -1045,7 +1047,7 @@
 
 /* Like `.page__back`: in a phone's browser tab Safari's toolbar has the back arrow, and the
    button would sit wedged under the header's navigation row. */
-@media (max-width: 640px) and (display-mode: browser) {
+@media (--compact) and (--in-browser) {
   .detail-hero__top {
     display: none;
   }

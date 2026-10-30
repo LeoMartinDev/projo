@@ -3,6 +3,8 @@
  * preview, 2:3 posters, the long-press sheet, round icon buttons, tones for missing pictures.
  */
 
+@import '../../shared/styles/media.css';
+
 /* The panel colour of a preview, from its artwork (MediaCard, artwork-tint.ts). Registered so it
    transitions when the sample arrives instead of flashing. */
 @property --card-tint {
@@ -532,7 +534,7 @@
 }
 
 /* Touch screens: no hover, the long press opens the sheet instead. */
-@media (hover: none) {
+@media not (--fine-pointer) {
   .preview {
     display: none;
   }
@@ -759,4 +761,87 @@
 
 .sheet-line--danger {
   color: var(--color-error-soft);
+}
+
+/* ── Card menu (wider than a phone, CardSheet.tsx) ───────────────────────────
+   The card lifted where it is, above the dimmed page, its actions in glass beside it. The dialog
+   fills the window and stays transparent: what is outside the two is the backdrop. */
+
+.card-menu {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.card-menu:focus-visible {
+  outline: none;
+}
+
+.card-menu::backdrop {
+  background: var(--color-scrim);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  animation: fade-in 0.25s ease both;
+}
+
+.card-menu__lift {
+  position: absolute;
+  border-radius: var(--radius-card);
+  box-shadow: 0 28px 56px -18px rgba(0, 0, 0, 0.85);
+  animation: card-lift 0.4s var(--spring) both;
+}
+
+.card-menu__lift > * {
+  width: 100%;
+  height: 100%;
+}
+
+.card-menu__panel {
+  position: absolute;
+  width: 340px;
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--color-overlay);
+  -webkit-backdrop-filter: var(--blur-panel);
+  backdrop-filter: var(--blur-panel);
+  box-shadow: var(--shadow-panel);
+  animation: menu-in 0.3s var(--ease) both;
+}
+
+.card-menu .card-sheet {
+  gap: 12px;
+}
+
+.card-menu .sheet-line {
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.card-menu .sheet-line:hover {
+  background: var(--color-hover);
+}
+
+@keyframes card-lift {
+  to {
+    transform: scale(1.04);
+  }
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }

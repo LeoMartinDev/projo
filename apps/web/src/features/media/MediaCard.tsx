@@ -306,11 +306,11 @@ export const MediaCard = ({
   isNew?: boolean
   /** "Continue watching": the frame of the resume position, instead of the 16:9 image. */
   resumeFrame?: ResumeFrameDto
-  onLongPress: (item: ItemSummaryDto) => void
+  onLongPress: (item: ItemSummaryDto, anchor: HTMLElement) => void
 }) => {
   const { t } = useTranslation()
   const text = useCardText()(item, place)
-  const press = useLongPress(() => onLongPress(item))
+  const press = useLongPress((anchor) => onLongPress(item, anchor))
   const poster = isPosterPlace(place)
   const art = poster ? posterOf(item) : wideArtOf(item)
   const ratio = progressRatioOf(item)

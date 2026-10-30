@@ -53,7 +53,7 @@ export const HomePage = () => {
   const categories = useInfiniteQuery(homeCategoriesQuery)
   const session = useQuery(sessionQuery)
   const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
-  const [sheet, setSheet] = useState<{ id: string; place: CardPlace }>()
+  const [sheet, setSheet] = useState<{ id: string; place: CardPlace; anchor: HTMLElement }>()
 
   if (home.isError)
     return (
@@ -126,7 +126,9 @@ export const HomePage = () => {
                   place={row.kind}
                   isNew={isNew}
                   {...(resumeFrame === undefined ? {} : { resumeFrame })}
-                  onLongPress={(pressed) => setSheet({ id: pressed.id, place: row.kind })}
+                  onLongPress={(pressed, anchor) =>
+                    setSheet({ id: pressed.id, place: row.kind, anchor })
+                  }
                 />
               ))}
             </Row>
@@ -134,12 +136,13 @@ export const HomePage = () => {
         })}
         <CategoryRows
           categories={categories}
-          onLongPress={(pressed) => setSheet({ id: pressed.id, place: 'category' })}
+          onLongPress={(pressed, anchor) => setSheet({ id: pressed.id, place: 'category', anchor })}
         />
       </div>
       <CardSheet
         item={sheetItem}
         place={sheet?.place ?? 'recently_added'}
+        anchor={sheet?.anchor}
         onClose={() => setSheet(undefined)}
       />
     </div>

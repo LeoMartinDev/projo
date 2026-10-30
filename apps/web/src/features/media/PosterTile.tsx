@@ -29,12 +29,12 @@ export const PosterTile = ({
   id,
 }: {
   item: ItemSummaryDto
-  onLongPress?: (item: ItemSummaryDto) => void
+  onLongPress?: (item: ItemSummaryDto, anchor: HTMLElement) => void
   tabIndex?: number
   id?: string
 }) => {
   const { t } = useTranslation()
-  const press = useLongPress(() => onLongPress?.(item))
+  const press = useLongPress((anchor) => onLongPress?.(item, anchor))
   const ratio = progressRatioOf(item)
   const partial = partialCountOf(item)
   const watched = isWatched(item)

@@ -5,6 +5,8 @@
  * attribute, §20 CSP).
  */
 
+@import '../../shared/styles/media.css';
+
 .player {
   --player-gutter: max(
     clamp(16px, 3vw, 40px),
@@ -677,7 +679,7 @@
   outline-offset: 2px;
 }
 
-@media (pointer: coarse) {
+@media (--touch) {
   .volume__slider {
     display: none;
   }
@@ -806,7 +808,7 @@
   --menu-width: 400px;
 }
 
-@media (min-width: 760px) and (min-height: 561px) {
+@media (not (--compact)) and (not (--short)) {
   .player-menu {
     bottom: 108px;
   }
@@ -819,7 +821,7 @@
 }
 
 /* Where there is room, the subtitles stay visible beside the menu while their size changes. */
-@media (min-width: 1200px) and (min-height: 561px) {
+@media (--wide) and (not (--short)) {
   .player--menu .captions {
     right: min(620px, 52%);
   }
@@ -2026,7 +2028,7 @@
   background: var(--color-accent);
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .next-up {
     right: 16px;
     bottom: max(16px, env(safe-area-inset-bottom));
@@ -2057,7 +2059,7 @@
 }
 
 /* Phone in landscape, small windows: the card keeps to its text and buttons. */
-@media (max-height: 560px) {
+@media (--short) {
   .next-up {
     gap: 12px;
     padding: 16px;
@@ -2135,7 +2137,7 @@
 
 /* ── Small screens ──────────────────────────────────────────────────────── */
 
-@media (max-width: 560px) {
+@media (--compact) {
   .player {
     --player-chrome-bottom: 168px;
   }
@@ -2206,7 +2208,7 @@
 }
 
 /* Phone in landscape: the menus are sheets on the right, the subtitles stay visible beside. */
-@media (max-height: 560px) and (min-width: 561px) {
+@media (--short) and (not (--compact)) {
   .player-menu {
     right: max(8px, env(safe-area-inset-right));
     bottom: max(8px, env(safe-area-inset-bottom));
@@ -2225,7 +2227,7 @@
 
 /* ── Touch screens: the centre cluster replaces play and ±10 s of the row ── */
 
-@media (pointer: coarse) {
+@media (--touch) {
   .player .player__touch {
     display: flex;
   }

@@ -1,5 +1,7 @@
 /* "To review" (§7.8), rows in the style of the library table. */
 
+@import '../../../shared/styles/media.css';
+
 .review-list {
   display: flex;
   flex-direction: column;
@@ -109,7 +111,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 860px) {
+@media not (--wide) {
   .review-row {
     grid-template-columns: 40px minmax(0, 1fr) auto;
     grid-template-areas:
@@ -146,7 +148,7 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .review-row {
     grid-template-columns: 40px minmax(0, 1fr);
     grid-template-areas:

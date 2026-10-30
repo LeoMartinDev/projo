@@ -1,5 +1,7 @@
 /* Mises à jour (§15, §16.4): the admin's tables and sections, the release as a tile. */
 
+@import '../../../shared/styles/media.css';
+
 .upd-notice {
   max-width: 1180px;
   padding: 12px 16px;
@@ -319,7 +321,7 @@
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
+@media (--compact) {
   .upd-tr__optional {
     display: none;
   }

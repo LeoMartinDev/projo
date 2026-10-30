@@ -1,0 +1,30 @@
+/*
+ * Named media queries: the only place a breakpoint is written. A stylesheet that adapts imports
+ * this file and writes `@media (--tablet)`, `@media not (--wide)`… (Lightning CSS, vite.config.ts).
+ * Same queries for `matchMedia` in `media.ts` (`useDevice`, `useMedia`), kept equal by
+ * `media.test.ts`.
+ *
+ * Two vocabularies:
+ * - a device picks a layout: what the screen shows and how (a sheet or a menu, chips or fields).
+ *   Exactly one matches. A phone is a narrow screen, or a touch screen with little height (in
+ *   landscape); a tablet a roomier touch screen (an iPad, either way up); a desktop a mouse or a
+ *   trackpad.
+ * - a size class tunes a layout to its room (columns, spacing): compact, regular between the two,
+ *   wide.
+ */
+@custom-media --compact (max-width: 640px);
+@custom-media --wide (min-width: 1100px);
+
+/* Little height: a phone in landscape (player). */
+@custom-media --short (max-height: 560px);
+
+/* Input and display mode. */
+@custom-media --touch (pointer: coarse);
+@custom-media --fine-pointer (hover: hover) and (pointer: fine);
+@custom-media --in-browser (display-mode: browser);
+@custom-media --installed (display-mode: standalone);
+
+/* Devices, from the above. */
+@custom-media --phone (--compact) or ((--touch) and (--short));
+@custom-media --tablet (--touch) and (not (--compact)) and (not (--short));
+@custom-media --desktop (not (--touch)) and (not (--compact));

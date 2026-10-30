@@ -1,6 +1,8 @@
 /* Markers dialog (§12.5): a fixed-size dialog whose body scrolls; the timeline on top, one row per
    segment type (type and origin, start, end, "Pas d'…", delete), the lookups last. */
 
+@import '../../../shared/styles/media.css';
+
 .dialog:has(.markers) {
   width: min(760px, calc(100vw - 32px));
 }
@@ -213,7 +215,7 @@
   margin-right: auto;
 }
 
-@media (max-width: 640px) {
+@media (--compact) {
   .markers__row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:

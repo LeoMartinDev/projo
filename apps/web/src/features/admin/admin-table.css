@@ -4,6 +4,8 @@
  * loads, is empty or fails (AGENTS.md). Each page sets its columns on `.adm-tr`.
  */
 
+@import '../../shared/styles/media.css';
+
 .adm-table {
   display: flex;
   flex-direction: column;
@@ -198,7 +200,7 @@
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 720px) {
+@media (--compact) {
   .adm-tr--head {
     display: none;
   }

@@ -11,9 +11,10 @@ import { currentLocale } from '../../shared/i18n/index.ts'
 import { canAdminister, getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import { Field, SelectChevron } from '../../shared/ui/controls.tsx'
-import { FilterIcon } from '../../shared/ui/media-icons.tsx'
+import { FilterIcon, SortIcon } from '../../shared/ui/media-icons.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
+import { useDevice } from '../../shared/ui/use-media.ts'
 import { useGridCardSheet } from '../media/CardSheet.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
@@ -162,9 +163,47 @@ const Filters = ({
   )
 }
 
+/** Tablet: the sort as one chip beside the filters' chips, a native menu. */
+const SortChip = ({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: CatalogSort
+  onChange: (sort: CatalogSort) => void
+}) => {
+  const { t } = useTranslation()
+  return (
+    <div className="chip">
+      <SortIcon size={16} />
+      <label className="visually-hidden" htmlFor={id}>
+        {t('catalog.sortBy')}
+      </label>
+      <select
+        id={id}
+        className="chip__select"
+        value={value}
+        onChange={(event) => {
+          const sort = sorts.find((option) => option === event.target.value)
+          if (sort !== undefined) onChange(sort)
+        }}
+      >
+        {sorts.map((option) => (
+          <option key={option} value={option}>
+            {t(`catalog.sort.${option}`)}
+          </option>
+        ))}
+      </select>
+      <SelectChevron />
+    </div>
+  )
+}
+
 /**
- * Movies and Shows (§13.4): poster grid (virtualized, cursor pages), sort, filters inline or in
- * the "Filtres" sheet on a phone, the whole state kept per profile and per device.
+ * Movies and Shows (§13.4): poster grid (virtualized, cursor pages), sort, filters inline (chips
+ * on a tablet) or in the "Filtres" sheet on a phone, the whole state kept per profile and per
+ * device.
  */
 export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: CatalogSearch }) => {
   const { t } = useTranslation()
@@ -179,6 +218,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
   const session = useQuery(sessionQuery)
   const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
   const filterCount = activeFilterCount(state)
+  const device = useDevice()
 
   const change = (next: CatalogQueryState) => {
     setState(next)
@@ -204,25 +244,33 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
       <div className="catalog__header">
         <h1 className="page__title">{title}</h1>
         <div className="catalog__controls">
-          <div
-            className="seg seg--4"
-            role="group"
-            aria-label={t('catalog.sortBy')}
-            data-active={sorts.indexOf(state.sort)}
-          >
-            <span className="seg__indicator" aria-hidden="true" />
-            {sorts.map((value) => (
-              <button
-                key={value}
-                type="button"
-                className="seg__option"
-                aria-pressed={state.sort === value}
-                onClick={() => change({ ...state, sort: value })}
-              >
-                {t(`catalog.sort.${value}`)}
-              </button>
-            ))}
-          </div>
+          {device === 'tablet' ? (
+            <SortChip
+              id={`${kind}-sort`}
+              value={state.sort}
+              onChange={(value) => change({ ...state, sort: value })}
+            />
+          ) : (
+            <div
+              className="seg seg--4"
+              role="group"
+              aria-label={t('catalog.sortBy')}
+              data-active={sorts.indexOf(state.sort)}
+            >
+              <span className="seg__indicator" aria-hidden="true" />
+              {sorts.map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="seg__option"
+                  aria-pressed={state.sort === value}
+                  onClick={() => change({ ...state, sort: value })}
+                >
+                  {t(`catalog.sort.${value}`)}
+                </button>
+              ))}
+            </div>
+          )}
           <button
             type="button"
             className="button button--glass catalog__filters-button"

@@ -28,7 +28,7 @@ export const CategoryRows = ({
   onLongPress,
 }: {
   categories: CategoriesQuery
-  onLongPress: (item: ItemSummaryDto) => void
+  onLongPress: (item: ItemSummaryDto, anchor: HTMLElement) => void
 }) => {
   const { t } = useTranslation()
   const [sentinel, sentinelRef] = useElement<HTMLSpanElement>()

@@ -145,7 +145,7 @@ const isTyping = (target: unknown) =>
 
 /**
  * Spectator layout (§13.2, artboards `Home`, `MobileHome`): `projo.`, the pill navigation
- * Home · Shows · Movies · My list, Search (`/`), the avatar menu. Under 640 px the
+ * Home · Shows · Movies · My list, Search (`/`), the avatar menu. On a phone (`--compact`) the
  * navigation becomes the floating bottom bar, with Recherche as its fifth entry.
  */
 export const AppShell = ({ me: initial }: { me: MeResponse }) => {

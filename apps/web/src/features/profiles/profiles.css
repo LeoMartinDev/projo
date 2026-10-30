@@ -1,5 +1,7 @@
 /* Profiles (§13.6, artboard `Main`), PIN, editor, profile settings. */
 
+@import '../../shared/styles/media.css';
+
 /* ── "Who's watching?" ────────────────────────────────────────────────────── */
 
 .who {
@@ -198,7 +200,7 @@
   color: var(--color-on-accent);
 }
 
-@media (max-width: 640px) {
+@media (--compact) {
   .who {
     padding: calc(20px + env(safe-area-inset-top)) 16px 20px;
   }
@@ -518,7 +520,7 @@
   text-align: right;
 }
 
-@media (max-width: 640px) {
+@media (--compact) {
   .settings-panel {
     padding: 18px 16px;
     border-radius: 22px;

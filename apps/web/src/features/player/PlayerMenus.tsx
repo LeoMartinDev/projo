@@ -21,6 +21,7 @@ import type {
 
 import { formatClock } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
+import { media } from '../../shared/styles/media.ts'
 import { CheckIcon, CloseIcon } from '../../shared/ui/icons.tsx'
 import { audioCodecLabel, languageName } from '../item/media-labels.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'
@@ -52,7 +53,7 @@ export const hasQualityChoice = (session: PlaybackSessionDto) =>
   session.availableQualities.length > 1 || session.versions.length > 1
 
 /** Same breakpoint as `.player-menu--languages` in `player.css`. */
-const wideQuery = '(min-width: 760px) and (min-height: 561px)'
+const wideQuery = `(not ${media.compact}) and (not ${media.short})`
 const subscribeWide = (notify: () => void) => {
   const query = window.matchMedia(wideQuery)
   query.addEventListener('change', notify)

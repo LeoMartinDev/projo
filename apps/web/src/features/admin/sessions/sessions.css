@@ -1,5 +1,7 @@
 /* Sessions actives (§10.6, §15): the accounts table's look (`AdminAccounts`), one row per session. */
 
+@import '../../../shared/styles/media.css';
+
 .ses-table {
   display: flex;
   flex-direction: column;
@@ -123,7 +125,7 @@
   justify-content: flex-end;
 }
 
-@media (max-width: 1100px) {
+@media not (--wide) {
   .ses-tr {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.7fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
   }
@@ -133,7 +135,7 @@
   }
 }
 
-@media (max-width: 720px) {
+@media (--compact) {
   .ses-tr--head {
     display: none;
   }

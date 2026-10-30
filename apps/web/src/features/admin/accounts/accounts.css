@@ -1,6 +1,8 @@
 /* Accounts and profiles (§14, §15), after artboard AdminAccounts: a table of the accounts; a row
    opens the account's detail (settings, profiles) in a dialog of stable size whose body scrolls. */
 
+@import '../../../shared/styles/media.css';
+
 .acc-page {
   max-width: 1240px;
 }
@@ -521,7 +523,7 @@
   min-width: 0;
 }
 
-@media (max-width: 860px) {
+@media not (--wide) {
   .acc-tr {
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) 24px;
   }
@@ -536,7 +538,7 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .acc-tr--head {
     display: none;
   }

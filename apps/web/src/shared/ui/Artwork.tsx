@@ -8,7 +8,7 @@ import {
 
 import { imageWidths } from '@projo/shared/api/catalog'
 
-const reducedMotion = '(prefers-reduced-motion: reduce)'
+import { reducedMotion } from '../styles/media.ts'
 
 /** Not loaded yet when mounted: `data-pending` keeps it transparent (base.css) until `reveal`. */
 const holdUntilLoaded: RefCallback<HTMLImageElement> = (image) => {

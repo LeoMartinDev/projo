@@ -1,5 +1,7 @@
 /* Administration, after artboards AdminLibraries and AdminAddLibrary. */
 
+@import '../../shared/styles/media.css';
+
 .admin {
   display: flex;
   flex-wrap: wrap;
@@ -131,7 +133,7 @@
   padding: 40px var(--gutter) 64px;
 }
 
-@media (max-width: 820px) {
+@media not (--wide) {
   .admin__side {
     position: static;
     height: auto;
@@ -402,7 +404,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media not (--wide) {
   .lib-row--head {
     display: none;
   }
@@ -540,7 +542,7 @@
   height: 120px;
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .history__item {
     grid-template-columns: 1fr;
     gap: 2px;

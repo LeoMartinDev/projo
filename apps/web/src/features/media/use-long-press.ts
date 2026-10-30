@@ -4,11 +4,12 @@ const holdMs = 480
 const slopPx = 10
 
 /**
- * Long press on a touch screen (artboard `MobileHome`: "long press for the actions"). The click
- * that ends a long press is swallowed so the card does not also open; the system menu of a long
- * press on a link is suppressed. Mouse and pen keep their normal behaviour.
+ * Long press on a touch screen (artboard `MobileHome`: "long press for the actions"), or a
+ * secondary click (mouse, trackpad, context menu key): `onLongPress` gets the pressed element,
+ * which the menu anchors to. The click that ends a long press is swallowed so the card does not
+ * also open; the system menu is replaced. A primary mouse click keeps its normal behaviour.
  */
-export const useLongPress = (onLongPress: () => void) => {
+export const useLongPress = (onLongPress: (element: HTMLElement) => void) => {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const origin = useRef<{ x: number; y: number }>(undefined)
   const fired = useRef(false)
@@ -23,12 +24,13 @@ export const useLongPress = (onLongPress: () => void) => {
     onPointerDown: (event: PointerEvent<HTMLElement>) => {
       fired.current = false
       if (event.pointerType !== 'touch') return
+      const element = event.currentTarget
       origin.current = { x: event.clientX, y: event.clientY }
       timer.current = setTimeout(() => {
         fired.current = true
         cancel()
         if ('vibrate' in navigator) navigator.vibrate(8)
-        onLongPress()
+        onLongPress(element)
       }, holdMs)
     },
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
@@ -40,7 +42,10 @@ export const useLongPress = (onLongPress: () => void) => {
     onPointerCancel: cancel,
     onPointerLeave: cancel,
     onContextMenu: (event: MouseEvent<HTMLElement>) => {
-      if (origin.current !== undefined || fired.current) event.preventDefault()
+      event.preventDefault()
+      // During or after a long press (Android fires it too): the timer opens the menu.
+      if (origin.current !== undefined || fired.current) return
+      onLongPress(event.currentTarget)
     },
     onClickCapture: (event: MouseEvent<HTMLElement>) => {
       if (!fired.current) return

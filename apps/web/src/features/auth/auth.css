@@ -1,4 +1,6 @@
-/* Login: same composition as the first-launch steps (artboards Onb*), panel on the right. */
+/* Login: same composition as the first-launch steps (artboards Onb*), panel on the right when wide. */
+
+@import '../../shared/styles/media.css';
 
 .auth {
   position: relative;
@@ -47,14 +49,20 @@
   margin-top: 8px;
 }
 
-@media (max-width: 720px) {
+/* The panel only steps aside to show the backdrop on a wide screen. */
+@media not (--wide) {
+  .auth__main {
+    justify-content: center;
+  }
+}
+
+@media (--compact) {
   .auth__header {
     position: relative;
     padding-top: calc(20px + env(safe-area-inset-top));
   }
 
   .auth__main {
-    justify-content: center;
     min-height: calc(100dvh - 72px - env(safe-area-inset-top));
     padding-top: 24px;
   }

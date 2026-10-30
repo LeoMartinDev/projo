@@ -123,6 +123,12 @@ export const FilterIcon = ({ size = 18 }: IconProps) => (
   </Icon>
 )
 
+export const SortIcon = ({ size = 18 }: IconProps) => (
+  <Icon size={size}>
+    <path d="M8 4v16M4.5 7.5 8 4l3.5 3.5M16 20V4M12.5 16.5 16 20l3.5-3.5" />
+  </Icon>
+)
+
 export const PencilIcon = ({ size = 18 }: IconProps) => (
   <Icon size={size}>
     <path d="M4 20h4L19 9l-4-4L4 16z" />

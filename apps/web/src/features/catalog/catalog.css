@@ -1,5 +1,7 @@
 /* Movies, Shows, My list (§13.4): title, sort, filters, the poster grid. */
 
+@import '../../shared/styles/media.css';
+
 .catalog__header {
   display: flex;
   flex-wrap: wrap;
@@ -73,7 +75,7 @@
 }
 
 /* Phone: one compact sort control, the filters move into the sheet. */
-@media (max-width: 720px) {
+@media (--compact) {
   .catalog__header {
     flex-direction: column;
     align-items: stretch;
@@ -107,4 +109,107 @@
 
 .field:has(select:disabled) {
   opacity: 0.45;
+}
+
+/* Tablet: one row of light chips under the title (native menus), lighter than the navigation
+   above; a set filter turns white like the navigation's current tab. */
+@media (--tablet) {
+  .chip,
+  .catalog__filters .field {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 36px;
+    min-height: 0;
+    padding: 0;
+    border-radius: var(--radius-pill);
+    background: var(--color-glass);
+    box-shadow: inset 0 0 0 1px var(--color-border);
+    color: var(--color-text-soft);
+  }
+
+  /* The select spans the whole chip, so a tap anywhere opens it; icon and arrow lie over it. */
+  .chip__select,
+  .catalog__filters .field__input {
+    height: 36px;
+    margin: 0;
+    padding: 0 34px 0 14px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .chip__select {
+    padding-left: 38px;
+  }
+
+  .chip > svg,
+  .chip .field__chevron,
+  .catalog__filters .field__chevron {
+    position: absolute;
+    display: flex;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .chip > svg {
+    left: 14px;
+  }
+
+  .chip .field__chevron,
+  .catalog__filters .field__chevron {
+    right: 10px;
+  }
+
+  .catalog__header {
+    align-items: center;
+  }
+
+  .catalog__filters {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: -12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .catalog__filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .catalog__filters .field__stack {
+    flex: 0 0 auto;
+    padding: 0;
+  }
+
+  .catalog__filters .field__input {
+    width: auto;
+    field-sizing: content;
+  }
+
+  /* A filter is set when its "all" option is not the chosen one. */
+  .catalog__filters .field:not(:has(option[value='']:checked)) {
+    background: var(--color-glass-strong);
+    box-shadow: none;
+    color: var(--color-text-strong);
+  }
+
+  /* The year only once a decade is chosen. */
+  .catalog__filters .field:has(select:disabled) {
+    display: none;
+  }
+
+  .catalog__filters .button {
+    flex: 0 0 auto;
+    height: 36px;
+    border-radius: var(--radius-pill);
+  }
 }

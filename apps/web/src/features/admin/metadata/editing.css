@@ -1,6 +1,8 @@
 /* Metadata editor (§9.3). Fixed-height dialog (`dialog--fill`): the tabs stay, each tab's content
    scrolls inside its own region (AGENTS.md, UI layout). */
 
+@import '../../../shared/styles/media.css';
+
 .edit-item {
   flex: 1 1 auto;
   display: flex;
@@ -255,7 +257,7 @@ button.edit-item__tile:disabled {
   margin: 0;
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .edit-item__row {
     grid-template-columns: minmax(0, 1fr) 96px;
   }

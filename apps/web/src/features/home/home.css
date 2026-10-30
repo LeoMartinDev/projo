@@ -1,5 +1,7 @@
 /* Accueil (§13.3, artboards `Home`, `MobileHome`): hero under the header, rows overlapping it. */
 
+@import '../../shared/styles/media.css';
+
 .home {
   position: relative;
   display: flex;
@@ -374,7 +376,7 @@
 
 /* ── Phone (artboard `MobileHome`) ──────────────────────────────────────── */
 
-@media (max-width: 640px) {
+@media (--compact) {
   .home {
     padding-bottom: var(--nav-room);
   }

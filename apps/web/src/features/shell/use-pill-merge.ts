@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 
+import { media, reducedMotion } from '../../shared/styles/media.ts'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { pillMerge, type SideMotion } from './pill-merge.ts'
 
@@ -9,7 +10,7 @@ const damping = 25
 // The actions set off this long after the wordmark (ms): the two sides never move as one block.
 const lag = 45
 // The merge is a wide-screen effect: on a phone the navigation sits at the bottom.
-const instant = '(max-width: 640px), (prefers-reduced-motion: reduce)'
+const instant = `${media.compact}, ${reducedMotion}`
 
 const box = (element: HTMLElement) => ({ left: element.offsetLeft, width: element.offsetWidth })
 

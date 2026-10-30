@@ -12,12 +12,13 @@ import { useTranslation } from 'react-i18next'
 
 import type { HomeCategorySlug } from '@projo/shared/api/home'
 
+import { media } from '../../shared/styles/media.ts'
 import { ChevronLeftIcon, ChevronRightSmallIcon } from '../../shared/ui/media-icons.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 
 const gapPx = 14
 
-const finePointer = '(hover: hover) and (pointer: fine) and (min-width: 641px)'
+const finePointer = `${media.finePointer} and (not ${media.compact})`
 const subscribePointer = (notify: () => void) => {
   const query = window.matchMedia(finePointer)
   query.addEventListener('change', notify)

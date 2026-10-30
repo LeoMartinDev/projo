@@ -1,11 +1,11 @@
 import { type ReactNode, useEffect, useEffectEvent } from 'react'
 
+import { reducedMotion } from '../styles/media.ts'
 import { useElement } from './use-element.ts'
 import './sheet.css'
 
 /** Drag past which releasing the sheet dismisses it. */
 const dismissDistance = 80
-const reducedMotion = '(prefers-reduced-motion: reduce)'
 
 /**
  * Bottom sheet of artboard `MobileHome` (long press on a card, catalog filters): a native modal

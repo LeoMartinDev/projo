@@ -1,5 +1,7 @@
 /* Search overlay (§13.2): full screen glass, the field on top, two columns of results. */
 
+@import '../../shared/styles/media.css';
+
 .search {
   width: 100vw;
   max-width: 100vw;
@@ -202,7 +204,7 @@
   border-radius: var(--radius-button);
 }
 
-@media (max-width: 640px) {
+@media (--compact) {
   .search__panel {
     padding: calc(12px + env(safe-area-inset-top)) 12px 0;
   }

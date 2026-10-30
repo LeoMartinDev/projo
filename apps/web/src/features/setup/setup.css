@@ -1,5 +1,7 @@
 /* First launch, after artboards OnbWelcome, OnbAccount, OnbLibrary and OnbReady. */
 
+@import '../../shared/styles/media.css';
+
 .onb {
   position: relative;
   min-height: 100vh;
@@ -172,7 +174,19 @@
   white-space: nowrap;
 }
 
-@media (max-width: 720px) {
+/* Tablet: the title above the centred panel, the two too wide side by side. */
+@media (not (--compact)) and (not (--wide)) {
+  .onb__main--split {
+    justify-content: center;
+  }
+
+  .onb__display {
+    flex-basis: 100%;
+    text-align: center;
+  }
+}
+
+@media (--compact) {
   .onb__header {
     position: relative;
     grid-template-columns: auto 1fr;
@@ -286,7 +300,7 @@
   );
 }
 
-@media (max-width: 720px) {
+@media (--compact) {
   .wall__grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }

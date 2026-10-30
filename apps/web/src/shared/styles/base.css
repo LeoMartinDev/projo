@@ -1,3 +1,5 @@
+@import './media.css';
+
 *,
 *::before,
 *::after {
@@ -561,7 +563,7 @@ select.field__input {
 
 /* iOS Safari zooms into any field under 16 px it focuses, and stays zoomed: touch screens get
    16 px (the search field is larger, the PIN's field is invisible but still counts). */
-@media (pointer: coarse) {
+@media (--touch) {
   input:not(.search__input),
   select,
   textarea {

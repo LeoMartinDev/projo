@@ -1,5 +1,7 @@
 /* Compte et appareils (§14). */
 
+@import '../../shared/styles/media.css';
+
 .account__username {
   color: var(--color-text-muted);
   font-size: 14px;
@@ -212,7 +214,7 @@
   margin-top: 1px;
 }
 
-@media (max-width: 560px) {
+@media (--compact) {
   .pairing {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;

@@ -1,10 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
+import { media } from '../../shared/styles/media.ts'
 import { useElement } from '../../shared/ui/use-element.ts'
 
 /** §13.3: desktop only (a mouse, a wide window), never with `prefers-reduced-motion`. */
-const previewQuery =
-  '(hover: hover) and (pointer: fine) and (min-width: 641px) and (prefers-reduced-motion: no-preference)'
+const previewQuery = `${media.finePointer} and (not ${media.compact}) and (prefers-reduced-motion: no-preference)`
 
 const subscribe = (notify: () => void) => {
   const query = window.matchMedia(previewQuery)
