@@ -1042,3 +1042,11 @@
     content: none;
   }
 }
+
+/* Like `.page__back`: in a phone's browser tab Safari's toolbar has the back arrow, and the
+   button would sit wedged under the header's navigation row. */
+@media (max-width: 640px) and (display-mode: browser) {
+  .detail-hero__top {
+    display: none;
+  }
+}

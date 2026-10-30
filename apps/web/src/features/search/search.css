@@ -34,9 +34,30 @@
   animation: rise 0.45s var(--ease) both;
 }
 
-.search__bar {
+.search__top {
   display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.search__cancel {
+  display: none;
+  flex: 0 0 auto;
+  padding: 8px 2px;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.search__bar {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
   align-items: center;
   gap: 14px;
   height: 64px;
@@ -193,6 +214,14 @@
 
   .search__input {
     font-size: 18px;
+  }
+
+  .search__close {
+    display: none;
+  }
+
+  .search__cancel {
+    display: block;
   }
 
   .search__columns {

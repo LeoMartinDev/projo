@@ -9,6 +9,8 @@ html {
   text-size-adjust: 100%;
   /* No grey box on every tap (iOS): buttons and cards have their own `:active` state. */
   -webkit-tap-highlight-color: transparent;
+  /* No double-tap zoom (focus zoom: 16 px fields on touch screens, below). */
+  touch-action: manipulation;
   /* The scrollbar is always there (an empty track on a short page): the layout never shifts when
      the page grows past the window. `scrollbar-gutter: stable` would do it without the track, but
      Chromium ignores it on the root. */

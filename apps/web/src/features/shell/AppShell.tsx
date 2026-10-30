@@ -139,28 +139,6 @@ const useScrolled = () =>
     () => false,
   )
 
-/**
- * Phone in a browser tab (shell.css): the navigation row folds away while the page scrolls down
- * and comes back as soon as it scrolls up.
- */
-const useFolded = () => {
-  const [folded, setFolded] = useState(false)
-  useEffect(() => {
-    let last = window.scrollY
-    const onScroll = () => {
-      const y = window.scrollY
-      // iOS bounces past both ends: those moves are not the reader's.
-      const max = document.documentElement.scrollHeight - window.innerHeight
-      if (y < 0 || y > max || Math.abs(y - last) < 8) return
-      setFolded(y > last && y > 120)
-      last = y
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return folded
-}
-
 const isTyping = (target: unknown) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
@@ -177,7 +155,6 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
   const me = session.data?.status === 'signed_in' ? session.data.me : initial
   const scrolled = useScrolled()
   const headerRef = usePillMerge(scrolled)
-  const folded = useFolded()
   const [searching, setSearching] = useState(false)
 
   useEffect(() => {
@@ -196,12 +173,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
       <a className="skip-link" href="#main">
         {t('shell.skipToContent')}
       </a>
-      <header
-        className="shell__header"
-        data-scrolled={scrolled}
-        data-folded={folded}
-        ref={headerRef}
-      >
+      <header className="shell__header" data-scrolled={scrolled} ref={headerRef}>
         <span className="pill-merge__glass" aria-hidden="true" />
         <svg className="pill-merge__paint" aria-hidden="true">
           <defs>

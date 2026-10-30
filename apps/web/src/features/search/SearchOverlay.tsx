@@ -155,42 +155,48 @@ const SearchPanel = ({ onClose }: { onClose: () => void }) => {
 
   return (
     <div className="search__panel">
-      <div className="search__bar">
-        <span className="search__icon" aria-hidden="true">
-          <SearchIcon size={22} />
-        </span>
-        <input
-          className="search__input"
-          type="search"
-          role="combobox"
-          aria-label={t('search.label')}
-          aria-expanded={results.length > 0}
-          aria-controls={listId}
-          aria-autocomplete="list"
-          aria-activedescendant={results.length > 0 ? optionId(current) : undefined}
-          placeholder={t('search.placeholder')}
-          autoComplete="off"
-          autoCorrect="off"
-          spellCheck={false}
-          enterKeyHint="search"
-          autoFocus
-          value={text}
-          onChange={(event) => {
-            setText(event.target.value)
-            setActive(0)
-          }}
-          onKeyDown={onKeyDown}
-        />
-        {search.isFetching || typing ? (
-          <span className="spinner search__spinner" aria-hidden="true" />
-        ) : undefined}
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={t('common.close')}
-          onClick={onClose}
-        >
-          <CloseIcon />
+      <div className="search__top">
+        <div className="search__bar">
+          <span className="search__icon" aria-hidden="true">
+            <SearchIcon size={22} />
+          </span>
+          <input
+            className="search__input"
+            type="search"
+            role="combobox"
+            aria-label={t('search.label')}
+            aria-expanded={results.length > 0}
+            aria-controls={listId}
+            aria-autocomplete="list"
+            aria-activedescendant={results.length > 0 ? optionId(current) : undefined}
+            placeholder={t('search.placeholder')}
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="search"
+            autoFocus
+            value={text}
+            onChange={(event) => {
+              setText(event.target.value)
+              setActive(0)
+            }}
+            onKeyDown={onKeyDown}
+          />
+          {search.isFetching || typing ? (
+            <span className="spinner search__spinner" aria-hidden="true" />
+          ) : undefined}
+          <button
+            type="button"
+            className="icon-button search__close"
+            aria-label={t('common.close')}
+            onClick={onClose}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        {/* On a phone an × inside the field reads as "clear": iOS's Cancel beside it instead. */}
+        <button type="button" className="search__cancel" onClick={onClose}>
+          {t('common.cancel')}
         </button>
       </div>
       <div className="search__results" id={listId} role="listbox" aria-label={t('search.results')}>
