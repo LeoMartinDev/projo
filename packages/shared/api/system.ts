@@ -40,8 +40,9 @@ export const storageCategorySchema = z.enum([
 export type StorageCategory = z.infer<typeof storageCategorySchema>
 
 /**
- * Measured at most every 5 minutes (walking the caches is not free): `measuredAt` says when.
- * `totalBytes` / `freeBytes`: the file system holding `/data`, when the platform tells.
+ * `GET /admin/storage` (§15 "Server"). Measured at most every 5 minutes (walking the caches is
+ * not free): `measuredAt` says when. `totalBytes` / `freeBytes`: the file system holding `/data`,
+ * when the platform tells.
  */
 export const storageDtoSchema = z.object({
   dataDir: z.string(),
@@ -52,7 +53,7 @@ export const storageDtoSchema = z.object({
 })
 export type StorageDto = z.infer<typeof storageDtoSchema>
 
-/** `GET /admin/stats`: the dashboard (§15), also the "Server" storage. */
+/** `GET /admin/stats`: the dashboard (§15), database reads only (storage has its own route). */
 export const adminStatsDtoSchema = z.object({
   /**
    * Visible items (§6.3) and sources by state: `pendingSources` (`pending`), `needsReview`
@@ -74,7 +75,6 @@ export const adminStatsDtoSchema = z.object({
   version: z.object({ app: z.string(), runtime: z.string() }),
   /** The newer release known from the last `check_updates` (§16.4). */
   updateAvailable: z.object({ version: z.string(), runtimeCompatible: z.boolean() }).optional(),
-  storage: storageDtoSchema,
 })
 export type AdminStatsDto = z.infer<typeof adminStatsDtoSchema>
 

@@ -470,18 +470,15 @@ describe('storage and dashboard (§15)', () => {
       notificationRepository: { unreadCount: () => 4 },
       jobAdminRepository: { countFailedSince: (since) => (since < t0 ? 1 : 0) },
       checkStore: { read: () => ({ checkedAt: t0, ...check }) },
-      measureStorage: async () => ({ categories: [], measuredAt: t0 }),
       version: { app: '1.0.0', runtime: '1.0.0' },
-      dataDir: '/data',
       clock: createManualClock(t0),
     })
-    const current = await stats()
+    const current = stats()
     expect(current).toMatchObject({
       activePlaybackSessions: 2,
       unreadNotifications: 4,
       failedJobs: 1,
       counts: { needsReview: 3 },
-      storage: { dataDir: '/data' },
     })
     expect(current.updateAvailable).toBeUndefined()
     check.latest = {
@@ -494,7 +491,7 @@ describe('storage and dashboard (§15)', () => {
       checksums: { name: 'c', url: 'u', sizeBytes: 1 },
       runtimeMin: '1.2.0',
     }
-    expect((await stats()).updateAvailable).toEqual({ version: '1.1.0', runtimeCompatible: false })
+    expect(stats().updateAvailable).toEqual({ version: '1.1.0', runtimeCompatible: false })
   })
 })
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { adminJobsPageSchema } from '@projo/shared/api/jobs'
 import { notificationsPageSchema } from '@projo/shared/api/notifications'
-import { adminStatsDtoSchema } from '@projo/shared/api/system'
+import { adminStatsDtoSchema, storageDtoSchema } from '@projo/shared/api/system'
 
 import { createAuthTestApp, sessionCookieOf } from '../../../../test/support/auth-app.ts'
 import {
@@ -34,6 +34,7 @@ const operationsRoutes: [string, string][] = [
   ['GET', '/api/v1/admin/notifications'],
   ['POST', `/api/v1/admin/notifications/${uuid(1)}/read`],
   ['GET', '/api/v1/admin/stats'],
+  ['GET', '/api/v1/admin/storage'],
   ['POST', '/api/v1/admin/db/export'],
   ['DELETE', '/api/v1/admin/sources/s1'],
   ['POST', '/api/v1/admin/sources/purge-missing'],
@@ -167,7 +168,7 @@ describe('operations admin routes (§15, §17.2)', () => {
     expect([missing.status, await errorCode(missing)]).toEqual([404, 'notification/not_found'])
   })
 
-  test('stats: the dashboard counters, versions and storage', async () => {
+  test('stats: the dashboard counters and versions; storage on its own route', async () => {
     const { t, admin } = await household()
     insertLibrary(t.db)
     insertItem(t.db, { id: 'movie', kind: 'movie' })
@@ -181,9 +182,10 @@ describe('operations admin routes (§15, §17.2)', () => {
       runningScans: [],
       activePlaybackSessions: 0,
       version: { app: 'test', runtime: 'test' },
-      storage: { dataDir: '/nonexistent' },
     })
-    expect(stats.storage.categories.map((entry) => entry.category)).toContain('database')
+    const storage = storageDtoSchema.parse(await (await admin.get('/api/v1/admin/storage')).json())
+    expect(storage.dataDir).toBe('/nonexistent')
+    expect(storage.categories.map((entry) => entry.category)).toContain('database')
   })
 
   test('missing sources: purge one, refuse a ready one, purge all', async () => {

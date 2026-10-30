@@ -18,11 +18,17 @@ export const statsQueryKey = ['admin', 'stats'] as const
 export const jobsQueryKey = ['admin', 'jobs'] as const
 export const sourcesByStateQueryKey = ['admin', 'sources-by-state'] as const
 
-/** `GET /admin/stats` (§15 "Dashboard", "Server"). Polled while shown, events refresh it. */
+/** `GET /admin/stats` (§15 "Dashboard"). Polled while shown, events refresh it. */
 export const statsQuery = queryOptions({
   queryKey: statsQueryKey,
   queryFn: () => request(() => api.admin.stats.$get()),
   refetchInterval: 30_000,
+})
+
+/** `GET /admin/storage` (§15 "Server"): a walk of `/data`, measured at most every 5 minutes. */
+export const storageQuery = queryOptions({
+  queryKey: ['admin', 'storage'] as const,
+  queryFn: () => request(() => api.admin.storage.$get()),
 })
 
 export type JobsFilter = { state?: JobStateDto; type?: JobTypeDto }

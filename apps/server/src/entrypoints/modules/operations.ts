@@ -86,7 +86,7 @@ export type OperationsModuleDeps = {
 }
 
 /**
- * Wiring of the operations admin (§15): dashboard (`/admin/stats`), database export, jobs
+ * Wiring of the operations admin (§15): dashboard (`/admin/stats`), storage, database export, jobs
  * (list, retry, cancel through the runner, hourly `purge-jobs`), notifications, missing sources and their purge
  * (`DELETE /admin/sources/:id`, `/admin/sources/purge-missing`, daily `purge_missing`), the
  * `cache/disk_low` and `scan/needs_review_count` checks.
@@ -100,6 +100,7 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
   const notificationRepository = createSqliteNotificationRepository({ db })
   const jobAdminRepository = createSqliteJobAdminRepository({ db })
   const statsQueries = createSqliteStatsQueries({ db })
+  const measureStorage = measureStorageFactory({ diskUsage, paths, clock })
   const missingDeps = {
     missingSources: createSqliteMissingSourceRepository({ db }),
     playbackSessions: deps.playbackSessions,
@@ -172,11 +173,10 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
           notificationRepository,
           jobAdminRepository,
           checkStore: createSqliteUpdateCheckStore({ db }),
-          measureStorage: measureStorageFactory({ diskUsage, paths, clock }),
           version: { app: version, runtime },
-          dataDir: paths.root,
           clock,
         }),
+        getStorage: async () => ({ ...(await measureStorage()), dataDir: paths.root }),
         exportDatabase: exportDatabaseFactory({
           exporter: createSqliteDatabaseExporter({ db }),
           backupsDir: paths.db.backups,

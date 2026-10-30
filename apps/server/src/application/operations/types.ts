@@ -49,11 +49,13 @@ export type AdminStats = {
   failedJobs: number
   version: { app: string; runtime: string }
   updateAvailable?: { version: string; runtimeCompatible: boolean }
-  storage: StorageUsage & { dataDir: string }
 }
 
 /** `GET /admin/stats`. */
-export type GetAdminStats = () => Promise<AdminStats>
+export type GetAdminStats = () => AdminStats
+
+/** `GET /admin/storage`: walks `/data`, kept off the dashboard's request. */
+export type GetStorage = () => Promise<StorageUsage & { dataDir: string }>
 
 /** `POST /admin/db/export`. */
 export type ExportDatabase = () => Result<

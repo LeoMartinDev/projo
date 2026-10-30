@@ -14,7 +14,7 @@ import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
 import { DatabaseIcon, ServerIcon } from '../admin-icons.tsx'
 import { OptimizeImagesSetting } from '../metadata/RefreshLibrary.tsx'
-import { statsQuery } from '../operations/queries.ts'
+import { storageQuery } from '../operations/queries.ts'
 import { settingsQuery, useUpdateSettings } from './queries.ts'
 import '../admin.css'
 import '../admin-table.css'
@@ -173,7 +173,7 @@ const ExportDatabase = () => {
 export const ServerPage = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)
-  const stats = useQuery(statsQuery)
+  const storage = useQuery(storageQuery)
   const server = settings.data?.server
 
   return (
@@ -210,10 +210,10 @@ export const ServerPage = () => {
         <h2 id="server-storage" className="admin-section__title">
           {t('admin.server.storage')}
         </h2>
-        {stats.isError && stats.data === undefined ? (
-          <ErrorState error={stats.error} onRetry={() => void stats.refetch()} />
+        {storage.isError && storage.data === undefined ? (
+          <ErrorState error={storage.error} onRetry={() => void storage.refetch()} />
         ) : (
-          <Storage storage={stats.data?.storage} />
+          <Storage storage={storage.data} />
         )}
       </section>
 
