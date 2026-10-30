@@ -1180,7 +1180,7 @@ select.field__input {
   padding: 0;
   border: 0;
   border-radius: 24px;
-  background: rgba(20, 20, 23, 0.97);
+  background: var(--color-overlay);
   -webkit-backdrop-filter: var(--blur-panel);
   backdrop-filter: var(--blur-panel);
   box-shadow: var(--shadow-panel);
@@ -1194,9 +1194,7 @@ select.field__input {
 }
 
 .dialog::backdrop {
-  background: rgba(0, 0, 0, 0.6);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  background: var(--color-scrim);
 }
 
 .dialog__header {
@@ -1253,7 +1251,7 @@ select.field__input {
   padding: 8px;
   border: 0;
   border-radius: var(--radius-well);
-  background: rgba(24, 24, 27, 0.94);
+  background: var(--color-overlay);
   -webkit-backdrop-filter: var(--blur-panel);
   backdrop-filter: var(--blur-panel);
   box-shadow: var(--shadow-panel);

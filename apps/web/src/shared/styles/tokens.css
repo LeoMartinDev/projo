@@ -16,6 +16,10 @@
   --color-hover: rgba(255, 255, 255, 0.08);
   --color-selected: rgba(255, 255, 255, 0.07);
   --color-panel: rgba(18, 18, 21, 0.58);
+  /* Modal surfaces (dialog, sheet, menu, search), with `--blur-panel` and `--shadow-panel`:
+     glass the page shows through, over a dimmed but sharp page. */
+  --color-overlay: rgba(36, 36, 40, 0.55);
+  --color-scrim: rgba(0, 0, 0, 0.5);
   --color-well: rgba(255, 255, 255, 0.04);
   --color-field: rgba(255, 255, 255, 0.045);
   --color-field-focus: rgba(255, 255, 255, 0.075);

@@ -29,7 +29,12 @@ export const Sheet = ({
 
   useEffect(() => {
     if (dialog === undefined) return
-    if (open && !dialog.open) dialog.showModal()
+    if (open && !dialog.open) {
+      dialog.showModal()
+      // Focus the sheet, not its first button: Safari draws the focus ring on that button even
+      // after a touch. Tab still reaches it.
+      dialog.focus()
+    }
     if (!open && dialog.open) {
       dialog.close()
       dialog.style.removeProperty('translate')
@@ -59,7 +64,8 @@ export const Sheet = ({
       dialog.style.removeProperty('transition')
       if (offset < dismissDistance) return dialog.style.removeProperty('translate')
       if (matchMedia(reducedMotion).matches) return dismiss()
-      dialog.style.translate = '0 100%'
+      // Past its own height and the 8 px it floats above the edge (sheet.css).
+      dialog.style.translate = '0 calc(100% + 8px)'
     }
     const onSlidOut = (event: TransitionEvent) => {
       if (
@@ -87,6 +93,7 @@ export const Sheet = ({
     <dialog
       ref={ref}
       className="sheet"
+      tabIndex={-1}
       aria-labelledby={labelledBy}
       // React propagates cancel and close up the tree: ignore those of a nested dialog.
       onClose={(event) => {

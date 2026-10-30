@@ -21,8 +21,8 @@ import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
 import './media.css'
 
 /**
- * Long press on a card (artboard `MobileHome`): the card's head, its progress, "Play", then Ma
- * list / Mark as watched / Info, and "Remove" on Continue watching and Up next.
+ * Long press on a card (artboard `MobileHome`): the card's head, its progress, "Play", then an
+ * iOS-style list: My list / Mark as watched / Info, and "Remove" on Continue watching and Up next.
  */
 export const CardSheet = ({
   item,
@@ -128,41 +128,38 @@ const CardSheetBody = ({
 
       {error ? <ErrorAlert error={error} /> : undefined}
 
-      <div className="card-sheet__actions">
+      <div className="sheet-lines">
         {listTarget === undefined ? undefined : (
           <button
             type="button"
-            className="sheet-tile"
+            className="sheet-line"
             aria-pressed={listed}
             onClick={() => watchlist.toggle(listTarget, !listed)}
           >
-            {listed ? <AddedIcon size={22} /> : <AddIcon size={22} />}
+            {listed ? <AddedIcon size={20} /> : <AddIcon size={20} />}
             {t('card.myList')}
           </button>
         )}
         <button
           type="button"
-          className="sheet-tile"
+          className="sheet-line"
           aria-pressed={seen}
           onClick={() => watched.set(item.id, !seen)}
         >
-          <SeenIcon size={22} />
+          <SeenIcon size={20} />
           {seen ? t('card.markUnwatched') : t('card.markWatched')}
         </button>
         <Link
           to="/items/$itemId"
           params={{ itemId: target.itemId }}
           search={target.season === undefined ? {} : { season: target.season }}
-          className="sheet-tile"
+          className="sheet-line"
           onClick={onClose}
         >
-          <InfoIcon size={22} />
+          <InfoIcon size={20} />
           {t('card.info')}
         </Link>
-      </div>
-
-      {removable ? (
-        <div className="sheet-lines">
+        {removable ? (
           <button
             type="button"
             className="sheet-line sheet-line--danger"
@@ -172,8 +169,8 @@ const CardSheetBody = ({
             <RemoveIcon size={20} />
             {place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}
           </button>
-        </div>
-      ) : undefined}
+        ) : undefined}
+      </div>
     </div>
   )
 }
