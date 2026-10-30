@@ -170,6 +170,28 @@ html:has(dialog:modal) .shell__header {
   color: var(--color-text-strong);
 }
 
+/* Search stands on its own glass, or the hero behind it could hide it; once the page scrolls, the
+   merged pill is its glass. */
+.shell__search {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(40, 40, 44, 0.42);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  backdrop-filter: blur(24px) saturate(160%);
+  color: var(--color-text);
+}
+
+@media not (--phone) {
+  .shell__header[data-scrolled='true'] .shell__search {
+    border-color: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .shell__header[data-scrolled='true'] .shell__search:not(:hover) {
+    background: transparent;
+  }
+}
+
 .shell__main {
   flex: 1 1 auto;
   display: flex;
@@ -310,14 +332,6 @@ html:has(dialog:modal) .shell__header {
   .shell__header[data-scrolled='true'] .shell__logo {
     opacity: 0;
     visibility: hidden;
-  }
-
-  .shell__search {
-    border: 1px solid rgba(255, 255, 255, 0.09);
-    background: rgba(40, 40, 44, 0.42);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
-    color: var(--color-text);
   }
 
   .shell__search,
