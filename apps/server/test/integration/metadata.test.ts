@@ -14,6 +14,7 @@ import type { AdminSettingsDto } from '@projo/shared/api/settings'
 
 import { seedViewer } from '../support/catalog-fixtures.ts'
 import { createTempDir } from '../support/database.ts'
+import { hasFfmpegEncoder } from '../support/media.ts'
 import { growFile, placeVideo } from '../support/media-fixtures.ts'
 import { createMetadataWorld, type MetadataWorld } from '../support/metadata-world.ts'
 import { TEST_TMDB_KEY } from '../support/tmdb-server.ts'
@@ -159,26 +160,28 @@ describe('TMDB identification (§9.2)', () => {
     ).toBe(true)
     expect(world.tmdb.requests.filter((r) => r.path.startsWith('/t/p/w185/'))).toHaveLength(4)
 
-    // §9.1: served as its WebP variant (the fixture is narrower than the ladder: full size).
-    const poster = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
-    expect(poster.status).toBe(200)
-    expect(poster.headers.get('cache-control')).toContain('immutable')
-    expect(poster.headers.get('content-type')).toBe('image/webp')
-    expect((await poster.arrayBuffer()).byteLength).toBeGreaterThan(0)
     expect((await world.requestApi(`/images/${movie?.poster_image_id}?w=300`)).status).toBe(400)
     expect((await world.requestApi('/images/unknown-id')).status).toBe(404)
-    // Variants not encoded yet: the original, cached an hour only.
-    const posterPath = byKind('poster')[0]?.local_path ?? ''
-    rmSync(join(world.data.path, 'images', posterPath.replace(/\.jpg$/u, '.full.webp')))
-    const fallback = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
-    expect(fallback.headers.get('content-type')).toBe('image/jpeg')
-    expect(fallback.headers.get('cache-control')).toBe('private, max-age=3600')
-    // "Optimize the images" (admin, by hand) encodes it again.
-    expect((await world.request('/images/optimize', { method: 'POST' })).status).toBe(202)
-    await world.runJobs(['image_variants'])
-    expect(
-      (await world.requestApi(`/images/${movie?.poster_image_id}`)).headers.get('content-type'),
-    ).toBe('image/webp')
+    if (hasFfmpegEncoder('libwebp')) {
+      // §9.1: served as its WebP variant (the fixture is narrower than the ladder: full size).
+      const poster = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
+      expect(poster.status).toBe(200)
+      expect(poster.headers.get('cache-control')).toContain('immutable')
+      expect(poster.headers.get('content-type')).toBe('image/webp')
+      expect((await poster.arrayBuffer()).byteLength).toBeGreaterThan(0)
+      // Variants not encoded yet: the original, cached an hour only.
+      const posterPath = byKind('poster')[0]?.local_path ?? ''
+      rmSync(join(world.data.path, 'images', posterPath.replace(/\.jpg$/u, '.full.webp')))
+      const fallback = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
+      expect(fallback.headers.get('content-type')).toBe('image/jpeg')
+      expect(fallback.headers.get('cache-control')).toBe('private, max-age=3600')
+      // "Optimize the images" (admin, by hand) encodes it again.
+      expect((await world.request('/images/optimize', { method: 'POST' })).status).toBe(202)
+      await world.runJobs(['image_variants'])
+      expect(
+        (await world.requestApi(`/images/${movie?.poster_image_id}`)).headers.get('content-type'),
+      ).toBe('image/webp')
+    }
 
     // Idempotent: a second run downloads nothing.
     const before = world.tmdb.requests.length
