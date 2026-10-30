@@ -18,6 +18,15 @@ import { trackScrollbarWidth } from './shared/styles/scrollbar.ts'
 setupI18n()
 trackScrollbarWidth()
 
+// A tab opened before an update still asks for the old build's chunks, gone from the server: load
+// the new index.html, once per chunk. TanStack's own reload misses it: Vite fails on the CSS first.
+window.addEventListener('vite:preloadError', (event) => {
+  const key = `projo:preload-reload:${event.payload.message}`
+  if (sessionStorage.getItem(key)) return
+  sessionStorage.setItem(key, '1')
+  window.location.reload()
+})
+
 const queryClient = createAppQueryClient({
   onSessionLost: () => {
     if (router.state.location.pathname === '/login') return
