@@ -125,7 +125,7 @@ html:has(dialog:modal) .shell__header {
   filter: url(#pill-merge-edge);
 }
 
-@media not (--compact) {
+@media not (--phone) {
   .shell__logo,
   .pill-nav,
   .shell__actions {
@@ -286,7 +286,7 @@ html:has(dialog:modal) .shell__header {
 }
 
 /* Phone: the navigation floats at the bottom of the screen (artboard MobileHome). */
-@media (--compact) {
+@media (--phone) {
   .shell {
     --header-height: calc(66px + env(safe-area-inset-top));
     /* Room the pages keep below their content for the floating navigation. */
@@ -295,7 +295,8 @@ html:has(dialog:modal) .shell__header {
 
   .shell__header {
     grid-template-columns: 1fr auto;
-    padding: env(safe-area-inset-top) 16px 0;
+    padding: env(safe-area-inset-top) max(16px, env(safe-area-inset-right)) 0
+      max(16px, env(safe-area-inset-left));
   }
 
   /* No band behind the header once the page scrolls: the controls float on their own glass and
@@ -326,9 +327,9 @@ html:has(dialog:modal) .shell__header {
   }
 
   .page {
-    padding-right: 16px;
+    padding-right: max(16px, env(safe-area-inset-right));
     padding-bottom: var(--nav-room);
-    padding-left: 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
   }
 
   .pill-nav {
@@ -378,7 +379,7 @@ html:has(dialog:modal) .shell__header {
 /* In a browser tab the bottom edge is Safari's toolbar: the navigation takes the wordmark's place
    in the header's single row, and floats at the bottom only in the installed web app
    (manifest.webmanifest). */
-@media (--compact) and (--in-browser) {
+@media (--phone) and (--in-browser) {
   .shell {
     --header-height: calc(64px + env(safe-area-inset-top));
     --nav-room: 48px;
@@ -422,6 +423,18 @@ html:has(dialog:modal) .shell__header {
 
   .shell__search {
     display: flex;
+  }
+}
+
+/* Phone in landscape: the navigation keeps its own width instead of spanning the screen. */
+@media (--phone) and (not (--compact)) and (--in-browser) {
+  .shell__header .pill-nav {
+    justify-self: start;
+  }
+
+  .pill-nav__link {
+    flex: 0 0 auto;
+    padding: 0 16px;
   }
 }
 
@@ -539,7 +552,7 @@ html:has(dialog:modal) .shell__header {
   background: var(--color-border-subtle);
 }
 
-@media (--compact) {
+@media (--phone) {
   .menu {
     inset: 60px 16px auto auto;
   }

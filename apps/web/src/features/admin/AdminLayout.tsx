@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { eventHub } from '../../shared/events/events.ts'
 import { setupStatusQuery } from '../../shared/session/session.ts'
 import { AlertIcon, BackIcon, EyeOffIcon, LayersIcon, TvIcon } from '../../shared/ui/icons.tsx'
+import { useElement } from '../../shared/ui/use-element.ts'
 import { Logo } from '../shell/Logo.tsx'
 import {
   BellIcon,
@@ -129,6 +130,14 @@ export const AdminLayout = () => {
   const serverName = status.data?.serverName
   useLiveReviewQueue()
   useLiveNotifications()
+  const [nav, navRef] = useElement<HTMLElement>()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  // Narrow screens scroll the links in a row: the current one is brought into view.
+  useEffect(() => {
+    nav
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [nav, pathname])
   return (
     <div className="admin">
       <aside className="admin__side">
@@ -141,7 +150,7 @@ export const AdminLayout = () => {
             }
           />
         </Link>
-        <nav className="admin__nav" aria-label={t('admin.title')}>
+        <nav ref={navRef} className="admin__nav" aria-label={t('admin.title')}>
           <Link
             to="/admin"
             className="admin__nav-link"

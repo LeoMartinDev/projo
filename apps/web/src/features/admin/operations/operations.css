@@ -34,7 +34,7 @@
   padding: 16px 18px;
   border-radius: var(--radius-card);
   background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
   color: var(--color-text);
   text-decoration: none;
   transition:
@@ -43,7 +43,7 @@
 }
 
 .dash-tile--link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-glass);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 

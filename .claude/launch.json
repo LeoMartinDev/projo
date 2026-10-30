@@ -16,6 +16,13 @@
       "autoPort": false
     },
     {
+      "name": "web-lan",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:web:lan"],
+      "port": 5173,
+      "autoPort": false
+    },
+    {
       "name": "web-build",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/web", "preview", "--port", "4173", "--strictPort"],

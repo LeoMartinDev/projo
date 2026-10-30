@@ -124,7 +124,7 @@
   justify-content: center;
   width: clamp(96px, 22vw, 132px);
   height: clamp(96px, 22vw, 132px);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-glass);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -200,7 +200,7 @@
   color: var(--color-on-accent);
 }
 
-@media (--compact) {
+@media (--phone) {
   .who {
     padding: calc(20px + env(safe-area-inset-top)) 16px 20px;
   }
@@ -520,7 +520,7 @@
   text-align: right;
 }
 
-@media (--compact) {
+@media (--phone) {
   .settings-panel {
     padding: 18px 16px;
     border-radius: 22px;

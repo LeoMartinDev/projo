@@ -160,6 +160,16 @@
     padding: 0 16px;
     overflow-x: auto;
     scrollbar-width: none;
+    /* The edges fade within the padding: a link cut by the edge shows the row goes on, the first
+       and last ones stay sharp once scrolled to. */
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #000 16px,
+      #000 calc(100% - 16px),
+      transparent
+    );
+    mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
   }
 
   .admin__nav::-webkit-scrollbar {

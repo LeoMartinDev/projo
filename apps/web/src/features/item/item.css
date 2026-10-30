@@ -402,7 +402,7 @@
 
 .admin-menu__button:hover,
 .admin-menu:has(.admin-menu__menu:popover-open) .admin-menu__button {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--color-glass);
   color: var(--color-text);
 }
 
@@ -1047,8 +1047,33 @@
 
 /* Like `.page__back`: in a phone's browser tab Safari's toolbar has the back arrow, and the
    button would sit wedged under the header's navigation row. */
-@media (--compact) and (--in-browser) {
+@media (--phone) and (--in-browser) {
   .detail-hero__top {
     display: none;
+  }
+}
+
+/* Tablet: the secondary actions turn into round icon buttons (their label stays their accessible
+   name), so the row holds on one line beside "Play". */
+@media (--tablet) {
+  .detail-hero__actions {
+    flex-wrap: nowrap;
+  }
+
+  .detail-hero__actions .detail-action {
+    flex: 0 0 auto;
+    width: 48px;
+    padding: 0;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+  }
+
+  .detail-action__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 }

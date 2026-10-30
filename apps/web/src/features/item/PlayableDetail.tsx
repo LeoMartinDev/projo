@@ -102,7 +102,7 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
               className="button button--glass button--large detail-action"
             >
               <RestartIcon />
-              {t('item.fromStart')}
+              <span className="detail-action__label">{t('item.fromStart')}</span>
             </Link>
           ) : undefined}
           {item.kind === 'movie' ? (
@@ -113,7 +113,7 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
               onClick={() => watchlist.toggle(item, !listed)}
             >
               {listed ? <AddedIcon /> : <AddIcon />}
-              {t('card.myList')}
+              <span className="detail-action__label">{t('card.myList')}</span>
             </button>
           ) : undefined}
           <button
@@ -123,7 +123,9 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
             onClick={() => watched.set(item.id, !seen)}
           >
             <CheckIcon />
-            {seen ? t('item.markUnwatched') : t('item.markWatched')}
+            <span className="detail-action__label">
+              {seen ? t('item.markUnwatched') : t('item.markWatched')}
+            </span>
           </button>
           {admin}
         </div>

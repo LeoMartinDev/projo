@@ -334,6 +334,27 @@
   --card-width: clamp(112px, 24vw, 170px);
 }
 
+/* Tablet: a few cards at once, the next one peeking (the phone's widths would leave 2.5). */
+@media (--tablet) {
+  .row__viewport:not(.row__viewport--paged) .row__track {
+    --card-width: calc((100vw - 2 * var(--gutter)) / 3.4);
+  }
+
+  .row__viewport:not(.row__viewport--paged) .row__track--poster {
+    --card-width: calc((100vw - 2 * var(--gutter)) / 5.4);
+  }
+}
+
+@media (--tablet) and (--wide) {
+  .row__viewport:not(.row__viewport--paged) .row__track {
+    --card-width: calc((100vw - 2 * var(--gutter)) / 4.4);
+  }
+
+  .row__viewport:not(.row__viewport--paged) .row__track--poster {
+    --card-width: calc((100vw - 2 * var(--gutter)) / 6.4);
+  }
+}
+
 .row__viewport:not(.row__viewport--paged) .cw {
   scroll-snap-align: start;
 }
@@ -376,11 +397,14 @@
 
 /* ── Phone (artboard `MobileHome`) ──────────────────────────────────────── */
 
-@media (--compact) {
+@media (--phone) {
   .home {
     padding-bottom: var(--nav-room);
   }
+}
 
+/* The hero as a portrait card: a phone held upright. */
+@media (--compact) {
   .hero {
     height: auto;
     margin: calc(var(--header-height) + 4px) 16px 0;
@@ -484,4 +508,32 @@
 
 .hero__actions svg {
   flex: 0 0 auto;
+}
+
+/* Phone in landscape: the hero fits the short screen, the rows start under it. */
+@media (--phone) and (not (--compact)) {
+  .hero {
+    height: max(320px, 100dvh);
+  }
+
+  .hero__content {
+    bottom: 20px;
+    gap: 12px;
+  }
+
+  .hero__title {
+    font-size: 40px;
+  }
+
+  .hero__logo {
+    max-height: 72px;
+  }
+
+  .hero__overview {
+    display: none;
+  }
+
+  .home__rows {
+    margin-top: 16px;
+  }
 }

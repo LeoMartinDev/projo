@@ -17,14 +17,6 @@
   gap: 10px;
 }
 
-.seg--4 .seg__indicator {
-  width: calc((100% - 8px) / 4);
-}
-
-.seg[data-active='3'] .seg__indicator {
-  transform: translateX(300%);
-}
-
 .catalog__filters {
   display: flex;
   flex-wrap: wrap;
@@ -75,7 +67,7 @@
 }
 
 /* Phone: one compact sort control, the filters move into the sheet. */
-@media (--compact) {
+@media (--phone) {
   .catalog__header {
     flex-direction: column;
     align-items: stretch;
@@ -131,24 +123,40 @@
     color: var(--color-text-soft);
   }
 
-  /* The select spans the whole chip, so a tap anywhere opens it; icon and arrow lie over it. */
+  /* The select lies invisible over the whole chip, so a tap anywhere opens it; the chip shows its
+     value (`ChipValue`) and takes that width, not the one of the longest option. */
   .chip__select,
   .catalog__filters .field__input {
-    height: 36px;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     margin: 0;
-    padding: 0 34px 0 14px;
+    padding: 0;
     border: 0;
-    outline: none;
-    background: transparent;
-    color: inherit;
-    font-weight: 500;
+    opacity: 0;
     cursor: pointer;
     -webkit-appearance: none;
     appearance: none;
   }
 
-  .chip__select {
+  .chip__value {
+    padding: 0 34px 0 14px;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .chip > svg ~ .chip__value {
     padding-left: 38px;
+  }
+
+  .chip:focus-within,
+  .catalog__filters .field:focus-within {
+    box-shadow:
+      inset 0 0 0 1px var(--color-border-focus),
+      var(--ring-focus);
   }
 
   .chip > svg,
@@ -190,21 +198,11 @@
     padding: 0;
   }
 
-  .catalog__filters .field__input {
-    width: auto;
-    field-sizing: content;
-  }
-
   /* A filter is set when its "all" option is not the chosen one. */
   .catalog__filters .field:not(:has(option[value='']:checked)) {
     background: var(--color-glass-strong);
     box-shadow: none;
     color: var(--color-text-strong);
-  }
-
-  /* The year only once a decade is chosen. */
-  .catalog__filters .field:has(select:disabled) {
-    display: none;
   }
 
   .catalog__filters .button {

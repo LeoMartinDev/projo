@@ -318,7 +318,7 @@ export const SeriesDetail = ({
             onClick={() => watchlist.toggle(series, !listed)}
           >
             {listed ? <AddedIcon /> : <AddIcon />}
-            {t('card.myList')}
+            <span className="detail-action__label">{t('card.myList')}</span>
           </button>
           {series.firstEpisodeId === undefined ? undefined : (
             <Link
@@ -328,7 +328,7 @@ export const SeriesDetail = ({
               className="button button--glass button--large detail-action"
             >
               <RestartIcon />
-              {t('item.fromStart')}
+              <span className="detail-action__label">{t('item.fromStart')}</span>
             </Link>
           )}
           {admin?.(selected)}
