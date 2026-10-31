@@ -8,7 +8,7 @@ Audit of the whole repository (`apps/server`, `apps/web`, `apps/mobile`, `packag
 
 **Baseline:** the audit ran no tests. After the fixes (`21999f6`): lint, typecheck and format pass, 2,220 tests pass (8 skipped).
 
-Each finding has four parts: what the code is, the problem with a concrete case, the smallest fix, and what happens if we skip it. Findings are numbered across groups. The previous review (2026-10-26) is in git (`git show 7ec1736:REVIEW.md`); its open findings are listed at the end.
+Each finding has four parts: what the code is, the problem with a concrete case, the smallest fix, and what happens if we skip it. Findings are numbered across groups. The previous review (2026-10-26) is in git (`git show 7ec1736:REVIEW.md`); its remaining findings and their status are listed at the end.
 
 ## Must fix
 
@@ -245,28 +245,28 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 - **Lean:** about −200 lines possible, no dependency to remove.
 - **Not checked:** the audit ran neither the test suite nor the e2e tests. Not read line by line: the name parser (`core/naming/title.ts`, `analyze.ts`), fingerprint matching, the segment providers, most of the player UI on web and mobile, `runtime/scripts/`, and path behaviour on macOS mounts (Unicode forms, case).
 
-## Still open from the review of 2026-10-26
+## Findings of the review of 2026-10-26
 
-Details in `git show 7ec1736:REVIEW.md`; the numbers are that review's. Status as of `7ec1736`, not checked again unless noted.
+Details in `git show 7ec1736:REVIEW.md`; the numbers are that review's. Its findings not listed here were done by `7ec1736`. Done ones below: 2026-10-31, `e5b315a` unless noted.
 
-- 19 — The next episode closes fullscreen and Picture-in-Picture
-- 26 — "Up next" forgets a show once its watched seasons are deleted
-- 27 — Editing a library accepts a root that overlaps a kept symlinked root
-- 30 — Six stores only grow
-- 32 — Whoever reaches a fresh install first becomes its admin
-- 34 — A library can stay "Scanning…" forever
-- 40 — Safari does not retry while the keyframe index is not ready
-- 45 — The image visibility check is optional (fixed with 16, `cdf5533`)
-- 46 — No test covers `X-Forwarded-For`
-- 47 — The player's session lifecycle has no test
-- 48 — The §21 performance test skips categories and restricted profiles (restricted profile added in `21999f6`; `/home/categories` still missing)
-- 49 — No PWA at all (manifest added in `155e20f`; still no icons)
-- 50 — Near-copies that must change together (partly 19 and 20)
-- 51 — Dead code (partly 20)
-- 53 — Invitation tokens appear in debug logs
-- 54 — Search does not fold ligatures
-- 55 — Trickplay sheets stay cached a day after regeneration
-- 56 — Two database exports in the same second
-- 58 — English shows "Cancel" where the spec says "Undo"
-- 60 — The weekly refresh includes shows without any file
-- 61 — §9.1 says the TMDB key is embedded; it is not
+- 19 — The next episode closes fullscreen and Picture-in-Picture: **partly done**. Fullscreen is kept across episodes (fullscreen on the document, left only when the player goes). Picture-in-Picture still closes: it needs the same `<video>` across episodes, a restructuring of `PlayerPage` to decide.
+- 26 — "Up next" forgets a show once its watched seasons are deleted: **done** (§13.1)
+- 27 — Editing a library accepts a root that overlaps a kept symlinked root: **done**
+- 30 — Six stores only grow: **done** (daily purge of unused images and of `tmdb_responses` older than 30 days; resolved notifications and finished scan runs after 30 days; keyframe indexes of deleted sources; backups in `cdf5533`; §18)
+- 32 — Whoever reaches a fresh install first becomes its admin: **won't fix** (accepted: no setup code)
+- 34 — A library can stay "Scanning…" forever: **done**
+- 40 — Safari does not retry while the keyframe index is not ready: **done**, not checked in Safari
+- 45 — The image visibility check is optional: **done** (`cdf5533`, with 16)
+- 46 — No test covers `X-Forwarded-For`: **done**
+- 47 — The player's session lifecycle has no test: **done** (logic moved to `player/session-lifecycle.ts`)
+- 48 — The §21 performance test skips categories and restricted profiles: **done** (kids' profile in `21999f6`, `/home/categories` now)
+- 49 — No PWA at all: **to do**. The manifest exists (`155e20f`), but the repo has no logo image to make icons from: the logo is the CSS wordmark.
+- 50 — Near-copies that must change together: **done**
+- 51 — Dead code: **done**, except `accounts/summary.ts` (to show in the accounts list) and `fromNullable` (listed in `CLAUDE.md`)
+- 53 — Invitation tokens appear in debug logs: to do
+- 54 — Search does not fold ligatures: to do
+- 55 — Trickplay sheets stay cached a day after regeneration: to do
+- 56 — Two database exports in the same second: to do
+- 58 — English shows "Cancel" where the spec says "Undo": to do
+- 60 — The weekly refresh includes shows without any file: to do
+- 61 — §9.1 says the TMDB key is embedded; it is not: to do
