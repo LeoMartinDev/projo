@@ -14,6 +14,7 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
 
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
+import { useErrorMessage } from '../../shared/i18n/errors.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { PlayIcon } from '../../shared/ui/icons.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
@@ -24,12 +25,7 @@ import {
   RemoveIcon,
   SeenIcon,
 } from '../../shared/ui/media-icons.tsx'
-import {
-  useHideFromContinue,
-  usePlayItem,
-  useWatchedToggle,
-  useWatchlistToggle,
-} from './actions.ts'
+import { type CardActions, useCardActions } from './actions.ts'
 import { useCardText } from './card-text.ts'
 import {
   type CardPlace,
@@ -37,7 +33,6 @@ import {
   detailTargetOf,
   isPosterPlace,
   isWatched,
-  listTargetOf,
   posterOf,
   progressRatioOf,
   qualityLabel,
@@ -134,17 +129,18 @@ const useFollowPreview = (
  * The actions a card reveals (§13.3): Play, My list, Mark as watched, Remove (Continue
  * watching, Up next), More info. Round buttons of artboard `Home`.
  */
-const CardActions = ({ item, place }: { item: ItemSummaryDto; place: CardPlace }) => {
+const PreviewActions = ({
+  item,
+  place,
+  actions,
+}: {
+  item: ItemSummaryDto
+  place: CardPlace
+  actions: CardActions
+}) => {
   const { t } = useTranslation()
   const text = useCardText()(item, place)
-  const watchlist = useWatchlistToggle()
-  const watched = useWatchedToggle()
-  const hide = useHideFromContinue()
-  const play = usePlayItem()
-  // An episode's button acts on its series (Continue watching, Up next, §13.3).
-  const listTarget = listTargetOf(item)
-  const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
-  const seen = watched.watched(item)
+  const { listed, seen } = actions
   const target = detailTargetOf(item)
   return (
     <div className="preview__actions">
@@ -152,34 +148,34 @@ const CardActions = ({ item, place }: { item: ItemSummaryDto; place: CardPlace }
         type="button"
         className="round-button round-button--solid"
         aria-label={t('card.playTitle', { title: text.title })}
-        disabled={play.isPending}
-        onClick={() => play.mutate(item)}
+        disabled={actions.playing}
+        onClick={actions.play}
       >
         <PlayIcon size={16} />
       </button>
-      {listTarget === undefined ? undefined : (
+      {actions.canList ? (
         <button
           type="button"
           className="round-button"
           aria-pressed={listed}
           aria-label={listed ? t('card.removeFromList') : t('card.addToList')}
           title={listed ? t('card.removeFromList') : t('card.addToList')}
-          onClick={() => watchlist.toggle(listTarget, !listed)}
+          onClick={actions.toggleList}
         >
           {listed ? <AddedIcon /> : <AddIcon />}
         </button>
-      )}
+      ) : undefined}
       <button
         type="button"
         className="round-button"
         aria-pressed={seen}
         aria-label={seen ? t('card.markUnwatched') : t('card.markWatched')}
         title={seen ? t('card.markUnwatched') : t('card.markWatched')}
-        onClick={() => watched.set(item.id, !seen)}
+        onClick={actions.toggleSeen}
       >
         <SeenIcon />
       </button>
-      {place === 'continue_watching' || place === 'up_next' ? (
+      {actions.removable ? (
         <button
           type="button"
           className="round-button"
@@ -187,8 +183,8 @@ const CardActions = ({ item, place }: { item: ItemSummaryDto; place: CardPlace }
             place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')
           }
           title={place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}
-          disabled={hide.isPending}
-          onClick={() => hide.mutate(item.id)}
+          disabled={actions.removing}
+          onClick={() => actions.remove()}
         >
           <RemoveIcon />
         </button>
@@ -228,6 +224,8 @@ const Preview = ({
   opened: boolean
 }) => {
   const { t } = useTranslation()
+  const errorMessage = useErrorMessage()
+  const actions = useCardActions(item, place)
   const ratio = progressRatioOf(item)
   const quality = qualityLabel(item.bestQuality)
   const rating = useRatingBadge()(item.contentRating)
@@ -264,28 +262,39 @@ const Preview = ({
         </span>
       </div>
       <div className="preview__body">
-        <CardActions item={item} place={place} />
-        <div className="preview__info">
-          <span className="preview__line">{text.line}</span>
-          {rating === undefined &&
-          text.duration === undefined &&
-          quality === undefined ? undefined : (
-            <span className="preview__meta">
-              <RatingBadge badge={rating} />
-              {text.duration === undefined ? undefined : <span>{text.duration}</span>}
-              {quality === undefined ? undefined : <span className="rating-badge">{quality}</span>}
+        <PreviewActions item={item} place={place} actions={actions} />
+        {/* A failed action takes the place of the lines: the preview keeps its size. */}
+        {actions.error ? (
+          <div className="preview__info">
+            <span className="preview__error" role="alert">
+              {errorMessage(actions.error)}
             </span>
-          )}
-          {genres.length === 0 ? undefined : (
-            <span className="preview__genres">{genres.join(' · ')}</span>
-          )}
-          {ratio === undefined ? undefined : (
-            <span className="progress-line">
-              <progress className="bar" value={ratio} max={1} aria-hidden="true" />
-              {text.remaining === undefined ? undefined : <span>{text.remaining}</span>}
-            </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="preview__info">
+            <span className="preview__line">{text.line}</span>
+            {rating === undefined &&
+            text.duration === undefined &&
+            quality === undefined ? undefined : (
+              <span className="preview__meta">
+                <RatingBadge badge={rating} />
+                {text.duration === undefined ? undefined : <span>{text.duration}</span>}
+                {quality === undefined ? undefined : (
+                  <span className="rating-badge">{quality}</span>
+                )}
+              </span>
+            )}
+            {genres.length === 0 ? undefined : (
+              <span className="preview__genres">{genres.join(' · ')}</span>
+            )}
+            {ratio === undefined ? undefined : (
+              <span className="progress-line">
+                <progress className="bar" value={ratio} max={1} aria-hidden="true" />
+                {text.remaining === undefined ? undefined : <span>{text.remaining}</span>}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

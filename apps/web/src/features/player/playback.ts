@@ -19,6 +19,7 @@ import {
 import { getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { browserMediaEnvironment, detectCapabilities } from './capabilities.ts'
 import { endSession, type HeartbeatTransport } from './heartbeat.ts'
+import { KEYFRAME_WAIT_RETRIES, mediaPlaylistUrl, waitForPlaylist } from './playlist-wait.ts'
 import { watchSeekStalls } from './seek-stall.ts'
 import { createSessionEnds } from './session-ends.ts'
 import { type SessionRequest, toCreateBody } from './session-request.ts'
@@ -145,9 +146,8 @@ const mediaErrorNetwork = 2
  * The first play of a source waits for its keyframe index (§10.3): the server holds the playlist
  * request up to 20 s, then answers 503 `playback/keyframes_unavailable`. On a network share the
  * index takes minutes, so the playlist outlives that wait and a 503 is asked again for ~5 min;
- * other errors keep hls.js's single retry.
+ * other errors keep hls.js's single retry. The native player waits the same (`playlist-wait.ts`).
  */
-const KEYFRAME_WAIT_RETRIES = 15
 const manifestLoadPolicy: HlsConfig['manifestLoadPolicy'] = {
   default: {
     maxTimeToFirstByteMs: Number.POSITIVE_INFINITY,
@@ -201,8 +201,26 @@ export const attachStream = (
         network: video.error?.code === mediaErrorNetwork,
       })
     video.addEventListener('error', failed)
-    video.src = stream.url
     video.addEventListener('loadedmetadata', play, { once: true })
+    if (stream.type === 'direct') video.src = stream.url
+    else
+      // Native HLS fails at once on the 503 of a keyframe index not ready yet (§10.3).
+      void waitForPlaylist({
+        status: () =>
+          fetch(mediaPlaylistUrl(stream.url, window.location.href), {
+            credentials: 'same-origin',
+          }).then(
+            (response) => {
+              void response.body?.cancel()
+              return response.status
+            },
+            () => 0,
+          ),
+        delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+        cancelled: () => disposed,
+      }).then((wait) => {
+        if (wait === 'ready') video.src = stream.url
+      })
     return () => {
       if (disposed) return
       disposed = true

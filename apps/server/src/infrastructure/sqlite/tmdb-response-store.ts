@@ -1,12 +1,16 @@
-import { eq } from 'drizzle-orm'
+import { eq, lt } from 'drizzle-orm'
 
-import type { TmdbResponseStore } from '../../core/metadata/ports.ts'
+import type { TmdbResponsePurge, TmdbResponseStore } from '../../core/metadata/ports.ts'
 import type { Db } from './database.ts'
 import { fromIso, toIso } from './rows.ts'
 import { tmdbResponses } from './schema/metadata.ts'
 
 /** `tmdb_responses`: TMDB detail responses cached in the database (§9.2). */
-export const createSqliteTmdbResponseStore = ({ db }: { db: Db }): TmdbResponseStore => ({
+export const createSqliteTmdbResponseStore = ({
+  db,
+}: {
+  db: Db
+}): TmdbResponseStore & TmdbResponsePurge => ({
   get: (key) => {
     const row = db.select().from(tmdbResponses).where(eq(tmdbResponses.key, key)).get()
     return row === undefined
@@ -22,4 +26,10 @@ export const createSqliteTmdbResponseStore = ({ db }: { db: Db }): TmdbResponseS
       })
       .run()
   },
+  purgeFetchedBefore: (before) =>
+    db
+      .delete(tmdbResponses)
+      .where(lt(tmdbResponses.fetchedAt, toIso(before)))
+      .returning({ key: tmdbResponses.key })
+      .all().length,
 })

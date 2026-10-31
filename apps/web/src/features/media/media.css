@@ -503,6 +503,17 @@
   white-space: nowrap;
 }
 
+.preview__error {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  color: var(--color-error-soft);
+  font-size: 13px;
+  line-height: 18px;
+}
+
 .preview__genres {
   flex: 0 0 auto;
   overflow: hidden;

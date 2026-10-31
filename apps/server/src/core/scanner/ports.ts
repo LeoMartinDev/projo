@@ -51,6 +51,8 @@ export type ScanRunRepository = {
     items: ScanRun[]
     nextCursor?: string
   }
+  /** Deletes the runs finished before `before`, except each library's latest; returns how many. */
+  purgeFinishedBefore: (before: Date) => number
 }
 
 /** Every kind of §15, listed in `@projo/shared/api/notifications`. */

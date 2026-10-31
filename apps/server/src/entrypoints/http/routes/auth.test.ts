@@ -139,6 +139,39 @@ describe('login and session cookie', () => {
     expect((await t.login('leo', adminPassword)).status).toBe(200)
   })
 
+  test('without TRUST_PROXY, X-Forwarded-For is ignored: changing it does not dodge the IP limit', async () => {
+    const t = createAuthTestApp()
+    await t.completeSetup()
+    // A different username each time: only the per-IP counter can block.
+    for (let i = 0; i < 10; i += 1) {
+      const response = await t.login(`ghost${i}`, 'wrong password!', {
+        'x-forwarded-for': `198.51.100.${i}`,
+      })
+      expect(response.status).toBe(401)
+    }
+    const blocked = await t.login('leo', adminPassword, { 'x-forwarded-for': '198.51.100.99' })
+    expect(blocked.status).toBe(429)
+    expect(await errorCode(blocked)).toBe('auth/rate_limited')
+  })
+
+  test('with TRUST_PROXY, the last X-Forwarded-For entry (added by the proxy) is the client', async () => {
+    const t = createAuthTestApp({ trustProxy: true })
+    await t.completeSetup()
+    for (let i = 0; i < 10; i += 1) {
+      const response = await t.login(`ghost${i}`, 'wrong password!', {
+        'x-forwarded-for': `spoofed-${i}, 203.0.113.4`,
+      })
+      expect(response.status).toBe(401)
+    }
+    const blocked = await t.login('leo', adminPassword, {
+      'x-forwarded-for': 'spoofed-again, 203.0.113.4',
+    })
+    expect(blocked.status).toBe(429)
+    expect((await t.login('leo', adminPassword, { 'x-forwarded-for': '203.0.113.5' })).status).toBe(
+      200,
+    )
+  })
+
   test('token: true opens a bearer session named after the device, sets no cookie', async () => {
     const t = createAuthTestApp()
     const { cookie } = await t.completeSetup()

@@ -49,7 +49,7 @@ import {
 import { EpisodesPanel } from './EpisodesPanel.tsx'
 import { nowPlayingOf } from './media-session.ts'
 import { NextUpCard } from './NextUpCard.tsx'
-import { type Heartbeat, sessionTimedOut, startHeartbeat } from './heartbeat.ts'
+import { type Heartbeat, sessionTimedOut } from './heartbeat.ts'
 import {
   attachStream,
   createPlaybackSession,
@@ -125,6 +125,7 @@ import {
   tapZone,
   volumeAfterDrag,
 } from './shortcuts.ts'
+import { createSessionUnlessLeft, startSessionLifecycle } from './session-lifecycle.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
 import { SubtitleOverlay } from './SubtitleOverlay.tsx'
 import {
@@ -182,6 +183,7 @@ import {
   useAirPlayAvailable,
   useIsFullscreen,
   usePictureInPicture,
+  usePlayerFullscreenScope,
   useVideoState,
   volumeSettable,
 } from './video-state.ts'
@@ -297,6 +299,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   const [video, videoRef] = useElement<HTMLVideoElement>()
   const [container, containerRef] = useElement<HTMLDivElement>()
+  usePlayerFullscreenScope()
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useVideoState(video)
   const fullscreen = useIsFullscreen()
@@ -306,16 +309,12 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   const playback = useQuery({
     queryKey: ['playback', itemId, request],
-    queryFn: async ({ signal }) => {
-      const started = await createPlaybackSession(itemId, request)
-      // Left before the answer: the query dropped it (a remount refetches), so nobody else ends it.
-      if (signal.aborted)
-        void endSessionOnce(started.session.id, {
-          positionMs: started.session.startPositionMs,
-          paused: true,
-        })
-      return started
-    },
+    queryFn: ({ signal }) =>
+      createSessionUnlessLeft({
+        create: () => createPlaybackSession(itemId, request),
+        signal,
+        endOnce: endSessionOnce,
+      }),
     gcTime: 0,
     staleTime: Number.POSITIVE_INFINITY,
     retry: false,
@@ -454,90 +453,50 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return showInDocumentPictureInPicture(pipStage, video, () => setPipStage(undefined))
   }, [pipStage, video])
 
-  // Stream attachment and session lifecycle.
+  // Stream attachment and session lifecycle (`session-lifecycle.ts`).
   useEffect(() => {
     if (video === undefined || session === undefined) return
-    retainSession(session.id)
     openingMemoryRef.current ??= { value: memoryAtOpen(session) }
     restoreVolume(video)
     applyRate(video)
-    const detach = attachStream(
+    const lifecycle = startSessionLifecycle({
+      session,
       video,
-      streamedSession(session),
-      hlsMode,
-      (failure) => onStreamFailure(failure),
-      !startPausedRef.current,
-    )
-    const heartbeat = startHeartbeat({
-      sessionId: session.id,
-      intervalMs: session.heartbeatIntervalMs,
-      // Before the first frame currentTime is 0: report the resume point, not the start.
-      read: () => ({
-        positionMs:
-          video.readyState > 0
-            ? itemPositionMs(session, video.currentTime)
-            : session.startPositionMs,
-        paused: video.paused,
-      }),
+      page: window,
+      attach: () =>
+        attachStream(
+          video,
+          streamedSession(session),
+          hlsMode,
+          (failure) => onStreamFailure(failure),
+          !startPausedRef.current,
+        ),
       transport: playbackTransport,
       timers: {
         setInterval: (callback, ms) => window.setInterval(callback, ms),
         clearInterval: (handle) => window.clearInterval(handle as number),
       },
-      onFailure: (failure) => {
+      ends: { retain: retainSession, release: releaseSession, endOnce: endSessionOnce },
+      onHeartbeatFailure: (failure) => {
         const apiError = toApiFailure(failure)
         if (sessionTimedOut(apiError)) onStreamFailure({ failure: apiError, network: true })
       },
+      onEnded: () => onStreamEnded(),
+      onPlaying: () => onPlaying(),
+      onLoaded: () => applyRate(video),
+      onVolumeChange: () => saveVolume(video.volume, video.muted),
+      onPosition: (positionMs) => {
+        lastPositionRef.current = positionMs
+      },
+      // Progress, "Reprendre" and "vu" changed: the pages behind the player refetch them.
+      onLetGo: () => void queryClient.invalidateQueries({ queryKey: ['catalog'] }),
     })
-    heartbeatRef.current = heartbeat
-    const beat = () => {
-      if (video.readyState > 0) heartbeat.beat()
-    }
-    const ended = () => {
-      beat()
-      onStreamEnded()
-    }
-    const close = () => heartbeat.close()
-    const remember = () => saveVolume(video.volume, video.muted)
-    const track = () => {
-      if (video.readyState > 0) lastPositionRef.current = itemPositionMs(session, video.currentTime)
-    }
-    const playing = () => onPlaying()
-    const loaded = () => applyRate(video)
-    video.addEventListener('pause', beat)
-    video.addEventListener('seeked', beat)
-    video.addEventListener('ended', ended)
-    video.addEventListener('volumechange', remember)
-    video.addEventListener('timeupdate', track)
-    video.addEventListener('playing', playing)
-    video.addEventListener('loadedmetadata', loaded)
-    window.addEventListener('pagehide', close)
-    let last: PlaybackHeartbeatBody | undefined
-    const teardown = (): PlaybackHeartbeatBody => {
-      if (last !== undefined) return last
-      last = heartbeat.halt()
-      video.removeEventListener('pause', beat)
-      video.removeEventListener('seeked', beat)
-      video.removeEventListener('ended', ended)
-      video.removeEventListener('volumechange', remember)
-      video.removeEventListener('timeupdate', track)
-      video.removeEventListener('playing', playing)
-      video.removeEventListener('loadedmetadata', loaded)
-      window.removeEventListener('pagehide', close)
-      detach()
-      return last
-    }
-    teardownRef.current = teardown
+    heartbeatRef.current = lifecycle.heartbeat
+    teardownRef.current = lifecycle.teardown
     return () => {
-      const position = teardown()
-      if (teardownRef.current === teardown) teardownRef.current = undefined
-      if (heartbeatRef.current === heartbeat) heartbeatRef.current = undefined
-      releaseSession(session.id, () => {
-        const ending = endSessionOnce(session.id, position)
-        // Progress, "Reprendre" and "vu" changed: the pages behind the player refetch them.
-        void ending.then(() => queryClient.invalidateQueries({ queryKey: ['catalog'] }))
-        return ending
-      })
+      lifecycle.dispose()
+      if (teardownRef.current === lifecycle.teardown) teardownRef.current = undefined
+      if (heartbeatRef.current === lifecycle.heartbeat) heartbeatRef.current = undefined
     }
   }, [video, session, hlsMode, queryClient])
 
@@ -817,7 +776,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   }
 
   const toggleFull = () => {
-    if (container !== undefined && video !== undefined) toggleFullscreen(container, video)
+    if (video !== undefined) toggleFullscreen(video)
   }
 
   /** Over an intro or a recap: to its end, "Intro skipped · Undo" (§12.4). */

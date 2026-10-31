@@ -39,6 +39,11 @@ export type NotificationRepository = {
   markRead: (input: { id: string; at: Date }) => Notification | undefined
 }
 
+/** Retention: deletes the notifications resolved before `before`, returns how many. */
+export type NotificationPurge = {
+  purgeResolvedBefore: (before: Date) => number
+}
+
 /** §15 `scan/needs_review_count`: raised again at most this often while "To review" is not empty. */
 export const NEEDS_REVIEW_REMINDER_MS = 24 * 60 * 60_000
 

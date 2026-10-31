@@ -13,8 +13,6 @@ export type PlaybackSession = {
   mode: PlaybackMode
   quality?: PlaybackQuality
   audioStream?: number
-  /** Legacy (M1): ffprobe index of an embedded subtitle stream; M3 uses `subtitleTrackId`. */
-  subtitleStream?: number
   /** `source_subtitles.id` of the selected track (text sent as WebVTT, or bitmap burnt in). */
   subtitleTrackId?: string
   burnIn: boolean
@@ -40,8 +38,6 @@ export const sessionTimings = {
   expireAfterMs: 60_000,
   cacheGraceMs: 5 * 60_000,
 } as const
-
-export const isActive = (session: PlaybackSession): boolean => session.endedAt === undefined
 
 /** No heartbeat for `expireAfterMs`: the session is over even if nobody said so. */
 export const isExpired = (session: PlaybackSession, now: Date): boolean =>

@@ -17,7 +17,7 @@ type Input = {
   paths: readonly string[]
   /** Roots the new paths must not overlap (every library's, minus the ones being replaced). */
   otherRoots: readonly Pick<LibraryRoot, 'id' | 'libraryId' | 'path'>[]
-  /** Paths already validated earlier (kept roots of the edited library): not checked on disk again. */
+  /** Paths already validated earlier (kept roots of the edited library): not checked on disk again, still resolved. */
   alreadyValid?: ReadonlySet<string>
 }
 
@@ -54,8 +54,11 @@ export const validateRootsFactory =
 
     const resolved = new Map<string, string>()
     for (const path of normalized) {
+      // Kept roots skip the disk checks, never the resolution: a symlinked root compared on its
+      // typed path would let a new root inside its target through.
       if (alreadyValid.has(path)) {
-        resolved.set(path, path)
+        const real = await fileSystem.realPath(path)
+        resolved.set(path, real.ok ? real.value : path)
         continue
       }
       const stat = await fileSystem.stat(path)

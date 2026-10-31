@@ -43,3 +43,10 @@ export const parseJsonColumn = <S extends z.ZodType>(
   }
   return parsed.data
 }
+
+/** Chunked `IN (…)`: SQLite caps bound parameters, and short lists keep the plans simple. */
+export const chunks = <T>(values: readonly T[], size = 500): T[][] => {
+  const result: T[][] = []
+  for (let i = 0; i < values.length; i += size) result.push(values.slice(i, i + size))
+  return result
+}

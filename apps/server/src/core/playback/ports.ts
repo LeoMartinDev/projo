@@ -19,6 +19,12 @@ export type KeyframeStore = {
   ) => Result<void, AppError<'playback/keyframes_unavailable'>>
 }
 
+/** The same folder, for `media-assets-cleanup`: indexes of deleted sources go. */
+export type KeyframeCleanup = {
+  listSourceIds: () => string[]
+  remove: (sourceId: string) => void
+}
+
 export const isFreshIndex = (
   index: StoredKeyframeIndex | undefined,
   source: { sizeBytes: number; mtime: number },

@@ -9,9 +9,10 @@ import {
   DISK_LOW_THRESHOLD_BYTES,
   NEEDS_REVIEW_REMINDER_MS,
   type NeedsReviewReminderStore,
+  type NotificationPurge,
 } from '../../core/notifications/notification.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier, ScanRunRepository } from '../../core/scanner/ports.ts'
 import type { MissingSourceRepository } from '../../core/source/source.ts'
 import { type DatabaseExporter, type DiskUsage, exportFileName } from '../../core/stats/stats.ts'
 import type { ExportDatabase, MissingSourcesAdmin } from './types.ts'
@@ -103,6 +104,32 @@ export const purgeOldJobsFactory =
     })
     if (deleted > 0) logger.info('old jobs purged', { deleted })
     return { deleted }
+  }
+
+/** Resolved notifications, and finished scan runs (each library's latest stays), kept this long. */
+export const HISTORY_RETENTION_MS = 30 * 24 * 60 * 60_000
+
+/** With `purge-jobs`, hourly: the other histories that only grow (§18 "Rules"). */
+export const purgeOldHistoryFactory =
+  ({
+    notifications,
+    scanRuns,
+    clock,
+    logger,
+  }: {
+    notifications: NotificationPurge
+    scanRuns: Pick<ScanRunRepository, 'purgeFinishedBefore'>
+    clock: Clock
+    logger: Logger
+  }) =>
+  (): { notifications: number; scanRuns: number } => {
+    const before = new Date(clock.now().getTime() - HISTORY_RETENTION_MS)
+    const deleted = {
+      notifications: notifications.purgeResolvedBefore(before),
+      scanRuns: scanRuns.purgeFinishedBefore(before),
+    }
+    if (deleted.notifications + deleted.scanRuns > 0) logger.info('old history purged', deleted)
+    return deleted
   }
 
 // ── Database export (§5.4, §21) ──────────────────────────────────────────────

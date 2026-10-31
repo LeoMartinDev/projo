@@ -9,6 +9,7 @@ import type { ProfileDto } from '@projo/shared/api/profiles'
 import { PlusIcon } from '../../shared/ui/icons.tsx'
 import { LockSmallIcon, PencilIcon } from '../../shared/ui/media-icons.tsx'
 import { canManageAccount } from '../../shared/session/active-profile.ts'
+import { safeRedirect } from '../../shared/session/safe-redirect.ts'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { Avatar } from '../shell/Avatar.tsx'
 import { Logo } from '../shell/Logo.tsx'
@@ -18,10 +19,6 @@ import { profilesQuery, useSelectProfile, useVerifyPin } from './queries.ts'
 import './profiles.css'
 
 const maxProfiles = 5
-
-/** Only same-app paths are followed after choosing (no open redirect). */
-const safeRedirect = (target: string | undefined): string =>
-  target !== undefined && target.startsWith('/') && !target.startsWith('//') ? target : '/'
 
 /**
  * "Who's watching?" (§13.6, artboard `Main`): one tile per profile, a lock on the protected ones

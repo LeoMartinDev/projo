@@ -3,7 +3,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { passwordSchema, profileNameSchema, usernameSchema } from '@projo/shared/api/auth'
+import { profileNameSchema, usernameSchema } from '@projo/shared/api/auth'
 
 import { api, request } from '../../shared/api/client.ts'
 import { toApiFailure } from '../../shared/api/failure.ts'
@@ -11,14 +11,12 @@ import { Backdrop } from '../../shared/backdrops/Backdrop.tsx'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { signedIn, signedOut } from '../../shared/session/session.ts'
 import { Field, RevealButton, ValidMark } from '../../shared/ui/controls.tsx'
-import { ArrowRightIcon, LockIcon, ShieldIcon, UserIcon } from '../../shared/ui/icons.tsx'
+import { ArrowRightIcon, UserIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert, FullPageSpinner } from '../../shared/ui/states.tsx'
-import { passwordScore } from '../setup/password-strength.ts'
+import { NewPasswordFields, usePasswordPair } from '../setup/NewPasswordFields.tsx'
 import { Logo } from '../shell/Logo.tsx'
 import '../setup/setup.css'
 import './invite.css'
-
-const strengthKeys = ['empty', 'weak', 'fair', 'good', 'strong'] as const
 
 /** Unusable invitation (unknown or withdrawn, expired, already used): one sentence, the login. */
 const InvitationGone = ({ error }: { error: unknown }) => {
@@ -57,18 +55,13 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
+  const pair = usePasswordPair()
   const [shown, setShown] = useState(false)
   const [usernameLeft, setUsernameLeft] = useState(false)
 
   const nameValid = profileNameSchema.safeParse(name).success
   const usernameValid = usernameSchema.safeParse(username).success
-  const passwordValid = passwordSchema.safeParse(password).success
-  const matches = confirmation.length > 0 && confirmation === password
-  const mismatch = !matches && confirmation.length > 0 && confirmation.length >= password.length
-  const score = passwordScore(password)
-  const ready = nameValid && usernameValid && passwordValid && matches
+  const ready = nameValid && usernameValid && pair.ready
   const usernameWrong = usernameLeft && username.length > 0 && !usernameValid
 
   const accept = useMutation({
@@ -78,7 +71,7 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
           param: { token },
           json: {
             username,
-            password,
+            password: pair.password,
             uiLocale: currentLocale(),
             profile: { name: name.trim() },
           },
@@ -96,7 +89,6 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
     event.preventDefault()
     if (ready && !accept.isPending) accept.mutate()
   }
-  const type = shown ? 'text' : 'password'
 
   return (
     <main className="onb__main onb__main--split">
@@ -157,56 +149,12 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
               </span>
             ) : undefined}
           </div>
-          <div className="form-row">
-            <Field
-              id="invite-password"
-              label={t('setup.account.password')}
-              icon={<LockIcon />}
-              trail={<RevealButton shown={shown} onToggle={() => setShown(!shown)} />}
-            >
-              <input
-                id="invite-password"
-                className="field__input"
-                type={type}
-                autoComplete="new-password"
-                value={password}
-                aria-describedby="invite-password-strength"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </Field>
-            <div className="meter" aria-hidden="true">
-              {[1, 2, 3, 4].map((level) => (
-                <span key={level} className="meter__segment" data-on={score >= level} />
-              ))}
-            </div>
-            <span id="invite-password-strength" className="hint" aria-live="polite">
-              {t('setup.account.strength')}{' '}
-              <strong>{t(`setup.strength.${strengthKeys[score]}`)}</strong>
-              {passwordValid ? undefined : ` · ${t('setup.account.passwordRule')}`}
-            </span>
-          </div>
-          <div className="form-row">
-            <Field
-              id="invite-confirmation"
-              label={t('setup.account.confirmation')}
-              icon={<ShieldIcon />}
-              invalid={mismatch}
-              trail={matches ? <ValidMark label={t('setup.account.matches')} /> : undefined}
-            >
-              <input
-                id="invite-confirmation"
-                className="field__input"
-                type={type}
-                autoComplete="new-password"
-                value={confirmation}
-                aria-invalid={mismatch}
-                onChange={(event) => setConfirmation(event.target.value)}
-              />
-            </Field>
-            {mismatch ? (
-              <span className="hint hint--error">{t('setup.account.mismatch')}</span>
-            ) : undefined}
-          </div>
+          <NewPasswordFields
+            id="invite"
+            pair={pair}
+            shown={shown}
+            reveal={<RevealButton shown={shown} onToggle={() => setShown(!shown)} />}
+          />
         </div>
         <div className="onb__actions invite__actions">
           <button

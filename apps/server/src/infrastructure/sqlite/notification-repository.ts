@@ -5,6 +5,7 @@ import { notificationKinds, notificationKindSchema } from '@projo/shared/api/not
 
 import type {
   Notification,
+  NotificationPurge,
   NotificationRepository,
   NotificationStatus,
 } from '../../core/notifications/notification.ts'
@@ -53,7 +54,11 @@ const isKnown = (notification: Notification | undefined): notification is Notifi
   notification !== undefined
 
 /** `notifications` (§6.5) for the admin's notification centre (§15). */
-export const createSqliteNotificationRepository = ({ db }: { db: Db }): NotificationRepository => ({
+export const createSqliteNotificationRepository = ({
+  db,
+}: {
+  db: Db
+}): NotificationRepository & NotificationPurge => ({
   list: ({ status, cursor, limit }) => {
     const rows = db
       .select()
@@ -93,4 +98,10 @@ export const createSqliteNotificationRepository = ({ db }: { db: Db }): Notifica
     const row = db.select().from(notifications).where(eq(notifications.id, id)).get()
     return row === undefined ? undefined : toNotification(row)
   },
+  purgeResolvedBefore: (before) =>
+    db
+      .delete(notifications)
+      .where(lt(notifications.resolvedAt, toIso(before)))
+      .returning({ id: notifications.id })
+      .all().length,
 })

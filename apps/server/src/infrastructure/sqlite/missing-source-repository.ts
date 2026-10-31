@@ -2,19 +2,9 @@ import { and, eq, inArray, lt, sql } from 'drizzle-orm'
 
 import type { MissingSourceRepository } from '../../core/source/source.ts'
 import type { Db } from './database.ts'
-import { toIso } from './rows.ts'
+import { chunks, toIso } from './rows.ts'
 import { itemOverrides, items, manualMatches } from './schema/items.ts'
 import { sourceItems, sources } from './schema/libraries.ts'
-
-/** SQLite's default limit of bound parameters is far above this; batches keep `IN (…)` short. */
-const BATCH = 500
-
-const chunks = <T>(values: readonly T[]): T[][] => {
-  const out: T[][] = []
-  for (let index = 0; index < values.length; index += BATCH)
-    out.push(values.slice(index, index + BATCH))
-  return out
-}
 
 /** "Manquants" (§7.5, §15): the `missing` sources and their purge. */
 export const createSqliteMissingSourceRepository = ({

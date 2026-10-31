@@ -1,7 +1,6 @@
 export const jobErrorCodes = [
   'job/not_found',
   'job/invalid_payload',
-  'job/handler_missing',
   'job/handler_crashed',
   'job/cancelled',
   'job/not_cancellable',

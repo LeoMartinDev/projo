@@ -88,4 +88,20 @@ export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository
     db.delete(images).where(eq(images.id, id)).run()
     return toStoredImage(row)
   },
+
+  // One pass over the references (`NOT IN` is computed once), not a lookup per image.
+  listUnused: () =>
+    db.$client
+      .query<{ id: string }, []>(
+        `SELECT id FROM images WHERE id NOT IN (
+           SELECT poster_image_id FROM items WHERE poster_image_id IS NOT NULL
+           UNION ALL SELECT backdrop_image_id FROM items WHERE backdrop_image_id IS NOT NULL
+           UNION ALL SELECT logo_image_id FROM items WHERE logo_image_id IS NOT NULL
+           UNION ALL SELECT still_image_id FROM items WHERE still_image_id IS NOT NULL
+           UNION ALL SELECT profile_image_id FROM people WHERE profile_image_id IS NOT NULL
+           UNION ALL SELECT json_extract(value, '$') FROM item_overrides
+             WHERE field IN ('poster_image_id', 'backdrop_image_id'))`,
+      )
+      .all()
+      .map((row) => row.id),
 })

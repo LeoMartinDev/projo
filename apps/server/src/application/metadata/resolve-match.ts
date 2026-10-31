@@ -1,13 +1,7 @@
 import { err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
-import {
-  episodeNeedsFallback,
-  FALLBACK_LANGUAGE,
-  mergeEpisodeFallback,
-  mergeFallback,
-  needsFallback,
-} from '../../core/metadata/enrichment.ts'
+import { episodeNeedsFallback } from '../../core/metadata/enrichment.ts'
 import { episodeSpan } from '../../core/metadata/linking.ts'
 import { type PickOutcome, pickBest, rankCandidates } from '../../core/metadata/scoring.ts'
 import type {
@@ -20,6 +14,7 @@ import type {
   TmdbSeries,
 } from '../../core/metadata/tmdb.ts'
 import { normalizeTitle, type ParsedName } from '../../core/naming/index.ts'
+import { tmdbDetailsFactory } from './tmdb-details.ts'
 
 /** Reasons the matcher itself decides (§7.8); the parser decides the others. */
 export type TmdbReviewReason =
@@ -67,42 +62,13 @@ const isNotFound = (error: TmdbError): boolean => error.code === 'metadata/tmdb_
 export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
   const seriesCache = new Map<string, { expiresAt: number; lookup: SeriesLookup }>()
 
-  const withMovieFallback = async (
-    movie: TmdbMovie,
-    language: string,
-  ): Promise<Result<TmdbMovie, TmdbError>> => {
-    if (!needsFallback(movie, language)) return ok(movie)
-    const english = await tmdb.movie({
-      tmdbId: movie.tmdbId,
-      language: FALLBACK_LANGUAGE,
-      maxAgeMs: DETAILS_MAX_AGE_MS,
-    })
-    if (!english.ok) return isNotFound(english.error) ? ok(movie) : english
-    return ok(mergeFallback(movie, english.value, language))
-  }
+  const details = tmdbDetailsFactory({ tmdb })
 
-  const movieById = async (
-    tmdbId: number,
-    language: string,
-  ): Promise<Result<TmdbMovie, TmdbError>> => {
-    const movie = await tmdb.movie({ tmdbId, language, maxAgeMs: DETAILS_MAX_AGE_MS })
-    return movie.ok ? withMovieFallback(movie.value, language) : movie
-  }
+  const movieById = (tmdbId: number, language: string): Promise<Result<TmdbMovie, TmdbError>> =>
+    details.movie({ tmdbId, language, maxAgeMs: DETAILS_MAX_AGE_MS })
 
-  const seriesById = async (
-    tmdbId: number,
-    language: string,
-  ): Promise<Result<TmdbSeries, TmdbError>> => {
-    const series = await tmdb.series({ tmdbId, language, maxAgeMs: DETAILS_MAX_AGE_MS })
-    if (!series.ok || !needsFallback(series.value, language)) return series
-    const english = await tmdb.series({
-      tmdbId,
-      language: FALLBACK_LANGUAGE,
-      maxAgeMs: DETAILS_MAX_AGE_MS,
-    })
-    if (!english.ok) return isNotFound(english.error) ? series : english
-    return ok(mergeFallback(series.value, english.value, language))
-  }
+  const seriesById = (tmdbId: number, language: string): Promise<Result<TmdbSeries, TmdbError>> =>
+    details.series({ tmdbId, language, maxAgeMs: DETAILS_MAX_AGE_MS })
 
   /** §8.1 id tags: a TMDB id directly, IMDb / TVDB through `/find`. Undefined: no usable tag. */
   const taggedId = async (
@@ -280,30 +246,13 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
       season = await load(0)
     }
     if (!season.ok) return isNotFound(season.error) ? ok(undefined) : season
-    const value = season.value
-    const needing = value.episodes.filter(
+    return details.completeSeason(
+      season.value,
+      { seriesTmdbId, seasonNumber, language, maxAgeMs: DETAILS_MAX_AGE_MS },
+      // Only the episodes of the file: the others are not written now.
       (episode) =>
         wanted.includes(episode.episodeNumber) && episodeNeedsFallback(episode, language),
     )
-    if (needing.length === 0) return ok(value)
-    const english = await tmdb.season({
-      seriesTmdbId,
-      seasonNumber,
-      language: FALLBACK_LANGUAGE,
-      maxAgeMs: DETAILS_MAX_AGE_MS,
-    })
-    if (!english.ok) return isNotFound(english.error) ? ok(value) : english
-    const overview = value.overview ?? english.value.overview
-    return ok({
-      ...value,
-      ...(overview === undefined ? {} : { overview }),
-      episodes: value.episodes.map((episode) =>
-        mergeEpisodeFallback(
-          episode,
-          english.value.episodes.find((e) => e.episodeNumber === episode.episodeNumber),
-        ),
-      ),
-    })
   }
 
   /**

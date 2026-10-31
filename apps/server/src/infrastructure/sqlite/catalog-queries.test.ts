@@ -23,7 +23,7 @@ import { createSqliteCatalogRepository } from './catalog-repository.ts'
 import type { Db } from './database.ts'
 import { createSqliteProgressRepository } from './progress-repository.ts'
 import { items } from './schema/items.ts'
-import { sourceSubtitles } from './schema/libraries.ts'
+import { sources, sourceSubtitles } from './schema/libraries.ts'
 
 let db: Db
 let repo: CatalogRepository
@@ -422,5 +422,34 @@ describe('progress queries', () => {
     expect(played({ allowedRatings: { FR: ['TP'] } })).toEqual([['show-s1e1', 'episode', 'show']])
     progress.showAncestorsAgain({ profileId, itemId: 'show-s1e1' })
     expect(progress.find({ profileId, itemId: 'show' })?.hiddenFromContinue).toBe(false)
+  })
+
+  test('an episode whose files are gone stays played while its series is visible (§13.1)', () => {
+    const { profileId } = seedViewer(db)
+    seedSeries(db, {
+      id: 'show',
+      episodes: [
+        [1, 1],
+        [2, 1],
+      ],
+    })
+    insertProgress(db, { profileId, itemId: 'show-s1e1', watched: true })
+    const progress = createSqliteProgressRepository({ db })
+    const missing = (sourceId: string) =>
+      db.update(sources).set({ state: 'missing' }).where(eq(sources.id, sourceId)).run()
+
+    missing('f-show-s1e1')
+    expect(progress.listPlayed({ profileId, scope: everything })).toEqual([
+      expect.objectContaining({
+        itemId: 'show-s1e1',
+        seriesId: 'show',
+        seasonNumber: 1,
+        episodeNumber: 1,
+        absent: true,
+      }),
+    ])
+    // The whole series gone: nothing left to go on with.
+    missing('f-show-s2e1')
+    expect(progress.listPlayed({ profileId, scope: everything })).toEqual([])
   })
 })

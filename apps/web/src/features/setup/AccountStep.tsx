@@ -3,17 +3,15 @@ import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { MeResponse } from '@projo/shared/api/auth'
-import { passwordSchema, profileNameSchema, usernameSchema } from '@projo/shared/api/auth'
+import { profileNameSchema, usernameSchema } from '@projo/shared/api/auth'
 
 import { api, request } from '../../shared/api/client.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Field, RevealButton, ValidMark } from '../../shared/ui/controls.tsx'
-import { ArrowRightIcon, LockIcon, ShieldIcon } from '../../shared/ui/icons.tsx'
+import { ArrowRightIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
-import { passwordScore } from './password-strength.ts'
+import { NewPasswordFields, usePasswordPair } from './NewPasswordFields.tsx'
 import { StepScreen } from './SetupLayout.tsx'
-
-const strengthKeys = ['empty', 'weak', 'fair', 'good', 'strong'] as const
 
 /**
  * Step 1, artboard `OnbAccount`: first name, username, password with its strength, confirmation.
@@ -30,18 +28,13 @@ export const AccountStep = ({
   const { t } = useTranslation()
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmation, setConfirmation] = useState('')
+  const pair = usePasswordPair()
   const [shown, setShown] = useState(false)
   const [usernameLeft, setUsernameLeft] = useState(false)
 
   const nameValid = name.trim().length === 0 || profileNameSchema.safeParse(name).success
   const usernameValid = usernameSchema.safeParse(username).success
-  const passwordValid = passwordSchema.safeParse(password).success
-  const matches = confirmation.length > 0 && confirmation === password
-  const mismatch = !matches && confirmation.length > 0 && confirmation.length >= password.length
-  const score = passwordScore(password)
-  const ready = nameValid && usernameValid && passwordValid && matches
+  const ready = nameValid && usernameValid && pair.ready
 
   const setup = useMutation({
     mutationFn: () => {
@@ -50,7 +43,7 @@ export const AccountStep = ({
         api.setup.$post({
           json: {
             username,
-            password,
+            password: pair.password,
             uiLocale,
             metadataLanguage: uiLocale === 'fr' ? 'fr-FR' : 'en-US',
             profile: name.trim().length === 0 ? {} : { name: name.trim() },
@@ -65,8 +58,6 @@ export const AccountStep = ({
     event.preventDefault()
     if (ready && !setup.isPending) setup.mutate()
   }
-
-  const fieldType = shown ? 'text' : 'password'
 
   return (
     <StepScreen step="account" image="mountains" title={t('setup.account.display')}>
@@ -125,57 +116,12 @@ export const AccountStep = ({
             </span>
           ) : undefined}
 
-          <div className="form-row">
-            <Field
-              id="setup-password"
-              label={t('setup.account.password')}
-              icon={<LockIcon />}
-              trail={<RevealButton shown={shown} onToggle={() => setShown(!shown)} />}
-            >
-              <input
-                id="setup-password"
-                className="field__input"
-                type={fieldType}
-                autoComplete="new-password"
-                value={password}
-                aria-describedby="setup-password-strength"
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </Field>
-            <div className="meter" aria-hidden="true">
-              {[1, 2, 3, 4].map((level) => (
-                <span key={level} className="meter__segment" data-on={score >= level} />
-              ))}
-            </div>
-            <span id="setup-password-strength" className="hint" aria-live="polite">
-              {t('setup.account.strength')}{' '}
-              <strong>{t(`setup.strength.${strengthKeys[score]}`)}</strong>
-              {passwordValid ? undefined : ` · ${t('setup.account.passwordRule')}`}
-            </span>
-          </div>
-
-          <div className="form-row">
-            <Field
-              id="setup-confirmation"
-              label={t('setup.account.confirmation')}
-              icon={<ShieldIcon />}
-              invalid={mismatch}
-              trail={matches ? <ValidMark label={t('setup.account.matches')} /> : undefined}
-            >
-              <input
-                id="setup-confirmation"
-                className="field__input"
-                type={fieldType}
-                autoComplete="new-password"
-                value={confirmation}
-                aria-invalid={mismatch}
-                onChange={(event) => setConfirmation(event.target.value)}
-              />
-            </Field>
-            {mismatch ? (
-              <span className="hint hint--error">{t('setup.account.mismatch')}</span>
-            ) : undefined}
-          </div>
+          <NewPasswordFields
+            id="setup"
+            pair={pair}
+            shown={shown}
+            reveal={<RevealButton shown={shown} onToggle={() => setShown(!shown)} />}
+          />
         </div>
 
         <div className="onb__actions">

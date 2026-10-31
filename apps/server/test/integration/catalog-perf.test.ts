@@ -6,7 +6,8 @@ import { insertLibrary, seedViewer } from '../support/catalog-fixtures.ts'
 setDefaultTimeout(120_000)
 
 /**
- * §21 indicative: p95 < 100 ms for `/home`, `/movies`, `/search` on 20 000 items. 8 000 movies,
+ * §21 indicative: p95 < 100 ms for `/home`, each batch of `/home/categories`, each page of
+ * `/home/categories/:category`, `/movies`, `/search` on 20 000 items. 8 000 movies,
  * 600 series × 2 seasons × 10 episodes (= 20 600 items, 20 000 ready sources), a profile with
  * history on 30 series and 60 movies, 50 items in its list.
  */
@@ -161,6 +162,10 @@ beforeAll(seed)
 
 const paths = [
   '/home',
+  '/home/categories',
+  '/home/categories?cursor=4',
+  '/home/categories/anime',
+  '/home/categories/drama?cursor=40',
   '/movies',
   '/movies?sort=added',
   '/movies?sort=year&genre=drama',
@@ -181,6 +186,14 @@ describe('§21 catalog API performance (indicative)', () => {
           series: unknown[]
         }
         expect(found.movies.length + found.series.length).toBeGreaterThan(0)
+      }
+      if (path.startsWith('/home/categories')) {
+        // A real batch or page, not an empty one past the end.
+        const found = (await (await app.call(path, { as })).json()) as {
+          rows?: unknown[]
+          items?: unknown[]
+        }
+        expect((found.rows ?? found.items ?? []).length).toBeGreaterThan(0)
       }
       console.info(`[perf] ${as} ${path}: p95 ${ms.toFixed(1)} ms`)
       expect(ms).toBeLessThan(TARGET_P95_MS)

@@ -7,7 +7,7 @@ import type {
   SubtitleStreamInfo,
   VideoStreamInfo,
 } from '../../core/playback/media-info.ts'
-import { parseDurationTag } from '../media/ffprobe.ts'
+import { parseDurationTag, rawDynamicRange } from '../media/ffprobe.ts'
 
 /**
  * Tolerant reader of `sources.probe` (written by the scanner). Accepts the raw ffprobe JSON
@@ -135,18 +135,8 @@ const optional = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }
 
 /** Normalized probes carry `dynamicRange`; raw ffprobe JSON is read like the scanner does. */
-const dynamicRangeOf = (stream: RawStream): VideoStreamInfo['dynamicRange'] => {
-  if (stream.dynamicRange !== undefined) return stream.dynamicRange
-  const dolby =
-    (stream.side_data_list ?? []).some((entry) =>
-      (entry.side_data_type ?? '').toLowerCase().includes('dovi'),
-    ) || ['dvh1', 'dvhe', 'dav1', 'dva1'].includes((stream.codec_tag_string ?? '').toLowerCase())
-  if (dolby) return 'dv'
-  if (stream.color_transfer === undefined) return undefined
-  return stream.color_transfer === 'smpte2084' || stream.color_transfer === 'arib-std-b67'
-    ? 'hdr'
-    : 'sdr'
-}
+const dynamicRangeOf = (stream: RawStream): VideoStreamInfo['dynamicRange'] =>
+  stream.dynamicRange ?? rawDynamicRange(stream)
 
 /** Normalized `codecTag`, or a real fourcc of raw ffprobe (Matroska says `[0][0][0][0]`). */
 const codecTagOf = (stream: RawStream): string | undefined => {

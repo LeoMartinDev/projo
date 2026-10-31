@@ -12,7 +12,7 @@ type ScanProgressStats = ScanProgress['stats']
 /** A scan seen live on the SSE stream (or just requested by this admin). */
 export type LiveScan =
   | { status: 'queued'; since: string }
-  | ({ status: 'running' } & Pick<ScanProgress, 'stats' | 'phase' | 'total'>)
+  | ({ status: 'running' } & Pick<ScanProgress, 'scanRunId' | 'stats' | 'phase' | 'total'>)
 
 /**
  * Percentage of a running scan when its total is known (`stats.seen / total`), `undefined` for an
@@ -136,6 +136,7 @@ export const useLiveScans = ({ analyzing = false }: { analyzing?: boolean } = {}
     setScans((current) =>
       new Map(current).set(payload.libraryId, {
         status: 'running',
+        scanRunId: payload.scanRunId,
         stats: payload.stats,
         phase: payload.phase,
         ...(payload.total === undefined ? {} : { total: payload.total }),
@@ -183,6 +184,11 @@ export const useLiveScans = ({ analyzing = false }: { analyzing?: boolean } = {}
     },
     analyzing,
   )
+
+  // A cancelled scan sends no `scan.finished`: the run's `finishedAt`, read again, ends its bar.
+  useServerEvent('job.updated', (payload) => {
+    if (payload.type === 'scan_library' && payload.state === 'cancelled') throttle.trigger()
+  })
 
   const markQueued = (libraryId: string, since: string) =>
     setScans((current) =>

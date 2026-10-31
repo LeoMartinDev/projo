@@ -65,7 +65,6 @@ describe('catalog state', () => {
 describe('arriving from "Tout voir ›" (§13.3)', () => {
   const stored = {
     sort: 'title',
-    order: 'asc',
     genre: 'drama',
     decade: 1990,
     watch: 'watched',

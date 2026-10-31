@@ -29,7 +29,6 @@ export const listCatalogFactory =
   async ({
     kind,
     sort,
-    order = defaultOrder(sort),
     cursor,
     limit,
     filters = {},
@@ -38,14 +37,14 @@ export const listCatalogFactory =
   }: {
     kind: 'movie' | 'series'
     sort: CatalogSort
-    order?: SortOrder
     cursor?: string
     limit: number
     filters?: CatalogFilters
     profileId: string
     scope: VisibilityScope
-  }): Promise<Result<CatalogPage, ListCatalogError>> =>
-    andThen(
+  }): Promise<Result<CatalogPage, ListCatalogError>> => {
+    const order = defaultOrder(sort)
+    return andThen(
       cursor === undefined ? ok(undefined) : decodeCursor(cursor, { sort, order }),
       (after) => {
         // One extra row tells whether a next page exists.
@@ -75,6 +74,7 @@ export const listCatalogFactory =
         })
       },
     )
+  }
 
 export type ListCatalog = ReturnType<typeof listCatalogFactory>
 

@@ -83,7 +83,6 @@ export const createInMemoryAccounts = (initial: Account[] = [], profiles: Profil
   const repository: AccountRepository = {
     findById: (id) => accounts.find((account) => account.id === id),
     findByUsername,
-    count: () => accounts.length,
     list: () => [...accounts],
     countEnabledAdmins: () =>
       accounts.filter((account) => account.role === 'admin' && account.disabledAt === undefined)

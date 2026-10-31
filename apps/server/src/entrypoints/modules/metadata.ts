@@ -11,6 +11,10 @@ import {
 } from '../../application/metadata/image-variants.ts'
 import { matchSourceFactory } from '../../application/metadata/match-source.ts'
 import { metadataEditingFactory } from '../../application/metadata/metadata-editing.ts'
+import {
+  purgeTmdbResponsesFactory,
+  purgeUnusedImagesFactory,
+} from '../../application/metadata/metadata-retention.ts'
 import { metadataSettingsFactory } from '../../application/metadata/metadata-settings.ts'
 import { requestMatchFactory } from '../../application/metadata/request-match.ts'
 import { resolveMatchFactory } from '../../application/metadata/resolve-match.ts'
@@ -94,6 +98,7 @@ export const buildMetadataModule = (
   const { db, ids, clock, logger, eventBus, jobQueue, paths } = platform
   const moduleLogger = logger.child({ module: 'metadata' })
   const settings = createSqliteMetadataSettings({ db })
+  const tmdbResponses = createSqliteTmdbResponseStore({ db })
   const tmdb = createTmdbClient({
     apiKey: settings.tmdbApiKey,
     onUnauthorized: (key) => {
@@ -101,7 +106,7 @@ export const buildMetadataModule = (
       settings.markTmdbApiKeyRejected(clock.now())
       moduleLogger.warn('TMDB refused the stored API key', { code: 'metadata/tmdb_unauthorized' })
     },
-    responseStore: createSqliteTmdbResponseStore({ db }),
+    responseStore: tmdbResponses,
     clock,
     logger: moduleLogger,
     ...tmdbOptions,
@@ -212,6 +217,13 @@ export const buildMetadataModule = (
     logger: moduleLogger,
   })
 
+  const purgeUnusedImages = purgeUnusedImagesFactory({ images, files, logger: moduleLogger })
+  const purgeTmdbResponses = purgeTmdbResponsesFactory({
+    responses: tmdbResponses,
+    clock,
+    logger: moduleLogger,
+  })
+
   const scheduledTasks: ScheduledTask[] = [
     {
       // §9.4: in-production series a week after their last refresh; checked every 6 h so a
@@ -221,6 +233,16 @@ export const buildMetadataModule = (
       intervalMs: 6 * hour,
       run: () => {
         refresh.queueInProductionSeries()
+      },
+    },
+    {
+      // §18 "Rules": what purged titles and old lookups leave behind.
+      name: 'metadata-purge',
+      initialDelayMs: 20 * 60_000,
+      intervalMs: 24 * hour,
+      run: async () => {
+        purgeTmdbResponses()
+        await purgeUnusedImages()
       },
     },
   ]

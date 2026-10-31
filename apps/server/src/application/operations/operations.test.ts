@@ -20,6 +20,7 @@ import {
   exportDatabaseFactory,
   missingSourcesAdminFactory,
   purgeExpiredMissingFactory,
+  purgeOldHistoryFactory,
   purgeOldJobsFactory,
   remindNeedsReviewFactory,
 } from './maintenance.ts'
@@ -339,6 +340,18 @@ describe('job retention (§18)', () => {
       },
     ])
     expect(lines).toEqual([{ level: 'info', message: 'old jobs purged', fields: { deleted: 4 } }])
+  })
+
+  test('purges notifications resolved and scan runs finished more than 30 days ago', () => {
+    const asked: Date[] = []
+    const purge = purgeOldHistoryFactory({
+      notifications: { purgeResolvedBefore: (before) => (asked.push(before), 2) },
+      scanRuns: { purgeFinishedBefore: (before) => (asked.push(before), 5) },
+      clock: createManualClock(t0),
+      logger: createCapturingLogger().logger,
+    })
+    expect(purge()).toEqual({ notifications: 2, scanRuns: 5 })
+    expect(asked).toEqual([new Date(t0.getTime() - 30 * day), new Date(t0.getTime() - 30 * day)])
   })
 
   test('nothing to purge, nothing logged', () => {

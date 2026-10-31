@@ -3,10 +3,10 @@ import { Hono } from 'hono'
 import { appError } from '@projo/shared'
 
 import type { PreviewAccess } from '../../../application/playback/preview-clip.ts'
-import { parseRange } from '../../../core/playback/byte-range.ts'
 import type { MediaFiles } from '../../../infrastructure/playback/media-files.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
+import { respondWithFile } from '../file-range.ts'
 import { currentProfileId } from '../principal.ts'
 
 /**
@@ -38,39 +38,11 @@ export const previewsRoutes = ({
             }),
       )
     }
-    const stats = mediaFiles.stat(path.value)
-    if (!stats.ok) return respondError(c, stats.error)
-    const { size } = stats.value
-    const headers = {
-      'Accept-Ranges': 'bytes',
-      'Content-Type': 'video/mp4',
+    return respondWithFile(c, {
+      mediaFiles,
+      path: path.value,
       // Same URL for a clip cut again from a new file: revalidated.
-      'Cache-Control': 'private, no-cache',
-    }
-    const range = parseRange(c.req.header('range'), size)
-    if (range.kind === 'unsatisfiable') {
-      c.header('Content-Range', `bytes */${size}`)
-      return respondError(
-        c,
-        appError('playback/range_not_satisfiable', 'range outside the file', {
-          context: { size },
-        }),
-      )
-    }
-    if (range.kind === 'full') {
-      return new Response(mediaFiles.slice(path.value), {
-        status: 200,
-        headers: { ...headers, 'Content-Length': String(size) },
-      })
-    }
-    const { start, end } = range.range
-    return new Response(mediaFiles.slice(path.value, range.range), {
-      status: 206,
-      headers: {
-        ...headers,
-        'Content-Length': String(end - start + 1),
-        'Content-Range': `bytes ${start}-${end}/${size}`,
-      },
+      headers: { 'Content-Type': 'video/mp4', 'Cache-Control': 'private, no-cache' },
     })
   })
 

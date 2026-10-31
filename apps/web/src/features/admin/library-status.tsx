@@ -53,8 +53,14 @@ export const libraryState = (library: LibraryDto, live: LiveScan | undefined): L
   })
 
   // A requested scan can finish before the request's answer arrives: the list then shows it done.
+  // A running one is over once its run has a `finishedAt`: a cancelled scan sends no
+  // `scan.finished`, and one sent during a disconnection is never replayed.
   const finishedAt = library.lastScan?.finishedAt
-  const stale = live?.status === 'queued' && finishedAt !== undefined && finishedAt >= live.since
+  const stale =
+    finishedAt !== undefined &&
+    (live?.status === 'queued'
+      ? finishedAt >= live.since
+      : live?.status === 'running' && library.lastScan?.id === live.scanRunId)
   if (live !== undefined && !stale)
     return analyzing(live.status === 'queued' ? { step: 'queued' } : { step: 'discovering', live })
   if (library.lastScan !== undefined && finishedAt === undefined)

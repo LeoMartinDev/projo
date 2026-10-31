@@ -8,7 +8,6 @@ import type {
   UpdateRunDto,
   UpdatesStatusDto,
 } from '@projo/shared/api/updates'
-import { isErrorCode } from '@projo/shared/errors'
 
 import { api, request } from '../../../shared/api/client.ts'
 import {
@@ -24,6 +23,7 @@ import { CheckIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { CopyIcon } from '../admin-icons.tsx'
+import { useStoredError } from '../operations/stored-error.ts'
 import { updatesQuery, updatesQueryKey, useLiveUpdates } from './queries.ts'
 import { parseInline, parseReleaseNotes } from './release-notes.ts'
 import '../admin.css'
@@ -33,13 +33,6 @@ import './updates.css'
 type Confirming = { kind: 'update' | 'rollback'; version: string }
 
 const BUSY = new Set<UpdatesStatusDto['state']>(['downloading', 'applying', 'restarting'])
-
-/** The translated message of a stored error (`code` known to the web, else its message). */
-const useStoredError = () => {
-  const { t } = useTranslation()
-  return (error: { code: string; message: string }): string =>
-    isErrorCode(error.code) ? t(`errors.${error.code}`) : error.message
-}
 
 /** Live line under the release: what the updater is doing (§16.4). */
 const Progress = ({ status }: { status: UpdatesStatusDto }) => {

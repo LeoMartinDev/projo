@@ -35,7 +35,7 @@ import {
   visibleEpisodesOfSeries,
 } from './catalog-sql.ts'
 import type { Db } from './database.ts'
-import { fromIso, parseJsonColumn, stripNulls } from './rows.ts'
+import { chunks, fromIso, parseJsonColumn, stripNulls } from './rows.ts'
 import { readParsedEdition } from './source-columns.ts'
 import { itemPeople, items, people } from './schema/items.ts'
 import {
@@ -221,13 +221,6 @@ const bestSourceOrder = [
   sql`${sources.sizeBytes} DESC`,
   asc(sources.id),
 ]
-
-/** Chunked `IN (…)`: SQLite caps bound parameters. */
-const chunks = <T>(values: readonly T[], size = 500): T[][] => {
-  const result: T[][] = []
-  for (let i = 0; i < values.length; i += size) result.push(values.slice(i, i + size))
-  return result
-}
 
 const unique = <T>(values: Iterable<T>): T[] => [...new Set(values)]
 

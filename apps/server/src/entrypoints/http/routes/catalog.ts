@@ -202,7 +202,6 @@ export const catalogRoutes = ({
         ...optional('decade', query.decade),
         ...optional('watch', query.watch),
       },
-      ...optional('order', query.order),
       ...optional('cursor', query.cursor),
     })
     return result.ok

@@ -5,16 +5,13 @@ import { useTranslation } from 'react-i18next'
 
 import { api, request } from '../../shared/api/client.ts'
 import { Backdrop } from '../../shared/backdrops/Backdrop.tsx'
+import { safeRedirect } from '../../shared/session/safe-redirect.ts'
 import { signedIn } from '../../shared/session/session.ts'
 import { Field, RevealButton } from '../../shared/ui/controls.tsx'
 import { LockIcon, UserIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { Logo } from '../shell/Logo.tsx'
 import './auth.css'
-
-/** Only same-app paths are followed after login (no open redirect). */
-const safeRedirect = (target: string | undefined): string =>
-  target !== undefined && target.startsWith('/') && !target.startsWith('//') ? target : '/'
 
 /** Login (§14). Not drawn: built like the first-launch steps, a glass panel over an illustration. */
 export const LoginPage = ({ redirectTo }: { redirectTo?: string }) => {

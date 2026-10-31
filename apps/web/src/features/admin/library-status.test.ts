@@ -68,7 +68,12 @@ describe('libraryState', () => {
     expect(queued).toMatchObject({ kind: 'analyzing', phase: { step: 'queued' } })
     expect(isScanning(queued)).toBe(true)
 
-    const live = { status: 'running' as const, stats, phase: 'discovering' as const }
+    const live = {
+      status: 'running' as const,
+      scanRunId: 'run',
+      stats,
+      phase: 'discovering' as const,
+    }
     expect(libraryState(library(), live)).toEqual({
       kind: 'analyzing',
       phase: { step: 'discovering', live },
@@ -80,6 +85,21 @@ describe('libraryState', () => {
     const unfinished = libraryState(library({ lastScan: runningScan }), undefined)
     expect(unfinished).toMatchObject({ kind: 'analyzing', phase: { step: 'discovering' } })
     expect(isScanning(unfinished)).toBe(true)
+  })
+
+  test('a live scan whose run has finished is over (cancelled, or its scan.finished was lost)', () => {
+    const live = {
+      status: 'running' as const,
+      scanRunId: 'run',
+      stats,
+      phase: 'discovering' as const,
+    }
+    const over = libraryState(library({ lastScan: finishedScan('2026-10-23T12:00:00Z') }), live)
+    expect(over).toEqual({ kind: 'ok', failed: 0 })
+    expect(isScanning(over)).toBe(false)
+    // Another run finished: this one is still live.
+    const older = { ...finishedScan('2026-10-23T12:00:00Z'), id: 'older-run' }
+    expect(isScanning(libraryState(library({ lastScan: older }), live))).toBe(true)
   })
 
   test('quarantine: the scan is over but files wait for their quiet period', () => {
@@ -223,6 +243,7 @@ describe('addReadySource', () => {
 describe('scanPercent', () => {
   const running = (seen: number, phase: 'discovering' | 'processing', total?: number) => ({
     status: 'running' as const,
+    scanRunId: 'run',
     stats: { ...stats, seen },
     phase,
     ...(total === undefined ? {} : { total }),

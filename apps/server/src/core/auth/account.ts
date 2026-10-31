@@ -17,7 +17,6 @@ export type AccountRepository = {
   findById: (id: string) => Account | undefined
   /** Case-insensitive (§6.1). */
   findByUsername: (username: string) => Account | undefined
-  count: () => number
   /** Oldest first. */
   list: () => Account[]
   /** Admins that are not disabled. */

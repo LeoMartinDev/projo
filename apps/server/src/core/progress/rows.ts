@@ -8,12 +8,20 @@ import { isResumable, type ItemProgress } from './progress.ts'
 
 export const homeRules = { rowLimit: 20 } as const
 
-/** A visible movie or episode the profile has a progress row on. */
+/** A visible movie or episode the profile has a progress row on (or an `absent` episode). */
 export type PlayedItem = {
   itemId: string
   kind: 'movie' | 'episode'
   /** Episodes: their series. */
   seriesId?: string
+  /** Episodes: their numbers, which place them in broadcast order once their files are gone. */
+  seasonNumber?: number
+  episodeNumber?: number
+  /**
+   * An episode whose files are gone, of a series still visible: it keeps the show started
+   * (§13.1, "Up next" goes on after it) but is never offered itself.
+   */
+  absent?: true
   progress: ItemProgress
 }
 
@@ -38,6 +46,7 @@ export const continueWatching = ({
   played
     .filter(
       (entry) =>
+        entry.absent !== true &&
         isResumable(entry.progress) &&
         !entry.progress.hiddenFromContinue &&
         (entry.seriesId === undefined || !hiddenSeries.has(entry.seriesId)),
@@ -45,38 +54,76 @@ export const continueWatching = ({
     .sort((a, b) => b.progress.lastPlayedAt.getTime() - a.progress.lastPlayedAt.getTime())
     .slice(0, limit)
 
-/** Specials (season 0) are left out of "Up next" and "Reprendre" when a series has others. */
-const regularEpisodes = (episodes: readonly EpisodeRef[]): readonly EpisodeRef[] => {
+/**
+ * Specials (season 0) are left out of "Up next", "Resume" and the series counts when a series has
+ * others (§13.1).
+ */
+export const regularEpisodes = (episodes: readonly EpisodeRef[]): readonly EpisodeRef[] => {
   const regular = episodes.filter((episode) => episode.seasonNumber !== 0)
   return regular.length > 0 ? regular : episodes
+}
+
+type Numbered = { seasonNumber?: number; episodeNumber?: number }
+
+/** Broadcast order of `listSeriesEpisodes`: unnumbered last. */
+const comesAfter = (episode: Numbered, other: Numbered): boolean => {
+  const season = episode.seasonNumber ?? 1_000_000
+  const otherSeason = other.seasonNumber ?? 1_000_000
+  return (
+    season > otherSeason ||
+    (season === otherSeason &&
+      (episode.episodeNumber ?? 1_000_000) > (other.episodeNumber ?? 1_000_000))
+  )
 }
 
 /**
  * §13.1 "Up next": the first episode not watched after the one watched last, in broadcast order
  * (`episodes` holds only present episodes: absent ones are skipped by construction), else the
  * first episode not watched of the series; never an episode already watched. Every episode
- * watched: `undefined`.
+ * watched: `undefined`. The episode watched last may be one whose files are gone (`absentWatched`,
+ * placed by its numbers): a deleted season 1 still leads to season 2.
  */
 export const nextEpisode = (
   episodes: readonly EpisodeRef[],
   progress: ReadonlyMap<string, ItemProgress>,
+  absentWatched: readonly (Numbered & { progress: ItemProgress })[] = [],
 ): EpisodeRef | undefined => {
   const isWatched = (episode: EpisodeRef) => progress.get(episode.id)?.watched === true
   const firstUnwatched = episodes.find((episode) => !isWatched(episode))
   if (firstUnwatched === undefined) return undefined
-  let reference = -1
-  let referenceAt = Number.NEGATIVE_INFINITY
+  // `from`: where the search starts, just after the episode watched last.
+  let reference: { from: number; at: number } | undefined
+  const consider = (from: number, at: number) => {
+    // Ties (a whole season marked at once): the latest in broadcast order.
+    if (
+      reference === undefined ||
+      at > reference.at ||
+      (at === reference.at && from >= reference.from)
+    )
+      reference = { from, at }
+  }
   episodes.forEach((episode, index) => {
     const entry = progress.get(episode.id)
-    if (entry?.watched !== true) return
-    // Ties (a whole season marked at once): the latest in broadcast order.
-    if (entry.lastPlayedAt.getTime() >= referenceAt) {
-      reference = index
-      referenceAt = entry.lastPlayedAt.getTime()
-    }
+    if (entry?.watched === true) consider(index + 1, entry.lastPlayedAt.getTime())
   })
-  if (reference === -1) return firstUnwatched
-  return episodes.slice(reference + 1).find((episode) => !isWatched(episode)) ?? firstUnwatched
+  const lastAbsent = absentWatched
+    .filter((entry) => entry.progress.watched)
+    .reduce<(Numbered & { progress: ItemProgress }) | undefined>(
+      (last, entry) =>
+        last === undefined ||
+        entry.progress.lastPlayedAt.getTime() > last.progress.lastPlayedAt.getTime() ||
+        (entry.progress.lastPlayedAt.getTime() === last.progress.lastPlayedAt.getTime() &&
+          comesAfter(entry, last))
+          ? entry
+          : last,
+      undefined,
+    )
+  if (lastAbsent !== undefined) {
+    const from = episodes.findIndex((episode) => comesAfter(episode, lastAbsent))
+    consider(from === -1 ? episodes.length : from, lastAbsent.progress.lastPlayedAt.getTime())
+  }
+  if (reference === undefined) return firstUnwatched
+  return episodes.slice(reference.from).find((episode) => !isWatched(episode)) ?? firstUnwatched
 }
 
 export type UpNextEntry = {
@@ -99,8 +146,9 @@ const groupBySeries = <T extends { seriesId?: string }>(values: readonly T[]) =>
 }
 
 /**
- * "Up next" candidates, in order of first appearance in `played`: series with a watched episode,
- * none in progress, not removed by the profile, with their played episodes. Linear in `played`.
+ * "Up next" candidates, in order of first appearance in `played`: series with a watched episode
+ * (present or not), none in progress among the present ones, not removed by the profile, with
+ * their played episodes. Linear in `played`.
  */
 export const upNextCandidates = (
   played: readonly PlayedItem[],
@@ -111,7 +159,7 @@ export const upNextCandidates = (
     if (
       hiddenSeries.has(seriesId) ||
       !seriesPlayed.some((entry) => entry.progress.watched) ||
-      seriesPlayed.some((entry) => isResumable(entry.progress))
+      seriesPlayed.some((entry) => entry.absent !== true && isResumable(entry.progress))
     )
       groups.delete(seriesId)
   }
@@ -139,7 +187,16 @@ export const upNext = ({
   const entries: UpNextEntry[] = []
   for (const [seriesId, seriesPlayed] of upNextCandidates(played, hiddenSeries)) {
     const progress = new Map(seriesPlayed.map((entry) => [entry.itemId, entry.progress]))
-    const next = nextEpisode(regularEpisodes(episodesBySeries.get(seriesId) ?? []), progress)
+    const present = regularEpisodes(episodesBySeries.get(seriesId) ?? [])
+    // Specials left out of the present episodes are left out of the absent ones too.
+    const withSpecials = present.every((episode) => episode.seasonNumber === 0)
+    const next = nextEpisode(
+      present,
+      progress,
+      seriesPlayed.filter(
+        (entry) => entry.absent === true && (withSpecials || entry.seasonNumber !== 0),
+      ),
+    )
     if (next === undefined) continue
     const lastActivityAt = new Date(
       Math.max(...seriesPlayed.map((entry) => entry.progress.lastPlayedAt.getTime())),

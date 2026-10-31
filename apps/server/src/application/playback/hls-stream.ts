@@ -102,9 +102,6 @@ export const hlsStreamFactory = ({
 
   /** §10.4: the bitmap track of the session's source to burn in. */
   const burnInFor = (session: PlaybackSession): Result<BurnInSubtitle, SubtitleError> => {
-    if (session.subtitleTrackId === undefined && session.subtitleStream !== undefined) {
-      return ok({ origin: 'embedded', streamIndex: session.subtitleStream })
-    }
     const track =
       session.subtitleTrackId === undefined
         ? undefined

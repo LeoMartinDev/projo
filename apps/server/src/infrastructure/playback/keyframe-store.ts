@@ -1,11 +1,11 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { z } from 'zod'
 
 import { appError, err, ok } from '@projo/shared'
 
-import type { KeyframeStore } from '../../core/playback/ports.ts'
+import type { KeyframeCleanup, KeyframeStore } from '../../core/playback/ports.ts'
 
 const fileSchema = z.object({
   version: z.literal(1),
@@ -23,7 +23,7 @@ export const createFileKeyframeStore = ({
   keyframesDir,
 }: {
   keyframesDir: string
-}): KeyframeStore => ({
+}): KeyframeStore & KeyframeCleanup => ({
   read: (sourceId) => {
     const name = safeName(sourceId)
     if (name === undefined) return undefined
@@ -58,6 +58,25 @@ export const createFileKeyframeStore = ({
           cause,
         }),
       )
+    }
+  },
+  listSourceIds: () => {
+    try {
+      return readdirSync(keyframesDir).flatMap((name) => {
+        const sourceId = name.endsWith('.json') ? name.slice(0, -'.json'.length) : ''
+        return safeName(sourceId) === undefined ? [] : [sourceId]
+      })
+    } catch {
+      return []
+    }
+  },
+  remove: (sourceId) => {
+    const name = safeName(sourceId)
+    if (name === undefined) return
+    try {
+      rmSync(join(keyframesDir, name), { force: true })
+    } catch {
+      // Best effort: the next cleanup pass tries again.
     }
   },
 })

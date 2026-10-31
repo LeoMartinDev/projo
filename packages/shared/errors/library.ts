@@ -7,7 +7,6 @@ export const libraryErrorCodes = [
   'library/root_duplicate',
   'library/root_overlaps',
   'library/root_unreachable',
-  'library/scan_already_running',
   'library/invalid_settings',
 ] as const
 

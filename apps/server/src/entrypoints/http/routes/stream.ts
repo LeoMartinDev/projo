@@ -1,15 +1,14 @@
 import { type Context, Hono } from 'hono'
 
-import { appError } from '@projo/shared'
 import { subtitleOffsetQuerySchema } from '@projo/shared/api/playback'
 
 import type { DirectStream } from '../../../application/playback/direct-stream.ts'
 import type { HlsStream } from '../../../application/playback/hls-stream.ts'
 import type { StreamAccess } from '../../../application/playback/session-lifecycle.ts'
-import { parseRange } from '../../../core/playback/byte-range.ts'
 import type { MediaFiles } from '../../../infrastructure/playback/media-files.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
+import { respondWithFile } from '../file-range.ts'
 import { validate } from '../validation.ts'
 
 type Deps = {
@@ -43,38 +42,10 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
     .get('/stream/:sessionId/:secret/direct', async (c) => {
       const file = await directStream(streamAccess(c))
       if (!file.ok) return respondError(c, file.error)
-      const stats = mediaFiles.stat(file.value.path)
-      if (!stats.ok) return respondError(c, stats.error)
-      const { size } = stats.value
-      const range = parseRange(c.req.header('range'), size)
-      const headers = {
-        'Accept-Ranges': 'bytes',
-        'Content-Type': file.value.mimeType,
-        'Cache-Control': 'private, no-transform',
-      }
-      if (range.kind === 'unsatisfiable') {
-        c.header('Content-Range', `bytes */${size}`)
-        return respondError(
-          c,
-          appError('playback/range_not_satisfiable', 'range outside the file', {
-            context: { size },
-          }),
-        )
-      }
-      if (range.kind === 'full') {
-        return new Response(mediaFiles.slice(file.value.path), {
-          status: 200,
-          headers: { ...headers, 'Content-Length': String(size) },
-        })
-      }
-      const { start, end } = range.range
-      return new Response(mediaFiles.slice(file.value.path, range.range), {
-        status: 206,
-        headers: {
-          ...headers,
-          'Content-Length': String(end - start + 1),
-          'Content-Range': `bytes ${start}-${end}/${size}`,
-        },
+      return respondWithFile(c, {
+        mediaFiles,
+        path: file.value.path,
+        headers: { 'Content-Type': file.value.mimeType, 'Cache-Control': 'private, no-transform' },
       })
     })
     .get(

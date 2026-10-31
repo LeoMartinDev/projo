@@ -1,14 +1,19 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/sqlite-core'
 
 import type { ItemProgress, ProgressRepository } from '../../core/progress/progress.ts'
 import type { PlayedItem, ProgressQueries } from '../../core/progress/rows.ts'
-import { visible } from './catalog-sql.ts'
+import { visible, visibleAs } from './catalog-sql.ts'
 import type { Db } from './database.ts'
-import { fromIso, toIso } from './rows.ts'
+import { chunks, fromIso, toIso } from './rows.ts'
 import { items } from './schema/items.ts'
 import { playbackProgress } from './schema/playback.ts'
 
 type ProgressRow = typeof playbackProgress.$inferSelect
+
+/** `listPlayed`: an episode's season and series. */
+const playedSeason = alias(items, 'played_season')
+const playedSeries = alias(items, 'played_series')
 
 const toItemProgress = (row: ProgressRow): ItemProgress => ({
   profileId: row.profileId,
@@ -33,13 +38,6 @@ const toRow = (progress: ItemProgress): ProgressRow => ({
   lastPlayedAt: toIso(progress.lastPlayedAt),
   hiddenFromContinue: progress.hiddenFromContinue,
 })
-
-/** Chunked `IN (…)`: SQLite caps bound parameters. */
-const chunks = <T>(values: readonly T[], size = 500): T[][] => {
-  const result: T[][] = []
-  for (let i = 0; i < values.length; i += size) result.push(values.slice(i, i + size))
-  return result
-}
 
 export const createSqliteProgressRepository = ({
   db,
@@ -101,31 +99,42 @@ export const createSqliteProgressRepository = ({
           progress: playbackProgress,
           kind: items.kind,
           // Episodes: season → series (local and TMDB items always have a season).
-          seriesId: sql<
-            string | null
-          >`(SELECT season.parent_id FROM items season WHERE season.id = ${items.parentId})`,
+          seriesId: playedSeason.parentId,
+          seasonNumber: sql<
+            number | null
+          >`coalesce(${items.seasonNumber}, ${playedSeason.seasonNumber})`,
+          episodeNumber: items.episodeNumber,
+          // 1: visible. 0: an episode whose files are gone, of a series still visible (§13.1:
+          // the show stays started). NULL: neither, left out.
+          presence: sql<number | null>`CASE WHEN ${visible(scope)} THEN 1
+              WHEN +${items.kind} = 'episode' AND ${visibleAs('played_series', scope)} THEN 0 END`,
         })
         .from(playbackProgress)
         .innerJoin(items, eq(items.id, playbackProgress.itemId))
+        .leftJoin(playedSeason, eq(playedSeason.id, items.parentId))
+        .leftJoin(playedSeries, eq(playedSeries.id, playedSeason.parentId))
         .where(
           and(
             eq(playbackProgress.profileId, profileId),
             sql`+${items.kind} IN ('movie', 'episode')`,
-            visible(scope),
           ),
         )
         .all()
-        .flatMap(({ progress, kind, seriesId }): PlayedItem[] =>
-          kind === 'movie' || kind === 'episode'
-            ? [
-                {
-                  itemId: progress.itemId,
-                  kind,
-                  ...(kind === 'episode' && seriesId !== null ? { seriesId } : {}),
-                  progress: toItemProgress(progress),
-                },
-              ]
-            : [],
+        .flatMap(
+          ({ progress, kind, seriesId, seasonNumber, episodeNumber, presence }): PlayedItem[] =>
+            presence !== null && (kind === 'movie' || kind === 'episode')
+              ? [
+                  {
+                    itemId: progress.itemId,
+                    kind,
+                    ...(kind === 'episode' && seriesId !== null ? { seriesId } : {}),
+                    ...(kind === 'episode' && seasonNumber !== null ? { seasonNumber } : {}),
+                    ...(kind === 'episode' && episodeNumber !== null ? { episodeNumber } : {}),
+                    ...(presence === 0 ? { absent: true as const } : {}),
+                    progress: toItemProgress(progress),
+                  },
+                ]
+              : [],
         ),
   }
 }

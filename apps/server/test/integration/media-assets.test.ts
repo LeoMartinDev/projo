@@ -21,10 +21,13 @@ import type { ServerEvent } from '../../src/core/events.ts'
 import type { JobRepository } from '../../src/core/jobs/ports.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import type { JobContext, JobHandler } from '../../src/entrypoints/jobs/handler.ts'
+import { trickplayUrlFactory } from '../../src/application/playback/trickplay.ts'
 import { buildMediaAssetsModule } from '../../src/entrypoints/modules/media-assets.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { createFfprobeProber } from '../../src/infrastructure/media/ffprobe.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
+import { createTrickplayStore } from '../../src/infrastructure/playback/trickplay-store.ts'
+import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import {
   libraries,
@@ -302,7 +305,12 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
 
 describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
   test('sprites and index after the probe, served to profiles that may play the source', async () => {
-    expect(assets.trickplayUrl('source-movie')).toBeUndefined()
+    // As the playback module builds it for the session DTO.
+    const trickplayUrl = trickplayUrlFactory({
+      catalogRepository: createSqliteCatalogRepository({ db }),
+      trickplayStore: createTrickplayStore({ trickplayDir: join(data.path, 'cache/trickplay') }),
+    })
+    expect(trickplayUrl('source-movie')).toBeUndefined()
     publish('source.ready', { sourceId: 'source-movie', libraryId: 'library-1' })
     expect(jobs.enqueued).toContainEqual({
       type: 'trickplay',
@@ -311,7 +319,7 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
     })
     expect((await run(assets.jobHandlers.trickplay, { sourceId: 'source-movie' })).ok).toBe(true)
 
-    expect(assets.trickplayUrl('source-movie')).toBe('/api/v1/trickplay/source-movie/index.json')
+    expect(trickplayUrl('source-movie')).toBe('/api/v1/trickplay/source-movie/index.json')
     const index = await get('/trickplay/source-movie/index.json')
     expect(index.status).toBe(200)
     const body = trickplayIndexDtoSchema.parse(await index.json())
@@ -335,7 +343,7 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
 
     // The file changed (new size / mtime in the database): stale until rebuilt.
     db.update(sources).set({ mtime: 1 }).where(eq(sources.id, 'source-movie')).run()
-    expect(assets.trickplayUrl('source-movie')).toBeUndefined()
+    expect(trickplayUrl('source-movie')).toBeUndefined()
     expect((await get('/trickplay/source-movie/index.json')).status).toBe(404)
   })
 

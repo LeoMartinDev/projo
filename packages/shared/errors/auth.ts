@@ -10,11 +10,9 @@ export const authErrorCodes = [
   'auth/rate_limited',
   'auth/origin_mismatch',
   'auth/username_taken',
-  'auth/password_too_weak',
   'auth/invitation_invalid',
   'auth/invitation_expired',
   'auth/invitation_used',
-  'auth/token_not_found',
   'auth/session_not_found',
   /** §14: at most 3 live pairing codes per account. */
   'auth/pairing_limit_reached',

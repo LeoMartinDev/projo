@@ -11,6 +11,5 @@ export const libraryErrorStatus = {
   'library/root_duplicate': 409,
   'library/root_overlaps': 409,
   'library/root_unreachable': 409,
-  'library/scan_already_running': 409,
   'library/invalid_settings': 400,
 } satisfies ErrorStatusMap<LibraryErrorCode>

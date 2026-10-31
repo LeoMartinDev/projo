@@ -50,7 +50,6 @@ export const createSqliteAccountRepository = ({ db }: { db: Db }): AccountReposi
       .get()
     return row && toAccount(row)
   },
-  count: () => db.select({ value: count() }).from(accounts).get()?.value ?? 0,
   list: () =>
     db
       .select()

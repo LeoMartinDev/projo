@@ -54,7 +54,7 @@ describe('SQLite setup repository', () => {
         at,
       }),
     ).toBe('already_completed')
-    expect(createSqliteAccountRepository({ db }).count()).toBe(1)
+    expect(createSqliteAccountRepository({ db }).list()).toHaveLength(1)
 
     const settings = createSqliteSettingsRepository({ db })
     expect(settings.get('server.name')).toBe('Maison')

@@ -44,6 +44,8 @@ export const notifications = sqliteTable(
     index('notifications_created_at_idx').on(t.createdAt),
     // §15: the unread badge, on every admin page.
     index('notifications_unread_idx').on(t.readAt, t.resolvedAt),
+    // The notifier's open notification of a (kind, key), at every notify and resolve.
+    index('notifications_kind_resolved_idx').on(t.kind, t.resolvedAt),
   ],
 )
 

@@ -5,7 +5,7 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { api, request } from '../../shared/api/client.ts'
 import { itemQuery } from '../catalog/queries.ts'
-import { isWatched } from './media.ts'
+import { type CardPlace, isWatched, listTargetOf } from './media.ts'
 
 /**
  * Card and detail actions (§13.1, §13.3): Ma liste, Marquer vu / non vu, Retirer, Lire. Each one
@@ -90,3 +90,37 @@ export const usePlayItem = () => {
     },
   })
 }
+
+/**
+ * Every action of a card (§13.3), for its desktop preview and its sheet or menu alike: My list
+ * (an episode's acts on its series), Mark as watched, Remove (Continue watching, Up next), Play.
+ * `error`: the last failed one, which both show.
+ */
+export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
+  const watchlist = useWatchlistToggle()
+  const watched = useWatchedToggle()
+  const hide = useHideFromContinue()
+  const play = usePlayItem()
+  const listTarget = listTargetOf(item)
+  const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
+  const seen = watched.watched(item)
+  return {
+    /** `false` when the card has no list button (`listTarget` undefined). */
+    canList: listTarget !== undefined,
+    listed,
+    toggleList: () => {
+      if (listTarget !== undefined) watchlist.toggle(listTarget, !listed)
+    },
+    seen,
+    toggleSeen: () => watched.set(item.id, !seen),
+    removable: place === 'continue_watching' || place === 'up_next',
+    removing: hide.isPending,
+    remove: (onRemoved?: () => void) =>
+      hide.mutate(item.id, onRemoved === undefined ? {} : { onSuccess: onRemoved }),
+    playing: play.isPending,
+    play: () => play.mutate(item),
+    error: watchlist.mutation.error ?? watched.mutation.error ?? hide.error ?? play.error,
+  }
+}
+
+export type CardActions = ReturnType<typeof useCardActions>

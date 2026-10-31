@@ -132,22 +132,94 @@ const orientation = () =>
   screen.orientation as
     (ScreenOrientation & { lock?: (orientation: 'landscape') => Promise<void> }) | undefined
 
-/** Container fullscreen where supported, the video's own on iOS Safari. */
-export const toggleFullscreen = (container: HTMLElement, video: HTMLVideoElement): void => {
-  if (fullscreenElement() !== undefined) {
-    orientation()?.unlock?.()
-    void document.exitFullscreen().catch(() => undefined)
-    return
-  }
-  if (typeof container.requestFullscreen === 'function') {
-    void container
-      .requestFullscreen()
-      .then(() => orientation()?.lock?.('landscape'))
-      .catch(() => undefined)
-    return
-  }
+export type FullscreenAction = 'exit' | 'document' | 'video' | 'none'
+
+/**
+ * What the fullscreen button does. The whole document goes fullscreen, not the player's
+ * container: the next episode remounts the player (`<PlayerPage key={itemId}>`), and a removed
+ * fullscreen element takes the browser out of fullscreen. iOS Safari has no element fullscreen:
+ * the video's own player (`webkitEnterFullscreen`), which the next episode leaves.
+ */
+export const fullscreenAction = ({
+  active,
+  documentFullscreen,
+  videoFullscreen,
+}: {
+  active: boolean
+  documentFullscreen: boolean
+  videoFullscreen: boolean
+}): FullscreenAction =>
+  active ? 'exit' : documentFullscreen ? 'document' : videoFullscreen ? 'video' : 'none'
+
+const exitFullscreen = () => {
+  orientation()?.unlock?.()
+  void document.exitFullscreen().catch(() => undefined)
+}
+
+export const toggleFullscreen = (video: HTMLVideoElement): void => {
   const webkitVideo = video as unknown as { webkitEnterFullscreen?: () => void }
-  webkitVideo.webkitEnterFullscreen?.()
+  const root = document.documentElement
+  switch (
+    fullscreenAction({
+      active: fullscreenElement() !== undefined,
+      documentFullscreen: typeof root.requestFullscreen === 'function',
+      videoFullscreen: typeof webkitVideo.webkitEnterFullscreen === 'function',
+    })
+  ) {
+    case 'exit':
+      exitFullscreen()
+      return
+    case 'document':
+      void root
+        .requestFullscreen()
+        .then(() => orientation()?.lock?.('landscape'))
+        .catch(() => undefined)
+      return
+    case 'video':
+      webkitVideo.webkitEnterFullscreen?.()
+      return
+    case 'none':
+      return
+  }
+}
+
+/**
+ * The players on screen: the next episode unmounts one and mounts the next in the same commit, so
+ * the count only drops to 0 (checked a tick later) when the player is really left.
+ */
+export const createFullscreenScope = ({
+  exit,
+  defer,
+}: {
+  exit: () => void
+  defer: (callback: () => void) => void
+}) => {
+  let players = 0
+  return {
+    /** A player mounted; the returned function is its unmount. */
+    enter: () => {
+      players += 1
+      return () => {
+        players -= 1
+        defer(() => {
+          if (players === 0) exit()
+        })
+      }
+    },
+  }
+}
+
+const playerScope = createFullscreenScope({
+  // Only the document fullscreen the player asked for (`toggleFullscreen`).
+  exit: () => {
+    if (fullscreenElement() === document.documentElement) exitFullscreen()
+  },
+  defer: (callback) => void setTimeout(callback, 0),
+})
+
+/** Leaving the player ends its document fullscreen; the next episode keeps it. */
+export const usePlayerFullscreenScope = (): void => {
+  useEffect(() => playerScope.enter(), [])
 }
 
 // ── Volume memory (§10.7: per device) ────────────────────────────────────────

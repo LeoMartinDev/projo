@@ -174,6 +174,47 @@ describe('§13.1 À suivre', () => {
     expect(candidates.get('b')?.map((entry) => entry.itemId)).toEqual(['b1', 'b2'])
   })
 
+  test('a show whose watched season was deleted stays started: Up next offers the next season', () => {
+    const gone = (number: number, options: Parameters<typeof progress>[1]): PlayedItem => ({
+      ...episode(`kept-s1e${number}`, 'kept', options),
+      seasonNumber: 1,
+      episodeNumber: number,
+      absent: true,
+    })
+    const season2 = episodes('kept', [
+      [2, 1, day(10)],
+      [2, 2, day(10)],
+    ])
+    const played = [gone(1, { watched: true, at: day(1) }), gone(2, { watched: true, at: day(2) })]
+    expect(upNext({ played, episodes: season2, hiddenSeries: none })).toEqual([
+      { seriesId: 'kept', episode: season2[0] as EpisodeRef, isNew: true, lastActivityAt: day(2) },
+    ])
+    // An episode left in progress before its file went: neither resumable nor blocking.
+    const halfway = [...played, gone(3, { ratio: 0.5, at: day(3) })]
+    expect(continueWatching({ played: halfway, hiddenSeries: none })).toEqual([])
+    expect(upNext({ played: halfway, episodes: season2, hiddenSeries: none })).toHaveLength(1)
+  })
+
+  test('an absent episode watched last is placed by its numbers', () => {
+    const present = episodes('mixed', [
+      [1, 1],
+      [1, 6],
+      [2, 1],
+    ])
+    const played: PlayedItem[] = [
+      episode('mixed-s2e1', 'mixed', { watched: true, at: day(1) }),
+      {
+        ...episode('mixed-s1e5', 'mixed', { watched: true, at: day(3) }),
+        seasonNumber: 1,
+        episodeNumber: 5,
+        absent: true,
+      },
+    ]
+    expect(upNext({ played, episodes: present, hiddenSeries: none })[0]?.episode.id).toBe(
+      'mixed-s1e6',
+    )
+  })
+
   test('"Nouvel épisode": its file arrived after the last play on the series', () => {
     const fresh = episodes('fresh', [
       [1, 1, day(1)],

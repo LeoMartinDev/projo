@@ -3,8 +3,6 @@ import { z } from 'zod'
 import {
   type CatalogSort,
   catalogSortSchema,
-  type SortOrder,
-  sortOrderSchema,
   type WatchFilter,
   watchFilterSchema,
 } from './catalog.ts'
@@ -17,7 +15,6 @@ import { type GenreId, genreIdSchema } from './genres.ts'
  */
 export type CatalogQueryState = {
   sort: CatalogSort
-  order?: SortOrder
   genre?: GenreId
   decade?: number
   year?: number
@@ -28,7 +25,6 @@ export type CatalogQueryState = {
 export const catalogListParams = (state: CatalogQueryState, cursor: string, limit: number) => ({
   sort: state.sort,
   limit: String(limit),
-  ...(state.order === undefined ? {} : { order: state.order }),
   ...(state.genre === undefined ? {} : { genre: state.genre }),
   ...(state.year === undefined
     ? state.decade === undefined
@@ -43,7 +39,6 @@ export const defaultCatalogState: CatalogQueryState = { sort: 'title' }
 
 const storedSchema = z.object({
   sort: catalogSortSchema.catch('title'),
-  order: sortOrderSchema.optional().catch(undefined),
   /** A genre id (§9.1); a name saved before ids ("Drame") is dropped. */
   genre: genreIdSchema.optional().catch(undefined),
   decade: z
@@ -69,7 +64,6 @@ export const normalizeCatalogState = (state: CatalogStateDraft): CatalogQuerySta
     state.decade ?? (state.year === undefined ? undefined : Math.floor(state.year / 10) * 10)
   return {
     sort: state.sort,
-    ...(state.order === undefined ? {} : { order: state.order }),
     ...(state.genre === undefined ? {} : { genre: state.genre }),
     ...(decade === undefined ? {} : { decade }),
     ...(state.year === undefined ||
@@ -84,10 +78,9 @@ export const normalizeCatalogState = (state: CatalogStateDraft): CatalogQuerySta
 export const parseCatalogState = (value: unknown): CatalogQueryState => {
   const parsed = storedSchema.safeParse(value)
   if (!parsed.success) return defaultCatalogState
-  const { sort, order, genre, decade, year, watch } = parsed.data
+  const { sort, genre, decade, year, watch } = parsed.data
   return normalizeCatalogState({
     sort,
-    ...(order === undefined ? {} : { order }),
     ...(genre === undefined ? {} : { genre }),
     ...(decade === undefined ? {} : { decade }),
     ...(year === undefined ? {} : { year }),
@@ -106,7 +99,6 @@ export const activeFilterCount = (state: CatalogQueryState): number =>
 export const clearFilters = (state: CatalogQueryState): CatalogQueryState =>
   normalizeCatalogState({
     sort: state.sort,
-    ...(state.order === undefined ? {} : { order: state.order }),
   })
 
 /** Oldest and newest year of what the profile can see (`GET /genres` → `years`). */

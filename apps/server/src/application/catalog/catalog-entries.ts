@@ -7,6 +7,7 @@ import {
   type VideoQuality,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
+import { regularEpisodes } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
 import type { ProgressView, ProgressViews } from '../progress/progress-views.ts'
 
@@ -37,12 +38,6 @@ export type CatalogEntries = (input: {
   items: readonly CatalogItem[]
   scope: VisibilityScope
 }) => CatalogEntry[]
-
-/** Specials (season 0) count only when a series has nothing else (as in "Up next", §13.1). */
-export const regularEpisodes = (episodes: readonly EpisodeRef[]): EpisodeRef[] => {
-  const regular = episodes.filter((episode) => episode.seasonNumber !== 0)
-  return regular.length === 0 ? [...episodes] : regular
-}
 
 /**
  * Progress, "My list" flags, best quality and season count of a list of items, in a fixed number

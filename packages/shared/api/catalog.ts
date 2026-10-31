@@ -32,19 +32,15 @@ export type CatalogSort = z.infer<typeof catalogSortSchema>
 export const watchFilterSchema = z.enum(['watched', 'unwatched', 'in_progress'])
 export type WatchFilter = z.infer<typeof watchFilterSchema>
 
-export const sortOrderSchema = z.enum(['asc', 'desc'])
-export type SortOrder = z.infer<typeof sortOrderSchema>
-
 /**
- * `?sort=title|added|year|rating&order=asc|desc&genre=&year=|decade=&watch=&cursor=&limit=`.
- * Defaults: `title` ascending, the others descending (newest, best rated first). A cursor is only
- * valid with the sort and order that produced it (and the same filters). `decade` is its first
+ * `?sort=title|added|year|rating&genre=&year=|decade=&watch=&cursor=&limit=`. `title` ascending,
+ * the others descending (newest, best rated first). A cursor is only valid with the sort that
+ * produced it (and the same filters). `decade` is its first
  * year (`1990` = 1990–1999); `genre` a genre id (§9.1), as listed by `GET /genres`.
  */
 export const catalogListQuerySchema = paginationQuerySchema
   .extend({
     sort: catalogSortSchema.default('title'),
-    order: sortOrderSchema.optional(),
     genre: genreIdSchema.optional(),
     year: z.coerce.number().int().min(1800).max(3000).optional(),
     decade: z.coerce

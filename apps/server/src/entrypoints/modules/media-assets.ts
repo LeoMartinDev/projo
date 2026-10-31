@@ -24,8 +24,8 @@ import {
   requestMissingTrickplayFactory,
   requestTrickplay,
   trickplayFilesFactory,
-  trickplayUrlFactory,
 } from '../../application/playback/trickplay.ts'
+import { createFileKeyframeStore } from '../../infrastructure/playback/keyframe-store.ts'
 import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createPreviewStore } from '../../infrastructure/playback/preview-store.ts'
 import { createSubtitleCache } from '../../infrastructure/playback/subtitle-cache.ts'
@@ -126,6 +126,7 @@ export const buildMediaAssetsModule = (
     mediaCatalog,
     subtitleCache,
     trickplayStore,
+    keyframeStore: createFileKeyframeStore({ keyframesDir: paths.cache.keyframes }),
     previewStore,
     clock,
     logger: moduleLogger,
@@ -155,11 +156,6 @@ export const buildMediaAssetsModule = (
   })
 
   return {
-    /**
-     * `trickplayUrl` of the playback session DTO (§10.5): `/api/v1/trickplay/:sourceId/index.json`
-     * when the sprites of the source exist and are up to date, else `undefined`.
-     */
-    trickplayUrl: trickplayUrlFactory({ catalogRepository, trickplayStore }),
     /** For the home route (catalog module): hero `previewUrl`, clips of the home rows. */
     homePreviews: homePreviewsFactory({ previewAccess, mediaCatalog, jobQueue, clock }),
     /** For the home route: the frame of a "Continue watching" card, from the sprites (§10.5). */

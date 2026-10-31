@@ -26,13 +26,10 @@ export type EditorTarget =
 export const ProfileEditor = ({
   target,
   canDelete,
-  canEditPin = true,
   onClose,
 }: {
   target: EditorTarget | undefined
   canDelete: boolean
-  /** §14: a restricted profile does not set or remove a PIN. */
-  canEditPin?: boolean
   onClose: () => void
 }) => {
   const { t } = useTranslation()
@@ -49,7 +46,6 @@ export const ProfileEditor = ({
           key={target.mode === 'edit' ? target.profile.id : 'create'}
           target={target}
           canDelete={canDelete}
-          canEditPin={canEditPin}
           onClose={onClose}
         />
       )}
@@ -60,12 +56,10 @@ export const ProfileEditor = ({
 const EditorForm = ({
   target,
   canDelete,
-  canEditPin,
   onClose,
 }: {
   target: EditorTarget
   canDelete: boolean
-  canEditPin: boolean
   onClose: () => void
 }) => {
   const { t } = useTranslation()
@@ -167,22 +161,20 @@ const EditorForm = ({
 
       <ColorSwatches value={color ?? editing?.avatarColor} onChange={setColor} />
 
-      {canEditPin ? (
-        <PinFields
-          hasPin={editing?.hasPin ?? false}
-          on={pinOn}
-          changing={changingPin}
-          pin={pin}
-          valid={pinValid}
-          needsNewPin={needsNewPin}
-          onToggle={(value) => {
-            setPinOn(value)
-            setPin('')
-          }}
-          onChange={setPin}
-          onChanging={() => setChangingPin(true)}
-        />
-      ) : undefined}
+      <PinFields
+        hasPin={editing?.hasPin ?? false}
+        on={pinOn}
+        changing={changingPin}
+        pin={pin}
+        valid={pinValid}
+        needsNewPin={needsNewPin}
+        onToggle={(value) => {
+          setPinOn(value)
+          setPin('')
+        }}
+        onChange={setPin}
+        onChanging={() => setChangingPin(true)}
+      />
 
       <div className="profile-editor__actions">
         {editing !== undefined && canDelete ? (

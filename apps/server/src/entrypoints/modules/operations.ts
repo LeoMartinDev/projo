@@ -8,6 +8,7 @@ import {
   exportDatabaseFactory,
   missingSourcesAdminFactory,
   purgeExpiredMissingFactory,
+  purgeOldHistoryFactory,
   purgeOldJobsFactory,
   remindNeedsReviewFactory,
 } from '../../application/operations/maintenance.ts'
@@ -37,6 +38,7 @@ import {
   createSqliteNeedsReviewReminderStore,
   createSqliteServerNameStore,
 } from '../../infrastructure/sqlite/settings-values.ts'
+import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-run-repository.ts'
 import { createSqliteStatsQueries } from '../../infrastructure/sqlite/stats-queries.ts'
 import { createSqliteUpdateCheckStore } from '../../infrastructure/sqlite/update-check-store.ts'
 import { adminJobsRoutes } from '../http/routes/admin-jobs.ts'
@@ -87,7 +89,7 @@ export type OperationsModuleDeps = {
 
 /**
  * Wiring of the operations admin (§15): dashboard (`/admin/stats`), storage, database export, jobs
- * (list, retry, cancel through the runner, hourly `purge-jobs`), notifications, missing sources and their purge
+ * (list, retry, cancel through the runner, hourly `purge-jobs`, with old notifications and scan runs), notifications, missing sources and their purge
  * (`DELETE /admin/sources/:id`, `/admin/sources/purge-missing`, daily `purge_missing`), the
  * `cache/disk_low` and `scan/needs_review_count` checks.
  */
@@ -114,6 +116,12 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
     notifier,
   })
   const purgeOldJobs = purgeOldJobsFactory({ jobRepository, clock, logger: log })
+  const purgeOldHistory = purgeOldHistoryFactory({
+    notifications: notificationRepository,
+    scanRuns: createSqliteScanRunRepository({ db }),
+    clock,
+    logger: log,
+  })
   const remindNeedsReview = remindNeedsReviewFactory({
     countNeedsReview: () => statsQueries.counts().needsReview,
     reminders: createSqliteNeedsReviewReminderStore({ db }),
@@ -137,6 +145,7 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
       initialDelayMs: 5 * minute,
       run: () => {
         purgeOldJobs()
+        purgeOldHistory()
       },
     },
     {

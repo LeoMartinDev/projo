@@ -1,0 +1,1 @@
+CREATE INDEX `notifications_kind_resolved_idx` ON `notifications` (`kind`,`resolved_at`);

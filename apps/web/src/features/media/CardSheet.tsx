@@ -10,21 +10,9 @@ import { AddedIcon, AddIcon, InfoIcon, RemoveIcon, SeenIcon } from '../../shared
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
 import { useDevice } from '../../shared/ui/use-media.ts'
-import {
-  useHideFromContinue,
-  usePlayItem,
-  useWatchedToggle,
-  useWatchlistToggle,
-} from './actions.ts'
+import { useCardActions } from './actions.ts'
 import { useCardText } from './card-text.ts'
-import {
-  type CardPlace,
-  detailTargetOf,
-  listTargetOf,
-  progressRatioOf,
-  toneOf,
-  wideArtOf,
-} from './media.ts'
+import { type CardPlace, detailTargetOf, progressRatioOf, toneOf, wideArtOf } from './media.ts'
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
 import './media.css'
 
@@ -173,19 +161,11 @@ const CardSheetBody = ({
 }) => {
   const { t } = useTranslation()
   const text = useCardText()(item, place)
-  const watchlist = useWatchlistToggle()
-  const watched = useWatchedToggle()
-  const hide = useHideFromContinue()
-  const play = usePlayItem()
+  const actions = useCardActions(item, place)
+  const { listed, seen, error } = actions
   const ratio = progressRatioOf(item)
   const rating = useRatingBadge()(item.contentRating)
-  // An episode's tile acts on its series (§13.3).
-  const listTarget = listTargetOf(item)
-  const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
-  const seen = watched.watched(item)
   const target = detailTargetOf(item)
-  const removable = place === 'continue_watching' || place === 'up_next'
-  const error = watchlist.mutation.error || watched.mutation.error || hide.error || play.error
 
   return (
     <div className="card-sheet">
@@ -220,8 +200,8 @@ const CardSheetBody = ({
       <button
         type="button"
         className="button button--primary button--large card-sheet__play"
-        disabled={play.isPending}
-        onClick={() => play.mutate(item)}
+        disabled={actions.playing}
+        onClick={actions.play}
       >
         <PlayIcon />
         {ratio === undefined ? t('item.play') : t('card.resume')}
@@ -230,22 +210,22 @@ const CardSheetBody = ({
       {error ? <ErrorAlert error={error} /> : undefined}
 
       <div className="sheet-lines">
-        {listTarget === undefined ? undefined : (
+        {actions.canList ? (
           <button
             type="button"
             className="sheet-line"
             aria-pressed={listed}
-            onClick={() => watchlist.toggle(listTarget, !listed)}
+            onClick={actions.toggleList}
           >
             {listed ? <AddedIcon size={20} /> : <AddIcon size={20} />}
             {t('card.myList')}
           </button>
-        )}
+        ) : undefined}
         <button
           type="button"
           className="sheet-line"
           aria-pressed={seen}
-          onClick={() => watched.set(item.id, !seen)}
+          onClick={actions.toggleSeen}
         >
           <SeenIcon size={20} />
           {seen ? t('card.markUnwatched') : t('card.markWatched')}
@@ -260,12 +240,12 @@ const CardSheetBody = ({
           <InfoIcon size={20} />
           {t('card.info')}
         </Link>
-        {removable ? (
+        {actions.removable ? (
           <button
             type="button"
             className="sheet-line sheet-line--danger"
-            disabled={hide.isPending}
-            onClick={() => hide.mutate(item.id, { onSuccess: onClose })}
+            disabled={actions.removing}
+            onClick={() => actions.remove(onClose)}
           >
             <RemoveIcon size={20} />
             {place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}

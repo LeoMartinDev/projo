@@ -3,24 +3,21 @@ import { type FormEvent, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { MeResponse } from '@projo/shared/api/auth'
-import { passwordSchema } from '@projo/shared/api/auth'
 import { healthResponseSchema } from '@projo/shared/api/common'
 
 import { api, request } from '../../shared/api/client.ts'
 import { formatRelative } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { Field, RevealButton, ValidMark } from '../../shared/ui/controls.tsx'
-import { LockIcon, ShieldIcon } from '../../shared/ui/icons.tsx'
+import { Field, RevealButton } from '../../shared/ui/controls.tsx'
+import { LockIcon } from '../../shared/ui/icons.tsx'
 import { BackLink } from '../../shared/ui/BackLink.tsx'
 import { ChevronLeftIcon, DevicesIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
-import { passwordScore } from '../setup/password-strength.ts'
+import { NewPasswordFields, usePasswordPair } from '../setup/NewPasswordFields.tsx'
 import { ConnectDeviceDialog } from './ConnectDeviceDialog.tsx'
 import '../profiles/profiles.css'
 import './account.css'
-
-const strengthKeys = ['empty', 'weak', 'fair', 'good', 'strong'] as const
 
 /** `GET /auth/sessions`: the account's browsers and devices, most recent first (§14). */
 const sessionsQuery = queryOptions({
@@ -34,26 +31,22 @@ const PasswordPanel = () => {
   const queryClient = useQueryClient()
   const ids = useId()
   const [current, setCurrent] = useState('')
-  const [next, setNext] = useState('')
-  const [confirmation, setConfirmation] = useState('')
+  const pair = usePasswordPair()
   const [shown, setShown] = useState(false)
   const change = useMutation({
     mutationFn: () =>
       request(() =>
-        api.auth.password.$post({ json: { currentPassword: current, newPassword: next } }),
+        api.auth.password.$post({
+          json: { currentPassword: current, newPassword: pair.password },
+        }),
       ),
     onSuccess: async () => {
       setCurrent('')
-      setNext('')
-      setConfirmation('')
+      pair.clear()
       await queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey })
     },
   })
-  const valid = passwordSchema.safeParse(next).success
-  const matches = confirmation.length > 0 && confirmation === next
-  const mismatch = !matches && confirmation.length > 0 && confirmation.length >= next.length
-  const score = passwordScore(next)
-  const ready = current.length > 0 && valid && matches
+  const ready = current.length > 0 && pair.ready
   const type = shown ? 'text' : 'password'
 
   const submit = (event: FormEvent) => {
@@ -88,51 +81,15 @@ const PasswordPanel = () => {
             onChange={(event) => setCurrent(event.target.value)}
           />
         </Field>
-        <div className="form-row">
-          <Field id={`${ids}-new`} label={t('account.password.new')} icon={<LockIcon />}>
-            <input
-              id={`${ids}-new`}
-              className="field__input"
-              type={type}
-              autoComplete="new-password"
-              value={next}
-              aria-describedby={`${ids}-strength`}
-              onChange={(event) => setNext(event.target.value)}
-            />
-          </Field>
-          <div className="meter" aria-hidden="true">
-            {[1, 2, 3, 4].map((level) => (
-              <span key={level} className="meter__segment" data-on={score >= level} />
-            ))}
-          </div>
-          <span id={`${ids}-strength`} className="hint" aria-live="polite">
-            {t('setup.account.strength')}{' '}
-            <strong>{t(`setup.strength.${strengthKeys[score]}`)}</strong>
-            {valid ? undefined : ` · ${t('setup.account.passwordRule')}`}
-          </span>
-        </div>
-        <div className="form-row">
-          <Field
-            id={`${ids}-confirmation`}
-            label={t('account.password.confirmation')}
-            icon={<ShieldIcon />}
-            invalid={mismatch}
-            trail={matches ? <ValidMark label={t('setup.account.matches')} /> : undefined}
-          >
-            <input
-              id={`${ids}-confirmation`}
-              className="field__input"
-              type={type}
-              autoComplete="new-password"
-              value={confirmation}
-              aria-invalid={mismatch}
-              onChange={(event) => setConfirmation(event.target.value)}
-            />
-          </Field>
-          {mismatch ? (
-            <span className="hint hint--error">{t('setup.account.mismatch')}</span>
-          ) : undefined}
-        </div>
+        <NewPasswordFields
+          id={ids}
+          pair={pair}
+          shown={shown}
+          labels={{
+            password: t('account.password.new'),
+            confirmation: t('account.password.confirmation'),
+          }}
+        />
         <div className="account-form__actions">
           <button
             type="submit"

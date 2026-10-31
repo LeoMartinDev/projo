@@ -94,7 +94,16 @@ const frameRateOf = (value: string | undefined): number | undefined => {
   return rate > 0 ? Math.round(rate * 1000) / 1000 : undefined
 }
 
-const dynamicRangeOf = (stream: RawStream): DynamicRange => {
+/**
+ * Dynamic range of a raw ffprobe video stream: Dolby Vision (side data or fourcc), else HDR by
+ * its transfer (PQ, HLG). `undefined` without a transfer: the scanner reads it as SDR, the
+ * playback reader of stored probes leaves it unknown.
+ */
+export const rawDynamicRange = (stream: {
+  side_data_list?: readonly Record<string, unknown>[] | undefined
+  codec_tag_string?: string | undefined
+  color_transfer?: string | undefined
+}): DynamicRange | undefined => {
   const doviSideData = (stream.side_data_list ?? []).some((entry) =>
     String(entry['side_data_type'] ?? '')
       .toLowerCase()
@@ -104,10 +113,13 @@ const dynamicRangeOf = (stream: RawStream): DynamicRange => {
     (stream.codec_tag_string ?? '').toLowerCase(),
   )
   if (doviSideData || doviTag) return 'dv'
+  if (stream.color_transfer === undefined) return undefined
   return stream.color_transfer === 'smpte2084' || stream.color_transfer === 'arib-std-b67'
     ? 'hdr'
     : 'sdr'
 }
+
+const dynamicRangeOf = (stream: RawStream): DynamicRange => rawDynamicRange(stream) ?? 'sdr'
 
 const optional = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }

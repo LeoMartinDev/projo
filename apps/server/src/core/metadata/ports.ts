@@ -115,6 +115,8 @@ export type ImageRepository = {
   localPaths: () => string[]
   /** Deletes the row when nothing references it any more; returns it so the file can go too. */
   deleteIfUnused: (id: string) => StoredImage | undefined
+  /** Ids of the images nothing references (their item or person was deleted). */
+  listUnused: () => string[]
 }
 
 export type ImageFilesError = AppError<'metadata/image_failed'>
@@ -187,6 +189,11 @@ export type MetadataSettings = {
 export type TmdbResponseStore = {
   get: (key: string) => { payload: unknown; fetchedAt: Date } | undefined
   put: (input: { key: string; payload: unknown; fetchedAt: Date }) => void
+}
+
+/** Retention of `tmdb_responses`: deletes the responses fetched before `before`, returns how many. */
+export type TmdbResponsePurge = {
+  purgeFetchedBefore: (before: Date) => number
 }
 
 /** Asks for the identification of a source (job `match_source`, §18). */
