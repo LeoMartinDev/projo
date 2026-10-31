@@ -104,7 +104,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 9. A failed probe overwrites what happened in the meantime
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/application/scanner/probe-source.ts:80-94`
 
@@ -115,7 +115,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 10. Automatic matching can undo a manual correction
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/application/metadata/match-source.ts:164-165`
 
@@ -126,7 +126,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 11. "Recheck" silently does nothing during a full scan
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/infrastructure/sqlite/job-repository.ts:61-79`
 
@@ -137,7 +137,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 12. Retrying an old update job reinstalls the running version
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/application/updates/apply-update.ts:115-179`
 
@@ -148,7 +148,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 13. Database backups are never deleted
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `runtime/supervisor/switch.ts:103-115`, `apps/server/src/infrastructure/sqlite/database.ts:101-105`
 
@@ -159,7 +159,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 14. The rollback copies over the live database in an unsafe order
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `runtime/supervisor/switch.ts:117-124`
 
@@ -170,7 +170,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 15. Cancelling a scan at the wrong moment turns moved files into new ones
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/application/scanner/scan-library.ts:286-308`
 
@@ -181,7 +181,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 16. Kids' limits are opt-in per module, with no test on the real wiring
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/entrypoints/modules/catalog.ts:25-27`
 
@@ -192,7 +192,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 17. Every image request checks visibility twice, slowly
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/infrastructure/sqlite/image-repository.ts:29-37`
 
@@ -203,7 +203,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 18. Restarting playback in the credits brings an episode back to "in progress"
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/server/src/application/playback/create-session.ts:472-486`
 
@@ -214,7 +214,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 19. The web and mobile apps copy the same card rules
 
-**Status:** to do
+**Status:** done (`cdf5533`)
 
 `apps/web/src/features/media/card-text.ts`, `apps/mobile/src/features/media/card-text.ts`, `packages/i18n/format.ts:93-102`
 
@@ -240,7 +240,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 ## Summary
 
 - **Verdict:** 1 first (one character, measured), then the three that lose data or leak a token (2, 3, 4).
-- **Done:** 1 to 8 (2026-10-31, `21999f6`).
+- **Done:** 1 to 8 (2026-10-31, `21999f6`); 9 to 19 (2026-10-31, `cdf5533`).
 - **Left out:** 16 smaller findings, for example: a cancelled scan shows "Discovering N%" until the page reloads, a malformed deep link crashes the mobile card sheet, TMDB's "0 votes" sorts as a real rating, `tmdb_responses` is never purged.
 - **Lean:** about −200 lines possible, no dependency to remove.
 - **Not checked:** the audit ran neither the test suite nor the e2e tests. Not read line by line: the name parser (`core/naming/title.ts`, `analyze.ts`), fingerprint matching, the segment providers, most of the player UI on web and mobile, `runtime/scripts/`, and path behaviour on macOS mounts (Unicode forms, case).
@@ -256,7 +256,7 @@ Details in `git show 7ec1736:REVIEW.md`; the numbers are that review's. Status a
 - 32 — Whoever reaches a fresh install first becomes its admin
 - 34 — A library can stay "Scanning…" forever
 - 40 — Safari does not retry while the keyframe index is not ready
-- 45 — The image visibility check is optional (now part of 16)
+- 45 — The image visibility check is optional (fixed with 16, `cdf5533`)
 - 46 — No test covers `X-Forwarded-For`
 - 47 — The player's session lifecycle has no test
 - 48 — The §21 performance test skips categories and restricted profiles (restricted profile added in `21999f6`; `/home/categories` still missing)
