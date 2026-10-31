@@ -127,6 +127,20 @@
       "when": 1793452171645,
       "tag": "0017_notifications_kind_index",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1793465363924,
+      "tag": "0018_drop_jobs_finished_at_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1793465483617,
+      "tag": "0019_search_fold_ligatures",
+      "breakpoints": true
     }
   ]
 }

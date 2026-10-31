@@ -112,7 +112,10 @@ export type MetadataRefreshRepository = {
   topLevelWithFiles: (files: LeavingFiles) => string[]
   /** Identified movies and series with a file in the library. */
   identifiedTopLevel: (libraryId: string) => string[]
-  /** `series_status = in_production` series not refreshed since `before` (never: included). */
+  /**
+   * `series_status = in_production` series with a file, not refreshed since `before` (never:
+   * included).
+   */
   inProductionSeriesRefreshedBefore: (before: Date) => string[]
 }
 

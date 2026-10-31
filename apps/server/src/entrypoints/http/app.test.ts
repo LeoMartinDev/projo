@@ -175,6 +175,15 @@ describe('createHttpApp', () => {
     expect(JSON.stringify(lines)).not.toContain('the-secret')
   })
 
+  test('an invitation token never reaches the logs (§20)', async () => {
+    const { logger, lines } = createCapturingLogger()
+    await buildApp(logger).request('/api/v1/invitations/the-token/accept', { method: 'POST' })
+    expect(lines.find((line) => line.message === 'http request')?.fields).toMatchObject({
+      path: '/api/v1/invitations/***/accept',
+    })
+    expect(JSON.stringify(lines)).not.toContain('the-token')
+  })
+
   test('serves the web app with SPA fallback and immutable assets', async () => {
     const page = await app.request('/movies/123')
     expect(page.status).toBe(200)

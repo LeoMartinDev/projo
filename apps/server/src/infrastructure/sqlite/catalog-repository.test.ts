@@ -17,7 +17,7 @@ const movie = (id: string, extra: Omit<Parameters<typeof insertItem>[1], 'id' | 
 beforeEach(() => {
   db = createTestDatabase()
   repo = createSqliteCatalogRepository({ db })
-  insertLibrary(db, { id: 'library-1', rootPath: '/media/films/' })
+  insertLibrary(db, { id: 'library-1', rootPath: '/media/films' })
   insertLibrary(db, { id: 'library-2', rootPath: '/media/kids' })
 })
 

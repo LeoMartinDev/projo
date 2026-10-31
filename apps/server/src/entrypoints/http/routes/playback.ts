@@ -115,9 +115,7 @@ export const toPlaybackSessionDto = (
       // Muxer defaults ("Chapter 01") are not names: the player numbers them (§10.7).
       ...optional('title', chapterTitle(chapter.title)),
     })),
-    ...(created.trickplayReady
-      ? { trickplayUrl: `${apiPrefix}/trickplay/${encode(session.sourceId)}/index.json` }
-      : {}),
+    ...optional('trickplayUrl', created.trickplayUrl),
     segments: mediaSegments,
   }
 }

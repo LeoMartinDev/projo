@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, lt, or } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, lt, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { genreIdSchema } from '@projo/shared/api/genres'
@@ -221,6 +221,11 @@ export const createSqliteMetadataRefreshRepository = ({
           isNotNull(items.tmdbId),
           eq(items.seriesStatus, 'in_production'),
           or(isNull(items.metadataRefreshedAt), lt(items.metadataRefreshedAt, toIso(before))),
+          // A show without any file left is not worth the TMDB quota.
+          sql`EXISTS (SELECT 1 FROM source_items si
+            JOIN items e ON e.id = si.item_id
+            JOIN items season ON season.id = e.parent_id
+            WHERE season.parent_id = ${items.id})`,
         ),
       )
       .orderBy(items.metadataRefreshedAt, items.id)

@@ -102,7 +102,8 @@ export const generateTrickplayFactory =
 
 /**
  * `trickplayUrl` of the playback session DTO (§10.5): set only when the sprites of the played
- * source exist and are up to date ("sinon rien").
+ * source exist and are up to date ("sinon rien"). `?v=<mtime>` (kept by the sheet URLs): sheets
+ * are cached a day, a replaced file must not show the old ones.
  */
 export const trickplayUrlFactory =
   ({
@@ -115,7 +116,7 @@ export const trickplayUrlFactory =
   (sourceId: string): string | undefined => {
     const source = catalogRepository.findSource(sourceId)
     if (source === undefined || !isFresh(trickplayStore, source)) return undefined
-    return `/api/v1/trickplay/${encodeURIComponent(sourceId)}/index.json`
+    return `/api/v1/trickplay/${encodeURIComponent(sourceId)}/index.json?v=${source.mtime}`
   }
 
 export type TrickplayUrl = ReturnType<typeof trickplayUrlFactory>

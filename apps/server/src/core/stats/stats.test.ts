@@ -2,8 +2,8 @@ import { expect, test } from 'bun:test'
 
 import { exportFileName } from './stats.ts'
 
-test('the export file name carries the UTC date and time', () => {
+test('the export file name carries the UTC date and time, to the millisecond', () => {
   expect(exportFileName(new Date('2026-10-24T09:05:07.123Z'))).toBe(
-    'projo-export-20261024-090507.db',
+    'projo-export-20261024-090507-123.db',
   )
 })

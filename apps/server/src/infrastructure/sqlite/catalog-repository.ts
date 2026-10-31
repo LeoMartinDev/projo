@@ -23,6 +23,7 @@ import {
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
 import { ownTitle } from '../../core/catalog/generic-titles.ts'
+import { joinAbsolute } from '../../core/library/roots.ts'
 import { sourceVersionOf } from '../../core/media/version.ts'
 import { progressRules } from '../../core/progress/progress.ts'
 import { readMediaInfo } from '../playback/probe-reader.ts'
@@ -46,8 +47,6 @@ import {
   sourceSubtitles,
 } from './schema/libraries.ts'
 import { segments } from './schema/playback.ts'
-
-export { visible } from './catalog-sql.ts'
 
 /**
  * Read side of the catalog (§6.3). Every query goes through `visible(scope)`: an item without a
@@ -195,16 +194,13 @@ type SourceRow = {
   rootState: 'ok' | 'unreachable'
 }
 
-const joinPath = (root: string, relative: string): string =>
-  `${root.replace(/\/+$/, '')}/${relative.replace(/^\/+/, '')}`
-
 const toPlayableSource = ({ source, rootPath, rootState }: SourceRow): PlayableSource => {
   const media = readMediaInfo(source.probe)
   return {
     id: source.id,
     state: source.state,
     libraryId: source.libraryId,
-    path: joinPath(rootPath, source.relativePath),
+    path: joinAbsolute(rootPath, source.relativePath),
     rootReachable: rootState === 'ok',
     extension: source.extension.replace(/^\./, '').toLowerCase(),
     sizeBytes: source.sizeBytes,

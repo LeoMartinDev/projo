@@ -1,5 +1,4 @@
 import {
-  existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -142,5 +141,3 @@ export const removePath = (path: string): void => {
     // Best effort: the next cleanup pass tries again.
   }
 }
-
-export const pathExists = (path: string): boolean => existsSync(path)

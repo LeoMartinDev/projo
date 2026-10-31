@@ -174,7 +174,7 @@ export const buildPlaybackModule = (
         sessionRepository,
         subtitleTrackRepository,
         trackPreferenceRepository,
-        trickplayReady: (sourceId) => trickplayUrl(sourceId) !== undefined,
+        trickplayUrl,
         streamSecrets: sessionTokens,
         // §11.1 settings of the profile, for the §11.2 cascade.
         profileTracks: (profileId) => {

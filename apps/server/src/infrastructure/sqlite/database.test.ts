@@ -631,6 +631,43 @@ describe('openDatabase', () => {
     })
   })
 
+  test('titles indexed before 0019 are searchable with their ligatures spelled out (§13.5)', () => {
+    const partial = join(temp.path, 'migrations-0018')
+    cpSync(migrationsDir, partial, { recursive: true })
+    const journalFile = join(partial, 'meta', '_journal.json')
+    const journal = JSON.parse(readFileSync(journalFile, 'utf8')) as { entries: { tag: string }[] }
+    const upTo = journal.entries.findIndex(
+      (entry) => entry.tag === '0018_drop_jobs_finished_at_index',
+    )
+    writeFileSync(
+      journalFile,
+      JSON.stringify({ ...journal, entries: journal.entries.slice(0, upTo + 1) }),
+    )
+    const file = join(temp.path, 'projo-0018.db')
+    const before = openDatabase({
+      file,
+      migrationsDir: partial,
+      clock: createManualClock(),
+      logger: silentLogger,
+    })
+    if (!before.ok) throw new Error(before.error.message)
+    before.value.$client.run(
+      `INSERT INTO items (id, kind, title, sort_title, created_at, updated_at) VALUES ('m', 'movie', 'Le Cœur des hommes', 'coeur', '2026-01-01', '2026-01-01')`,
+    )
+    closeDatabase(before.value)
+
+    const after = open(file)
+    if (!after.ok) throw new Error(after.error.message)
+    const match = (expression: string) =>
+      after.value.$client
+        .query<{ item_id: string }, [string]>(
+          'SELECT d.item_id FROM items_fts JOIN search_documents d ON d.id = items_fts.rowid WHERE items_fts MATCH ?',
+        )
+        .all(expression)
+    expect(match('"coeur"*')).toEqual([{ item_id: 'm' }])
+    closeDatabase(after.value)
+  })
+
   test('reports a missing migrations folder as a typed error', () => {
     const opened = openDatabase({
       file: ':memory:',

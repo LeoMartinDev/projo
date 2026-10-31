@@ -161,7 +161,8 @@ const build = (world: World) => {
     },
     keyframeStore: { read: () => undefined, write: () => ok() },
     jobQueue: createRecordingJobQueue().queue,
-    trickplayReady: (sourceId) => sourceId === 'h264-1080p',
+    trickplayUrl: (sourceId) =>
+      sourceId === 'h264-1080p' ? `/t/${sourceId}/index.json` : undefined,
     clock,
     ids: createSequentialIds('ps-'),
     streamSecrets: createFakeSessionTokens(),
@@ -667,6 +668,6 @@ describe('createPlaybackSession: multi-episode files (§8.4)', () => {
 
   test('trickplay: ready for the played source only', async () => {
     const { play } = build({ sources: [h264] })
-    expect(await play()).toMatchObject({ value: { trickplayReady: true } })
+    expect(await play()).toMatchObject({ value: { trickplayUrl: '/t/h264-1080p/index.json' } })
   })
 })

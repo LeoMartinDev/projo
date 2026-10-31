@@ -36,8 +36,10 @@ export const createHttpApp = ({ api, health, logger, ids, webFiles }: Deps) => {
     await next()
     requestLogger.debug('http request', {
       method: c.req.method,
-      // §20: the secret of a stream URL is a credential.
-      path: c.req.path.replace(/^(\/api\/v1\/stream\/[^/]+\/)[^/]+/, '$1***'),
+      // §20: the secret of a stream URL and an invitation token are credentials.
+      path: c.req.path
+        .replace(/^(\/api\/v1\/stream\/[^/]+\/)[^/]+/, '$1***')
+        .replace(/^(\/api\/v1\/invitations\/)[^/]+/, '$1***'),
       status: c.res.status,
       durationMs: Math.round(performance.now() - startedAt),
     })

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 
 import { type BitmapCue, writePgs } from '../../../test/support/bitmap-subtitles.ts'
 import { createTempDir } from '../../../test/support/database.ts'
+import { readTrackRun } from '../../../test/support/fmp4-timeline.ts'
 import { createCapturingLogger, silentLogger } from '../../../test/support/logger.ts'
 import {
   audioDelayS,
@@ -21,7 +22,7 @@ import type {
 } from '../../core/playback/ports.ts'
 import { outputTimestampOffsetS, transcodePrerollS } from './ffmpeg-args.ts'
 import { createFfprobe } from './ffprobe.ts'
-import { createBoxSplitter, fragmentStartTicks, readTrackRun, readTracks } from './fmp4.ts'
+import { createBoxSplitter, fragmentStartTicks, readTracks } from './fmp4.ts'
 import { createHlsSegmenter, detectFfmpegFilters } from './hls-segmenter.ts'
 
 /**

@@ -54,9 +54,12 @@ export type DatabaseExporter = {
   exportTo: (file: string) => Result<{ sizeBytes: number }, AppError<'db/export_failed'>>
 }
 
-/** `projo-export-<YYYYMMDD-HHmmss>.db` (UTC), in `db/backups/`. */
+/**
+ * `projo-export-<YYYYMMDD-HHmmss-SSS>.db` (UTC), in `db/backups/`. Milliseconds: `VACUUM INTO`
+ * refuses an existing file, two exports in the same second must not collide.
+ */
 export const exportFileName = (at: Date): string => {
   const iso = at.toISOString()
-  const stamp = `${iso.slice(0, 10).replaceAll('-', '')}-${iso.slice(11, 19).replaceAll(':', '')}`
+  const stamp = `${iso.slice(0, 10).replaceAll('-', '')}-${iso.slice(11, 19).replaceAll(':', '')}-${iso.slice(20, 23)}`
   return `projo-export-${stamp}.db`
 }

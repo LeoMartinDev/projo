@@ -22,7 +22,6 @@ export const jobs = sqliteTable(
   (t) => [
     index('jobs_state_priority_idx').on(t.state, t.priority, t.runAfter),
     index('jobs_dedupe_key_idx').on(t.dedupeKey, t.state),
-    index('jobs_finished_at_idx').on(t.finishedAt),
     // §18 retention: `purgeFinished` searches each finished state below its cutoff.
     index('jobs_state_finished_at_idx').on(t.state, t.finishedAt),
   ],

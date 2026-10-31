@@ -525,13 +525,13 @@ describe('database export (§5.4)', () => {
     expect(exportDatabase()).toEqual({
       ok: true,
       value: {
-        file: 'projo-export-20261024-120000.db',
-        path: '/data/db/backups/projo-export-20261024-120000.db',
+        file: 'projo-export-20261024-120000-000.db',
+        path: '/data/db/backups/projo-export-20261024-120000-000.db',
         sizeBytes: 42,
         createdAt: t0,
       },
     })
-    expect(written).toEqual(['/data/db/backups/projo-export-20261024-120000.db'])
+    expect(written).toEqual(['/data/db/backups/projo-export-20261024-120000-000.db'])
   })
 })
 

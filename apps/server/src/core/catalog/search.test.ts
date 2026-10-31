@@ -7,6 +7,10 @@ describe('search expression', () => {
     expect(toSearchExpression('Amélie  poul')).toBe('"Amélie"* "poul"*')
   })
 
+  test('ligatures are spelled out, like in the index', () => {
+    expect(toSearchExpression('Cœur ÆON straße')).toBe('"Coeur"* "AEON"* "strasse"*')
+  })
+
   test('FTS5 syntax in the input is neutralized', () => {
     expect(toSearchExpression('"star" OR wars* -x (a:b)')).toBe(
       '"star"* "OR"* "wars"* "x"* "a"* "b"*',

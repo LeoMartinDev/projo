@@ -1,0 +1,1 @@
+DROP INDEX `jobs_finished_at_idx`;

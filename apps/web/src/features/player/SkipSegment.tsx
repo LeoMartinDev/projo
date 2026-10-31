@@ -70,7 +70,7 @@ export const SkippedToast = ({
       </span>
       <span className="player-toast__actions">
         <button type="button" className="player-toast__action" onClick={onUndo}>
-          {t('common.cancel')}
+          {t('common.undo')}
         </button>
       </span>
     </div>

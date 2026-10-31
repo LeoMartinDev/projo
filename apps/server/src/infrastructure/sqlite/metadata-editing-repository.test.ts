@@ -151,7 +151,7 @@ describe('refresh walk (§9.4)', () => {
     expect(repo.identifiedTopLevel('library-2')).toEqual(['elsewhere'])
   })
 
-  test('in-production series not refreshed for a week', () => {
+  test('in-production series with a file, not refreshed for a week', () => {
     const repo = createSqliteMetadataRefreshRepository({ db })
     seedSeries()
     insertItem(db, {
@@ -168,6 +168,18 @@ describe('refresh walk (§9.4)', () => {
       seriesStatus: 'in_production',
       metadataRefreshedAt: '2026-05-01T00:00:00.000Z',
     })
+    insertItem(db, { id: 'old-s1', kind: 'season', parentId: 'old', seasonNumber: 1 })
+    insertItem(db, { id: 'old-e1', kind: 'episode', parentId: 'old-s1', episodeNumber: 1 })
+    insertSource(db, { id: 'src-old-e1', itemId: 'old-e1' })
+    // No file left: not refreshed.
+    insertItem(db, {
+      id: 'empty',
+      kind: 'series',
+      tmdbId: 5,
+      seriesStatus: 'in_production',
+      metadataRefreshedAt: '2026-05-01T00:00:00.000Z',
+    })
+    insertItem(db, { id: 'empty-s1', kind: 'season', parentId: 'empty', seasonNumber: 1 })
     insertItem(db, {
       id: 'ended',
       kind: 'series',

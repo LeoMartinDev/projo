@@ -83,7 +83,7 @@ export type AdminStatsDto = z.infer<typeof adminStatsDtoSchema>
  * 201 with the file written (absolute `path`: admin only). Error: 500 `db/export_failed`.
  */
 export const dbExportResponseSchema = z.object({
-  /** `projo-export-<YYYYMMDD-HHmmss>.db`. */
+  /** `projo-export-<YYYYMMDD-HHmmss-SSS>.db`. */
   file: z.string(),
   path: z.string(),
   sizeBytes: z.number().int(),

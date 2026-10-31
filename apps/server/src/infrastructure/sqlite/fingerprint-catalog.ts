@@ -1,6 +1,7 @@
 import { and, asc, eq, sql } from 'drizzle-orm'
 
 import type { PlayableSource } from '../../core/catalog/catalog.ts'
+import { joinAbsolute } from '../../core/library/roots.ts'
 import { sourceVersionOf } from '../../core/media/version.ts'
 import { groupVersions, rankVersions } from '../../core/playback/versions.ts'
 import type { FingerprintCatalog, FingerprintEpisode } from '../../core/segments/fingerprint.ts'
@@ -9,9 +10,6 @@ import type { Db } from './database.ts'
 import { items } from './schema/items.ts'
 import { libraries, libraryRoots, sourceItems, sources } from './schema/libraries.ts'
 import { readParsedEdition } from './source-columns.ts'
-
-const joinPath = (root: string, relative: string): string =>
-  `${root.replace(/\/+$/, '')}/${relative.replace(/^\/+/, '')}`
 
 type Row = {
   itemId: string
@@ -27,7 +25,7 @@ const toPlayableSource = ({ source, rootPath, rootState }: Row): PlayableSource 
     id: source.id,
     state: source.state,
     libraryId: source.libraryId,
-    path: joinPath(rootPath, source.relativePath),
+    path: joinAbsolute(rootPath, source.relativePath),
     rootReachable: rootState === 'ok',
     extension: source.extension,
     sizeBytes: source.sizeBytes,

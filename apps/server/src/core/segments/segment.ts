@@ -190,14 +190,5 @@ export type SegmentSubmissionRepository = {
   }) => boolean
 }
 
-// ── Jobs ───────────────────────────────────────────────────────────────────────────────────
-
-/** `fetch_segments` (§18): one per item, dedupe `segments:<itemId>`. */
-export type FetchSegmentsPayload = { itemId: string }
-/** `fingerprint_season` (§12.3): one per season, dedupe `fingerprint:<seasonId>`. */
-export type FingerprintSeasonPayload = { seasonId: string }
-/** `submit_segment` (§12.5): one per manual marker, dedupe `submit:<itemId>:<type>`. */
-export type SubmitSegmentPayload = { itemId: string; type: SegmentType }
-
 /** §12.4 fallback: "Next episode" when less than 90 s or 2 % of the duration remains. */
 export const nextUpFallback = { remainingMs: 90_000, remainingRatio: 0.02 } as const

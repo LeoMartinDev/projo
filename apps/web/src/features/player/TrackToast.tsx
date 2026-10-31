@@ -51,7 +51,7 @@ export const TrackToast = ({
             disabled={toast.status === 'defaulting'}
             onClick={onUndo}
           >
-            {t('common.cancel')}
+            {t('common.undo')}
           </button>
         </span>
       ) : undefined}

@@ -319,7 +319,9 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
     })
     expect((await run(assets.jobHandlers.trickplay, { sourceId: 'source-movie' })).ok).toBe(true)
 
-    expect(trickplayUrl('source-movie')).toBe('/api/v1/trickplay/source-movie/index.json')
+    expect(trickplayUrl('source-movie')).toMatch(
+      /^\/api\/v1\/trickplay\/source-movie\/index\.json\?v=\d+/,
+    )
     const index = await get('/trickplay/source-movie/index.json')
     expect(index.status).toBe(200)
     const body = trickplayIndexDtoSchema.parse(await index.json())

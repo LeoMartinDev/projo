@@ -70,8 +70,8 @@ type Deps = {
   mediaProber: MediaProber
   keyframeStore: KeyframeStore
   jobQueue: JobQueue
-  /** §10.5: the trickplay sprites of a source are ready (written by the `trickplay` job). */
-  trickplayReady?: (sourceId: string) => boolean
+  /** §10.5: the index URL of a source's trickplay sprites, when ready (`trickplayUrlFactory`). */
+  trickplayUrl?: (sourceId: string) => string | undefined
   /** §20: the secret of the session's stream URLs, stored hashed. */
   streamSecrets: SessionTokens
   clock: Clock
@@ -115,7 +115,7 @@ export type CreatedPlaybackSession = {
   versions: VersionChoice[]
   parts: TimelinePart[]
   partOffsetMs: number
-  trickplayReady: boolean
+  trickplayUrl?: string
 }
 
 type Input = {
@@ -167,7 +167,7 @@ export const createPlaybackSessionFactory = ({
   mediaProber,
   keyframeStore,
   jobQueue,
-  trickplayReady,
+  trickplayUrl,
   streamSecrets,
   clock,
   ids,
@@ -539,9 +539,11 @@ export const createPlaybackSessionFactory = ({
       })),
       parts: timeline,
       partOffsetMs: part.offsetMs,
-      trickplayReady: trickplayReady?.(source.id) ?? false,
+      ...withTrickplay(trickplayUrl?.(source.id)),
     })
   }
 }
+
+const withTrickplay = (url: string | undefined) => (url === undefined ? {} : { trickplayUrl: url })
 
 export type CreatePlaybackSession = ReturnType<typeof createPlaybackSessionFactory>

@@ -197,15 +197,6 @@ const noHls = (context: Record<string, unknown>) =>
     }),
   )
 
-/** The video codec of the file is decoded by this client (no video transcode needed for it). */
-export const isVideoSupported = (
-  video: VideoStreamInfo,
-  capabilities: ClientCapabilities,
-): boolean => {
-  const codec = videoCodecId(video)
-  return codec !== undefined && capabilities.videoCodecs.includes(codec)
-}
-
 export const decidePlayback = ({
   media,
   extension,

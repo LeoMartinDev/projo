@@ -10,9 +10,10 @@ import { AccountActivity } from './AccountActivity.tsx'
 import { AccountDialog } from './AccountDialog.tsx'
 import { CreateAccountDialog } from './CreateAccountDialog.tsx'
 import { InvitationCreatedDialog, Invitations, useCreateInvitation } from './Invitations.tsx'
-import { AdminAvatar } from './parts.tsx'
+import { AdminAvatar, useRatingLabel } from './parts.tsx'
 import { librariesQuery } from '../queries.ts'
 import { accountsQuery } from './queries.ts'
+import { profileSummary } from './summary.ts'
 import '../admin.css'
 import './accounts.css'
 
@@ -27,25 +28,55 @@ const SkeletonRows = () => (
   </>
 )
 
-/** The profiles of an account as a stack of avatars, names for assistive technologies. */
-const ProfileStack = ({ account }: { account: AdminAccountDto }) => {
+type Libraries = readonly { id: string; name: string }[]
+
+/**
+ * The profiles of an account as a stack of avatars; name and access summary (§15: "Movies, Shows
+ * · 16 and over") in the tooltip and for assistive technologies.
+ */
+const ProfileStack = ({
+  account,
+  libraries,
+}: {
+  account: AdminAccountDto
+  libraries: Libraries
+}) => {
   const { t } = useTranslation()
+  const ratingLabel = useRatingLabel()
+  const labels = {
+    allLibraries: t('admin.accounts.allLibraries'),
+    noLibrary: t('admin.accounts.noLibrary'),
+    noLimit: t('admin.accounts.noLimit'),
+    rating: ratingLabel,
+    pin: t('admin.accounts.pinSummary'),
+  }
   return (
     <ul
       className="acc-stack"
       aria-label={t('admin.accounts.profilesOf', { username: account.username })}
     >
-      {account.profiles.map((profile) => (
-        <li key={profile.id} className="acc-stack__item" title={profile.name}>
-          <AdminAvatar name={profile.name} color={profile.avatarColor} size="small" />
-          <span className="visually-hidden">{profile.name}</span>
-        </li>
-      ))}
+      {account.profiles.map((profile) => {
+        const label = `${profile.name} — ${profileSummary(profile, libraries, labels)}`
+        return (
+          <li key={profile.id} className="acc-stack__item" title={label}>
+            <AdminAvatar name={profile.name} color={profile.avatarColor} size="small" />
+            <span className="visually-hidden">{label}</span>
+          </li>
+        )
+      })}
     </ul>
   )
 }
 
-const AccountRow = ({ account, onOpen }: { account: AdminAccountDto; onOpen: () => void }) => {
+const AccountRow = ({
+  account,
+  libraries,
+  onOpen,
+}: {
+  account: AdminAccountDto
+  libraries: Libraries
+  onOpen: () => void
+}) => {
   const { t } = useTranslation()
   return (
     <div className="acc-tr" role="row" data-disabled={account.disabledAt !== undefined}>
@@ -62,7 +93,7 @@ const AccountRow = ({ account, onOpen }: { account: AdminAccountDto; onOpen: () 
         <span className="acc-pill">{t(`admin.accounts.role.${account.role}`)}</span>
       </div>
       <div className="acc-tr__cell acc-tr__profiles" role="cell">
-        <ProfileStack account={account} />
+        <ProfileStack account={account} libraries={libraries} />
       </div>
       <div className="acc-tr__cell acc-tr__activity" role="cell">
         <AccountActivity account={account} />
@@ -143,7 +174,12 @@ export const AccountsPage = () => {
           </div>
           {accounts.isPending ? <SkeletonRows /> : undefined}
           {items.map((account) => (
-            <AccountRow key={account.id} account={account} onOpen={() => setOpenId(account.id)} />
+            <AccountRow
+              key={account.id}
+              account={account}
+              libraries={libraries.data?.items ?? []}
+              onOpen={() => setOpenId(account.id)}
+            />
           ))}
         </div>
       )}

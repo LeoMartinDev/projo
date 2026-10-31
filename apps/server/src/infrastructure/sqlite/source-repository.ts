@@ -15,6 +15,7 @@ import type {
   SourceSnapshot,
 } from '../../core/source/source.ts'
 import type { IdGenerator } from '../../core/ids.ts'
+import { joinAbsolute } from '../../core/library/roots.ts'
 import type { Db } from './database.ts'
 import { fromIso, stripNulls, toIso, toNullable } from './rows.ts'
 import {
@@ -125,9 +126,6 @@ const toInsert = (source: NewSource): SourceInsert => ({
   reviewReason: toNullable(source.reviewReason),
 })
 
-const joinPath = (root: string, relative: string): string =>
-  root === '/' ? `/${relative}` : `${root}/${relative}`
-
 const INSERT_CHUNK = 500
 
 /** Titles of linked items ("attached item", §15), episodes with their series. */
@@ -186,7 +184,7 @@ export const createSqliteSourceRepository = ({
       .innerJoin(libraryRoots, eq(libraryRoots.id, sources.rootId))
       .where(eq(sources.id, id))
       .get()
-    return row === undefined ? undefined : joinPath(row.root, row.relativePath)
+    return row === undefined ? undefined : joinAbsolute(row.root, row.relativePath)
   },
 
   applyChanges: ({ inserts, patches }) => {

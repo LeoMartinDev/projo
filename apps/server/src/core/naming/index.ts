@@ -7,7 +7,7 @@ export {
   VIDEO_EXTENSIONS,
 } from './filters'
 export { normalizeLanguage } from './languages'
-export { extensionOf, fileName } from './path'
+export { directoryOf, extensionOf, fileName } from './path'
 export { resolveStacks, unstackedTitle } from './stacks'
 export { matchExternalSubtitles } from './subtitles'
 export { normalizeTitle } from './title'

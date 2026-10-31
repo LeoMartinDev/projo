@@ -2,6 +2,8 @@ import type { Clock } from '../../core/clock.ts'
 import type { DirectoryEntry, FileSystem } from '../../core/fs/file-system.ts'
 import { joinAbsolute, relativeTo } from '../../core/library/roots.ts'
 import {
+  directoryOf,
+  extensionOf,
   filterDirectory,
   filterFile,
   MIN_VIDEO_SIZE_BYTES,
@@ -22,18 +24,8 @@ const CANDIDATE_EXTENSIONS: ReadonlySet<string> = new Set([
   'disc',
 ])
 
-const extensionOf = (name: string): string => {
-  const dot = name.lastIndexOf('.')
-  return dot <= 0 ? '' : name.slice(dot + 1).toLowerCase()
-}
-
 const join = (directory: string, name: string): string =>
   directory === '' ? name : `${directory}/${name}`
-
-const directoryOf = (relativePath: string): string => {
-  const index = relativePath.lastIndexOf('/')
-  return index < 0 ? '' : relativePath.slice(0, index)
-}
 
 export type WalkResult = {
   videos: FoundFile[]

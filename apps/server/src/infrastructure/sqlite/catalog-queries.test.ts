@@ -284,6 +284,16 @@ describe('§13.5 search (FTS5)', () => {
     expect(search('œdipe')).toEqual(['oedipe'])
   })
 
+  test('ligatures fold both ways (œ, æ, ß)', () => {
+    movie('coeur', { title: 'Le Cœur des hommes', originalTitle: 'Straße' })
+    expect(search('coeur')).toEqual(['coeur'])
+    expect(search('cœur')).toEqual(['coeur'])
+    expect(search('strasse')).toEqual(['coeur'])
+    expect(search('oedipe')).toEqual(['oedipe'])
+    db.update(items).set({ title: 'Ætherium' }).where(eq(items.id, 'amer')).run()
+    expect(search('aether')).toEqual(['amer'])
+  })
+
   test('only visible movies and series; follows title updates and deletions', () => {
     expect(search('bis')).toEqual([])
     db.update(items).set({ title: 'Zodiac' }).where(eq(items.id, 'amer')).run()

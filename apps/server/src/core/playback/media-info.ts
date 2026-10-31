@@ -64,7 +64,3 @@ export type MediaInfo = {
 export type MediaProber = {
   probe: (path: string) => Promise<Result<MediaInfo, AppError<'media/ffprobe_failed'>>>
 }
-
-/** The audio track the browser would play by itself: the default one, else the first. */
-export const defaultAudioStream = (media: MediaInfo): AudioStreamInfo | undefined =>
-  media.audio.find((stream) => stream.isDefault) ?? media.audio[0]

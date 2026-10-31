@@ -19,10 +19,6 @@ export const stripNulls = <T extends Record<string, unknown>>(row: T): StripNull
 export const toNullable = <T>(value: T | undefined): T | null =>
   value === undefined ? null : value
 
-/** Single value read from SQLite → `undefined` instead of `null`. */
-export const fromNullable = <T>(value: T | null): T | undefined =>
-  value === null ? undefined : value
-
 export const toIso = (date: Date): string => date.toISOString()
 export const fromIso = (value: string): Date => new Date(value)
 export const fromIsoNullable = (value: string | null): Date | undefined =>
