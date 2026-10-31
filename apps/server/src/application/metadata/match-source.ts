@@ -160,9 +160,10 @@ export const matchSourceFactory = ({
             language,
           })
     if (!resolution.ok) return failure(source, resolution.error)
-    // The source may have gone (deleted, quarantined) while TMDB answered.
+    // Gone (deleted, quarantined) or fixed by the admin in "To review" while TMDB answered.
     const fresh = sourceRepository.findById(sourceId)
     if (fresh === undefined || fresh.state !== 'ready') return ok('skipped')
+    if (fresh.matchState === 'matched' || fresh.matchState === 'manual') return ok('skipped')
     if (resolution.value.kind === 'review') {
       applyMatch.review(source.id, resolution.value.reason)
       log.info('source needs review', { reviewReason: resolution.value.reason })

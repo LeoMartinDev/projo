@@ -13,6 +13,7 @@ import type { TmdbApi, TmdbError, TmdbSearchHit } from '../../core/metadata/tmdb
 import { analyzeMediaPath, MIN_VIDEO_SIZE_BYTES, showFolderOf } from '../../core/naming/index.ts'
 import { matchStateFor } from '../../core/scanner/scan-plan.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
+import { probeJob } from '../scanner/probe-source.ts'
 import type { ApplyMatch } from './apply-match.ts'
 import { requestImages } from './match-source.ts'
 import type { RefreshMetadata } from './refresh-metadata.ts'
@@ -385,12 +386,7 @@ export const reviewFactory = ({
         matchState,
         reviewReason: matchState === 'needs_review' ? analysis.reviewReason : undefined,
       })
-      jobQueue.enqueue({
-        type: 'probe_source',
-        payload: { sourceId, mode: 'recheck' },
-        dedupeKey: `source:${sourceId}`,
-        priority: 80,
-      })
+      jobQueue.enqueue({ ...probeJob(sourceId, 'recheck'), priority: 80 })
       logger.info('source restored', { sourceId })
       return ok()
     },

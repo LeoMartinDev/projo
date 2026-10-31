@@ -27,6 +27,7 @@ export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued
         maxAttempts: input.maxAttempts ?? defaults.maxAttempts,
         runAfter: input.runAfter ?? clock.now(),
         ...(input.dedupeKey === undefined ? {} : { dedupeKey: input.dedupeKey }),
+        ...(input.mergePayload === undefined ? {} : { mergePayload: input.mergePayload }),
       })
       if (!output.deduplicated) {
         eventBus.publish('job.updated', {

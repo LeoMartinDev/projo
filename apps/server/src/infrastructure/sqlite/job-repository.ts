@@ -71,6 +71,9 @@ export const createSqliteJobRepository = ({ db }: { db: Db }): JobRepository => 
             .set({
               priority: Math.max(existing.priority, job.priority),
               runAfter: runAfter < existing.runAfter ? runAfter : existing.runAfter,
+              ...(job.mergePayload === undefined
+                ? {}
+                : { payload: job.mergePayload(existing.payload) }),
             })
             .where(eq(jobs.id, existing.id))
             .returning()

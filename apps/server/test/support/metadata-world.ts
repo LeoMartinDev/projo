@@ -1,11 +1,13 @@
 import { Hono } from 'hono'
 
+import { everything } from '../../src/core/catalog/catalog.ts'
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { ImageReencoder } from '../../src/core/metadata/editing.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { type JobHandler, mergeJobHandlers } from '../../src/entrypoints/jobs/handler.ts'
 import { buildMetadataModule } from '../../src/entrypoints/modules/metadata.ts'
+import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
 import { createTempDir } from './database.ts'
 import { silentLogger } from './logger.ts'
 import { createScannerWorld } from './scanner-world.ts'
@@ -21,6 +23,7 @@ export const createMetadataWorld = ({
   canViewImage,
   imageReencoder,
 }: {
+  /** Default: the catalog's check, every profile seeing everything (§6.3 only). */
   canViewImage?: (input: { imageId: string; profileId: string }) => boolean
   /** Uploaded images (§9.3); default: real ffmpeg. */
   imageReencoder?: ImageReencoder
@@ -30,13 +33,15 @@ export const createMetadataWorld = ({
   const tmdb = startTmdbServer()
   const endedItems: string[][] = []
   const platform = { ...scanner.platform, paths: dataPathsFor(data.path) }
+  const catalog = createSqliteCatalogRepository({ db: scanner.db })
   const metadata = buildMetadataModule(platform, {
     playbackSessions: {
       endWithin: (scope) => {
         if ('itemIds' in scope) endedItems.push([...scope.itemIds])
       },
     },
-    ...(canViewImage === undefined ? {} : { canViewImage }),
+    canViewImage:
+      canViewImage ?? (({ imageId }) => catalog.isImageVisible({ imageId, scope: everything })),
     ...(imageReencoder === undefined ? {} : { imageReencoder }),
     tmdb: { apiBaseUrl: tmdb.apiBaseUrl, imageBaseUrl: tmdb.imageBaseUrl, sleep: async () => {} },
   })

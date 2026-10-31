@@ -18,16 +18,16 @@ const contentTypeOf = (path: string): string => {
 }
 
 /**
- * `GET /images/:id` (§9.1, §20): only an image an item visible to users (or a person credited on
- * one) uses. Anything else is "not found", whether it exists or not. `variants`: the WebP files
- * that answer `width` (§9.1), best first; `path` is the original, served while they are missing.
+ * `GET /images/:id` (§9.1, §20): the stored image, once the route's `canView` let the profile see
+ * it (an item it may see, or a person credited on one, uses it). `variants`: the WebP files that
+ * answer `width` (§9.1), best first; `path` is the original, served while they are missing.
  */
 export const getImageFactory =
   ({
     images,
     files,
   }: {
-    images: Pick<ImageRepository, 'findServable'>
+    images: Pick<ImageRepository, 'findById'>
     files: Pick<ImageFiles, 'absolutePath'>
   }) =>
   ({
@@ -40,7 +40,7 @@ export const getImageFactory =
     { path: string; contentType: string; variants: string[] },
     AppError<'catalog/image_not_found'>
   > => {
-    const image = images.findServable(id)
+    const image = images.findById(id)
     if (image === undefined) {
       return err(appError('catalog/image_not_found', 'image not found', { context: { id } }))
     }

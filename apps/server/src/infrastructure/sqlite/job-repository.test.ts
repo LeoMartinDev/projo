@@ -51,6 +51,20 @@ describe('createSqliteJobRepository', () => {
     expect(second.job.runAfter).toEqual(at(5))
   })
 
+  test('a merged request keeps the payload its mergePayload returns', () => {
+    const first = repo.enqueue(newJob({ dedupeKey: 'source:s1', payload: { mode: 'verify' } }))
+    const second = repo.enqueue(
+      newJob({
+        dedupeKey: 'source:s1',
+        payload: { mode: 'recheck' },
+        mergePayload: (queued) => ({ queued, mode: 'recheck' }),
+      }),
+    )
+    expect(second.job.id).toBe(first.job.id)
+    expect(second.job.payload).toEqual({ queued: { mode: 'verify' }, mode: 'recheck' })
+    expect(repo.findById(first.job.id)?.payload).toEqual(second.job.payload)
+  })
+
   test('claimNext picks by priority then age, and respects run_after and types', () => {
     repo.enqueue(newJob({ id: 'a', priority: 10 }))
     repo.enqueue(newJob({ id: 'b', priority: 70, runAfter: at(30) }))

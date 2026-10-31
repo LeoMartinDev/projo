@@ -30,9 +30,12 @@ import {
   useWatchedToggle,
   useWatchlistToggle,
 } from './actions.ts'
-import { type CardPlace, type CardText, isPosterPlace, useCardText } from './card-text.ts'
+import { useCardText } from './card-text.ts'
 import {
+  type CardPlace,
+  type CardText,
   detailTargetOf,
+  isPosterPlace,
   isWatched,
   listTargetOf,
   posterOf,

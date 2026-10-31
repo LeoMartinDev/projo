@@ -1,5 +1,5 @@
 import { Database as SqliteClient } from 'bun:sqlite'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
@@ -62,6 +62,27 @@ const pendingMigrations = (client: SqliteClient, migrations: MigrationMeta[]): n
 const backupFileName = (now: Date): string =>
   `projo-${now.toISOString().replaceAll(':', '-').replace('.', '-')}-pre-migration.db`
 
+/** Pre-migration copies kept in `backupsDir` (each is a whole database). */
+const KEPT_MIGRATION_BACKUPS = 2
+
+/**
+ * Removes all but the newest pre-migration copies (names sort by time); the supervisor's copies
+ * and the admin's exports are left. A failure only logs: the migration does not depend on it.
+ */
+const pruneMigrationBackups = (backupsDir: string, logger: Logger): void => {
+  try {
+    const copies = readdirSync(backupsDir)
+      .filter((name) => name.startsWith('projo-') && name.endsWith('-pre-migration.db'))
+      .sort()
+    for (const name of copies.slice(0, -KEPT_MIGRATION_BACKUPS)) {
+      rmSync(join(backupsDir, name), { force: true })
+      logger.info('old pre-migration backup removed', { backupFile: name })
+    }
+  } catch (cause) {
+    logger.warn('cannot remove old pre-migration backups', { backupsDir, error: cause })
+  }
+}
+
 /**
  * Opens SQLite (WAL, foreign keys), backs the file up into `backupsDir` when migrations are
  * pending on an existing database, then applies the Drizzle migrations.
@@ -112,6 +133,7 @@ export const openDatabase = ({
         }),
       )
     }
+    pruneMigrationBackups(backupsDir, logger)
   }
 
   const db = drizzle({ client, schema, casing: 'snake_case' })

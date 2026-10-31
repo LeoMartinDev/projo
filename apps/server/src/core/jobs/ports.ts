@@ -10,6 +10,11 @@ export type EnqueueJobInput = {
    * `running`, a new one is queued and only starts after the running one ends.
    */
   dedupeKey?: string
+  /**
+   * With `dedupeKey`: the payload the queued job keeps when this request merges into it (default:
+   * the queued one's). For requests of one key that differ, e.g. probe modes.
+   */
+  mergePayload?: (queued: unknown) => unknown
   /** Defaults to `jobDefaults[type].priority`. Higher runs first. */
   priority?: number
   /** Defaults to now. */
@@ -30,6 +35,7 @@ export type NewJob = {
   type: JobType
   payload: unknown
   dedupeKey?: string
+  mergePayload?: (queued: unknown) => unknown
   priority: number
   maxAttempts: number
   runAfter: Date

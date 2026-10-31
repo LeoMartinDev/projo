@@ -1,9 +1,24 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { Database } from 'bun:sqlite'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { createTempDir } from '../../test/support/database.ts'
+import { eq } from 'drizzle-orm'
+
+import { type MeResponse, sessionCookieName } from '@projo/shared/api/auth'
+
+import {
+  insertItem,
+  insertLibrary,
+  insertProfile,
+  insertSource,
+} from '../../test/support/catalog-fixtures.ts'
+import { createManualClock } from '../../test/support/clock.ts'
+import { createTempDir, migrationsDir } from '../../test/support/database.ts'
+import { silentLogger } from '../../test/support/logger.ts'
+import { closeDatabase, openDatabase } from '../infrastructure/sqlite/database.ts'
+import { profiles } from '../infrastructure/sqlite/schema/accounts.ts'
+import { images } from '../infrastructure/sqlite/schema/items.ts'
 import { resolveAppPaths } from './app-paths.ts'
 import { startProjo } from './main.ts'
 
@@ -114,6 +129,63 @@ describe('startProjo', () => {
       error: 'scan/interrupted',
     })
     after.close()
+  })
+
+  test('a profile limited to no library gets 404 on a title and on its poster (§14)', async () => {
+    temp = createTempDir()
+    const started = startProjo({
+      env: { PORT: '0', DATA_DIR: temp.path, LOG_LEVEL: 'error' },
+      appPaths: resolveAppPaths(import.meta.dir),
+    })
+    if (!started.ok) throw new Error(started.error.message)
+    const url = (path: string) => new URL(`/api/v1${path}`, started.value.url)
+    const setup = await fetch(url('/setup'), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ username: 'leo', password: 'correct horse battery' }),
+    })
+    expect(setup.status).toBe(201)
+    const cookie = /projo_session=[^;]+/u.exec(setup.headers.get('set-cookie') ?? '')?.[0] ?? ''
+    expect(cookie.startsWith(`${sessionCookieName}=`)).toBe(true)
+    const me = (await setup.json()) as MeResponse
+
+    // A movie with a poster in the only library, and a kids' profile that sees no library.
+    const opened = openDatabase({
+      file: join(temp.path, 'db/projo.db'),
+      migrationsDir,
+      clock: createManualClock(),
+      logger: silentLogger,
+    })
+    if (!opened.ok) throw new Error(opened.error.message)
+    const db = opened.value
+    insertLibrary(db)
+    db.insert(images)
+      .values({
+        id: 'poster-1',
+        kind: 'poster',
+        origin: 'tmdb',
+        localPath: 'posters/poster-1.jpg',
+        width: 1,
+        height: 1,
+      })
+      .run()
+    insertItem(db, { id: 'movie-1', kind: 'movie', posterImageId: 'poster-1' })
+    insertSource(db, { id: 'source-1', itemId: 'movie-1' })
+    insertProfile(db, me.account.id, 'kid')
+    db.update(profiles).set({ libraryAccess: 'selected' }).where(eq(profiles.id, 'kid')).run()
+    closeDatabase(db)
+    mkdirSync(join(temp.path, 'images/posters'), { recursive: true })
+    writeFileSync(join(temp.path, 'images/posters/poster-1.jpg'), 'jpeg')
+
+    const as = (profileId: string, path: string) =>
+      fetch(url(path), { headers: { cookie, 'x-profile-id': profileId } })
+    const admin = me.profiles[0]?.id ?? ''
+    expect((await as(admin, '/items/movie-1')).status).toBe(200)
+    expect((await as(admin, '/images/poster-1')).status).toBe(200)
+    expect((await as('kid', '/items/movie-1')).status).toBe(404)
+    expect((await as('kid', '/images/poster-1')).status).toBe(404)
+
+    await started.value.stop()
   })
 
   test('refuses an invalid configuration', () => {

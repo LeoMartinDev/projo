@@ -1,9 +1,7 @@
 import { type Href, useRouter } from 'expo-router'
 
-import { detailTargetOf } from '@projo/i18n/media'
+import { type CardPlace, detailTargetOf } from '@projo/i18n/media'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
-
-import type { CardPlace } from './card-text.ts'
 
 /** Title page of an item (§13.5); an episode or a season opens its series on its season. */
 export const itemHref = (item: Pick<ItemSummaryDto, 'id' | 'kind' | 'seasonNumber' | 'series'>) => {

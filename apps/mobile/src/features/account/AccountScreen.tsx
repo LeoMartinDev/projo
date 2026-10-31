@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { StyleSheet, Text, View } from 'react-native'
 
+import { formatRelative } from '@projo/i18n/format'
 import { passwordSchema, type SessionDto, sessionsResponseSchema } from '@projo/shared/api/auth'
 
 import { requestApi } from '../../shared/api/client.ts'
 import { failure, toFailure } from '../../shared/api/failure.ts'
-import { formatRelative } from '../../shared/i18n/intl.ts'
 import { colors, fonts } from '../../shared/styles/tokens.ts'
 import { Button } from '../../shared/ui/Button.tsx'
 import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'

@@ -96,7 +96,7 @@ describe('watch_pending (§7.3 step 3) with a simulated disk and clock', () => {
     clock.advance(90_000)
     expect(await watchPending()).toMatchObject({ stable: 1 })
     expect(pending.current().stableSince).toEqual(clock.now())
-    expect(enqueued.probes()).toEqual([
+    expect(enqueued.probes()).toMatchObject([
       {
         type: 'probe_source',
         payload: { sourceId: 's1', mode: 'quarantine' },

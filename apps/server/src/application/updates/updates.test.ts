@@ -233,6 +233,52 @@ describe('apply_update', () => {
   })
 })
 
+describe('apply_update retried or cancelled', () => {
+  test('a retried old job for the running version installs nothing', async () => {
+    const installs: string[] = []
+    const world = setup({
+      appVersion: '1.4.0',
+      latest: release('1.4.0'),
+      installer: {
+        install: async ({ release: target }) => {
+          installs.push(target.version)
+          return ok(manifest(target.version))
+        },
+      },
+    })
+    const result = await applyUpdateFactory(world)({
+      version: '1.4.0',
+      signal: new AbortController().signal,
+      reportProgress: () => {},
+    })
+    expect(result).toMatchObject({ ok: false, error: { code: 'update/already_current' } })
+    expect(installs).toEqual([])
+    expect(world.exits()).toBe(0)
+  })
+
+  test('a cancel that arrives during the download stops before the switch', async () => {
+    const controller = new AbortController()
+    const world = setup({
+      latest: release('1.4.0'),
+      installer: {
+        install: async ({ release: target }) => {
+          controller.abort()
+          return ok(manifest(target.version))
+        },
+      },
+    })
+    const result = await applyUpdateFactory(world)({
+      version: '1.4.0',
+      signal: controller.signal,
+      reportProgress: () => {},
+    })
+    expect(result).toMatchObject({ ok: false, error: { code: 'job/cancelled' } })
+    expect(world.pendingWrites).toEqual([])
+    expect(world.exits()).toBe(0)
+    expect(world.runs).toMatchObject([{ outcome: 'failed' }])
+  })
+})
+
 describe('reconcile after a switch', () => {
   test('a pending run without report: the switch never happened', async () => {
     const world = setup({

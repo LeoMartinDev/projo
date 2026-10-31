@@ -84,7 +84,14 @@ type ApplyDeps = {
 }
 
 export type ApplyUpdateError =
-  InstallReleaseError | AppError<'update/disabled' | 'update/not_found' | 'update/runtime_too_old'>
+  | InstallReleaseError
+  | AppError<
+      | 'update/disabled'
+      | 'update/not_found'
+      | 'update/already_current'
+      | 'update/runtime_too_old'
+      | 'job/cancelled'
+    >
 
 /**
  * `apply_update` (§16.4): download, `SHA256SUMS` and manifest checks, `versions/<v>`, `pending`,
@@ -114,8 +121,14 @@ export const applyUpdateFactory =
   }): Promise<Result<void, ApplyUpdateError>> => {
     const { enabled, appVersion, runtimeVersion } = processControl
     if (!enabled) return err(disabledError())
+    // A retried old job: the version may be the running one (its folder is live) or older.
+    if (version === appVersion) return err(alreadyCurrent(version))
     const release = checkStore.read()?.latest
-    if (release === undefined || release.version !== version)
+    if (
+      release === undefined ||
+      release.version !== version ||
+      !isNewerVersion(version, appVersion)
+    )
       return err(
         appError('update/not_found', 'this version is not the available release', {
           context: { version },
@@ -162,6 +175,9 @@ export const applyUpdateFactory =
       },
     })
     if (!installed.ok) return failRun(installed.error)
+    // Cancelled during the download: no switch.
+    if (signal.aborted)
+      return failRun(appError('job/cancelled', 'update cancelled', { context: { version } }))
     repository.upsertVersion({
       version,
       state: 'staged',

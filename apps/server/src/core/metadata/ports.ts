@@ -115,11 +115,6 @@ export type ImageRepository = {
   localPaths: () => string[]
   /** Deletes the row when nothing references it any more; returns it so the file can go too. */
   deleteIfUnused: (id: string) => StoredImage | undefined
-  /**
-   * The image if an item visible to users (§6.3, a ready source) or a person credited on one
-   * uses it (§20: no image URL outside what the account can see).
-   */
-  findServable: (id: string) => StoredImage | undefined
 }
 
 export type ImageFilesError = AppError<'metadata/image_failed'>

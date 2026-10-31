@@ -16,8 +16,15 @@ import {
   useWatchedToggle,
   useWatchlistToggle,
 } from './actions.ts'
-import { type CardPlace, useCardText } from './card-text.ts'
-import { detailTargetOf, listTargetOf, progressRatioOf, toneOf, wideArtOf } from './media.ts'
+import { useCardText } from './card-text.ts'
+import {
+  type CardPlace,
+  detailTargetOf,
+  listTargetOf,
+  progressRatioOf,
+  toneOf,
+  wideArtOf,
+} from './media.ts'
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
 import './media.css'
 

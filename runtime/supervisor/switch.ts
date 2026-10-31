@@ -1,4 +1,4 @@
-import { copyFile, mkdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import type { Clock } from './clock'
 import { errorFields, type Logger } from './logger'
@@ -114,12 +114,36 @@ export const switchHandlerFactory = ({
     return backup
   }
 
+  /**
+   * Copies first, beside the live files, then swaps with `rename`: a kill at any step leaves the
+   * new version's database or the old one, never one's journal replayed onto the other. `-shm`
+   * is not restored: SQLite rebuilds it from the `-wal`.
+   */
   const restoreDatabase = async (backup: string): Promise<void> => {
-    await copyFile(backup, db.file)
-    for (const suffix of DB_SIDE_FILES) {
-      await rm(`${db.file}${suffix}`, { force: true })
-      if (await exists(`${backup}${suffix}`))
-        await copyFile(`${backup}${suffix}`, `${db.file}${suffix}`)
+    const restored = `${db.file}.restore`
+    await copyFile(backup, restored)
+    await rm(`${restored}-wal`, { force: true })
+    const withWal = await exists(`${backup}-wal`)
+    if (withWal) await copyFile(`${backup}-wal`, `${restored}-wal`)
+    for (const suffix of DB_SIDE_FILES) await rm(`${db.file}${suffix}`, { force: true })
+    await rename(restored, db.file)
+    if (withWal) await rename(`${restored}-wal`, `${db.file}-wal`)
+  }
+
+  /** `projo-<version>.db[-wal|-shm]` of earlier switches; the app's own copies are left alone. */
+  const pruneBackups = async (keep: string): Promise<void> => {
+    const names = await readdir(db.backupsDir).catch(() => [] as string[])
+    for (const name of names) {
+      const version = /^projo-(.+)\.db(?:-wal|-shm)?$/u.exec(name)?.[1]
+      if (version === undefined || version === keep || !isSemVer(version)) continue
+      await rm(join(db.backupsDir, name), { force: true }).then(
+        () => logger.info('old database backup removed', { file: name }),
+        (cause: unknown) =>
+          logger.warn('cannot remove an old database backup', {
+            file: name,
+            error: describe(cause),
+          }),
+      )
     }
   }
 
@@ -199,6 +223,8 @@ export const switchHandlerFactory = ({
       if (!linked.ok)
         logger.warn('cannot point previous to the old version', errorFields(linked.error))
       await pruneVersions([to, from])
+      // Keeps the copy taken before this switch: the database `previous` last ran on.
+      await pruneBackups(from)
       await removePending()
       await writeReport({ fromVersion: from, toVersion: to, outcome: 'switched' })
       logger.info('app version switched', { code: 'update/switched', from, to })

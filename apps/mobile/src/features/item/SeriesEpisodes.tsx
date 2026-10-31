@@ -6,7 +6,13 @@ import { ActionSheetIOS, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { formatDuration } from '@projo/i18n/format'
 import { itemTitle, listedNumber, seasonLabel } from '@projo/i18n/item-titles'
-import { durationMsOf, progressRatioOf, remainingMsOf } from '@projo/i18n/media'
+import {
+  durationMsOf,
+  formatRemaining,
+  playLabelOf,
+  progressRatioOf,
+  remainingMsOf,
+} from '@projo/i18n/media'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 import { episodeCards, episodeNumberLabel, sortedSeasons } from '@projo/shared/api/next-episode'
 
@@ -18,7 +24,7 @@ import { useWatchedToggle, useWatchlistToggle } from '../catalog/actions.ts'
 import { useCatalogQueries } from '../catalog/queries.ts'
 import { Artwork } from '../media/Artwork.tsx'
 import { PlayButton } from '../media/buttons.tsx'
-import { formatRemaining, playLabelOf, useLocale } from '../media/card-text.ts'
+import { useLocale } from '../media/card-text.ts'
 import { ProgressBar } from '../media/parts.tsx'
 import { DetailHead, HeadAction, ProgressLine } from './DetailHead.tsx'
 import { CastRow, Section } from './sections.tsx'

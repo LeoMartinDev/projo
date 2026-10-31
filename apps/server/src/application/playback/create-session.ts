@@ -49,6 +49,7 @@ import {
 } from '../../core/playback/versions.ts'
 import {
   applyPosition,
+  creditsStartOf,
   type ProgressRepository,
   resumePositionMs,
 } from '../../core/progress/progress.ts'
@@ -469,6 +470,16 @@ export const createPlaybackSessionFactory = ({
     const { accountId: _accountId, ...row } = session
     sessionRepository.insert(row)
 
+    // §12, §7.7: the segments timed on this version (none when they belong to another cut).
+    const segmentsOf = (id: string) =>
+      segmentsForVersion(catalogRepository.listMediaSegments(id), {
+        referenceMs: itemTimeline(
+          catalogRepository.listReadySources({ itemId: id, scope: everything }),
+        ).durationMs,
+        playedMs: total > 0 ? total : undefined,
+      })
+    const mediaSegments = segmentsOf(itemId)
+
     // A play starts: `last_played_at`, back in the home rows (its series too, §13.1), and the
     // duration recorded for the heartbeats. A multi-episode file plays every episode it holds.
     for (const playedId of unique([itemId, ...catalogRepository.listSourceItemIds(source.id)])) {
@@ -483,6 +494,8 @@ export const createPlaybackSessionFactory = ({
           positionMs: startPositionMs,
           durationMs,
           at: now,
+          // §12.4: a start in the credits (a track change there) keeps the item watched.
+          ...creditsStartOf(playedId === itemId ? mediaSegments : segmentsOf(playedId)),
         }),
       )
     }
@@ -505,11 +518,7 @@ export const createPlaybackSessionFactory = ({
       media,
       startPositionMs,
       ...(durationMs === undefined ? {} : { durationMs }),
-      mediaSegments: segmentsForVersion(catalogRepository.listMediaSegments(itemId), {
-        referenceMs: itemTimeline(catalogRepository.listReadySources({ itemId, scope: everything }))
-          .durationMs,
-        playedMs: total > 0 ? total : undefined,
-      }),
+      mediaSegments,
       audioTracks: media.audio.map((stream) => {
         const alternative = decide(stream.index)
         const delivery: AudioDelivery | undefined = !alternative.ok

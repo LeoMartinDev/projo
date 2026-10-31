@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import type { ImageSlot } from '../../core/metadata/enrichment.ts'
 import type { ImageRepository, StoredImage } from '../../core/metadata/ports.ts'
@@ -21,20 +21,6 @@ const slotKey = {
 } as const satisfies Record<ImageSlot, keyof typeof items.$inferInsert>
 
 const toStoredImage = (row: typeof images.$inferSelect): StoredImage => stripNulls(row)
-
-/**
- * §6.3 visibility of the item `alias` (a ready source on it or on one of its episodes), the
- * same rule as the catalog: an image is served only when such an item uses it (§20).
- */
-const visibleItem = (alias: string) =>
-  sql.raw(`EXISTS (
-    SELECT 1 FROM source_items si JOIN sources s ON s.id = si.source_id
-    WHERE s.state = 'ready' AND (
-      si.item_id = ${alias}.id
-      OR si.item_id IN (SELECT e.id FROM items e WHERE e.parent_id = ${alias}.id)
-      OR si.item_id IN (
-        SELECT e.id FROM items e JOIN items se ON e.parent_id = se.id WHERE se.parent_id = ${alias}.id)
-    ))`)
 
 /** `images` rows and the image columns of `items` and `people` (§6.3, §9.1). */
 export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository => ({
@@ -101,22 +87,5 @@ export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository
     if (row === undefined) return undefined
     db.delete(images).where(eq(images.id, id)).run()
     return toStoredImage(row)
-  },
-
-  findServable: (id) => {
-    const row = db
-      .select()
-      .from(images)
-      .where(
-        sql`${images.id} = ${id} AND (
-          EXISTS (SELECT 1 FROM items i
-            WHERE ${images.id} IN (i.poster_image_id, i.backdrop_image_id, i.logo_image_id, i.still_image_id)
-              AND ${visibleItem('i')})
-          OR EXISTS (SELECT 1 FROM people p JOIN item_people ip ON ip.person_id = p.id
-            JOIN items i ON i.id = ip.item_id
-            WHERE p.profile_image_id = ${images.id} AND ${visibleItem('i')}))`,
-      )
-      .get()
-    return row === undefined ? undefined : toStoredImage(row)
   },
 })

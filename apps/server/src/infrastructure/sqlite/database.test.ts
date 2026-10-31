@@ -129,6 +129,35 @@ describe('openDatabase', () => {
     expect(readdirSync(backups)).toHaveLength(1)
   })
 
+  test('keeps the last two pre-migration copies, nothing else is touched', () => {
+    const file = join(temp.path, 'projo.db')
+    const backups = join(temp.path, 'backups')
+    mkdirSync(backups)
+    const first = open(file, backups)
+    if (!first.ok) throw new Error(first.error.message)
+    closeDatabase(first.value)
+    const kept = ['projo-1.3.0.db', 'projo-export-20251202-100000.db']
+    for (const name of [
+      'projo-2025-12-01T10-00-00-000Z-pre-migration.db',
+      'projo-2025-12-02T10-00-00-000Z-pre-migration.db',
+      ...kept,
+    ])
+      writeFileSync(join(backups, name), 'older copy')
+    const raw = new Database(file)
+    raw.run('DELETE FROM __drizzle_migrations')
+    raw.close()
+
+    open(file, backups)
+    // The copy just taken (the manual clock's 2026-01-01) and the one before it.
+    expect(readdirSync(backups).sort()).toEqual(
+      [
+        ...kept,
+        'projo-2025-12-02T10-00-00-000Z-pre-migration.db',
+        'projo-2026-01-01T00-00-00-000Z-pre-migration.db',
+      ].sort(),
+    )
+  })
+
   test('corrections of an existing database move to `manual_matches`, keyed by path (§9.2)', () => {
     // The migrations up to `search`, then a correction in the former per-source table.
     const partial = join(temp.path, 'migrations')

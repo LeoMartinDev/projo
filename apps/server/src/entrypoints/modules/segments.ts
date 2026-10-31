@@ -32,7 +32,7 @@ import { createSqliteSegmentSettings } from '../../infrastructure/sqlite/segment
 import { adminSegmentsRoutes } from '../http/routes/admin-segments.ts'
 import { segmentsRoutes } from '../http/routes/segments.ts'
 import { defineJobHandler } from '../jobs/handler.ts'
-import { allVisible, type ScopeDeps } from './catalog.ts'
+import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
 
 const itemPayload = z.object({ itemId: z.string().min(1) })
@@ -96,7 +96,7 @@ export type SegmentsModuleOptions = ScopeDeps & ProviderOptions
  */
 export const buildSegmentsModule = (
   platform: Platform,
-  { visibilityScope = allVisible, ...providerOptions }: SegmentsModuleOptions = {},
+  { visibilityScope, ...providerOptions }: SegmentsModuleOptions,
 ) => {
   const { db, ids, clock, logger, eventBus, jobQueue, jobRepository } = platform
   const moduleLogger = logger.child({ module: 'segments' })

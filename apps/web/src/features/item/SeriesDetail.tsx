@@ -14,8 +14,14 @@ import { AddedIcon, AddIcon, CheckCircleIcon, RestartIcon } from '../../shared/u
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { childrenQuery } from '../catalog/queries.ts'
 import { useWatchedToggle, useWatchlistToggle } from '../media/actions.ts'
-import { formatRemaining } from '../media/card-text.ts'
-import { durationMsOf, progressRatioOf, remainingMsOf, toneOf } from '../media/media.ts'
+import {
+  durationMsOf,
+  formatRemaining,
+  playLabelOf,
+  progressRatioOf,
+  remainingMsOf,
+  toneOf,
+} from '../media/media.ts'
 import { episodeCards, episodeNumberLabel } from '../player/next-episode.ts'
 import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
@@ -223,18 +229,6 @@ export const SeriesDetail = ({
   const playingRatio = playing === undefined ? undefined : progressRatioOf(playing)
   const playingRemaining = playing === undefined ? undefined : remainingMsOf(playing)
   const listed = watchlist.listed(series)
-  const labels = { season: t('item.seasonShort'), episode: t('item.episodeShort') }
-  const code =
-    play === undefined
-      ? undefined
-      : [
-          play.seasonNumber === undefined ? undefined : `${labels.season}${play.seasonNumber}`,
-          play.episodeNumber === undefined ? undefined : `${labels.episode}${play.episodeNumber}`,
-        ]
-          .filter((part) => part !== undefined)
-          .join(' · ')
-  const started =
-    (series.watchStatus?.watchedCount ?? 0) + (series.watchStatus?.inProgressCount ?? 0) > 0
   const seasonStatus = selected?.watchStatus
   const seasonWatched = seasonStatus?.state === 'watched'
   const available = seasonStatus?.totalCount ?? episodeItems.length
@@ -304,11 +298,7 @@ export const SeriesDetail = ({
               className="button button--primary button--large detail-hero__play"
             >
               <PlayIcon />
-              {play.action === 'resume'
-                ? t('item.resumeEpisode', { episode: code })
-                : started
-                  ? t('item.playEpisodeCode', { episode: code })
-                  : t('item.play')}
+              {playLabelOf(t, series, play)}
             </Link>
           )}
           <button

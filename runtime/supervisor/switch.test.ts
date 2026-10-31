@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test'
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { switchHandlerFactory, dbLayout, type SwitchReport } from './switch'
 import { cleanupTempDirs, manualClock, memoryLogger, tempDir, writeBundle } from './test-support'
@@ -89,6 +89,45 @@ describe('version switch (§16.3)', () => {
     })
     // The refused version stays on the disk (the app marks it failed).
     expect((await readAppState(layout)).installed).toContain('1.4.0')
+  })
+
+  test('confirm keeps the backup of the version left, not those of earlier switches', async () => {
+    const { layout, db, handler, from } = await setup()
+    await mkdir(db.backupsDir, { recursive: true })
+    for (const name of [
+      'projo-1.1.0.db',
+      'projo-1.2.0.db',
+      'projo-1.2.0.db-wal',
+      'projo-2026-10-20T10-00-00-000Z-pre-migration.db',
+      'projo-export-20261020-100000.db',
+    ])
+      await writeFile(join(db.backupsDir, name), 'old copy')
+    await writeFile(layout.pendingFile, '1.4.0')
+    const pending = await handler.begin(from)
+    if (pending === undefined) throw new Error('switch not started')
+    await handler.confirm(pending)
+    expect((await readdir(db.backupsDir)).sort()).toEqual([
+      'projo-1.3.0.db',
+      'projo-1.3.0.db-wal',
+      'projo-2026-10-20T10-00-00-000Z-pre-migration.db',
+      'projo-export-20261020-100000.db',
+    ])
+  })
+
+  test('a restore that stops halfway leaves the live database whole', async () => {
+    const { layout, db, handler, from } = await setup()
+    await writeFile(layout.pendingFile, '1.4.0')
+    const pending = await handler.begin(from)
+    if (pending?.backup === undefined) throw new Error('switch not started')
+    await writeFile(db.file, 'migrated by 1.4.0')
+    await writeFile(`${db.file}-wal`, 'wal of 1.4.0')
+    // The backup's journal cannot be copied: the restore fails before touching the live files.
+    await rm(`${pending.backup}-wal`)
+    await mkdir(`${pending.backup}-wal`)
+
+    await handler.rollback(pending, 'health_timeout')
+    expect(await readFile(db.file, 'utf8')).toBe('migrated by 1.4.0')
+    expect(await readFile(`${db.file}-wal`, 'utf8')).toBe('wal of 1.4.0')
   })
 
   test('a pending version that is not installed correctly is refused', async () => {

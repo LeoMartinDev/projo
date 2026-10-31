@@ -5,13 +5,19 @@ import { useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { listTargetOf, progressRatioOf, qualityLabel, wideArtOf } from '@projo/i18n/media'
+import {
+  type CardPlace,
+  listTargetOf,
+  progressRatioOf,
+  qualityLabel,
+  wideArtOf,
+} from '@projo/i18n/media'
 
 import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 import { useHideFromContinue, useWatchedToggle, useWatchlistToggle } from '../catalog/actions.ts'
 import { Artwork } from './Artwork.tsx'
 import { PlayButton } from './buttons.tsx'
-import { type CardPlace, useCardText } from './card-text.ts'
+import { useCardText } from './card-text.ts'
 import { findItem } from './find-item.ts'
 import { itemHref } from './navigation.ts'
 import { ProgressBar } from './parts.tsx'

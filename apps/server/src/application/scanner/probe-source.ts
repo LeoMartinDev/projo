@@ -32,6 +32,29 @@ import type { LinkSourceItems } from './link-source-items.ts'
  */
 export type ProbeMode = 'quarantine' | 'verify' | 'recheck'
 
+/**
+ * A request merged into a queued probe of the same file never weakens it: `verify` may skip the
+ * decodes, `quarantine` decodes, `recheck` decodes whatever the state.
+ */
+const probeStrength: Record<ProbeMode, number> = { verify: 0, quarantine: 1, recheck: 2 }
+
+const isProbeMode = (value: unknown): value is ProbeMode =>
+  typeof value === 'string' && Object.hasOwn(probeStrength, value)
+
+/** The `probe_source` job of a source (one per source, `source:<id>`): the stronger mode wins. */
+export const probeJob = (sourceId: string, mode: ProbeMode) => ({
+  type: 'probe_source' as const,
+  payload: { sourceId, mode },
+  dedupeKey: `source:${sourceId}`,
+  mergePayload: (queued: unknown) => {
+    const queuedMode =
+      typeof queued === 'object' ? (queued as { mode?: unknown } | undefined)?.mode : undefined
+    return isProbeMode(queuedMode) && probeStrength[queuedMode] > probeStrength[mode]
+      ? { sourceId, mode: queuedMode }
+      : { sourceId, mode }
+  },
+})
+
 export type ProbeOutcome =
   'ready' | 'unchanged' | 'changed' | 'skipped' | 'probe_failed' | 'decode_failed'
 
@@ -63,7 +86,8 @@ const isToolFailure = (
 /**
  * Job `probe_source` (§7.3 step 4–5): ffprobe (duration > 0, a video stream), then three 2 s
  * decodes at 10/50/90 %. Success: `ready`, probe and signature stored, embedded subtitles listed,
- * items linked, `source.ready` published. Failure: back to `pending` with the reason.
+ * items linked, `source.ready` published. Failure: back to `pending` with the reason. Nothing is
+ * written when the row changed during the run (hidden, missing, moved).
  */
 export const probeSourceFactory = ({
   sourceRepository,
@@ -77,7 +101,20 @@ export const probeSourceFactory = ({
   clock,
   logger,
 }: Deps) => {
+  /** A scan or the admin may have moved, hidden or marked the source missing while ffmpeg ran. */
+  const changedMeanwhile = (source: Source): boolean => {
+    const fresh = sourceRepository.findById(source.id)
+    return (
+      fresh === undefined ||
+      fresh.state !== source.state ||
+      fresh.relativePath !== source.relativePath ||
+      fresh.sizeBytes !== source.sizeBytes ||
+      fresh.mtimeMs !== source.mtimeMs
+    )
+  }
+
   const toPending = (source: Source, reason: PendingReason, details: unknown): ProbeOutcome => {
+    if (changedMeanwhile(source)) return 'skipped'
     const now = clock.now()
     sourceRepository.patch(source.id, {
       state: 'pending',
@@ -128,6 +165,7 @@ export const probeSourceFactory = ({
     const before = await fileSystem.stat(path)
     if (!before.ok || before.value.kind !== 'file') return ok('skipped')
     const quarantine = (sizeBytes: number, mtimeMs: number): ProbeOutcome => {
+      if (changedMeanwhile(source)) return 'skipped'
       const now = clock.now()
       const patch: SourcePatch = {
         state: 'pending',
@@ -176,17 +214,7 @@ export const probeSourceFactory = ({
       return ok(quarantine(after.value.sizeBytes, after.value.mtimeMs))
     }
 
-    // A scan may have moved, quarantined or marked the source missing while ffmpeg ran.
-    const fresh = sourceRepository.findById(source.id)
-    if (
-      fresh === undefined ||
-      fresh.state !== source.state ||
-      fresh.relativePath !== source.relativePath ||
-      fresh.sizeBytes !== source.sizeBytes ||
-      fresh.mtimeMs !== source.mtimeMs
-    ) {
-      return ok('skipped')
-    }
+    if (changedMeanwhile(source)) return ok('skipped')
 
     const now = clock.now()
     const becameReady = source.state !== 'ready'

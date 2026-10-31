@@ -30,7 +30,7 @@ import { sourceItems, sourceSubtitles } from '../../../infrastructure/sqlite/sch
 import { settings } from '../../../infrastructure/sqlite/schema/ops.ts'
 import type { ServerEvent } from '../../../core/events.ts'
 import type { JobContext } from '../../jobs/handler.ts'
-import { buildCatalogModule } from '../../modules/catalog.ts'
+import { allVisible, buildCatalogModule } from '../../modules/catalog.ts'
 import type { Platform } from '../../modules/platform.ts'
 import { buildPlaybackModule } from '../../modules/playback.ts'
 import { buildProgressModule } from '../../modules/progress.ts'
@@ -120,8 +120,8 @@ beforeEach(() => {
   const scopes = (profileId: string) =>
     profileId === 'profile-kid' ? { allowedRatings: { FR: ['TP'] } } : {}
   playback = buildPlaybackModule(platform, { visibilityScope: scopes })
-  const catalog = buildCatalogModule(platform)
-  const progress = buildProgressModule(platform)
+  const catalog = buildCatalogModule(platform, { visibilityScope: allVisible })
+  const progress = buildProgressModule(platform, { visibilityScope: allVisible })
   api = createApi({
     middleware: {
       authenticate: async (c, next) => {

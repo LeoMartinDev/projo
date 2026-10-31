@@ -185,7 +185,7 @@ Operations (§15–16, M5): `operations` module (built before `metadata`, which 
 
 1. Edit `infrastructure/sqlite/schema/<group>.ts` (`casing: 'snake_case'`: camelCase properties → snake_case columns; booleans `integer({ mode: 'boolean' })`, dates ISO `text()`, JSON `text({ mode: 'json' }).$type<unknown>()` validated by `parseJsonColumn`).
 2. `bun run --cwd apps/server db:generate --name <what>` → new `drizzle/NNNN_<what>.sql` + `meta/`. Never edit an existing migration. Agents in parallel: one generation at a time, check `drizzle/meta/_journal.json`.
-3. Applied on startup (`openDatabase`), with a `VACUUM INTO` copy in `/data/db/backups/` if the database exists and migrations are pending. Failure ⇒ the process exits with code 1.
+3. Applied on startup (`openDatabase`), with a `VACUUM INTO` copy in `/data/db/backups/` if the database exists and migrations are pending (the last two `*-pre-migration.db` are kept). Failure ⇒ the process exits with code 1.
 
 Since the end of M1, migrations are **additive**: no more merging and no more regenerating `0000_init` (Léo has a real database in `.data/`). SQL Drizzle cannot express (FTS5 virtual tables, triggers): `db:generate --custom --name <what>` then write the SQL in the created file.
 

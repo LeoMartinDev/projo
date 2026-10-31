@@ -34,6 +34,7 @@ import {
 import { planExternalSubtitles, planStacks } from '../../core/scanner/sync.ts'
 import type { SourceRepository, SourceSnapshot } from '../../core/source/source.ts'
 import type { LinkSourceItems } from './link-source-items.ts'
+import { probeJob } from './probe-source.ts'
 import type { WalkResult, WalkRoot } from './walk-root.ts'
 
 type Deps = {
@@ -219,6 +220,16 @@ export const scanLibraryFactory = (deps: Deps) => {
     const walks: { root: LibraryRoot; walk: WalkResult }[] = []
     const unreachableRoots: string[] = []
     let seenBefore = 0
+    // Interrupted (cancel, clean stop): nothing applied, the next run starts over.
+    const cancelled = () => {
+      const finished = scanRunRepository.finish({
+        id: run.id,
+        finishedAt: clock.now(),
+        stats,
+        error: 'job/cancelled',
+      })
+      return ok({ run: finished, unreachableRoots })
+    }
     for (const [index, root] of library.roots.entries()) {
       const assessment = assessRootStat(await fileSystem.stat(root.path))
       const present = rootsNow()
@@ -243,15 +254,7 @@ export const scanLibraryFactory = (deps: Deps) => {
       })
       const stillPresent = rootsNow()
       if (stillPresent === undefined) return notFound()
-      if (walk.aborted) {
-        const finished = scanRunRepository.finish({
-          id: run.id,
-          finishedAt: clock.now(),
-          stats,
-          error: 'job/cancelled',
-        })
-        return ok({ run: finished, unreachableRoots })
-      }
+      if (walk.aborted) return cancelled()
       seenBefore += walk.videos.length
       if (!stillPresent.has(root.id)) continue
       stats.errors += walk.errors
@@ -289,6 +292,8 @@ export const scanLibraryFactory = (deps: Deps) => {
       rootPaths,
       signal,
     )
+    // An aborted probe leaves its move unpaired: applied, it would be a new file and a missing one.
+    if (signal?.aborted === true) return cancelled()
     // Read again after the last await: plan and apply run without yielding to other jobs.
     const present = rootsNow()
     if (present === undefined) return notFound()
@@ -358,19 +363,10 @@ export const scanLibraryFactory = (deps: Deps) => {
 
     // ── Probes to (re)run ──────────────────────────────────────────────────
     for (const sourceId of plan.retest) {
-      jobQueue.enqueue({
-        type: 'probe_source',
-        payload: { sourceId, mode: 'quarantine' },
-        dedupeKey: `source:${sourceId}`,
-      })
+      jobQueue.enqueue(probeJob(sourceId, 'quarantine'))
     }
     for (const sourceId of plan.verify) {
-      jobQueue.enqueue({
-        type: 'probe_source',
-        payload: { sourceId, mode: 'verify' },
-        dedupeKey: `source:${sourceId}`,
-        priority: 30,
-      })
+      jobQueue.enqueue({ ...probeJob(sourceId, 'verify'), priority: 30 })
     }
     reportProgress?.(100)
 

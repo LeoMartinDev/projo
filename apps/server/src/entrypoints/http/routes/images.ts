@@ -10,7 +10,10 @@ import { validate } from '../validation.ts'
 
 export type ImageFileOpener = (path: string) => { exists: () => Promise<boolean> } & Blob
 
-/** Profile scope of the catalog (§14: library access, maximum rating). */
+/**
+ * True when an item the profile may see (§6.3 and §14: ready source, library access, maximum
+ * rating) or a person credited on one uses the image.
+ */
 export type ImageAccess = (input: { imageId: string; profileId: string }) => boolean
 
 const notFound = (id: string) => ({
@@ -26,9 +29,9 @@ const image = (file: Blob, contentType: string, cacheControl: string) =>
   })
 
 /**
- * `GET /images/:id?w=` (§9.1, §17.2 Catalogue): the stored image of an item visible to users (or
- * of a person credited on one), never a TMDB URL; with `canView`, only through an item the active
- * profile may see (`X-Profile-Id` or the session's last profile: `<img>` sends no header). Its
+ * `GET /images/:id?w=` (§9.1, §17.2 Catalogue): the stored image of an item the active profile
+ * may see (or of a person credited on one: `canView`), never a TMDB URL. The profile is
+ * `X-Profile-Id` or the session's last profile (`<img>` sends no header). Its
  * WebP variant of width `w` (or full size), else the original while the variants are not encoded:
  * the id changes when the image changes, so a variant is `immutable`, the original only an hour.
  */
@@ -39,16 +42,13 @@ export const imagesRoutes = ({
 }: {
   getImage: GetImage
   open: ImageFileOpener
-  canView?: ImageAccess
+  canView: ImageAccess
 }) =>
   new Hono<AppEnv>().get('/images/:id', validate('query', imageQuerySchema), async (c) => {
     const id = c.req.param('id')
-    if (canView !== undefined) {
-      const profileId = currentProfileId(c)
-      if (!profileId.ok) return respondError(c, profileId.error)
-      if (!canView({ imageId: id, profileId: profileId.value }))
-        return respondError(c, notFound(id))
-    }
+    const profileId = currentProfileId(c)
+    if (!profileId.ok) return respondError(c, profileId.error)
+    if (!canView({ imageId: id, profileId: profileId.value })) return respondError(c, notFound(id))
     const { w } = c.req.valid('query')
     const found = getImage({ id, ...(w === undefined ? {} : { width: w }) })
     if (!found.ok) return respondError(c, found.error)

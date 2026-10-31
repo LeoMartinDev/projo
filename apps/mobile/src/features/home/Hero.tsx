@@ -9,7 +9,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { ratingBadge } from '@projo/i18n/content-ratings'
 import { genreLabels } from '@projo/i18n/genres'
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
-import { progressRatioOf, yearsLabel } from '@projo/i18n/media'
+import { formatRemaining, playLabelOf, progressRatioOf, yearsLabel } from '@projo/i18n/media'
 import type { HomeHeroDto } from '@projo/shared/api/home'
 
 import { colors, fonts, titleTracking } from '../../shared/styles/tokens.ts'
@@ -17,7 +17,7 @@ import { useReducedMotion } from '../../shared/ui/Backdrop.tsx'
 import { useWatchlistToggle } from '../catalog/actions.ts'
 import { Artwork, useServerImage } from '../media/Artwork.tsx'
 import { GlassButton, PlayButton } from '../media/buttons.tsx'
-import { formatRemaining, playLabelOf, useLocale } from '../media/card-text.ts'
+import { useLocale } from '../media/card-text.ts'
 import { useOpenItem } from '../media/navigation.ts'
 import { MetaLine, ProgressBar } from '../media/parts.tsx'
 

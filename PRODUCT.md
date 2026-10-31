@@ -245,7 +245,7 @@ A single volume, mounted on `/data`:
 ```
 /data/
   db/projo.db                 # SQLite (+ WAL)
-  db/backups/                 # copies before migration
+  db/backups/                 # copies before migration (the last 2) and before a version switch (the last one)
   images/{posters,backdrops,logos,stills,custom}/
   cache/transcode/<session>/  # HLS segments, deleted at the end of the session
   cache/trickplay/<source>/   # sprites and index
@@ -861,7 +861,7 @@ Bun script in the image (`runtime/supervisor/main.ts`, no npm dependency), start
 
 1. If `/data/app/current` does not exist or points to an invalid version: copies `/opt/projo/app` to `versions/<v>` and creates `current`.
 2. Starts `bun /data/app/versions/<v>/server.js` (real path resolved from `current`, so that a switch does not touch the running app), relays stdout/stderr, restarts the process if it dies (backoff 1 s, 5 s, 30 s).
-3. Exit code **75** = "switch requested": the supervisor reads `/data/app/pending` (the version, `1.4.0`, installed in `versions/<v>`), backs up the database (`db/backups/projo-<old>.db`), points `current` to the requested version, restarts, and waits for `/health` OK for 60 s. If OK: the old version becomes `previous`, at most the last 2 are kept, success logged. Otherwise: `current` pointed back to the old one, database restored from the backup, restart. In both cases it deletes `pending` and writes `/data/app/switch-result.json` (`{ fromVersion, toVersion, outcome: "switched" | "rolled_back", at, reason? }`); the supervisor never writes to the database (its schema belongs to the app versions): the app reads this file on startup, deletes it, and derives from it `app_versions` (`failed` for the refused version), the pending `update_runs` row and the `update/rolled_back` notification.
+3. Exit code **75** = "switch requested": the supervisor reads `/data/app/pending` (the version, `1.4.0`, installed in `versions/<v>`), backs up the database (`db/backups/projo-<old>.db`), points `current` to the requested version, restarts, and waits for `/health` OK for 60 s. If OK: the old version becomes `previous`, at most the last 2 are kept, only this switch's database copy is kept, success logged. Otherwise: `current` pointed back to the old one, database restored from the backup, restart. In both cases it deletes `pending` and writes `/data/app/switch-result.json` (`{ fromVersion, toVersion, outcome: "switched" | "rolled_back", at, reason? }`); the supervisor never writes to the database (its schema belongs to the app versions): the app reads this file on startup, deletes it, and derives from it `app_versions` (`failed` for the refused version), the pending `update_runs` row and the `update/rolled_back` notification.
 4. Migrations are run by the server on startup (Drizzle migrate, each migration in a transaction). A migration failure makes the server exit with a non-zero code: rollback through point 3.
 
 ### 16.4 Application side

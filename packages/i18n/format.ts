@@ -89,9 +89,11 @@ const relativeSteps: readonly [Intl.RelativeTimeFormatUnit, number][] = [
 
 /**
  * `il y a 12 min`, `il y a 3 j`… relative to `now`. Past only: a date slightly ahead of `now`
- * (server clock, or a `now` refreshed every few seconds) reads "maintenant".
+ * (server clock, or a `now` refreshed every few seconds) reads "maintenant". Where Hermes (the
+ * mobile app) has no `Intl.RelativeTimeFormat`: the date.
  */
 export const formatRelative = (iso: string, locale: string, now: Date = new Date()): string => {
+  if (typeof Intl.RelativeTimeFormat !== 'function') return new Date(iso).toLocaleDateString(locale)
   let value = Math.min(0, (new Date(iso).getTime() - now.getTime()) / 1000)
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
   for (const [name, size] of relativeSteps) {

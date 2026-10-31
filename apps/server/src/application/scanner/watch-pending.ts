@@ -6,6 +6,7 @@ import type { Logger } from '../../core/logger.ts'
 import type { AdminNotifier } from '../../core/scanner/ports.ts'
 import type { SourceRepository } from '../../core/source/source.ts'
 import { decideStability } from '../../core/source/stability.ts'
+import { probeJob } from './probe-source.ts'
 
 /** A file still being written is not stat'ed more often than this (quiet period 0). */
 const MIN_RECHECK_MS = 2_000
@@ -88,11 +89,7 @@ export const watchPendingFactory =
           if (source.stableSince === undefined) {
             sourceRepository.patch(source.id, { stableSince: decision.stableSince })
           }
-          jobQueue.enqueue({
-            type: 'probe_source',
-            payload: { sourceId: source.id, mode: 'quarantine' },
-            dedupeKey: `source:${source.id}`,
-          })
+          jobQueue.enqueue(probeJob(source.id, 'quarantine'))
           break
         case 'gone':
         case 'failed':

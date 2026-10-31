@@ -47,7 +47,7 @@ import { createSqliteTrackPreferenceRepository } from '../../infrastructure/sqli
 import { playbackRoutes } from '../http/routes/playback.ts'
 import { streamRoutes } from '../http/routes/stream.ts'
 import { defineJobHandler } from '../jobs/handler.ts'
-import { allVisible, type ScopeDeps } from './catalog.ts'
+import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
 
 /**
@@ -57,7 +57,7 @@ import type { Platform } from './platform.ts'
  */
 export const buildPlaybackModule = (
   { db, clock, ids, logger, eventBus, jobQueue, paths }: Platform,
-  { visibilityScope = allVisible }: ScopeDeps = {},
+  { visibilityScope }: ScopeDeps,
 ) => {
   const catalogRepository = createSqliteCatalogRepository({ db })
   const progressRepository = createSqliteProgressRepository({ db })

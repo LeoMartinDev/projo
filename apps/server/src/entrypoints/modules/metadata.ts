@@ -59,8 +59,8 @@ const hour = 60 * 60_000
 
 export type MetadataModuleOptions = {
   playbackSessions: PlaybackSessionTerminator
-  /** Profile scope of `GET /images/:id` (the catalog's `imageAccess.canView`); absent: §6.3 only. */
-  canViewImage?: ImageAccess
+  /** Who may load `GET /images/:id` (the catalog's `imageAccess.canView`, §6.3 and §14). */
+  canViewImage: ImageAccess
   /** §15 "Intros and credits", served by the same `/admin/settings` route; absent: built here (tests). */
   segmentSettings?: SegmentSettingsAdmin
   /** §15 "Playback" and "Server", same route; absent: built here (tests). */
@@ -247,7 +247,7 @@ export const buildMetadataModule = (
       images: imagesRoutes({
         getImage: getImageFactory({ images, files }),
         open: (path) => Bun.file(path),
-        ...(canViewImage === undefined ? {} : { canView: canViewImage }),
+        canView: canViewImage,
       }),
       adminItems: adminItemsRoutes({
         review,

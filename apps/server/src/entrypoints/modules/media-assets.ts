@@ -39,7 +39,7 @@ import { previewsRoutes } from '../http/routes/previews.ts'
 import { subtitlesRoutes } from '../http/routes/subtitles.ts'
 import { trickplayRoutes } from '../http/routes/trickplay.ts'
 import { defineJobHandler } from '../jobs/handler.ts'
-import { allVisible, type ScopeDeps } from './catalog.ts'
+import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
 
 const sourcePayload = z.object({ sourceId: z.string().min(1) })
@@ -55,7 +55,7 @@ const hour = 60 * 60_000
 export const buildMediaAssetsModule = (
   { db, clock, logger, eventBus, jobQueue, jobRepository, paths }: Platform,
   {
-    visibilityScope = allVisible,
+    visibilityScope,
     authorizeStream,
   }: ScopeDeps & {
     /** The playback module's: the capability URLs of a session (§20). */ authorizeStream: AuthorizeStream

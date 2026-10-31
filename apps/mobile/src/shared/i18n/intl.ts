@@ -1,6 +1,6 @@
 /**
- * Localised labels the web takes from `Intl` (§19). Hermes lacks `Intl.DisplayNames` and may lack
- * `Intl.RelativeTimeFormat`: then a plainer label, never a crash.
+ * Localised labels the web takes from `Intl` (§19). Hermes lacks `Intl.DisplayNames`: then a
+ * plainer label, never a crash. Relative dates: `formatRelative` of `@projo/i18n/format`.
  */
 
 /** Each language in itself, as iOS lists them, where `Intl.DisplayNames` is missing. */
@@ -84,26 +84,4 @@ export const languageName = (tag: string, locale: string): string => {
       : undefined
   if (name === undefined) return endonyms[code] ?? code.toUpperCase()
   return name.charAt(0).toLocaleUpperCase(locale) + name.slice(1)
-}
-
-const relativeSteps = [
-  ['second', 60],
-  ['minute', 60],
-  ['hour', 24],
-  ['day', 7],
-  ['week', 4.35],
-  ['month', 12],
-] as const
-
-/** "5 min ago", "yesterday" (the web's `formatRelative`); a date where Hermes cannot. */
-export const formatRelative = (iso: string, locale: string, now: Date = new Date()): string => {
-  const date = new Date(iso)
-  if (typeof Intl.RelativeTimeFormat !== 'function') return date.toLocaleDateString(locale)
-  const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto', style: 'short' })
-  let value = Math.min(0, (date.getTime() - now.getTime()) / 1000)
-  for (const [unit, size] of relativeSteps) {
-    if (Math.abs(value) < size) return formatter.format(Math.round(value), unit)
-    value /= size
-  }
-  return formatter.format(Math.round(value), 'year')
 }

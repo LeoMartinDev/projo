@@ -10,8 +10,13 @@ import { MutedIcon, PlayIcon, VolumeIcon } from '../../shared/ui/icons.tsx'
 import { AddedIcon, AddIcon, InfoIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useWatchlistToggle } from '../media/actions.ts'
-import { formatRemaining } from '../media/card-text.ts'
-import { episodeLabelOf, progressRatioOf, toneOf, yearsLabel } from '../media/media.ts'
+import {
+  formatRemaining,
+  playLabelOf,
+  progressRatioOf,
+  toneOf,
+  yearsLabel,
+} from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { useHeroPreview } from './hero-preview.ts'
@@ -30,20 +35,9 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
   const { item, episode, play } = hero
   const title = itemTitle(t, item)
   const preview = useHeroPreview(hero.previewUrl)
-  const labels = { season: t('item.seasonShort'), episode: t('item.episodeShort') }
   const listed = watchlist.listed(item)
   const isSeries = item.kind === 'series'
-  const code = play === undefined ? undefined : episodeLabelOf({ kind: 'episode', ...play }, labels)
-  const started =
-    (item.watchStatus?.watchedCount ?? 0) + (item.watchStatus?.inProgressCount ?? 0) > 0
-  const playLabel =
-    play?.action === 'resume'
-      ? isSeries && code !== undefined
-        ? t('item.resumeEpisode', { episode: code })
-        : t('card.resume')
-      : isSeries && started && code !== undefined
-        ? t('item.playEpisodeCode', { episode: code })
-        : t('item.play')
+  const playLabel = playLabelOf(t, item, play)
   const playTarget = play?.itemId ?? (item.kind === 'movie' ? item.id : undefined)
   const playing = episode ?? item
   const ratio = play?.action === 'resume' ? progressRatioOf(playing) : undefined

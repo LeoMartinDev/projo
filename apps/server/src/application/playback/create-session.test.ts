@@ -102,6 +102,7 @@ type World = {
   sessions?: PlaybackSession[]
   memory?: TrackPreferences[]
   progress?: ItemProgress[]
+  segments?: Record<string, { type: string; startMs: number; endMs: number }[]>
 }
 
 const build = (world: World) => {
@@ -117,7 +118,7 @@ const build = (world: World) => {
   const catalogRepository = {
     findVisible: ({ id }: { id: string }) => items.get(id),
     listReadySources: () => world.sources,
-    listMediaSegments: () => [],
+    listMediaSegments: (itemId: string) => world.segments?.[itemId] ?? [],
     listSourceItemIds: (sourceId: string) => world.sourceItems?.[sourceId] ?? [],
   } as unknown as CatalogRepository
   const progressRepository = {
@@ -631,6 +632,21 @@ describe('createPlaybackSession: automatic bitmap subtitle that cannot be burnt 
       error: { code: 'playback/transcode_limit_reached' },
     })
     expect(sessions).toHaveLength(0)
+  })
+})
+
+describe('createPlaybackSession: progress at the start (§12.4)', () => {
+  test('a start in the credits (a track change there) keeps the item watched', async () => {
+    const film = source('film', 'mp4', media('h264', 'aac', { durationMs: 3_600_000 }))
+    const { play, progress } = build({
+      sources: [film],
+      segments: { 'movie-1': [{ type: 'credits', startMs: 3_000_000, endMs: 3_600_000 }] },
+    })
+    expect(await play({ startPositionMs: 3_100_000 })).toMatchObject({ ok: true })
+    expect(progress.get('profile-1|movie-1')).toMatchObject({
+      positionMs: 3_600_000,
+      watched: true,
+    })
   })
 })
 

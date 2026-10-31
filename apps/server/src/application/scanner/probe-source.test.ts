@@ -7,7 +7,7 @@ import { createRecordingEventBus } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
 import type { MediaError } from '../../core/media/probe.ts'
 import type { Source, SourcePatch, SourceRepository } from '../../core/source/source.ts'
-import { probeSourceFactory } from './probe-source.ts'
+import { type ProbeMode, probeJob, probeSourceFactory } from './probe-source.ts'
 
 const source = {
   id: 's1',
@@ -20,10 +20,11 @@ const source = {
   signature: 'old',
 } as Source
 
-const setup = (probeError: MediaError) => {
+const setup = (probeError: MediaError, { duringProbe }: { duringProbe?: Source } = {}) => {
   const patches: SourcePatch[] = []
+  let current = source
   const sourceRepository = {
-    findById: () => source,
+    findById: () => current,
     absolutePathOf: () => '/media/Film.mkv',
     patch: (_id: string, patch: SourcePatch) => patches.push(patch),
   } as unknown as SourceRepository
@@ -34,7 +35,12 @@ const setup = (probeError: MediaError) => {
       readDirectory: async () => ok([]),
       realPath: async (path) => ok(path),
     },
-    prober: { probe: async () => err(probeError) },
+    prober: {
+      probe: async () => {
+        if (duringProbe !== undefined) current = duringProbe
+        return err(probeError)
+      },
+    },
     decoder: { decodeSample: async () => ok() },
     linkSourceItems: () => ({ kind: 'kept' }),
     requestMatch: () => {},
@@ -74,4 +80,22 @@ describe('probe_source failures that say nothing about the file', () => {
     expect(await probeSource({ sourceId: 's1', mode: 'verify' })).toEqual(ok('probe_failed'))
     expect(patches).toMatchObject([{ state: 'pending', pendingReason: 'probe_failed' }])
   })
+
+  test('a source hidden while ffprobe ran stays hidden', async () => {
+    const { probeSource, patches } = setup(appError('media/ffprobe_failed', 'unreadable'), {
+      duringProbe: { ...source, state: 'rejected' },
+    })
+    expect(await probeSource({ sourceId: 's1', mode: 'verify' })).toEqual(ok('skipped'))
+    expect(patches).toEqual([])
+  })
+})
+
+test('a probe request merged into a queued one keeps the stronger mode', () => {
+  const merged = (queued: ProbeMode, next: ProbeMode) =>
+    probeJob('s1', next).mergePayload({ sourceId: 's1', mode: queued })
+  // "Recheck" during a full scan (which queued `verify`) still decodes.
+  expect(merged('verify', 'recheck')).toEqual({ sourceId: 's1', mode: 'recheck' })
+  expect(merged('recheck', 'verify')).toEqual({ sourceId: 's1', mode: 'recheck' })
+  expect(merged('verify', 'quarantine')).toEqual({ sourceId: 's1', mode: 'quarantine' })
+  expect(merged('quarantine', 'verify')).toEqual({ sourceId: 's1', mode: 'quarantine' })
 })

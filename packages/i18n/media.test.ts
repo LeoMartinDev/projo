@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import i18next from 'i18next'
 
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ItemProgressDto } from '@projo/shared/api/progress'
@@ -12,6 +13,7 @@ import {
   isWatched,
   listTargetOf,
   partialCountOf,
+  playLabelOf,
   posterOf,
   progressRatioOf,
   qualityLabel,
@@ -19,6 +21,7 @@ import {
   wideArtOf,
   yearsLabel,
 } from './media.ts'
+import { resources } from './index.ts'
 
 const progress = (patch: Partial<ItemProgressDto>): ItemProgressDto => ({
   state: 'unwatched',
@@ -124,4 +127,31 @@ test('quality badge', () => {
   expect(qualityLabel({ resolution: '1080p', dynamicRange: 'sdr' })).toBe('HD')
   expect(qualityLabel({ resolution: '2160p', dynamicRange: 'dv' })).toBe('4K Dolby Vision')
   expect(qualityLabel(undefined)).toBeUndefined()
+})
+
+describe('playLabelOf (§13.5, hero and title page of a series)', () => {
+  test('the episode once the series is started, the plain label otherwise', async () => {
+    const instance = i18next.createInstance()
+    await instance.init({ resources, lng: 'en', interpolation: { escapeValue: false } })
+    const t = instance.t
+    const resume = {
+      action: 'resume',
+      itemId: 'e4',
+      seasonNumber: 2,
+      episodeNumber: 4,
+      positionMs: 1,
+    } as const
+    const status = (watchedCount: number) =>
+      ({ state: 'partial', watchedCount, inProgressCount: 0, totalCount: 9 }) as const
+    expect(playLabelOf(t, { kind: 'series', watchStatus: status(3) }, resume)).toBe(
+      t('item.resumeEpisode', { episode: 'S2 · E4' }),
+    )
+    expect(
+      playLabelOf(t, { kind: 'series', watchStatus: status(0) }, { ...resume, action: 'play' }),
+    ).toBe(t('item.play'))
+    // No number to show: "Resume" rather than "Resume " (the title page's own copy did that).
+    expect(
+      playLabelOf(t, { kind: 'series' }, { action: 'resume', itemId: 'e', positionMs: 1 }),
+    ).toBe(t('card.resume'))
+  })
 })

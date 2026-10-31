@@ -1,13 +1,19 @@
 import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { posterOf, progressRatioOf, wideArtOf } from '@projo/i18n/media'
+import {
+  type CardPlace,
+  isPosterPlace,
+  posterOf,
+  progressRatioOf,
+  wideArtOf,
+} from '@projo/i18n/media'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
 
 import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 import { Artwork } from './Artwork.tsx'
-import { type CardPlace, isPosterPlace, useCardText } from './card-text.ts'
+import { useCardText } from './card-text.ts'
 import { ProgressBar } from './parts.tsx'
 
 /**

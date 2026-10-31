@@ -66,6 +66,14 @@ describe('formatRelative', () => {
     const now = new Date('2026-10-23T12:00:00Z')
     expect(formatRelative('2026-10-23T12:00:06Z', 'en', now)).toBe('now')
   })
+
+  test('without Intl.RelativeTimeFormat (Hermes), the date', () => {
+    const { RelativeTimeFormat } = Intl
+    Object.assign(Intl, { RelativeTimeFormat: undefined })
+    const now = new Date('2026-10-23T12:00:00Z')
+    expect(formatRelative('2026-10-21T12:00:00Z', 'en-US', now)).toBe('10/21/2026')
+    Object.assign(Intl, { RelativeTimeFormat })
+  })
 })
 
 describe('formatPercent', () => {

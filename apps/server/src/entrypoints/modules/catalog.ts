@@ -20,10 +20,11 @@ import type { Platform } from './platform.ts'
 
 /**
  * What a profile may see beyond §6.3 visibility (§14: library access, maximum rating). Injected
- * by `main.ts` from the profiles module; without it, everything (single-profile setups, tests).
+ * by `main.ts` from the profiles module; required, so a module left without it does not compile.
  */
-export type ScopeDeps = { visibilityScope?: VisibilityScopeResolver }
+export type ScopeDeps = { visibilityScope: VisibilityScopeResolver }
 
+/** Every profile sees everything: tests without profiles. */
 export const allVisible: VisibilityScopeResolver = () => everything
 
 /**
@@ -34,10 +35,10 @@ export const allVisible: VisibilityScopeResolver = () => everything
 export const buildCatalogModule = (
   { db }: Platform,
   {
-    visibilityScope = allVisible,
+    visibilityScope,
     homePreviews,
     homeResumeFrames,
-  }: ScopeDeps & { homePreviews?: HomePreviewPort; homeResumeFrames?: HomeResumeFramePort } = {},
+  }: ScopeDeps & { homePreviews?: HomePreviewPort; homeResumeFrames?: HomeResumeFramePort },
 ) => {
   const catalogRepository = createSqliteCatalogRepository({ db })
   const progressRepository = createSqliteProgressRepository({ db })
