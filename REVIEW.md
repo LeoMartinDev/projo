@@ -227,7 +227,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 
 ### 20. Dead code and duplicate helpers
 
-**Status:** to do
+**Status:** done (`d2a9e39`). `isActive` and the second `regularEpisodes` were already gone; `defaultAudioStream` had no caller and is deleted; `readTrackRun` moved to `test/support/fmp4-timeline.ts` (the HLS continuity tests keep it); index dropped by `0018_drop_jobs_finished_at_index`.
 
 - **What this is:** helpers nothing uses, or that copy shared ones.
 - **Problem:**
@@ -240,7 +240,7 @@ Each finding has four parts: what the code is, the problem with a concrete case,
 ## Summary
 
 - **Verdict:** 1 first (one character, measured), then the three that lose data or leak a token (2, 3, 4).
-- **Done:** 1 to 8 (2026-10-31, `21999f6`); 9 to 19 (2026-10-31, `cdf5533`).
+- **Done:** 1 to 8 (2026-10-31, `21999f6`); 9 to 19 (2026-10-31, `cdf5533`); 20 (2026-10-31, `d2a9e39`).
 - **Left out:** 16 smaller findings, for example: a cancelled scan shows "Discovering N%" until the page reloads, a malformed deep link crashes the mobile card sheet, TMDB's "0 votes" sorts as a real rating, `tmdb_responses` is never purged.
 - **Lean:** about −200 lines possible, no dependency to remove.
 - **Not checked:** the audit ran neither the test suite nor the e2e tests. Not read line by line: the name parser (`core/naming/title.ts`, `analyze.ts`), fingerprint matching, the segment providers, most of the player UI on web and mobile, `runtime/scripts/`, and path behaviour on macOS mounts (Unicode forms, case).
@@ -262,11 +262,11 @@ Details in `git show 7ec1736:REVIEW.md`; the numbers are that review's. Its find
 - 48 — The §21 performance test skips categories and restricted profiles: **done** (kids' profile in `21999f6`, `/home/categories` now)
 - 49 — No PWA at all: **to do**. The manifest exists (`155e20f`), but the repo has no logo image to make icons from: the logo is the CSS wordmark.
 - 50 — Near-copies that must change together: **done**
-- 51 — Dead code: **done**, except `accounts/summary.ts` (to show in the accounts list) and `fromNullable` (listed in `CLAUDE.md`)
-- 53 — Invitation tokens appear in debug logs: to do
-- 54 — Search does not fold ligatures: to do
-- 55 — Trickplay sheets stay cached a day after regeneration: to do
-- 56 — Two database exports in the same second: to do
-- 58 — English shows "Cancel" where the spec says "Undo": to do
-- 60 — The weekly refresh includes shows without any file: to do
-- 61 — §9.1 says the TMDB key is embedded; it is not: to do
+- 51 — Dead code: **done**; the rest in `d2a9e39`: the profile summary shows in the accounts list (avatar tooltip and screen-reader label), `fromNullable` deleted (and from `CLAUDE.md`)
+- 53 — Invitation tokens appear in debug logs: **done** (`d2a9e39`, redacted like the stream secret)
+- 54 — Search does not fold ligatures: **done** (`d2a9e39`; œ, æ, ß in the query and in the index triggers, existing titles reindexed by `0019_search_fold_ligatures`)
+- 55 — Trickplay sheets stay cached a day after regeneration: **done** (`d2a9e39`, `?v=<mtime>`; the resume-frame stills of §13.3 keep their unversioned URL)
+- 56 — Two database exports in the same second: **done** (`d2a9e39`)
+- 58 — English shows "Cancel" where the spec says "Undo": **done** (`d2a9e39`)
+- 60 — The weekly refresh includes shows without any file: **done** (`d2a9e39`)
+- 61 — §9.1 says the TMDB key is embedded; it is not: **done** (`d2a9e39`)
