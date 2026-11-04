@@ -114,7 +114,7 @@ The notes group commits by type (breaking changes, `feat`, `fix`, `perf`, the re
 
 ```bash
 bun test runtime/
-tsc -p runtime/tsconfig.json
+bun check -p runtime
 ```
 
 Fake processes and a manual clock for the restart policy and signals; real temporary folders for the seed and the version state; a fake repository for `build-bundle`.

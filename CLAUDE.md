@@ -11,7 +11,7 @@ bun install
 bun run dev          # server :8080 (DATA_DIR=.data, LOG_LEVEL=debug, --watch) + Vite :5173 (proxies /api and /health)
 bun run dev:lan      # same, Vite reachable on the network: a real phone or tablet opens http://<mac-ip>:5173
 bun lint             # Bun's linter (bunfig.toml [lint], canary): layers, no class, no null, confined try/catch (§5.3)
-bun run typecheck    # strict tsc in each workspace + runtime/ (mobile: emits the server's AppType first)
+bun run typecheck    # bun check (strict) in each workspace + runtime/ (mobile: tsc emits the server's AppType first)
 bun run test         # bun test on the whole repository (bun test <path> to target)
 bun fmt              # Bun's native formatter (bunfig.toml [fmt]); bun fmt --check in CI
 bun run db:generate  # Drizzle migration from the schema (see below)

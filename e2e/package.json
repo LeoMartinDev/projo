@@ -7,7 +7,7 @@
     "build": "bun scripts/build-app.ts",
     "test": "playwright test",
     "e2e": "bun scripts/build-app.ts && playwright test",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "bun check"
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",

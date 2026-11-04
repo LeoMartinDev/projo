@@ -16,7 +16,7 @@
     "./en.json": "./en.json"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "bun check"
   },
   "dependencies": {
     "@projo/shared": "workspace:*",
