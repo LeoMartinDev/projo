@@ -1,6 +1,10 @@
 {
   "app": {
-    "name": "projo"
+    "name": "projo",
+    "update": {
+      "available": "Nouvelle version disponible",
+      "reload": "Recharger"
+    }
   },
   "common": {
     "back": "Retour",

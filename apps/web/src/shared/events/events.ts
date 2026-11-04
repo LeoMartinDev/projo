@@ -28,6 +28,7 @@ const reopenMs = 5000
 
 export const createEventHub = (open: () => EventSourceLike) => {
   const listeners = new Map<ServerEventType, Set<(payload: unknown) => void>>()
+  const reconnectListeners = new Set<() => void>()
   const wired = new Set<ServerEventType>()
   let source: EventSourceLike | undefined
   let reopenTimer: ReturnType<typeof setTimeout> | undefined
@@ -47,15 +48,22 @@ export const createEventHub = (open: () => EventSourceLike) => {
     source = current
     wired.clear()
     for (const type of listeners.keys()) wire(type)
+    let resumed = reopened
     current.addEventListener('error', () => {
+      resumed = true
       if (current.readyState !== 2 || source !== current) return
       current.close()
       reopenTimer = setTimeout(() => connect(true), reopenMs)
     })
-    if (reopened)
-      current.addEventListener('open', () => {
-        for (const listener of listeners.get('catalog.changed') ?? []) listener({})
-      })
+    current.addEventListener('open', () => {
+      if (resumed) reconnected()
+      resumed = false
+    })
+  }
+
+  const reconnected = () => {
+    for (const listener of listeners.get('catalog.changed') ?? []) listener({})
+    for (const listener of reconnectListeners) listener()
   }
 
   const size = () => [...listeners.values()].reduce((total, set) => total + set.size, 0)
@@ -78,7 +86,14 @@ export const createEventHub = (open: () => EventSourceLike) => {
     }
   }
 
-  return { subscribe }
+  const onReconnect = (listener: () => void): (() => void) => {
+    reconnectListeners.add(listener)
+    return () => {
+      reconnectListeners.delete(listener)
+    }
+  }
+
+  return { subscribe, onReconnect }
 }
 
 export const eventHub = createEventHub(

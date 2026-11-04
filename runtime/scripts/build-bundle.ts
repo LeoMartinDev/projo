@@ -15,6 +15,7 @@ import { isSemVer } from '../supervisor/semver'
 export type BundleErrorCode =
   | 'bundle/source_missing'
   | 'bundle/invalid_version'
+  | 'bundle/version_mismatch'
   | 'bundle/build_failed'
   | 'bundle/native_module'
   | 'bundle/write_failed'
@@ -118,6 +119,13 @@ const bundleServer = async (
   }
 }
 
+const readWebVersion = async (rootDir: string): Promise<string | undefined> => {
+  const html = await Bun.file(join(rootDir, SOURCES.webDist, 'index.html'))
+    .text()
+    .catch(() => '')
+  return /<meta\s+name="projo-version"\s+content="([^"]+)"/.exec(html)?.[1]
+}
+
 export const buildBundle = async ({
   rootDir,
   outDir,
@@ -138,6 +146,15 @@ export const buildBundle = async ({
   }
   if (!isSemVer(runtimeMin))
     return err(bundleError('bundle/invalid_version', 'runtimeMin is not semver', { runtimeMin }))
+  const webVersion = await readWebVersion(rootDir)
+  if (webVersion !== undefined && webVersion !== version)
+    return err(
+      bundleError(
+        'bundle/version_mismatch',
+        'apps/web/dist was built for another version (build it with PROJO_VERSION set to the bundle version)',
+        { version, webVersion },
+      ),
+    )
 
   const stageDir = `${outDir}.tmp-${process.pid}`
   await rm(stageDir, { recursive: true, force: true })

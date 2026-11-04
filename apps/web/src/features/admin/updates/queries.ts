@@ -1,10 +1,11 @@
 import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
-import type { HealthResponse } from '@projo/shared/api/common'
 import type { UpdatesStatusDto } from '@projo/shared/api/updates'
 
 import { api, request } from '../../../shared/api/client.ts'
+import { readHealth } from '../../../shared/app-update/health.ts'
+import { reloadToLatest } from '../../../shared/app-update/service-worker.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
 
 export const updatesQueryKey = ['admin', 'updates'] as const
@@ -30,15 +31,6 @@ export const useUpdateSummary = (): {
 }
 
 const HEALTH_POLL_MS = 2_000
-
-const readHealth = async (): Promise<HealthResponse | undefined> => {
-  try {
-    const response = await fetch('/health', { cache: 'no-store' })
-    return response.ok ? ((await response.json()) as HealthResponse) : undefined
-  } catch {
-    return undefined
-  }
-}
 
 export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: string) => void } => {
   const queryClient = useQueryClient()
@@ -79,7 +71,7 @@ export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: st
           continue
         }
         if (sawDown || health.version !== restartingFrom) {
-          window.location.reload()
+          await reloadToLatest()
           return
         }
       }

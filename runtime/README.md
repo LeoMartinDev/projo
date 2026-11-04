@@ -60,7 +60,7 @@ Variables read: `PORT`, `DATA_DIR`, `LOG_LEVEL` (`TRUST_PROXY` is passed through
 bun runtime/scripts/build-bundle.ts [--out dist/app] [--version 1.2.3] [--runtime-min 0.1.0]
 ```
 
-Requires `apps/web/dist` to be built already. The Dockerfile calls `bun run build:bundle` (root script: web build then this script).
+Requires `apps/web/dist` to be built already, for the same version (the web build reads `PROJO_VERSION`, else the root `package.json`, and writes it to `<meta name="projo-version">`; a different one fails with `bundle/version_mismatch`, since the web app compares it to `/health` to reload itself after an update). The Dockerfile calls `bun run build:bundle` (root script: web build then this script).
 
 ## Version switch (M5, PRODUCT.md §16.3)
 

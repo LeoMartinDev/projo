@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client'
 
 import { createAppQueryClient } from './app/query-client.ts'
 import { createAppRouter } from './app/router.tsx'
+import { registerServiceWorker, reloadToLatest } from './shared/app-update/service-worker.ts'
 import { setupI18n } from './shared/i18n/index.ts'
 import { setActiveProfileId } from './shared/session/active-profile.ts'
 import { sessionQuery, signedOut } from './shared/session/session.ts'
@@ -21,8 +22,10 @@ window.addEventListener('vite:preloadError', (event) => {
   const key = `projo:preload-reload:${event.payload.message}`
   if (sessionStorage.getItem(key)) return
   sessionStorage.setItem(key, '1')
-  window.location.reload()
+  void reloadToLatest()
 })
+
+registerServiceWorker()
 
 const queryClient = createAppQueryClient({
   onSessionLost: () => {

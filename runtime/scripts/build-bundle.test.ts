@@ -99,6 +99,37 @@ describe('build-bundle', () => {
     expect(result.ok ? undefined : result.error.code).toBe('bundle/invalid_version')
   })
 
+  test('refuses a web app built for another version', async () => {
+    const root = await fakeRepo()
+    await write(root, {
+      'apps/web/dist/index.html': '<!doctype html><meta name="projo-version" content="1.2.2">',
+    })
+    const result = await buildBundle({
+      rootDir: root,
+      outDir: join(root, 'dist/app'),
+      version: '1.2.3',
+      runtimeMin: '0.1.0',
+    })
+    expect(result.ok ? undefined : result.error).toMatchObject({
+      code: 'bundle/version_mismatch',
+      context: { version: '1.2.3', webVersion: '1.2.2' },
+    })
+  })
+
+  test('accepts a web app built for the bundle version', async () => {
+    const root = await fakeRepo()
+    await write(root, {
+      'apps/web/dist/index.html': '<!doctype html><meta name="projo-version" content="1.2.3">',
+    })
+    const result = await buildBundle({
+      rootDir: root,
+      outDir: join(root, 'dist/app'),
+      version: '1.2.3',
+      runtimeMin: '0.1.0',
+    })
+    expect(result.ok).toBe(true)
+  })
+
   test('reports a bundling error', async () => {
     const root = await fakeRepo()
     await write(root, {

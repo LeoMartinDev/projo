@@ -74,3 +74,68 @@ test('stops reopening once the last listener is gone', () => {
   jest.advanceTimersByTime(60_000)
   expect(sources).toHaveLength(1)
 })
+
+test('signals a reconnection when the browser reopens the stream on its own, not on the first open', () => {
+  const sources: FakeSource[] = []
+  const hub = createEventHub(() => {
+    const source = fakeSource()
+    sources.push(source)
+    return source
+  })
+  let reconnects = 0
+  const catalog: unknown[] = []
+  hub.onReconnect(() => {
+    reconnects += 1
+  })
+  hub.subscribe('catalog.changed', (payload) => catalog.push(payload))
+  const [source] = sources
+  if (source === undefined) throw new Error('no source opened')
+
+  source.emit('open')
+  expect(reconnects).toBe(0)
+  source.emit('error')
+  source.emit('open')
+  expect(reconnects).toBe(1)
+  expect(catalog).toEqual([{}])
+})
+
+test('signals a reconnection when the first attempt failed before the stream opened', () => {
+  const sources: FakeSource[] = []
+  const hub = createEventHub(() => {
+    const source = fakeSource()
+    sources.push(source)
+    return source
+  })
+  let reconnects = 0
+  hub.onReconnect(() => {
+    reconnects += 1
+  })
+  hub.subscribe('source.ready', () => {})
+  const [source] = sources
+  if (source === undefined) throw new Error('no source opened')
+  source.emit('error')
+  source.emit('open')
+  expect(reconnects).toBe(1)
+})
+
+test('signals a reconnection when the hub reopened a closed stream', () => {
+  jest.useFakeTimers()
+  const sources: FakeSource[] = []
+  const hub = createEventHub(() => {
+    const source = fakeSource()
+    sources.push(source)
+    return source
+  })
+  let reconnects = 0
+  hub.onReconnect(() => {
+    reconnects += 1
+  })
+  hub.subscribe('source.ready', () => {})
+  const [first] = sources
+  if (first === undefined) throw new Error('no source opened')
+  first.readyState = 2
+  first.emit('error')
+  jest.advanceTimersByTime(5000)
+  sources[1]?.emit('open')
+  expect(reconnects).toBe(1)
+})

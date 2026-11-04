@@ -24,6 +24,7 @@ import { loadItem } from '../features/item/load-item.ts'
 import { WhoIsWatching } from '../features/profiles/WhoIsWatching.tsx'
 import { WatchlistPage } from '../features/watchlist/WatchlistPage.tsx'
 import { AppShell } from '../features/shell/AppShell.tsx'
+import { UpdateBanner } from '../shared/app-update/UpdateBanner.tsx'
 import { canAdminister, canManageAccount } from '../shared/session/active-profile.ts'
 import { applyMe, sessionQuery, setupStatusQuery } from '../shared/session/session.ts'
 import { EmptyState, ErrorState, FullPageSpinner } from '../shared/ui/states.tsx'
@@ -150,7 +151,12 @@ const RouteError = ({ error }: ErrorComponentProps) => {
 }
 
 const rootRoute = createRootRouteWithContext<RouterContext>()({
-  component: () => <Outlet />,
+  component: () => (
+    <>
+      <Outlet />
+      <UpdateBanner />
+    </>
+  ),
   pendingComponent: FullPageSpinner,
   errorComponent: RouteError,
   notFoundComponent: NotFound,
