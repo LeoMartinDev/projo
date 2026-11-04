@@ -12,6 +12,8 @@ import { readParsedName } from './source-columns.ts'
 const expectedTables = [
   'accounts',
   'app_versions',
+  // §27.3 MCP assistants and OAuth (migration `assistants_and_oauth`).
+  'assistant_tokens',
   'images',
   'invitations',
   'item_overrides',
@@ -30,6 +32,9 @@ const expectedTables = [
   // §9.2 corrections by file (migrations `manual_matches_by_path` → `drop_item_manual_matches`).
   'manual_matches',
   'notifications',
+  'oauth_clients',
+  'oauth_codes',
+  'oauth_tokens',
   // §14 pairing a device (migration `pairings`).
   'pairings',
   'people',

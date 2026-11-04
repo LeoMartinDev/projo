@@ -47,6 +47,10 @@ const InvitePage = lazyRouteComponent(
   'InvitePage',
 )
 const PairPage = lazyRouteComponent(() => import('../features/pair/PairPage.tsx'), 'PairPage')
+const OAuthAuthorizePage = lazyRouteComponent(
+  () => import('../features/oauth/OAuthAuthorizePage.tsx'),
+  'OAuthAuthorizePage',
+)
 const ItemPage = lazyRouteComponent(() => import('../features/item/ItemPage.tsx'), 'ItemPage')
 const PlayerPage = lazyRouteComponent(
   () => import('../features/player/PlayerPage.tsx'),
@@ -378,6 +382,16 @@ const watchRoute = createRoute({
   },
 })
 
+/**
+ * OAuth consent of the MCP server (§27.3): behind the login and "Who's watching?", which come
+ * back here with the client's query; outside the shell.
+ */
+const oauthAuthorizeRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/oauth/authorize',
+  component: OAuthAuthorizePage,
+})
+
 const adminRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/admin',
@@ -542,6 +556,7 @@ export const routeTree = rootRoute.addChildren([
     ]),
     profilesRoute,
     watchRoute,
+    oauthAuthorizeRoute,
     adminRoute.addChildren([
       adminIndexRoute,
       adminLibrariesRoute,

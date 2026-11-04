@@ -13,6 +13,7 @@ import { libraryErrorCodes } from './library.ts'
 import { mediaErrorCodes } from './media.ts'
 import { metadataErrorCodes } from './metadata.ts'
 import { notificationErrorCodes } from './notification.ts'
+import { oauthErrorCodes } from './oauth.ts'
 import { playbackErrorCodes } from './playback.ts'
 import { profileErrorCodes } from './profile.ts'
 import { progressErrorCodes } from './progress.ts'
@@ -38,6 +39,7 @@ export * from './library.ts'
 export * from './media.ts'
 export * from './metadata.ts'
 export * from './notification.ts'
+export * from './oauth.ts'
 export * from './playback.ts'
 export * from './profile.ts'
 export * from './progress.ts'
@@ -64,6 +66,7 @@ export const errorCodes = [
   ...mediaErrorCodes,
   ...metadataErrorCodes,
   ...notificationErrorCodes,
+  ...oauthErrorCodes,
   ...playbackErrorCodes,
   ...profileErrorCodes,
   ...progressErrorCodes,

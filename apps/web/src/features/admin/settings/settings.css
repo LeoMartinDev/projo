@@ -1,5 +1,7 @@
 /* Admin settings (§15 "Metadata", "Intros and credits"), kit v2 fields. */
 
+@import '../../../shared/styles/media.css';
+
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -168,4 +170,109 @@
 /* "Playback": the two limits side by side, full width. */
 .playback-limits {
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+}
+
+/* "Assistants IA" (§27.3): the tokens table, rows flowing with the page. */
+.assistants__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assistants .adm-table__body {
+  min-height: 192px;
+}
+
+.assistant-tr {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(max-content, auto);
+}
+
+/* The add dialog: same height at both steps, the Claude Desktop block scrolls inside. */
+.assistant-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 440px;
+}
+
+.assistant-dialog > * {
+  flex-shrink: 0;
+}
+
+.assistant-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assistant-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.assistant-dialog > .assistant-copy--grow {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.assistant-copy__label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.assistant-copy__box {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  gap: 8px;
+  min-height: 0;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-button);
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+.assistant-copy__box:has(.assistant-copy__value:focus-visible) {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+/* Never wrapped: long lines scroll sideways inside the block. */
+.assistant-copy__value {
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre;
+  overflow: auto;
+  resize: none;
+}
+
+.assistant-copy:not(.assistant-copy--grow) .assistant-copy__value {
+  height: 52px;
+  overflow-y: hidden;
+}
+
+@media (--compact) {
+  .assistant-tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .assistant-tr > .adm-actions {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
 }

@@ -405,6 +405,14 @@
     "title": "Ouvrez l’application projo",
     "body": "Sur votre iPhone ou iPad, ouvrez projo et scannez le code affiché dans « Connecter un appareil »."
   },
+  "oauth": {
+    "title": "Connecter {{client}} à projo",
+    "redirectHost": "Adresse de retour",
+    "profile": "Profil",
+    "loopback": "Une application de cet ordinateur recevra l’accès à projo.",
+    "allow": "Autoriser",
+    "failedTitle": "Connexion impossible"
+  },
   "invite": {
     "display": "Bienvenue\nsur projo",
     "displayServer": "Bienvenue\nsur {{name}}",
@@ -1134,7 +1142,37 @@
       },
       "export": "Exporter la base",
       "exported": "{{file}} · {{size}}",
-      "maintenance": "Maintenance"
+      "maintenance": "Maintenance",
+      "assistants": {
+        "title": "Assistants IA",
+        "add": "Ajouter",
+        "addTitle": "Ajouter un assistant",
+        "name": "Nom",
+        "create": "Créer",
+        "columns": {
+          "name": "Nom",
+          "created": "Créé",
+          "lastUsed": "Dernière utilisation"
+        },
+        "kind": {
+          "token": "Jeton",
+          "oauth": "OAuth"
+        },
+        "never": "Jamais",
+        "empty": "Aucun assistant",
+        "revoke": "Révoquer",
+        "revokeNamed": "Révoquer {{name}}",
+        "revokeTitle": "Révoquer « {{name}} » ?",
+        "revokeText": "L’assistant n’aura plus accès à projo.",
+        "shownOnce": "Copiez la configuration maintenant : le jeton ne sera plus affiché.",
+        "claudeCode": "Claude Code",
+        "claudeDesktop": "Claude Desktop · claude_desktop_config.json",
+        "copy": "Copier",
+        "copied": "Copié",
+        "copyFailed": "Copie impossible : sélectionnez le texte et copiez-le.",
+        "localWarning": "Cette adresse ne fonctionne qu’à la maison : l’assistant ne joindra projo que depuis ce réseau. Pour l’utiliser ailleurs, ouvrez projo par son adresse publique.",
+        "done": "Terminé"
+      }
     },
     "editItem": {
       "action": "Modifier",
@@ -1295,11 +1333,19 @@
     "auth/pairing_invalid": "Ce code n’est pas valide.",
     "auth/pairing_expired": "Ce code a expiré.",
     "auth/pairing_used": "Ce code a déjà été utilisé.",
+    "auth/assistant_token_not_found": "Jeton d’assistant introuvable ou déjà révoqué.",
     "catalog/invalid_cursor": "La liste a changé. Rechargez la page.",
     "catalog/image_not_found": "Image introuvable.",
     "common/internal": "Erreur interne du serveur.",
     "common/validation_failed": "Requête invalide.",
     "common/not_found": "Introuvable.",
+    "common/method_not_allowed": "Méthode non autorisée.",
+    "oauth/invalid_client": "Cette application n’est pas reconnue.",
+    "oauth/invalid_redirect_uri": "L’adresse de retour de cette application n’est pas autorisée.",
+    "oauth/invalid_request": "Demande de connexion invalide.",
+    "oauth/invalid_grant": "Autorisation expirée ou déjà utilisée.",
+    "oauth/unsupported_grant_type": "Type d’autorisation non pris en charge.",
+    "oauth/access_denied": "Seul un administrateur peut connecter un assistant.",
     "config/invalid": "Configuration du serveur invalide.",
     "data/layout_failed": "Le dossier de données du serveur est inutilisable.",
     "db/open_failed": "La base de données ne s’ouvre pas.",

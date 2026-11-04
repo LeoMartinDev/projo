@@ -62,10 +62,28 @@ export type AssignError =
 /** An episode file the new series has no episode for (rematch of a series): left for review. */
 export type EpisodeNotFound = { sourceId: string; seasonNumber: number; episodeNumber: number }
 
+/** A file identified (or, in a dry run, that would be): its TMDB target, named (§27.5). */
+export type PlannedIdentification = {
+  sourceId: string
+  relativePath: string
+  kind: 'movie' | 'episode'
+  tmdbId: number
+  title: string
+  seasonNumber?: number
+  episodeNumber?: number
+  episodeTitle?: string
+}
+
+/**
+ * `dryRun` (§27.5): everything was checked against TMDB and nothing written; `itemIds` is then
+ * empty (the items do not exist yet) and `identified` says what a real run would do.
+ */
 export type AssignResult = {
   sourceIds: string[]
   itemIds: string[]
   needsReview: EpisodeNotFound[]
+  identified: PlannedIdentification[]
+  dryRun: boolean
 }
 
 type Matched = Exclude<Resolution, { kind: 'review' }>
@@ -197,6 +215,29 @@ export const reviewFactory = ({
     return applied
   }
 
+  const planOf = (prepared: Extract<Prepared, { kind: 'matched' }>): PlannedIdentification => {
+    const { source, tmdbId, resolution } = prepared
+    if (resolution.kind === 'movie') {
+      return {
+        sourceId: source.id,
+        relativePath: source.relativePath,
+        kind: 'movie',
+        tmdbId,
+        title: resolution.movie.title,
+      }
+    }
+    const first = resolution.episodes[0]
+    return {
+      sourceId: source.id,
+      relativePath: source.relativePath,
+      kind: 'episode',
+      tmdbId,
+      title: resolution.series.title,
+      ...(prepared.at ?? {}),
+      ...(first?.name === undefined ? {} : { episodeTitle: first.name }),
+    }
+  }
+
   const episodeNotFound = (prepared: Extract<Prepared, { kind: 'not_found' }>) =>
     err(
       appError('metadata/episode_not_found', 'TMDB has no such season or episode', {
@@ -275,6 +316,8 @@ export const reviewFactory = ({
       sourceId: string
       assignment: Assignment
       accountId: string
+      /** §27.5: check and plan only, write nothing. */
+      dryRun?: boolean
     }): Promise<Result<AssignResult, AssignError>> => {
       const source = sourceRepository.findById(input.sourceId)
       if (source === undefined) return sourceNotFound(input.sourceId)
@@ -291,12 +334,28 @@ export const reviewFactory = ({
           siblings.push(checked.value)
         }
       }
+      if (input.dryRun === true) {
+        const planned = [main, ...siblings].flatMap((entry) =>
+          entry.kind === 'matched' ? [planOf(entry)] : [],
+        )
+        return ok({
+          sourceIds: planned.map((entry) => entry.sourceId),
+          itemIds: [],
+          needsReview: siblings.flatMap((entry) =>
+            entry.kind === 'not_found' ? [{ sourceId: entry.source.id, ...entry.at }] : [],
+          ),
+          identified: planned,
+          dryRun: true,
+        })
+      }
       const sourceIds: string[] = []
       const itemIds = new Set<string>()
       const enriched: string[] = []
       const needsReview: EpisodeNotFound[] = []
+      const identified: PlannedIdentification[] = []
       const write = (entry: Extract<Prepared, { kind: 'matched' }>) => {
         const applied = commit(entry, input.accountId)
+        identified.push(planOf(entry))
         sourceIds.push(entry.source.id)
         for (const id of applied.itemIds) itemIds.add(id)
         enriched.push(...applied.enriched)
@@ -322,7 +381,7 @@ export const reviewFactory = ({
         sourceIds,
         needsReview: needsReview.length,
       })
-      return ok({ sourceIds, itemIds: [...itemIds], needsReview })
+      return ok({ sourceIds, itemIds: [...itemIds], needsReview, identified, dryRun: false })
     },
 
     /** `POST /admin/sources/:id/reject` (§7.8 "Hide"): out of every list and scan until restored. */
@@ -400,6 +459,8 @@ export const reviewFactory = ({
       itemId: string
       assignment: Assignment
       accountId: string
+      /** §27.5: check and plan only, write nothing. */
+      dryRun?: boolean
     }): Promise<Result<AssignResult, AssignError>> => {
       const item = items.findItem(input.itemId)
       if (item === undefined) {
@@ -429,7 +490,21 @@ export const reviewFactory = ({
       const notFound = prepared.filter((p) => p.kind === 'not_found')
       // A movie or an episode: one file, one decision, refused as a whole.
       if (single && notFound[0] !== undefined) return episodeNotFound(notFound[0])
+      const needsReview = notFound.map((entry) => ({ sourceId: entry.source.id, ...entry.at }))
+      if (input.dryRun === true) {
+        const planned = prepared.flatMap((entry) =>
+          entry.kind === 'matched' ? [planOf(entry)] : [],
+        )
+        return ok({
+          sourceIds: planned.map((entry) => entry.sourceId),
+          itemIds: [],
+          needsReview,
+          identified: planned,
+          dryRun: true,
+        })
+      }
       // A series: the episodes the new series lacks wait in "To review", the others move.
+      const identified: PlannedIdentification[] = []
       const sourceIds: string[] = []
       const itemIds = new Set<string>()
       const enriched: string[] = []
@@ -440,19 +515,19 @@ export const reviewFactory = ({
             continue
           }
           const applied = commit(entry, input.accountId)
+          identified.push(planOf(entry))
           sourceIds.push(entry.source.id)
           for (const id of applied.itemIds) itemIds.add(id)
           enriched.push(...applied.enriched)
         }
       })
       requestImages(jobQueue, enriched)
-      const needsReview = notFound.map((entry) => ({ sourceId: entry.source.id, ...entry.at }))
       logger.info('item re-identified', {
         itemId: item.id,
         sourceIds,
         needsReview: needsReview.length,
       })
-      return ok({ sourceIds, itemIds: [...itemIds], needsReview })
+      return ok({ sourceIds, itemIds: [...itemIds], needsReview, identified, dryRun: false })
     },
   }
 }

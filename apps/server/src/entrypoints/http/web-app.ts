@@ -3,8 +3,20 @@ import type { MiddlewareHandler } from 'hono'
 import type { StaticFiles } from '../../infrastructure/http/static-files.ts'
 import type { AppEnv } from './context.ts'
 
+/**
+ * Never the SPA: the API, `/health`, and the machine endpoints of §27 (`/mcp`, OAuth discovery,
+ * registration and tokens), where an `index.html` with a 200 would read as broken metadata. The
+ * OAuth consent page, `/oauth/authorize`, is a page of the web app.
+ */
 const isApiPath = (path: string): boolean =>
-  path === '/api' || path.startsWith('/api/') || path === '/health'
+  path === '/api' ||
+  path.startsWith('/api/') ||
+  path === '/health' ||
+  path === '/mcp' ||
+  path.startsWith('/mcp/') ||
+  path.startsWith('/.well-known/') ||
+  path === '/oauth/token' ||
+  path === '/oauth/register'
 
 const hasExtension = (path: string): boolean => /\.[a-z0-9]+$/i.test(path)
 

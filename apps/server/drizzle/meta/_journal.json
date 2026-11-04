@@ -141,6 +141,13 @@
       "when": 1793465483617,
       "tag": "0019_search_fold_ligatures",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793827029370,
+      "tag": "0020_assistants_and_oauth",
+      "breakpoints": true
     }
   ]
 }

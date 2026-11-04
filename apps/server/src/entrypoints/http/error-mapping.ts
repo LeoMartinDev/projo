@@ -15,6 +15,7 @@ import { libraryErrorStatus } from './error-mapping/library.ts'
 import { mediaErrorStatus } from './error-mapping/media.ts'
 import { metadataErrorStatus } from './error-mapping/metadata.ts'
 import { notificationErrorStatus } from './error-mapping/notification.ts'
+import { oauthErrorStatus } from './error-mapping/oauth.ts'
 import { playbackErrorStatus } from './error-mapping/playback.ts'
 import { profileErrorStatus } from './error-mapping/profile.ts'
 import { progressErrorStatus } from './error-mapping/progress.ts'
@@ -42,6 +43,7 @@ export const errorStatusByCode: Record<ErrorCode, ErrorStatusCode> = {
   ...mediaErrorStatus,
   ...metadataErrorStatus,
   ...notificationErrorStatus,
+  ...oauthErrorStatus,
   ...playbackErrorStatus,
   ...profileErrorStatus,
   ...progressErrorStatus,

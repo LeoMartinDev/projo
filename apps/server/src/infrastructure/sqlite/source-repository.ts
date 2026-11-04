@@ -294,11 +294,12 @@ export const createSqliteSourceRepository = ({
       : { ...breakdown, earliestUnchangedSince: fromIso(earliest) }
   },
 
-  page: ({ libraryId, state, matchState, cursor, limit }) => {
+  page: ({ libraryId, state, matchState, reviewReason, cursor, limit }) => {
     const filters = [
       libraryId === undefined ? undefined : eq(sources.libraryId, libraryId),
       state === undefined ? undefined : eq(sources.state, state),
       matchState === undefined ? undefined : eq(sources.matchState, matchState),
+      reviewReason === undefined ? undefined : eq(sources.reviewReason, reviewReason),
     ]
     const total =
       db
@@ -345,6 +346,32 @@ export const createSqliteSourceRepository = ({
       }),
       ...(rows.length > limit && last !== undefined ? { nextCursor: last.source.id } : {}),
     }
+  },
+
+  reviewSummary: () => {
+    const toReview = db
+      .select({
+        libraryId: sources.libraryId,
+        reason: sources.reviewReason,
+        count: count(),
+      })
+      .from(sources)
+      .where(and(eq(sources.matchState, 'needs_review'), eq(sources.state, 'ready')))
+      .groupBy(sources.libraryId, sources.reviewReason)
+      .all()
+      .map(({ libraryId, reason, count: total }) => ({
+        libraryId,
+        ...(reason === null ? {} : { reason }),
+        count: total,
+      }))
+    const byState: SourceCounts = { pending: 0, ready: 0, missing: 0, rejected: 0 }
+    const rows = db
+      .select({ state: sources.state, count: count() })
+      .from(sources)
+      .groupBy(sources.state)
+      .all()
+    for (const row of rows) byState[row.state] = row.count
+    return { toReview, byState }
   },
 
   externalSubtitlesByLibrary: (libraryId) => {

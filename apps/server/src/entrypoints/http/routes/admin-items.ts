@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { appError, type AppError, err, fromPromise, ok, type Result } from '@projo/shared'
 import type { JobRef } from '@projo/shared/api/jobs'
 import {
-  type AssignResponse,
   assignBodySchema,
   chooseItemImageBodySchema,
   imageAlternativesQuerySchema,
@@ -30,6 +29,7 @@ import type { TmdbError } from '../../../core/metadata/tmdb.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { parseJson, validate } from '../validation.ts'
+import { toAssignResponse } from './admin-sources.ts'
 
 /** `DELETE /items/:id/overrides/:field`: both path params, so the RPC client types the id. */
 const overrideParamSchema = overrideFieldParamSchema.extend({ id: z.string().min(1) })
@@ -206,9 +206,7 @@ export const adminItemsRoutes = ({
         assignment: c.req.valid('json'),
         accountId: account.id,
       })
-      return result.ok
-        ? c.json(result.value satisfies AssignResponse, 200)
-        : respondError(c, result.error)
+      return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
     })
     // ── §9.3 editing, §9.4 refresh (M5) ──
     .get('/items/:id', (c) => {

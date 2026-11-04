@@ -20,6 +20,8 @@ export const authErrorCodes = [
   'auth/pairing_invalid',
   'auth/pairing_expired',
   'auth/pairing_used',
+  /** §27.3: unknown or already revoked assistant token of this account. */
+  'auth/assistant_token_not_found',
 ] as const
 
 export type AuthErrorCode = (typeof authErrorCodes)[number]

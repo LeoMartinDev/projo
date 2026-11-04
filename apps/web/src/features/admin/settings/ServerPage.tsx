@@ -15,6 +15,7 @@ import { useNow } from '../../../shared/ui/use-now.ts'
 import { DatabaseIcon, ServerIcon } from '../admin-icons.tsx'
 import { OptimizeImagesSetting } from '../metadata/RefreshLibrary.tsx'
 import { storageQuery } from '../operations/queries.ts'
+import { AssistantTokens } from './AssistantTokens.tsx'
 import { settingsQuery, useUpdateSettings } from './queries.ts'
 import '../admin.css'
 import '../admin-table.css'
@@ -168,7 +169,7 @@ const ExportDatabase = () => {
 /**
  * `/admin/server` (§15 "Server"): the name; port, `TRUST_PROXY` and the data folder read-only
  * (environment variables, §5.4); space used under it by category; maintenance: "Exporter la
- * base", "Optimiser les images".
+ * base", "Optimiser les images"; "Assistants IA" (§27.3).
  */
 export const ServerPage = () => {
   const { t } = useTranslation()
@@ -224,6 +225,8 @@ export const ServerPage = () => {
         <ExportDatabase />
         <OptimizeImagesSetting />
       </section>
+
+      <AssistantTokens />
     </div>
   )
 }

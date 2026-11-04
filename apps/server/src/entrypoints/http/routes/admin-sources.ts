@@ -9,7 +9,7 @@ import {
 } from '@projo/shared/api/libraries'
 import { type AssignResponse, assignBodySchema } from '@projo/shared/api/metadata'
 
-import type { Review } from '../../../application/metadata/review.ts'
+import type { AssignResult, Review } from '../../../application/metadata/review.ts'
 import type { MissingSourcesAdmin } from '../../../application/operations/types.ts'
 import type { SourceAdmin } from '../../../application/scanner/source-admin.ts'
 import { sourceVersionOf } from '../../../core/media/version.ts'
@@ -24,6 +24,13 @@ const baseName = (relativePath: string): string => relativePath.split('/').at(-1
 
 const iso = <K extends string>(key: K, value: Date | undefined) =>
   (value === undefined ? {} : { [key]: value.toISOString() }) as { [P in K]?: string }
+
+/** The §17.2 body of an assignment or a rematch (the plan of §27.5 stays with the MCP server). */
+export const toAssignResponse = ({
+  sourceIds,
+  itemIds,
+  needsReview,
+}: AssignResult): AssignResponse => ({ sourceIds, itemIds, needsReview })
 
 export const toParsedNameDto = (parsed: ParsedName): ParsedNameDto => {
   const { part: _part, absoluteEpisodeEnd: _end, ids, ...rest } = parsed
@@ -116,9 +123,7 @@ export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
         assignment: c.req.valid('json'),
         accountId: account.id,
       })
-      return result.ok
-        ? c.json(result.value satisfies AssignResponse, 200)
-        : respondError(c, result.error)
+      return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
     })
     .post('/sources/:id/reject', (c) => {
       const result = review.rejectSource({ sourceId: c.req.param('id') })

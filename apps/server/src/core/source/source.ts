@@ -164,6 +164,7 @@ export type SourceRepository = {
     libraryId?: string
     state?: SourceState
     matchState?: MatchState
+    reviewReason?: ReviewReason
     cursor?: string
     limit: number
   }) => {
@@ -171,6 +172,14 @@ export type SourceRepository = {
     total: number
     items: SourceListItem[]
     nextCursor?: string
+  }
+  /**
+   * §27.4 `review_summary`: the "To review" files (§7.8: `needs_review` and `ready`) by library
+   * and reason, and every source by state.
+   */
+  reviewSummary: () => {
+    toReview: { libraryId: string; reason?: ReviewReason; count: number }[]
+    byState: SourceCounts
   }
   /** Current external subtitles, by source id, for one library. */
   externalSubtitlesByLibrary: (libraryId: string) => Map<string, ExternalSubtitleRow[]>

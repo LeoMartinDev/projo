@@ -3,7 +3,7 @@ import { and, desc, eq, gt, isNull, ne } from 'drizzle-orm'
 import type { Session, SessionRepository } from '../../core/auth/session.ts'
 import type { Db } from './database.ts'
 import { fromIso, fromIsoNullable, toIso } from './rows.ts'
-import { sessions } from './schema/accounts.ts'
+import { assistantTokens, sessions } from './schema/accounts.ts'
 
 type SessionRow = typeof sessions.$inferSelect
 
@@ -83,6 +83,11 @@ export const createSqliteSessionRepository = ({ db }: { db: Db }): SessionReposi
       .all()
       .map(toSession),
   revokeAllByAccount: ({ accountId, revokedAt, exceptId }) => {
+    // §27.3: the account's assistant tokens go with its sessions (revoke all, password change).
+    db.update(assistantTokens)
+      .set({ revokedAt: toIso(revokedAt) })
+      .where(and(eq(assistantTokens.accountId, accountId), isNull(assistantTokens.revokedAt)))
+      .run()
     db.update(sessions)
       .set({ revokedAt: toIso(revokedAt) })
       .where(

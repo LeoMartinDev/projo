@@ -2,6 +2,7 @@ import { Hono, type MiddlewareHandler } from 'hono'
 
 import type { AppEnv } from './context.ts'
 import type { AdminAccountsRoutes } from './routes/admin-accounts.ts'
+import type { AdminAssistantsRoutes } from './routes/admin-assistants.ts'
 import type { AdminPlaybackRoutes } from './routes/admin-playback.ts'
 import type { AdminFsRoutes } from './routes/admin-fs.ts'
 import type { AdminLibrariesRoutes } from './routes/admin-libraries.ts'
@@ -19,6 +20,7 @@ import type {
 import type { AdminSystemRoutes } from './routes/admin-system.ts'
 import type { AdminUpdatesRoutes } from './routes/admin-updates.ts'
 import type { AuthRoutes } from './routes/auth.ts'
+import type { OAuthConsentRoutes } from './routes/oauth-consent.ts'
 import type { CatalogRoutes } from './routes/catalog.ts'
 import type { EventsRoutes } from './routes/events.ts'
 import type { HomeRoutes } from './routes/home.ts'
@@ -70,6 +72,8 @@ export type ApiRoutes = {
   adminNotifications: AdminNotificationsRoutes
   adminSystem: AdminSystemRoutes
   adminUpdates: AdminUpdatesRoutes
+  adminAssistants: AdminAssistantsRoutes
+  oauthConsent: OAuthConsentRoutes
 }
 
 export type ApiMiddleware = {
@@ -110,6 +114,7 @@ export const createApi = ({
     .route('/', routes.previews)
     .route('/', routes.segments)
     .route('/', routes.images)
+    .route('/', routes.oauthConsent)
     .route('/admin', routes.adminLibraries)
     .route('/admin', routes.adminFs)
     .route('/admin', routes.adminSources)
@@ -125,5 +130,6 @@ export const createApi = ({
     .route('/admin', routes.adminNotifications)
     .route('/admin', routes.adminSystem)
     .route('/admin', routes.adminUpdates)
+    .route('/admin', routes.adminAssistants)
 
 export type Api = ReturnType<typeof createApi>

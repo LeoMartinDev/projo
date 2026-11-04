@@ -20,6 +20,7 @@ import { mergeJobHandlers } from './jobs/handler.ts'
 import { createJobRunner, type JobRunner } from './jobs/runner.ts'
 import { createScheduler } from './jobs/scheduler.ts'
 import { buildAdminPlaybackModule } from './modules/admin-playback.ts'
+import { buildAssistantsModule } from './modules/assistants.ts'
 import { buildAuthModule } from './modules/auth.ts'
 import { buildCatalogModule } from './modules/catalog.ts'
 import { buildEventsModule } from './modules/events.ts'
@@ -153,6 +154,8 @@ export const startProjo = ({
   })
   const scanner = buildScannerModule(platform, { playbackSessions, requestMatch })
   const progress = buildProgressModule(platform, { visibilityScope })
+  // MCP server (§27): its tools run the metadata module's "To review" and "Fix the match".
+  const assistants = buildAssistantsModule(platform, { assistantPorts: metadata.assistantPorts })
 
   const modules: ModuleContribution[] = [
     auth,
@@ -173,6 +176,7 @@ export const startProjo = ({
     fingerprint,
     operations,
     updates,
+    assistants,
   ]
 
   // ── HTTP ────────────────────────────────────────────────────────────────────
@@ -211,10 +215,13 @@ export const startProjo = ({
       adminNotifications: operations.routes.notifications,
       adminSystem: operations.routes.system,
       adminUpdates: updates.routes,
+      adminAssistants: assistants.adminRoutes,
+      oauthConsent: assistants.oauthConsentRoutes,
     },
   })
   const app = createHttpApp({
     api,
+    root: [assistants.mcpRoutes, assistants.oauthRoutes],
     health: { version, runtime },
     logger,
     ids: platform.ids,

@@ -115,6 +115,8 @@ const build = (scopes: Record<string, VisibilityScope> = {}) => {
       adminNotifications: unwired<'adminNotifications'>(),
       adminSystem: unwired<'adminSystem'>(),
       adminUpdates: unwired<'adminUpdates'>(),
+      adminAssistants: unwired<'adminAssistants'>(),
+      oauthConsent: unwired<'oauthConsent'>(),
     },
   })
   call = (path, { method = 'GET', json, role = 'user', as = 'leo' } = {}) =>

@@ -1,4 +1,5 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import type { ReviewReason } from '@projo/shared/api/metadata'
 
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type {
@@ -20,6 +21,7 @@ export const sourceAdminFactory = ({ sourceRepository, jobQueue }: Deps) => ({
     libraryId?: string
     state?: SourceState
     matchState?: MatchState
+    reviewReason?: ReviewReason
     cursor?: string
     limit: number
   }): { total: number; items: SourceListItem[]; nextCursor?: string } =>

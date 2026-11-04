@@ -1041,6 +1041,18 @@ select.field__input {
   color: var(--color-text-muted-strong);
 }
 
+/* A caution, not a failure: the local-address warning of pairing and assistants (§14, §27.3). */
+.alert--warning {
+  background: rgba(229, 181, 103, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(229, 181, 103, 0.28);
+  color: var(--color-warning);
+}
+
+.alert--warning svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
 .skeleton {
   border-radius: var(--radius-card);
   background: linear-gradient(

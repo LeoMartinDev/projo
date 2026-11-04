@@ -250,6 +250,12 @@ export const buildMetadataModule = (
   return {
     /** Passed to the scanner module: ready sources go to `match_source`. */
     requestMatch,
+    /** Passed to the assistants module: the MCP tools of §27.4 run the web's use cases. */
+    assistantPorts: {
+      review,
+      tmdbDetails: tmdbDetailsFactory({ tmdb }),
+      metadataLanguage: settings.language,
+    },
     /**
      * Passed to the libraries and operations modules: a new language or rating country, or files
      * leaving that change the deciding library of a movie or series, refresh (§9.1, §9.4).

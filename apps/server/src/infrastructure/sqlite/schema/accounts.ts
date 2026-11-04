@@ -101,6 +101,100 @@ export const sessions = sqliteTable(
   ],
 )
 
+/**
+ * §27.3 OAuth clients of the MCP server: a Client ID Metadata Document (`client_id` is its HTTPS
+ * URL, re-read after 24 h) or a Dynamic Client Registration (`client_id` generated here).
+ */
+export const oauthClients = sqliteTable(
+  'oauth_clients',
+  {
+    id: text().primaryKey(),
+    clientId: text().notNull(),
+    kind: text({ enum: ['cimd', 'dcr'] }).notNull(),
+    name: text().notNull(),
+    redirectUris: text({ mode: 'json' }).$type<unknown>().notNull(),
+    createdAt: text().notNull(),
+    fetchedAt: text(),
+    lastUsedAt: text(),
+  },
+  (t) => [uniqueIndex('oauth_clients_client_id_unique').on(t.clientId)],
+)
+
+/**
+ * §27.3 assistants of the MCP server, the "AI assistants" rows: a token created in the admin
+ * (`kind = token`, its hash here), or an OAuth connection (`kind = oauth`, its tokens in
+ * `oauth_tokens`). Bound to an admin account and to the profile it acts as, until revoked.
+ */
+export const assistantTokens = sqliteTable(
+  'assistant_tokens',
+  {
+    id: text().primaryKey(),
+    accountId: text()
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    profileId: text()
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    kind: text({ enum: ['token', 'oauth'] })
+      .notNull()
+      .default('token'),
+    clientId: text().references(() => oauthClients.id, { onDelete: 'cascade' }),
+    name: text().notNull(),
+    tokenHash: text(),
+    createdAt: text().notNull(),
+    lastUsedAt: text(),
+    revokedAt: text(),
+  },
+  (t) => [
+    uniqueIndex('assistant_tokens_token_hash_unique').on(t.tokenHash),
+    index('assistant_tokens_account_id_idx').on(t.accountId),
+  ],
+)
+
+/** §27.3 authorization codes: single use, 60 s, bound to the PKCE challenge and redirect URI. */
+export const oauthCodes = sqliteTable(
+  'oauth_codes',
+  {
+    codeHash: text().primaryKey(),
+    clientId: text()
+      .notNull()
+      .references(() => oauthClients.id, { onDelete: 'cascade' }),
+    accountId: text()
+      .notNull()
+      .references(() => accounts.id, { onDelete: 'cascade' }),
+    profileId: text()
+      .notNull()
+      .references(() => profiles.id, { onDelete: 'cascade' }),
+    redirectUri: text().notNull(),
+    codeChallenge: text().notNull(),
+    scope: text().notNull(),
+    expiresAt: text().notNull(),
+    usedAt: text(),
+  },
+  (t) => [index('oauth_codes_expires_at_idx').on(t.expiresAt)],
+)
+
+/**
+ * §27.3 access (1 h) and refresh (90 days, rotated) tokens of an OAuth assistant. A rotated
+ * refresh token is kept until it expires: presenting it again revokes the assistant.
+ */
+export const oauthTokens = sqliteTable(
+  'oauth_tokens',
+  {
+    tokenHash: text().primaryKey(),
+    assistantId: text()
+      .notNull()
+      .references(() => assistantTokens.id, { onDelete: 'cascade' }),
+    kind: text({ enum: ['access', 'refresh'] }).notNull(),
+    expiresAt: text().notNull(),
+    rotatedAt: text(),
+  },
+  (t) => [
+    index('oauth_tokens_assistant_id_idx').on(t.assistantId),
+    index('oauth_tokens_expires_at_idx').on(t.expiresAt),
+  ],
+)
+
 /** §14 "Pairing a device": a code shown by the web, claimed by the app. Only its hash is kept. */
 export const pairings = sqliteTable(
   'pairings',

@@ -1,0 +1,82 @@
+/* OAuth consent (§27.3): the login's panel, the same height while loading, asking or failing. */
+
+@import '../../shared/styles/media.css';
+
+.oauth {
+  min-height: 340px;
+}
+
+.oauth__details {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px 20px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.oauth__details dt {
+  color: var(--color-text-muted);
+}
+
+.oauth__details dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-text-strong);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Where the code goes back: shown whole, never cut (MCP authorization, consent). */
+.oauth__host {
+  font-size: 14px;
+}
+
+.oauth__actions,
+.oauth__end {
+  margin-top: auto;
+}
+
+.oauth__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.oauth__end {
+  align-self: flex-start;
+}
+
+.oauth__skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.oauth__skeleton .skeleton--line {
+  width: 70%;
+}
+
+.oauth__skeleton .oauth__skeleton-title {
+  width: 85%;
+  height: 28px;
+}
+
+@media (--compact) {
+  .oauth {
+    min-height: 300px;
+  }
+
+  .oauth__details {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .oauth__details dd + dt {
+    margin-top: 10px;
+  }
+
+  .oauth__actions > .button {
+    flex: 1 1 0;
+  }
+}

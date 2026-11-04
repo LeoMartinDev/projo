@@ -175,7 +175,7 @@ export const ConnectDeviceDialog = ({
         </div>
       </div>
       {local ? (
-        <p className="alert pairing__warning">
+        <p className="alert alert--warning">
           <AlertIcon />
           <span>{t('account.pairing.localWarning')}</span>
         </p>

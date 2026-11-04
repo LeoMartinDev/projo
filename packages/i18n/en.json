@@ -405,6 +405,14 @@
     "title": "Open the projo app",
     "body": "On your iPhone or iPad, open projo and scan the code shown in “Connect a device”."
   },
+  "oauth": {
+    "title": "Connect {{client}} to projo",
+    "redirectHost": "Return address",
+    "profile": "Profile",
+    "loopback": "An app on this computer will receive access to projo.",
+    "allow": "Allow",
+    "failedTitle": "Cannot connect"
+  },
   "invite": {
     "display": "Welcome\nto projo",
     "displayServer": "Welcome\nto {{name}}",
@@ -1134,7 +1142,37 @@
       },
       "export": "Export the database",
       "exported": "{{file}} · {{size}}",
-      "maintenance": "Maintenance"
+      "maintenance": "Maintenance",
+      "assistants": {
+        "title": "AI assistants",
+        "add": "Add",
+        "addTitle": "Add an assistant",
+        "name": "Name",
+        "create": "Create",
+        "columns": {
+          "name": "Name",
+          "created": "Created",
+          "lastUsed": "Last used"
+        },
+        "kind": {
+          "token": "Token",
+          "oauth": "OAuth"
+        },
+        "never": "Never",
+        "empty": "No assistants",
+        "revoke": "Revoke",
+        "revokeNamed": "Revoke {{name}}",
+        "revokeTitle": "Revoke “{{name}}”?",
+        "revokeText": "The assistant will no longer have access to projo.",
+        "shownOnce": "Copy the configuration now: the token will not be shown again.",
+        "claudeCode": "Claude Code",
+        "claudeDesktop": "Claude Desktop · claude_desktop_config.json",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyFailed": "Could not copy: select the text and copy it.",
+        "localWarning": "This address only works at home: the assistant will reach projo only from this network. To use it elsewhere, open projo by its public address.",
+        "done": "Done"
+      }
     },
     "editItem": {
       "action": "Edit",
@@ -1295,11 +1333,19 @@
     "auth/pairing_invalid": "This code is not valid.",
     "auth/pairing_expired": "This code has expired.",
     "auth/pairing_used": "This code has already been used.",
+    "auth/assistant_token_not_found": "Assistant token not found or already revoked.",
     "catalog/invalid_cursor": "The list changed. Reload the page.",
     "catalog/image_not_found": "Image not found.",
     "common/internal": "Internal server error.",
     "common/validation_failed": "Invalid request.",
     "common/not_found": "Not found.",
+    "common/method_not_allowed": "Method not allowed.",
+    "oauth/invalid_client": "This application is not recognised.",
+    "oauth/invalid_redirect_uri": "This application's return address is not allowed.",
+    "oauth/invalid_request": "Invalid sign-in request.",
+    "oauth/invalid_grant": "Authorisation expired or already used.",
+    "oauth/unsupported_grant_type": "Unsupported grant type.",
+    "oauth/access_denied": "Only an administrator can connect an assistant.",
     "config/invalid": "Invalid server configuration.",
     "data/layout_failed": "The server data folder is unusable.",
     "db/open_failed": "The database cannot be opened.",

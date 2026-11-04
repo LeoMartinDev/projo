@@ -134,6 +134,8 @@ export const createAuthTestApp = ({
       adminNotifications: operations.routes.notifications,
       adminSystem: operations.routes.system,
       adminUpdates: unwired<'adminUpdates'>(),
+      adminAssistants: unwired<'adminAssistants'>(),
+      oauthConsent: unwired<'oauthConsent'>(),
     },
   })
   const app = createHttpApp({

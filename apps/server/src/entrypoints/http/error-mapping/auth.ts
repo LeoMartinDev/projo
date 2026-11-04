@@ -21,4 +21,5 @@ export const authErrorStatus = {
   'auth/pairing_invalid': 404,
   'auth/pairing_expired': 410,
   'auth/pairing_used': 410,
+  'auth/assistant_token_not_found': 404,
 } satisfies ErrorStatusMap<AuthErrorCode>

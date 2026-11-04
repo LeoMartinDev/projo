@@ -16,6 +16,11 @@ import { serveWebApp } from './web-app.ts'
 
 type Deps = {
   api: Api
+  /**
+   * Routes outside `/api/v1` and outside the web app: `/mcp`, OAuth (§27). Absent in tests that
+   * do not need them.
+   */
+  root?: Hono<AppEnv>[] | Hono<AppEnv>
   health: HealthRoutesDeps
   logger: Logger
   ids: IdGenerator
@@ -24,7 +29,7 @@ type Deps = {
 }
 
 /** The whole HTTP surface: security headers, `/health`, `/api/v1`, then the SPA. */
-export const createHttpApp = ({ api, health, logger, ids, webFiles }: Deps) => {
+export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }: Deps) => {
   const app = new Hono<AppEnv>()
 
   app.use('*', async (c, next) => {
@@ -50,6 +55,7 @@ export const createHttpApp = ({ api, health, logger, ids, webFiles }: Deps) => {
 
   app.route('/', healthRoutes(health))
   app.route('/api/v1', api)
+  for (const routes of Array.isArray(root) ? root : [root]) app.route('/', routes)
   app.use('*', serveWebApp({ staticFiles: webFiles }))
 
   app.notFound((c) =>
