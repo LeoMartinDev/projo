@@ -186,6 +186,11 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
               <feMorphology in="SourceGraphic" operator="erode" radius="1" result="inner" />
               <feComposite in="SourceGraphic" in2="inner" operator="out" />
             </filter>
+            {/* The top lip of light the glass buttons have (--shadow-glass). */}
+            <filter id="pill-merge-highlight">
+              <feOffset in="SourceGraphic" dy="1" result="lowered" />
+              <feComposite in="SourceGraphic" in2="lowered" operator="out" />
+            </filter>
             <filter id="pill-merge-blur-logo" x="-20%" width="140%">
               <feGaussianBlur stdDeviation="0 0" />
             </filter>
@@ -210,6 +215,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
           </g>
           <use href="#pill-merge-shape" className="pill-merge__tint" />
           <use href="#pill-merge-shape" className="pill-merge__edge" />
+          <use href="#pill-merge-shape" className="pill-merge__highlight" />
         </svg>
         <Link to="/" className="shell__logo" aria-label={t('shell.home')}>
           <Logo />

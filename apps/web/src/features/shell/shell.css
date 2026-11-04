@@ -120,9 +120,18 @@ html:has(dialog:modal) .shell__header {
   fill: rgba(40, 40, 44, 0.42);
 }
 
+/* Opaque fill, opacity after the filter: with a translucent fill, the filters' `out` composite
+   would only remove that fraction of the inside, and the rim would not stand out from it. */
 .pill-merge__edge {
-  fill: rgba(255, 255, 255, 0.09);
+  fill: #fff;
+  opacity: 0.1;
   filter: url(#pill-merge-edge);
+}
+
+.pill-merge__highlight {
+  fill: #fff;
+  opacity: 0.14;
+  filter: url(#pill-merge-highlight);
 }
 
 @media not (--phone) {
@@ -173,7 +182,7 @@ html:has(dialog:modal) .shell__header {
 /* Search stands on its own glass, or the hero behind it could hide it; once the page scrolls, the
    merged pill is its glass. */
 .shell__search {
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(40, 40, 44, 0.42);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
@@ -254,12 +263,14 @@ html:has(dialog:modal) .shell__header {
   display: flex;
   gap: 2px;
   padding: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-pill);
   background: rgba(40, 40, 44, 0.42);
   -webkit-backdrop-filter: blur(24px) saturate(160%);
   backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: 0 10px 30px -14px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 10px 30px -14px rgba(0, 0, 0, 0.4);
   font-size: 14px;
 }
 
@@ -357,7 +368,9 @@ html:has(dialog:modal) .shell__header {
     padding: 6px;
     border-radius: 26px;
     background: rgba(30, 30, 34, 0.55);
-    box-shadow: 0 12px 36px -14px rgba(0, 0, 0, 0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.14),
+      0 12px 36px -14px rgba(0, 0, 0, 0.45);
   }
 
   html:has(dialog:modal) .pill-nav {
