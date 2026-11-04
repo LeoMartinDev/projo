@@ -24,6 +24,10 @@
   cursor: none;
 }
 
+.player__video-slot {
+  display: contents;
+}
+
 .player__video {
   width: 100%;
   height: 100%;

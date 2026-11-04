@@ -167,6 +167,7 @@ import { TrackToast } from './TrackToast.tsx'
 import { sheetUrls, thumbnailAt } from './trickplay.ts'
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
+import { usePlayerVideo } from './player-element.ts'
 import {
   pictureInPictureShowsTextTracks,
   pictureInPictureSupported,
@@ -272,6 +273,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   )
   const lastPositionRef = useRef<number | undefined>(undefined)
   const startPausedRef = useRef(false)
+  const playedRef = useRef(false)
   const pendingAudioMemoryRef = useRef<{ attempt: number } | undefined>(undefined)
   const gestureRef = useRef<{
     pointer: string
@@ -281,7 +283,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     hudTimer?: ReturnType<typeof setTimeout> | undefined
   }>({ pointer: 'mouse' })
 
-  const [video, videoRef] = useElement<HTMLVideoElement>()
+  const [video, videoSlotRef] = usePlayerVideo()
   const [container, containerRef] = useElement<HTMLDivElement>()
   usePlayerFullscreenScope()
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
@@ -385,7 +387,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     setSwitching({ positionMs: change.type === 'part' ? change.part.offsetMs : at, totalMs })
     setOverlay(undefined)
     const last = teardownRef.current?.() ?? { positionMs: at, paused: false }
-    startPausedRef.current = change.type === 'retry' && last.paused === true
+    startPausedRef.current = change.type === 'retry' && last.paused === true && playedRef.current
     const nextValue = nextRequest({
       request,
       session,
@@ -403,6 +405,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     setInterruption(network ? { kind: 'network', failure } : { kind: 'failure', failure })
   })
   const onPlaying = useEffectEvent(() => {
+    playedRef.current = true
     if (reconnectAttempt !== 0) setReconnectAttempt(0)
     if (switching !== undefined) setSwitching(undefined)
   })
@@ -509,6 +512,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     const timer = setTimeout(() => reloadStream(video, url), 800)
     return () => clearTimeout(timer)
   }, [video, session, hlsSubtitles, subtitleSettings.delayMs])
+
+  useEffect(() => {
+    if (video === undefined) return
+    video.classList.toggle('player__video--native-cues', hlsSubtitles)
+  }, [video, hlsSubtitles])
 
   useEffect(() => {
     if (video === undefined) return
@@ -1065,23 +1073,20 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         if (event.pointerType === 'mouse') wake()
       }}
     >
-      <video
-        ref={videoRef}
-        className={`player__video${hlsSubtitles ? ' player__video--native-cues' : ''}`}
-        playsInline
-        preload="auto"
-      >
-        {vttTrack === undefined || vttTrack.url === undefined ? undefined : (
-          <track
-            key={`${session?.id ?? ''}-${vttTrack.id}`}
-            ref={trackRef}
-            kind="subtitles"
-            src={vttTrack.url}
-            {...(vttTrack.language === undefined ? {} : { srcLang: vttTrack.language })}
-            label={vttTrack.title ?? vttTrack.language ?? ''}
-          />
-        )}
-      </video>
+      <div ref={videoSlotRef} className="player__video-slot" />
+      {video === undefined || vttTrack === undefined || vttTrack.url === undefined
+        ? undefined
+        : createPortal(
+            <track
+              key={`${session?.id ?? ''}-${vttTrack.id}`}
+              ref={trackRef}
+              kind="subtitles"
+              src={vttTrack.url}
+              {...(vttTrack.language === undefined ? {} : { srcLang: vttTrack.language })}
+              label={vttTrack.title ?? vttTrack.language ?? ''}
+            />,
+            video,
+          )}
 
       {pipStage === undefined ? (
         <SubtitleOverlay

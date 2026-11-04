@@ -120,8 +120,10 @@ const fullscreenElement = (): Element | undefined =>
   (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement ??
   undefined
 
+export const fullscreenActive = (): boolean => fullscreenElement() !== undefined
+
 export const useIsFullscreen = (): boolean =>
-  useSyncExternalStore(subscribeFullscreen, () => fullscreenElement() !== undefined)
+  useSyncExternalStore(subscribeFullscreen, fullscreenActive)
 
 const orientation = () =>
   screen.orientation as
@@ -145,13 +147,19 @@ const exitFullscreen = () => {
   void document.exitFullscreen().catch(() => undefined)
 }
 
+export const enterDocumentFullscreen = (): void => {
+  void document.documentElement
+    .requestFullscreen()
+    .then(() => orientation()?.lock?.('landscape'))
+    .catch(() => undefined)
+}
+
 export const toggleFullscreen = (video: HTMLVideoElement): void => {
   const webkitVideo = video as unknown as { webkitEnterFullscreen?: () => void }
-  const root = document.documentElement
   switch (
     fullscreenAction({
-      active: fullscreenElement() !== undefined,
-      documentFullscreen: typeof root.requestFullscreen === 'function',
+      active: fullscreenActive(),
+      documentFullscreen: typeof document.documentElement.requestFullscreen === 'function',
       videoFullscreen: typeof webkitVideo.webkitEnterFullscreen === 'function',
     })
   ) {
@@ -159,10 +167,7 @@ export const toggleFullscreen = (video: HTMLVideoElement): void => {
       exitFullscreen()
       return
     case 'document':
-      void root
-        .requestFullscreen()
-        .then(() => orientation()?.lock?.('landscape'))
-        .catch(() => undefined)
+      enterDocumentFullscreen()
       return
     case 'video':
       webkitVideo.webkitEnterFullscreen?.()
