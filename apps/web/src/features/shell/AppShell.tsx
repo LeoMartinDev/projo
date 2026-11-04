@@ -178,8 +178,9 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
         <svg className="pill-merge__paint" aria-hidden="true">
           <defs>
             <path id="pill-merge-shape" />
-            <filter id="pill-merge-shadow" x="-10%" y="-60%" width="120%" height="220%">
-              <feGaussianBlur stdDeviation="10" />
+            {/* Room for the whole blur (3σ + the offset), or the shadow ends on a hard edge. */}
+            <filter id="pill-merge-shadow" x="-20%" y="-150%" width="140%" height="400%">
+              <feGaussianBlur stdDeviation="14" />
             </filter>
             <filter id="pill-merge-edge">
               <feMorphology in="SourceGraphic" operator="erode" radius="1" result="inner" />
@@ -191,13 +192,21 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
             <filter id="pill-merge-blur-actions" x="-20%" width="140%">
               <feGaussianBlur stdDeviation="0 0" />
             </filter>
-            <mask id="pill-merge-outside" maskUnits="userSpaceOnUse">
-              <rect width="100%" height="100%" fill="#fff" />
+            {/* Wider than the header: the shadow falls below its bottom edge. */}
+            <mask
+              id="pill-merge-outside"
+              maskUnits="userSpaceOnUse"
+              x="-50%"
+              y="-100%"
+              width="200%"
+              height="300%"
+            >
+              <rect x="-50%" y="-100%" width="200%" height="300%" fill="#fff" />
               <use href="#pill-merge-shape" fill="#000" />
             </mask>
           </defs>
           <g mask="url(#pill-merge-outside)">
-            <use href="#pill-merge-shape" y="6" className="pill-merge__shadow" />
+            <use href="#pill-merge-shape" y="8" className="pill-merge__shadow" />
           </g>
           <use href="#pill-merge-shape" className="pill-merge__tint" />
           <use href="#pill-merge-shape" className="pill-merge__edge" />
