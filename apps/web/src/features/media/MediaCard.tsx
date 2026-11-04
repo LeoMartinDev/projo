@@ -139,7 +139,7 @@ const PreviewActions = ({
   actions: CardActions
 }) => {
   const { t } = useTranslation()
-  const text = useCardText()(item, place)
+  const text = useCardText()(item)
   const { listed, seen } = actions
   const target = detailTargetOf(item)
   return (
@@ -321,7 +321,7 @@ export const MediaCard = ({
   onLongPress: (item: ItemSummaryDto, anchor: HTMLElement) => void
 }) => {
   const { t } = useTranslation()
-  const text = useCardText()(item, place)
+  const text = useCardText()(item)
   const press = useLongPress((anchor) => onLongPress(item, anchor))
   const poster = isPosterPlace(place)
   const art = poster ? posterOf(item) : wideArtOf(item)

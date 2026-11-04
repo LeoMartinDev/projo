@@ -40,7 +40,7 @@ export const MediaCard = ({
   onLongPress: () => void
 }) => {
   const { t } = useTranslation()
-  const text = useCardText()(item, place)
+  const text = useCardText()(item)
   const poster = isPosterPlace(place)
   const ratio = progressRatioOf(item)
   return (

@@ -313,6 +313,17 @@ const watchlistRoute = createRoute({
   component: WatchlistPage,
 })
 
+/** Any other address once signed in: "not found" inside the shell, its navigation at hand. */
+const shellNotFoundRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '$',
+  component: () => (
+    <div className="page page--state">
+      <NotFound />
+    </div>
+  ),
+})
+
 const profileSettingsRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/settings/profile',
@@ -527,6 +538,7 @@ export const routeTree = rootRoute.addChildren([
       itemRoute,
       profileSettingsRoute,
       accountRoute,
+      shellNotFoundRoute,
     ]),
     profilesRoute,
     watchRoute,

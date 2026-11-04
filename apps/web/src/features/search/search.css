@@ -1,4 +1,4 @@
-/* Search overlay (§13.2): full screen glass, the field on top, two columns of results. */
+/* Search overlay (§13.2): full screen glass, the field on top, grids of results. */
 
 @import '../../shared/styles/media.css';
 
@@ -123,10 +123,11 @@
   font-size: 15px;
 }
 
+/* Movies, then shows, one under the other: each a grid as wide as the field. */
 .search__columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
 
 .search__group {
@@ -145,10 +146,11 @@
   text-transform: uppercase;
 }
 
+/* Three columns on a computer, two on a tablet, one on a phone (result-grid.ts reads the count). */
 .search__list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+  gap: 2px 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -227,7 +229,6 @@
   }
 
   .search__columns {
-    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
 }

@@ -6,8 +6,8 @@ import type { ItemDetailDto } from '@projo/shared/api/catalog'
 
 import { formatClock, formatDuration } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { CheckIcon, PlayIcon } from '../../shared/ui/icons.tsx'
-import { AddedIcon, AddIcon, RestartIcon } from '../../shared/ui/media-icons.tsx'
+import { PlayIcon } from '../../shared/ui/icons.tsx'
+import { AddedIcon, AddIcon, RestartIcon, SeenIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useWatchedToggle, useWatchlistToggle } from '../media/actions.ts'
 import { durationMsOf, episodeLabelOf, formatRemaining } from '../media/media.ts'
@@ -121,7 +121,7 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
             aria-pressed={seen}
             onClick={() => watched.set(item.id, !seen)}
           >
-            <CheckIcon />
+            <SeenIcon />
             <span className="detail-action__label">
               {seen ? t('item.markUnwatched') : t('item.markWatched')}
             </span>

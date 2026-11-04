@@ -219,6 +219,11 @@ html:has(dialog:modal) .shell__header {
   padding: calc(var(--header-height) + 16px) var(--gutter) 80px;
 }
 
+/* A page that is only a state (not found): centred in the room under the header. */
+.page--state {
+  justify-content: center;
+}
+
 .page--narrow {
   max-width: 880px;
   margin: 0 auto;
@@ -412,12 +417,19 @@ html:has(dialog:modal) .shell__header {
     --nav-room: 48px;
   }
 
+  /* Tighter than elsewhere: the four tabs and the two actions fit a 375 px screen whole. */
   .shell__header {
     grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
   }
 
   .shell__logo {
     display: none;
+  }
+
+  /* The avatar is narrower than its touch target: that margin already parts the two. */
+  .shell__actions {
+    gap: 0;
   }
 
   .shell__header .pill-nav {
@@ -436,11 +448,11 @@ html:has(dialog:modal) .shell__header {
   .pill-nav__link {
     flex: 1 0 auto;
     justify-content: center;
-    padding: 0 8px;
+    padding: 0 6px;
     flex-direction: row;
     height: 36px;
     border-radius: var(--radius-pill);
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .pill-nav__icon,

@@ -95,7 +95,7 @@ const CardMenu = ({
   anchor: HTMLElement
   onClose: () => void
 }) => {
-  const text = useCardText()(item, place)
+  const text = useCardText()(item)
   // The picture of a home card (its caption stays behind), or a whole grid poster.
   const art = anchor.querySelector<HTMLElement>('.card__art') ?? anchor
   const [rect] = useState(() => art.getBoundingClientRect())
@@ -160,7 +160,7 @@ const CardSheetBody = ({
   onClose: () => void
 }) => {
   const { t } = useTranslation()
-  const text = useCardText()(item, place)
+  const text = useCardText()(item)
   const actions = useCardActions(item, place)
   const { listed, seen, error } = actions
   const ratio = progressRatioOf(item)

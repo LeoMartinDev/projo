@@ -81,7 +81,7 @@ export const CardSheet = () => {
   const hide = useHideFromContinue()
   if (item === undefined) return undefined
 
-  const text = textOf(item, place)
+  const text = textOf(item)
   const ratio = progressRatioOf(item)
   const listTarget = listTargetOf(item)
   const listed = listTarget === undefined ? false : watchlist.listed(listTarget)

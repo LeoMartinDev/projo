@@ -258,6 +258,18 @@
   overflow-wrap: anywhere;
 }
 
+/* Clear of the progress bar below it. */
+.card__art:has(.card__progress) .card__title {
+  bottom: 20px;
+}
+
+/* A phone's cards are narrower: a 20 px title would take two lines for most names. */
+@media (--compact) {
+  .card__title {
+    font-size: 17px;
+  }
+}
+
 .cw--poster .card__title {
   font-size: 18px;
   -webkit-line-clamp: 4;

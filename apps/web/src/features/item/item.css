@@ -741,10 +741,12 @@
   gap: 16px;
 }
 
+/* The label column fits the card's longest label ("Langues audio"), shared by its rows (subgrid). */
 .tech {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: minmax(110px, max-content) minmax(0, 1fr);
+  gap: 10px 12px;
+  align-content: start;
   margin: 0;
   padding: 18px 20px;
   border-radius: var(--radius-well);
@@ -754,8 +756,8 @@
 
 .tech__row {
   display: grid;
-  grid-template-columns: 110px minmax(0, 1fr);
-  gap: 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   font-size: 14px;
 }
 
@@ -856,8 +858,11 @@
     height: 46px;
   }
 
+  /* Icons on one line even when a label wraps to two. */
   .detail-hero__actions .detail-action {
     flex: 1 1 0;
+    align-self: stretch;
+    justify-content: flex-start;
     min-width: 0;
     flex-direction: column;
     gap: 6px;
@@ -877,6 +882,11 @@
   .detail-hero__actions .detail-action[aria-pressed='true'] {
     background: transparent;
     color: var(--color-text);
+  }
+
+  /* Level with the actions' icons, not with the middle of a two-line label. */
+  .detail-hero__actions .admin-menu {
+    align-self: flex-start;
   }
 
   .detail-hero__progress {
@@ -1010,13 +1020,32 @@
     height: 80px;
   }
 
-  .tech__row {
-    grid-template-columns: 90px minmax(0, 1fr);
+  .tech {
+    grid-template-columns: max-content minmax(0, 1fr);
   }
 }
 
 .detail-hero__actions svg {
   flex: 0 0 auto;
+}
+
+/* The admin menu's "⋮" stands with the other actions: the same round glass button. */
+@media not (--compact) {
+  .detail-hero__actions .admin-menu__button {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: var(--blur-glass);
+    backdrop-filter: var(--blur-glass);
+    box-shadow: var(--shadow-glass);
+    color: var(--color-text);
+  }
+
+  .detail-hero__actions .admin-menu__button:hover,
+  .detail-hero__actions .admin-menu:has(.admin-menu__menu:popover-open) .admin-menu__button {
+    background: rgba(255, 255, 255, 0.15);
+  }
 }
 
 @media not (--compact) {

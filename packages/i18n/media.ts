@@ -201,12 +201,7 @@ export type CardText = {
 }
 
 /** The words of a card (artboards `Home`, `MobileHome`), in the interface language. */
-export const cardTextOf = (
-  t: TFunction,
-  locale: string,
-  item: ItemSummaryDto,
-  place: CardPlace,
-): CardText => {
+export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): CardText => {
   const labels = { season: t('item.seasonShort'), episode: t('item.episodeShort') }
   const code = episodeLabelOf(item, labels)
   const durationMs = durationMsOf(item)
@@ -223,9 +218,10 @@ export const cardTextOf = (
     .filter((part) => part !== undefined)
     .join(' · ')
   const partial = partialCountOf(item)
+  // Wherever the card shows a progress bar, its time is the time left, and says so (§13.3).
   const right =
-    place === 'continue_watching'
-      ? remaining
+    remaining !== undefined
+      ? t('item.remaining', { duration: remaining })
       : partial !== undefined
         ? t('catalog.watchedOf', partial)
         : duration

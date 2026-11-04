@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { ratingBadge } from '@projo/i18n/content-ratings'
-import { type CardPlace, cardTextOf } from '@projo/i18n/media'
+import { cardTextOf } from '@projo/i18n/media'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 /** The interface language, for `Intl`. */
@@ -14,8 +14,8 @@ export const useLocale = (): string => {
 export const useCardText = () => {
   const { t } = useTranslation()
   const locale = useLocale()
-  return (item: ItemSummaryDto, place: CardPlace) => ({
-    ...cardTextOf(t, locale, item, place),
+  return (item: ItemSummaryDto) => ({
+    ...cardTextOf(t, locale, item),
     rating: ratingBadge(t, locale, item.contentRating),
   })
 }

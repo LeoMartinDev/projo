@@ -12,6 +12,7 @@ import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { searchQuery } from '../catalog/queries.ts'
 import { posterOf, toneOf, yearsLabel } from '../media/media.ts'
+import { moveInGrid } from './result-grid.ts'
 import '../media/media.css'
 import './search.css'
 
@@ -61,8 +62,9 @@ const ResultRow = ({
 )
 
 /**
- * Search overlay (§13.2, §13.5): instant results from 2 characters, movies and series apart,
- * arrow keys move through the results (combobox), Enter opens one, Escape closes.
+ * Search overlay (§13.2, §13.5): instant results from 2 characters, movies then series, each a
+ * grid; up and down arrows move through them (combobox, `moveInGrid`), Enter opens one, Escape
+ * closes.
  */
 export const SearchOverlay = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const { t } = useTranslation()
@@ -118,14 +120,24 @@ const SearchPanel = ({ onClose }: { onClose: () => void }) => {
     void navigate({ to: '/items/$itemId', params: { itemId: item.id } })
   }
 
+  // The grids' column count, as laid out now (it follows the panel's width).
+  const columns = () => {
+    const list = document.getElementById(listId)?.querySelector('.search__list')
+    return list ? getComputedStyle(list).gridTemplateColumns.split(' ').length : 1
+  }
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (results.length === 0) return
-    if (event.key === 'ArrowDown') {
+    if (results.length === 0 || data === undefined) return
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
-      setActive((current + 1) % results.length)
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault()
-      setActive((current - 1 + results.length) % results.length)
+      setActive(
+        moveInGrid({
+          sizes: [data.movies.length, data.series.length],
+          columns: columns(),
+          current,
+          direction: event.key === 'ArrowDown' ? 'down' : 'up',
+        }),
+      )
     } else if (event.key === 'Enter') {
       event.preventDefault()
       pick(results[current])
@@ -200,17 +212,18 @@ const SearchPanel = ({ onClose }: { onClose: () => void }) => {
         </button>
       </div>
       <div className="search__results" id={listId} role="listbox" aria-label={t('search.results')}>
-        {!ready ? (
-          <p className="search__hint">{t('search.hint')}</p>
-        ) : search.isError ? (
+        {/* Nothing typed yet: the field's placeholder already says what to do. */}
+        {!ready ? undefined : search.isError ? (
           <ErrorAlert error={search.error} />
         ) : data === undefined ? (
           <div className="search__columns" aria-hidden="true">
             {[0, 1].map((column) => (
               <div key={column} className="search__group">
-                {[0, 1, 2].map((row) => (
-                  <span key={row} className="skeleton search__skeleton" />
-                ))}
+                <div className="search__list">
+                  {[0, 1, 2].map((row) => (
+                    <span key={row} className="skeleton search__skeleton" />
+                  ))}
+                </div>
               </div>
             ))}
           </div>
