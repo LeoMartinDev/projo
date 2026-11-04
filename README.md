@@ -255,18 +255,13 @@ Bun monorepo: `apps/server` (Hono, SQLite, scanner, streaming), `apps/web` (Vite
 
 ## Publishing a release
 
-CI (`.github/workflows/ci.yml`) publishes on a tag, once lint, types, tests and e2e have passed on the tagged commit.
+CI (`.github/workflows/ci.yml`) publishes from `main`: when the `package.json` version has no release yet, once lint, types, tests and e2e have passed on the commit, it creates the `vX.Y.Z` tag and the release. Never push a `v*` tag yourself.
 
-1. On an up-to-date and green `main`, bump the version in `package.json` (`"version": "X.Y.Z"`, semver) and commit: `chore(release): X.Y.Z`.
+1. On an up-to-date and green `main`, bump the version in `package.json` (`"version": "X.Y.Z"`, semver, above the previous release) and commit: `chore(release): X.Y.Z`.
 2. If the image changed since the previous release (`runtime/` except `scripts/` and tests), also bump `runtime/VERSION`, otherwise CI rejects the release. The application then requires that image (`runtimeMin`): installations will need a `docker compose pull` before they can update.
-3. Tag and push:
+3. Push: `git push origin main`.
 
-   ```bash
-   git tag vX.Y.Z
-   git push origin main vX.Y.Z
-   ```
-
-CI checks that the tag matches the `package.json` version, builds and pushes the `ghcr.io/leomartindev/projo:<runtime/VERSION>` and `:latest` image if needed, then creates the GitHub release with `projo-app-X.Y.Z.tar.gz`, `manifest.json`, `SHA256SUMS` and notes generated from the commits (Conventional Commits). Installations offer it within a day.
+CI builds and pushes the `ghcr.io/leomartindev/projo:<runtime/VERSION>` and `:latest` image if needed, then creates the tag and the GitHub release with `projo-app-X.Y.Z.tar.gz`, `manifest.json`, `SHA256SUMS` and notes generated from the commits (Conventional Commits). Installations offer it within a day.
 
 To republish the image alone (Debian or ffmpeg security fix without an application change), tag the commit of the latest `vX.Y.Z` release with `runtime-<runtime/VERSION>`.
 

@@ -1,9 +1,12 @@
 # CI (PRODUCT.md §22): lint, types, unit + integration tests, dependency audit, Playwright e2e
 # and a build of the Docker image, on every push and pull request.
-# Release (§16.2, §22), once all of the above passed on the tagged commit:
-#   tag vX.Y.Z        runtime image first if runtime/ changed since the previous vX.Y.Z tag, then
-#                     the GitHub release: projo-app-X.Y.Z.tar.gz, manifest.json, SHA256SUMS, and
-#                     notes generated from the Conventional Commits since the previous tag.
+# Release (§16.2, §22), once all of the above passed on the commit:
+#   push to main      when package.json's version has no vX.Y.Z release yet: runtime image first
+#                     if runtime/ changed since the previous vX.Y.Z tag, then the GitHub release,
+#                     which creates the tag on this commit: projo-app-X.Y.Z.tar.gz, manifest.json,
+#                     SHA256SUMS, and notes generated from the Conventional Commits since the
+#                     previous tag. Nobody pushes a v* tag: it would start a second run of the
+#                     same commit (a v* tag push starts no run at all).
 #   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
 # Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
 # Bun comes from npm: packageManager pins a dated canary (bun lint is canary-only), which
@@ -12,6 +15,8 @@ name: ci
 
 on:
   push:
+    branches: ['**']
+    tags: ['runtime-*'] # v* tags come from the release job itself (see above)
   pull_request:
 
 permissions:
@@ -160,11 +165,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── Release (tags only) ─────────────────────────────────────────────────────────────────────
+  # ── Release (main and runtime-* tags) ───────────────────────────────────────────────────────
 
   release-plan:
     name: release plan
-    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/runtime-')
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/runtime-'))
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -177,10 +184,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # tags and history: previous release, runtime/ diff
-      - name: Check the tag and decide what to publish
+      - name: Decide what to publish
         id: plan
         env:
-          TAG: ${{ github.ref_name }}
+          REF: ${{ github.ref }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           fail() { echo "::error::$1"; exit 1; }
@@ -191,14 +199,38 @@ jobs:
             ':(exclude)runtime/tsconfig.json' ':(exclude,glob)runtime/**/*.test.ts'
             ':(exclude)runtime/supervisor/test-support.ts')
           previous=""
-          case "$TAG" in
-            v*)
+          kind=none
+          image=false
+          case "$REF" in
+            refs/heads/main)
+              # A release when package.json's version has none yet (most pushes: nothing to do).
               kind=app
+              tag="v$app_version"
+              if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+                # Released already, unless the tag is on this very commit without its release
+                # (`gh release create` failed halfway: re-run the failed jobs).
+                if [ "$(git rev-parse "$tag^{commit}")" != "$(git rev-parse HEAD)" ] ||
+                  gh release view "$tag" >/dev/null 2>&1; then
+                  echo "$tag is released already: nothing to publish"
+                  kind=none
+                fi
+              fi
+              ;;
+            refs/tags/runtime-*)
+              kind=runtime
+              ;;
+          esac
+          case "$kind" in
+            app)
               # Stable channel only (§16.4): /releases/latest must be this release.
-              [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "release tags are vX.Y.Z, got $TAG"
-              [ "${TAG#v}" = "$app_version" ] ||
-                fail "tag $TAG does not match the version of package.json ($app_version): bump it first"
+              [[ "$app_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+                fail "package.json's version must be X.Y.Z, got $app_version"
               previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' HEAD^ 2>/dev/null || true)"
+              if [ -n "$previous" ]; then
+                highest="$(printf '%s\n%s\n' "${previous#v}" "$app_version" | sort -V | tail -n 1)"
+                [ "$highest" = "$app_version" ] && [ "${previous#v}" != "$app_version" ] ||
+                  fail "package.json's version $app_version is not above the previous release $previous"
+              fi
               if [ -z "$previous" ]; then
                 image=true # first release: the image does not exist yet
               elif git diff --quiet "$previous" HEAD -- "${image_paths[@]}"; then
@@ -211,11 +243,11 @@ jobs:
                   fail "runtime/ changed since $previous but runtime/VERSION is still $runtime_version: bump it"
               fi
               ;;
-            runtime-*)
-              kind=runtime
+            runtime)
               image=true
-              [ "${TAG#runtime-}" = "$runtime_version" ] ||
-                fail "tag $TAG does not match runtime/VERSION ($runtime_version)"
+              tag="${REF#refs/tags/}"
+              [ "${tag#runtime-}" = "$runtime_version" ] ||
+                fail "tag $tag does not match runtime/VERSION ($runtime_version)"
               # The image embeds this commit's app as its seed (§16.1): it must be a published one.
               git rev-parse -q --verify "refs/tags/v$app_version" >/dev/null ||
                 fail "the seed app $app_version is not released (no tag v$app_version)"
@@ -281,12 +313,16 @@ jobs:
     permissions:
       contents: write
     env:
-      TAG: ${{ github.ref_name }}
+      TAG: v${{ needs.release-plan.outputs.app-version }}
       VERSION: ${{ needs.release-plan.outputs.app-version }}
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # commits since the previous tag, for the notes
+      # Local only, for release-notes.ts (git log <previous>..<tag>): the published tag is created
+      # by `gh release create` below, once everything passed.
+      - name: Tag the commit locally
+        run: git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag "$TAG" "$GITHUB_SHA"
       - name: Install Bun (packageManager)
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - uses: actions/cache@v6
@@ -319,6 +355,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$TAG" --verify-tag --title "projo $VERSION" \
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "projo $VERSION" \
             --notes-file dist/release-notes.md \
             "dist/release/projo-app-$VERSION.tar.gz" dist/release/manifest.json dist/release/SHA256SUMS

@@ -1001,7 +1001,7 @@ Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of delet
 - **E2E (Playwright)**: the five journeys of §4 on Chromium, then a WebKit smoke test (playback and resume of a MKV on desktop Safari, the journeys tagged `@mobile` on the iPhone viewport), one at a time against a single server started with a fixture library. What a background job produces without a screen of its own (timeline thumbnails, fingerprints) is covered by the integration tests.
 - **Lint and types**: `bun lint` (layers, classes, `null`), strict `bun check`, `exactOptionalPropertyTypes`, `bun fmt`.
 - **Mobile app** (§26.8): `bun test` on its logic kept in modules without React Native, lint and types like the web; no component tests, no mobile E2E.
-- **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a `v*` tag: bundle build, generation of the manifest and `SHA256SUMS`, GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`.
+- **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a push to `main` whose `package.json` version has no release yet, once the above passed: bundle build, generation of the manifest and `SHA256SUMS`, `v<version>` tag and GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`.
 - **Versioning**: semver, `main` the only long-lived branch, mandatory PRs, Conventional Commits.
 
 ---

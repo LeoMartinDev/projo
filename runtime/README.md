@@ -96,17 +96,17 @@ The app only downloads asset URLs starting with `https://github.com/LeoMartinDev
 
 ## Release in CI (PRODUCT.md §22)
 
-Jobs `release-plan`, `runtime-image` and `release` of `.github/workflows/ci.yml`, on a tag, after `checks`, `test`, `e2e` and `docker`:
+Jobs `release-plan`, `runtime-image` and `release` of `.github/workflows/ci.yml`, on a push to `main` or a `runtime-*` tag, after `checks`, `test`, `e2e` and `docker`. The `v*` tags are created by the `release` job, never pushed (the workflow does not run on them: a pushed tag would mean a second run of the same commit).
 
-1. **`release-plan`**: tag `vX.Y.Z` = `version` of the root `package.json` (stable only), or `runtime-X.Y.Z` = `runtime/VERSION` on a commit whose app version is already published (`vX.Y.Z` exists). Previous tag: `git describe --match 'v[0-9]*' --exclude '*-*' HEAD^`. Image to push: `runtime-*` tag, first release, or image files changed since the previous tag (`runtime/` except `scripts/`, `README.md`, `tsconfig.json`, tests); in that last case `runtime/VERSION` must have changed (an image tag never changes content), otherwise failure.
+1. **`release-plan`**: on `main`, an app release when `vX.Y.Z` (`version` of the root `package.json`, stable only, above the previous release) does not exist yet, or exists on this very commit without its GitHub release (re-run after a failed `gh release create`); otherwise nothing. On a `runtime-X.Y.Z` tag = `runtime/VERSION` on a commit whose app version is already published (`vX.Y.Z` exists). Previous tag: `git describe --match 'v[0-9]*' --exclude '*-*' HEAD^`. Image to push: `runtime-*` tag, first release, or image files changed since the previous tag (`runtime/` except `scripts/`, `README.md`, `tsconfig.json`, tests); in that last case `runtime/VERSION` must have changed (an image tag never changes content), otherwise failure.
 2. **`runtime-image`** (if needed): `docker buildx` of the `app` target for `linux/amd64,linux/arm64`, `APP_VERSION` = app version (seed of `/opt/projo/app`), pushed as `ghcr.io/leomartindev/projo:<runtime/VERSION>` and `:latest` (`RUNTIME_IMAGE` in `apps/server/src/core/updates/update.ts`). The only job with `packages: write`.
-3. **`release`** (`v*` tags, after the image: a release may require it through `runtimeMin`): `bun run build:bundle`, then
+3. **`release`** (app releases, after the image: a release may require it through `runtimeMin`): `bun run build:bundle`, then
 
    ```bash
    bun runtime/scripts/package-release.ts --tag vX.Y.Z   # [--bundle dist/app] [--out dist/release]
    ```
 
-   which rejects a bundle where a file is missing, differs or is not listed by the manifest, or which contains anything other than files, and a tag other than `v<manifest version>`. It writes `projo-app-X.Y.Z.tar.gz` (regular files at the root, written by `Bun.Archive`), `manifest.json` (byte-for-byte copy) and `SHA256SUMS`. CI then checks `SHA256SUMS` with `sha256sum --check`, installs the release with the app's real source and installer (`PROJO_RELEASE_DIR=dist/release bun test apps/server/test/integration/release-package.test.ts`), writes the notes (`release-notes.ts --tag --from <previous> --manifest --runtime-image`) and creates the release with `gh release create`. The only job with `contents: write`.
+   which rejects a bundle where a file is missing, differs or is not listed by the manifest, or which contains anything other than files, and a tag other than `v<manifest version>`. It writes `projo-app-X.Y.Z.tar.gz` (regular files at the root, written by `Bun.Archive`), `manifest.json` (byte-for-byte copy) and `SHA256SUMS`. CI then checks `SHA256SUMS` with `sha256sum --check`, installs the release with the app's real source and installer (`PROJO_RELEASE_DIR=dist/release bun test apps/server/test/integration/release-package.test.ts`), writes the notes (`release-notes.ts --tag --from <previous> --manifest --runtime-image`, on a local tag of the commit) and creates the release and its tag with `gh release create --target <sha>` (a tag created with the `GITHUB_TOKEN` starts no run). The only job with `contents: write`.
 
 The notes group commits by type (breaking changes, `feat`, `fix`, `perf`, the rest), without merges or `chore(release)`, and end with the published image if there is one, `runtimeMin` and the compare link.
 
