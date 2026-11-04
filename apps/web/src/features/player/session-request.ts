@@ -5,13 +5,7 @@ import type {
   PlaybackSessionDto,
 } from '@projo/shared/api/playback'
 
-/**
- * What the next `POST /playback/sessions` asks for (§10.2, §10.6). Changing the audio track, a
- * burnt-in subtitle track, the quality or the version starts a new session at the current
- * position; so does reaching the next part of a stacked movie, and a retry. Pure.
- */
 export type SessionRequest = {
-  /** Bumped by every new session, so the same request can be sent again (retry). */
   attempt: number
   startPositionMs?: number
   sourceId?: string
@@ -37,19 +31,10 @@ export type SessionChange =
 
 export type CurrentTracks = {
   audioStreamIndex: number | undefined
-  /** The subtitles shown now (a WebVTT switch happens without a new session). */
   subtitleTrackId: string | undefined
-  /** The viewer picked a subtitle track or "Off" during this playback. */
   subtitlesChosen: boolean
 }
 
-/**
- * The request after `change`, made at item position `positionMs`. Same source: the current tracks
- * are sent explicitly so a quality change keeps them; an audio change only sends the subtitles
- * the viewer chose, otherwise the cascade picks them for the new audio (`when_audio_differs`).
- * Another source (version, part): track ids and stream indexes do not carry over, the cascade
- * (and the memory written on a manual change, §11.2) picks the same languages.
- */
 export const nextRequest = ({
   request,
   session,
@@ -110,7 +95,6 @@ export const nextRequest = ({
   }
 }
 
-/** A retry before any session was created: the same request, sent again. */
 export const retriedRequest = (request: SessionRequest, positionMs?: number): SessionRequest => ({
   ...request,
   attempt: request.attempt + 1,
@@ -131,9 +115,6 @@ export const toCreateBody = (
   ...(request.subtitleTrackId === undefined ? {} : { subtitleTrackId: request.subtitleTrackId }),
 })
 
-// ── Automatic reconnection (§10.7: network error, resume at the position) ────
-
 export const reconnectDelaysMs = [1000, 2000, 4000, 8000, 15_000, 30_000] as const
 
-/** Delay before the `attempt`-th automatic retry (0-based), `undefined` once given up. */
 export const reconnectDelay = (attempt: number): number | undefined => reconnectDelaysMs[attempt]

@@ -1,11 +1,3 @@
-// `webServer` command of the Playwright config: `bun scripts/serve.ts`.
-// Starts the built bundle (same origin for the API and the web app, as in production) on a
-// brand-new DATA_DIR, and forwards the stop signal Playwright sends at the end of the run.
-// TMDB is the recorded one of the server tests, preloaded in the server process
-// (support/tmdb-redirect.ts): the server itself only gets the env of §5.4.
-// With PROJO_E2E_RUNTIME_IMAGE (the CI), the bundle runs in that image (`runtime` target of
-// runtime/Dockerfile): the Bun, ffmpeg and ffprobe of production, not the host's. The repository
-// and the e2e folder are mounted at their own paths, so every path stays the same.
 import { existsSync, mkdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 

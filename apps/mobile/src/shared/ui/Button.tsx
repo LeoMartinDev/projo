@@ -5,12 +5,7 @@ import { colors, fonts, radii, sizes } from '../styles/tokens.ts'
 type ButtonProps = {
   label: string
   onPress: () => void
-  /**
-   * Kit v2 (§19): `primary` white, `secondary` glass, `danger` red tint; `plain`: text only, for a
-   * way out next to the main actions.
-   */
   variant?: 'primary' | 'secondary' | 'plain' | 'danger'
-  /** `large`: the main action of an entry screen (56 px). */
   size?: 'regular' | 'large' | 'small'
   busy?: boolean
   disabled?: boolean

@@ -1,26 +1,15 @@
 import { children } from '../../src/infrastructure/playback/fmp4.ts'
 
-/**
- * Test-only reading of fragmented MP4 boxes: the remuxer only needs `fragmentStartTicks`, the
- * HLS tests check the whole timeline a player builds from every sample.
- */
-
 const view = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 
 const child = (box: Uint8Array, type: string): Uint8Array | undefined =>
   children(box).find((entry) => entry.type === type)?.bytes
 
 export type TrackRun = {
-  /** `tfdt.baseMediaDecodeTime`, track timescale units. */
   baseDecodeTicks: number
-  /** Per sample, in decode order: duration and composition offset (ticks). */
   samples: { durationTicks: number; compositionOffsetTicks: number }[]
 }
 
-/**
- * Samples of `trackId` in a `moof` (`tfhd` defaults, every `trun`): what a player places on its
- * timeline, presentation time = base + sum of previous durations + composition offset.
- */
 export const readTrackRun = (moof: Uint8Array, trackId: number): TrackRun | undefined => {
   for (const { type, bytes: traf } of children(moof)) {
     if (type !== 'traf') continue
@@ -29,8 +18,8 @@ export const readTrackRun = (moof: Uint8Array, trackId: number): TrackRun | unde
     const tfhdView = view(tfhd)
     const tfhdFlags = tfhdView.getUint32(8) & 0xffffff
     let offset = 16
-    if (tfhdFlags & 0x1) offset += 8 // base_data_offset
-    if (tfhdFlags & 0x2) offset += 4 // sample_description_index
+    if (tfhdFlags & 0x1) offset += 8
+    if (tfhdFlags & 0x2) offset += 4
     const defaultDuration = tfhdFlags & 0x8 ? tfhdView.getUint32(offset) : 0
     const tfdt = child(traf, 'tfdt')
     const baseDecodeTicks =

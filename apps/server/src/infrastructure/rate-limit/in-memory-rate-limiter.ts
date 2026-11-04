@@ -5,14 +5,9 @@ type Options = {
   limit: number
   windowMs: number
   clock: Clock
-  /** Above this many keys, expired ones are swept on `hit` (bounded memory). */
   sweepAbove?: number
 }
 
-/**
- * Sliding-window limiter kept in memory (one process, §5). A key is blocked once it has `limit`
- * hits within the last `windowMs`, until the oldest of them leaves the window.
- */
 export const createInMemoryRateLimiter = ({
   limit,
   windowMs,

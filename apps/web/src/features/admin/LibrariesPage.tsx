@@ -104,7 +104,6 @@ const ActivityItem = ({
   )
 }
 
-/** Recent activity: what this session saw live, then the last scan of each library. */
 const activityFeed = (
   live: readonly ActivityEntry[],
   libraries: readonly LibraryDto[],
@@ -138,7 +137,6 @@ const SkeletonRows = () => (
   </>
 )
 
-/** §15 "Librairies", artboard `AdminLibraries`. */
 export const LibrariesPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()

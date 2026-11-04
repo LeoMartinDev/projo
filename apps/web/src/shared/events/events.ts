@@ -18,24 +18,14 @@ const parseJson = (text: string): unknown => {
 
 type Listener<K extends ServerEventType> = (payload: ServerEventPayloads[K]) => void
 
-/** Minimal `EventSource` surface, injectable in tests. */
 export type EventSourceLike = {
   addEventListener: (type: string, listener: (event: MessageEvent<string>) => void) => void
   close: () => void
   readyState: number
 }
 
-/** Delay before reopening a stream the browser gave up on. */
 const reopenMs = 5000
 
-/**
- * One shared SSE connection (`GET /api/v1/events`, §17.1), opened with the first subscriber and
- * closed with the last. Payloads are validated with the shared Zod schemas; an invalid frame is
- * dropped. `EventSource` reconnects by itself after a network error, but gives up for good (CLOSED)
- * after a non-200 answer (a proxy's 502 during a restart): the hub then reopens it after
- * `reopenMs`, re-wires every listened type and, once open, signals `catalog.changed` for the
- * events missed meanwhile. A lost session stops it through the sign-out (last unsubscribe).
- */
 export const createEventHub = (open: () => EventSourceLike) => {
   const listeners = new Map<ServerEventType, Set<(payload: unknown) => void>>()
   const wired = new Set<ServerEventType>()
@@ -95,7 +85,6 @@ export const eventHub = createEventHub(
   () => new EventSource(`${apiPrefix}/events`, { withCredentials: true }),
 )
 
-/** Calls `handler` for each `type` event while the component is mounted. */
 export const useServerEvent = <K extends ServerEventType>(
   type: K,
   handler: Listener<K>,

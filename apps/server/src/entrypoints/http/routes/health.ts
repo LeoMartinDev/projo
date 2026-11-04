@@ -9,7 +9,6 @@ export type HealthRoutesDeps = {
   runtime: string
 }
 
-/** `GET /health`, outside `/api/v1`, no auth (§17.2 System). 200 = healthy (supervisor, Docker). */
 export const healthRoutes = ({ version, runtime }: HealthRoutesDeps) =>
   new Hono<AppEnv>().get('/health', (c) =>
     c.json({ status: 'ok', version, runtime } satisfies HealthResponse),

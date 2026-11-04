@@ -25,7 +25,6 @@ const write = (db: Db, key: SettingKey, value: unknown, at: Date): void => {
 
 const nameSchema = z.string().trim().min(1)
 
-/** `server.name` (§15 "Server"); unset or invalid reads as `projo`. */
 export const createSqliteServerNameStore = ({ db }: { db: Db }): ServerNameStore => ({
   read: () => {
     const parsed = nameSchema.safeParse(read(db, settingKeys.serverName))
@@ -36,7 +35,6 @@ export const createSqliteServerNameStore = ({ db }: { db: Db }): ServerNameStore
 
 const versionSchema = z.number().int().positive()
 
-/** `scanner.naming_rules_version` (§7.4 "Startup"); unset or invalid reads as never read. */
 export const createSqliteNamingRulesVersionStore = ({
   db,
 }: {
@@ -51,7 +49,6 @@ export const createSqliteNamingRulesVersionStore = ({
 
 const instantSchema = z.iso.datetime({ offset: true })
 
-/** `notifications.needs_review_notified_at` (§15 `scan/needs_review_count`, daily). */
 export const createSqliteNeedsReviewReminderStore = ({
   db,
 }: {

@@ -3,7 +3,6 @@ import { constants, getPriority } from 'node:os'
 
 import { lowerProcessPriority, type ProcessPriority, runProcess } from './process.ts'
 
-/** A Bun child that prints its own CPU priority (after a pause, so the spawn has returned). */
 const childPriority = async (priority?: ProcessPriority): Promise<number> => {
   const run = await runProcess({
     command: process.execPath,
@@ -27,7 +26,6 @@ describe('runProcess priority', () => {
   })
 
   test('a process that does not exist is reported, never thrown', () => {
-    // Above Linux's `pid_max` (2^22) and any Windows process id in practice.
     expect(lowerProcessPriority(0x7fffffff)).toBe(false)
   })
 })

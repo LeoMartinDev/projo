@@ -4,35 +4,22 @@ import { join } from 'node:path'
 import { runFfmpeg } from './ffmpeg.ts'
 import { incomingDir, libraryDir } from './paths.ts'
 
-/**
- * The "dossier en vrac" of the first-launch journey (§4, parcours 1), generated with ffmpeg at
- * every run (nothing committed). Tiny H.264 yuv420p + AAC videos, `testsrc` + `sine`, with noise
- * so each file stays above the scanner's 1 MB candidate floor. 24 fps on purpose: MKV's
- * millisecond timestamps around B-frames make ffmpeg 7.x's null muxer warn about DTS, which the
- * scanner's sample decode must not mistake for `decode_failed`.
- */
 export type FixtureFile = { path: string; container: 'mkv' | 'mp4'; durationS: number }
 
 export const fixtureFiles = [
   { path: 'Inception.2010.1080p.BluRay.x264-GRP.mkv', container: 'mkv', durationS: 4 },
-  // Parcours 3 pauses past 10 s and finishes it: long enough for "Reprendre" (2 % to 93 %).
   { path: 'Heat (1995) [720p].mp4', container: 'mp4', durationS: 24 },
   { path: 'Severance/Season 01/Severance.S01E01.720p.WEB.mkv', container: 'mkv', durationS: 2 },
   { path: 'Severance/Season 01/Severance.S01E02.720p.WEB.mkv', container: 'mkv', durationS: 2 },
   { path: 'Show.Name.S01E02.1080p.WEB.x264.mkv', container: 'mkv', durationS: 2 },
 ] as const satisfies readonly FixtureFile[]
 
-/**
- * Parcours 5: a file that arrives later, under a French scene abbreviation ("Le Fabuleux Destin
- * d'Amélie Poulain") that TMDB cannot find. Staged outside the library, moved in by the test.
- */
 export const unidentifiedFile = {
   path: 'LFDDAP.2001.MULTi.1080p.BluRay.x264.mkv',
   container: 'mkv',
   durationS: 2,
 } as const satisfies FixtureFile
 
-/** What the catalog must show for that folder: clean titles, no release noise. */
 export const expectedMovies = [
   { title: 'Heat', year: 1995 },
   { title: 'Inception', year: 2010 },
@@ -40,7 +27,6 @@ export const expectedMovies = [
 
 export const expectedSeries = ['Severance', 'Show Name'] as const
 
-/** Identified on TMDB (recorded responses): they get a poster. "Show Name" stays unidentified. */
 export const identifiedTitles = ['Heat', 'Inception', 'Severance'] as const
 
 const ffmpegArgs = ({ container, durationS }: FixtureFile): string[] => [
@@ -80,10 +66,6 @@ const ffmpegArgs = ({ container, durationS }: FixtureFile): string[] => [
 
 const generate = (file: FixtureFile, output: string): void => runFfmpeg(ffmpegArgs(file), output)
 
-/**
- * Generates every video into the library folder (the wizard's "messy folder") and the staging
- * folder with the file journey 5 drops in.
- */
 export const generateLibraries = (): void => {
   rmSync(libraryDir, { recursive: true, force: true })
   rmSync(incomingDir, { recursive: true, force: true })

@@ -1,4 +1,3 @@
-// Test doubles shared by the supervisor tests: manual clock, fake processes, memory logger, bundle fixtures.
 import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -115,7 +114,6 @@ export const cleanupTempDirs = async (): Promise<void> => {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 }
 
-/** Writes a minimal valid app bundle (with manifest) into `dir`. */
 export const writeBundle = async (
   dir: string,
   {

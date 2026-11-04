@@ -36,7 +36,6 @@ const LOCKABLE: readonly LockableField[] = [
   'backdrop_image_id',
 ]
 
-/** Item writes of the TMDB identification (§9.2) and the local → TMDB fusion. */
 export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): MetadataItemRepository => {
   const local = createSqliteLocalItemRepository({ db })
 
@@ -79,7 +78,6 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
           kind: item.kind,
           parentId: toNullable(item.parentId),
           tmdbId: toNullable(item.tmdbId),
-          // NOT NULL column: '' = no title of its own (§6.3).
           title: item.title ?? '',
           sortTitle: item.sortTitle,
           seasonNumber: toNullable(item.seasonNumber),
@@ -112,7 +110,6 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
         updatedAt: toIso(refreshedAt),
       }
       if ('title' in patch) {
-        // `undefined`: a season or an episode without a name of its own (§6.3).
         set.title = patch.title ?? ''
         set.sortTitle = sortTitleOf(patch.title ?? '')
       }
@@ -143,8 +140,6 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
         .where(eq(items.id, id))
         .get()
       db.update(items).set(set).where(eq(items.id, id)).run()
-      // §12.2: the databases are asked with these ids (an episode with its series'). New ones
-      // void the cached misses of the item and its episodes; a plain refresh keeps them.
       if (
         before !== undefined &&
         (('imdbId' in patch && set.imdbId !== before.imdbId) ||
@@ -267,7 +262,6 @@ export const createSqliteMetadataItemRepository = ({ db }: { db: Db }): Metadata
           : item.kind === 'episode'
             ? parentOf(parent?.parentId ?? undefined)
             : undefined
-      // §9.1: the language of the library deciding the whole tree, never an arbitrary one.
       const language = decidingLibraryOf(db, itemId)?.language
       return {
         id: item.id,

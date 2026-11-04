@@ -1,5 +1,3 @@
-/* OAuth consent (§27.3): the login's panel, the same height while loading, asking or failing. */
-
 @import '../../shared/styles/media.css';
 
 .oauth {
@@ -26,7 +24,6 @@
   overflow-wrap: anywhere;
 }
 
-/* Where the code goes back: shown whole, never cut (MCP authorization, consent). */
 .oauth__host {
   font-size: 14px;
 }

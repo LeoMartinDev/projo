@@ -63,7 +63,6 @@ describe('checkDraft', () => {
   })
 
   test('an end shown rounded up past the end of file stays the end of file', () => {
-    // 2 640 160 ms is shown `44:00.2`, which parses to 2 640 200.
     expect(checkDraft({ start: '42:00', end: '44:00.2' }, 2_640_160)).toEqual({
       ok: true,
       startMs: 2_520_000,

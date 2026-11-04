@@ -16,7 +16,6 @@ import type {
 import { normalizeTitle, type ParsedName } from '../../core/naming/index.ts'
 import { tmdbDetailsFactory } from './tmdb-details.ts'
 
-/** Reasons the matcher itself decides (§7.8); the parser decides the others. */
 export type TmdbReviewReason =
   'no_match' | 'ambiguous_match' | 'episode_not_found' | 'absolute_numbering'
 
@@ -32,21 +31,14 @@ export type Resolution =
   | { kind: 'episodes'; series: TmdbSeries; season: TmdbSeason; episodes: TmdbEpisode[] }
   | { kind: 'review'; reason: TmdbReviewReason; candidates?: TmdbSearchHit[] }
 
-/**
- * Details reused from the database cache (§9.2) when younger than this: a season pack is fetched
- * once, a new episode file a week later fetches its season again (§9.4 "when its file appears").
- */
 export const DETAILS_MAX_AGE_MS = 60 * 60_000
-/** Series resolutions by normalized name, for the duration of a scan (§9.2 step 1). */
 const SERIES_CACHE_TTL_MS = 30 * 60_000
-/** Candidates whose alternative titles are fetched when no title is close enough (§9.2). */
 const ALTERNATIVE_TITLES_CANDIDATES = 3
 
 type Deps = { tmdb: TmdbApi; clock: Clock }
 
 type SeriesLookup = { kind: 'found'; tmdbId: number } | Extract<Resolution, { kind: 'review' }>
 
-/** The title before the first ` - ` or `:` (§9.2 step 2, last attempt). */
 const titlePrefix = (title: string): string | undefined => {
   const cut = title.split(/\s+-\s+|:/u)[0]?.trim()
   return cut === undefined || cut === '' || cut === title.trim() ? undefined : cut
@@ -54,11 +46,6 @@ const titlePrefix = (title: string): string | undefined => {
 
 const isNotFound = (error: TmdbError): boolean => error.code === 'metadata/tmdb_not_found'
 
-/**
- * TMDB identification of a parsed file name (§9.2), without any write: id tags first, then
- * search and scoring. Titles and overviews missing in the metadata language are completed from
- * en-US (§9.1).
- */
 export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
   const seriesCache = new Map<string, { expiresAt: number; lookup: SeriesLookup }>()
 
@@ -70,7 +57,6 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
   const seriesById = (tmdbId: number, language: string): Promise<Result<TmdbSeries, TmdbError>> =>
     details.series({ tmdbId, language, maxAgeMs: DETAILS_MAX_AGE_MS })
 
-  /** §8.1 id tags: a TMDB id directly, IMDb / TVDB through `/find`. Undefined: no usable tag. */
   const taggedId = async (
     parsed: ParsedName,
     kind: 'movie' | 'series',
@@ -96,11 +82,6 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     return ok(undefined)
   }
 
-  /**
-   * Searches in order until the candidates found so far hold an acceptable or ambiguous one
-   * (§9.2 step 2): a search with the year can return only unrelated titles ("BAC Nord" 2020 is
-   * 2021 on TMDB). All the candidates are ranked together.
-   */
   const searchUntilCandidate = async (
     query: { title: string; year?: number },
     attempts: readonly (() => Promise<Result<TmdbSearchHit[], TmdbError>>)[],
@@ -115,10 +96,6 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     return ok(found)
   }
 
-  /**
-   * §9.2 step 4. No title close enough: the best candidates' alternative titles are scored too
-   * ("Star Wars Episode VI Return of the Jedi" is one of "Return of the Jedi").
-   */
   const pick = async (
     kind: 'movie' | 'series',
     query: { title: string; year?: number },
@@ -238,7 +215,6 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     const load = (maxAgeMs: number) =>
       tmdb.season({ seriesTmdbId, seasonNumber, language, maxAgeMs })
     let season = await load(DETAILS_MAX_AGE_MS)
-    // An episode the cached season does not know yet: it aired since, ask again.
     if (
       season.ok &&
       wanted.some((n) => !season.ok || !season.value.episodes.some((e) => e.episodeNumber === n))
@@ -249,16 +225,11 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     return details.completeSeason(
       season.value,
       { seriesTmdbId, seasonNumber, language, maxAgeMs: DETAILS_MAX_AGE_MS },
-      // Only the episodes of the file: the others are not written now.
       (episode) =>
         wanted.includes(episode.episodeNumber) && episodeNeedsFallback(episode, language),
     )
   }
 
-  /**
-   * Episodes of a known series. `at`: season and first episode decided by an admin; otherwise
-   * read from the name (absolute numbering only on a single-season series, §8.2).
-   */
   const resolveEpisodesOf = async (
     seriesTmdbId: number,
     parsed: ParsedName,
@@ -304,7 +275,6 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
   }
 
   return {
-    /** Automatic identification of a movie or an episode from its parsed name. */
     resolve: (input: {
       classification: 'movie' | 'episode'
       parsed: ParsedName
@@ -313,12 +283,10 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
       input.classification === 'movie'
         ? resolveMovie(input.parsed, input.language)
         : resolveEpisode(input.parsed, input.language),
-    /** A movie chosen by an admin (or remembered, §7.8). */
     movie: async (tmdbId: number, language: string): Promise<Result<Resolution, TmdbError>> => {
       const movie = await movieById(tmdbId, language)
       return movie.ok ? ok({ kind: 'movie', movie: movie.value }) : err(movie.error)
     },
-    /** Episodes of a series chosen by an admin (or remembered). */
     episodes: resolveEpisodesOf,
   }
 }

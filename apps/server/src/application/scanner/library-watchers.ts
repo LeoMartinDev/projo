@@ -4,7 +4,6 @@ import type { Logger } from '../../core/logger.ts'
 import { filterFile } from '../../core/naming/index.ts'
 import type { DirectoryCache, ScanRequester } from '../../core/scanner/ports.ts'
 
-/** §7.4: a watcher event moves the next incremental scan to "now + 5 s". */
 export const WATCH_DEBOUNCE_MS = 5_000
 
 type Deps = {
@@ -17,7 +16,6 @@ type Deps = {
 
 type Watched = { libraryId: string; path: string; handle: WatchHandle; directoryCount: number }
 
-/** Events that can never change the catalog: hidden files, partial downloads (`.!qB`, `.part`…). */
 const isNoise = (relativePath: string | undefined): boolean => {
   if (relativePath === undefined) return false
   const filtered = filterFile({ relativePath, sizeBytes: Number.MAX_SAFE_INTEGER })
@@ -29,11 +27,6 @@ const isNoise = (relativePath: string | undefined): boolean => {
   )
 }
 
-/**
- * Keeps one watcher per root of each library with `watch_enabled` (§7.4). `sync` is idempotent:
- * run after each scan and periodically, it arms new roots, re-arms broken ones and closes the
- * watchers of removed roots or libraries. Events only enqueue a debounced incremental scan.
- */
 export const createLibraryWatchers = ({
   watcher,
   libraryRepository,
@@ -103,7 +96,6 @@ export const createLibraryWatchers = ({
 
   return {
     sync,
-    /** Root id → watch mode, for tests and the admin. */
     modes: (): Map<string, WatchHandle['mode']> =>
       new Map([...watched].map(([rootId, entry]) => [rootId, entry.handle.mode])),
     stop: (): void => {

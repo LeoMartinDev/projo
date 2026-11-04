@@ -2,17 +2,8 @@ import type { Clock } from '../../core/clock.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { ImageFiles, ImageRepository, TmdbResponsePurge } from '../../core/metadata/ports.ts'
 
-/**
- * `tmdb_responses` older than this are never read again: the longest age a reader accepts is 30
- * days (`fetch_images`, the weekly refresh), every other one asks TMDB again.
- */
 export const TMDB_RESPONSE_RETENTION_MS = 30 * 24 * 60 * 60_000
 
-/**
- * Daily (§18 "Rules"): images nothing references any more (their title was purged, a person
- * left the cast) go, rows and files with their WebP variants. Each one is checked again just
- * before it is deleted.
- */
 export const purgeUnusedImagesFactory =
   ({
     images,
@@ -35,7 +26,6 @@ export const purgeUnusedImagesFactory =
     return { removed }
   }
 
-/** Daily: the TMDB responses no reader would accept any more. */
 export const purgeTmdbResponsesFactory =
   ({ responses, clock, logger }: { responses: TmdbResponsePurge; clock: Clock; logger: Logger }) =>
   (): { deleted: number } => {

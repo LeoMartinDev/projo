@@ -23,7 +23,6 @@ const part = (index: number, offsetMs: number, durationMs: number) => ({
   durationMs,
 })
 
-/** A movie in two parts of 50 and 40 minutes, the second one playing. */
 const stacked: TimelineSession = {
   sourceId: 'cd2',
   durationMs: 5_400_000,

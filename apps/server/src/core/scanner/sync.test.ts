@@ -44,7 +44,6 @@ describe('planStacks (§7.7)', () => {
     expect(planStacks([cd('a', 1, { ...grouped, partIndex: 1 })])).toEqual([
       { id: 'a', patch: { stackGroupId: undefined, partIndex: undefined } },
     ])
-    // A missing part keeps its group for when it comes back.
     expect(
       planStacks([
         cd('a', 1, { ...grouped, partIndex: 1 }),

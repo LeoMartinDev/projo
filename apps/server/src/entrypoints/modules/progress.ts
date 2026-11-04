@@ -12,10 +12,6 @@ import { watchlistRoutes } from '../http/routes/watchlist.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * Wiring of progress (§13.1): position, watched / unwatched (bulk on seasons and series),
- * "Remove", and "My list". Heartbeats write progress too (playback).
- */
 export const buildProgressModule = ({ db, clock }: Platform, { visibilityScope }: ScopeDeps) => {
   const catalogRepository = createSqliteCatalogRepository({ db })
   const progressRepository = createSqliteProgressRepository({ db })

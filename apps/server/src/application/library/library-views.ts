@@ -17,10 +17,6 @@ type Deps = {
   scanRunRepository: ScanRunRepository
 }
 
-/**
- * Read side of the admin libraries screen: settings, roots, counts by state, where the pending
- * sources stand (analysis), last scan.
- */
 export const libraryViewsFactory = ({
   libraryRepository,
   sourceRepository,
@@ -70,7 +66,6 @@ export const libraryViewsFactory = ({
 
 export type LibraryViews = ReturnType<typeof libraryViewsFactory>
 
-/** `POST /admin/libraries/:id/scan` (§7.4 "Manuel"). */
 export const requestLibraryScanFactory =
   ({
     libraryRepository,

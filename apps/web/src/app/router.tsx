@@ -31,13 +31,6 @@ import { AuthedLayout } from './AuthedLayout.tsx'
 
 export type RouterContext = { queryClient: QueryClient }
 
-/*
- * Pages off the way to the home (setup, invitation, fiche, player, settings, administration) are
- * chunks of their own, JS and CSS, so the first visit only loads the shell, the home and the
- * catalog. A route renders once its chunk is there (the previous page stays meanwhile), and
- * `defaultPreload: 'intent'` fetches it on hover. A page wrapped by its route (params, search)
- * is waited for in the route's `loader`.
- */
 const SetupWizard = lazyRouteComponent(
   () => import('../features/setup/SetupWizard.tsx'),
   'SetupWizard',
@@ -153,7 +146,6 @@ const NotFound = () => {
 
 const RouteError = ({ error }: ErrorComponentProps) => {
   const router = useRouter()
-  // reset alone re-renders the failed match with its error; invalidate reruns its loaders.
   return <ErrorState error={error} onRetry={() => void router.invalidate()} />
 }
 
@@ -193,7 +185,6 @@ const loginRoute = createRoute({
   },
 })
 
-/** Invitation link (§14): public, signs the new account in. */
 const inviteRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/invite/$token',
@@ -204,18 +195,12 @@ const inviteRoute = createRoute({
   },
 })
 
-/** Where a pairing QR code leads outside the app (§14): public, says to use the app. */
 const pairRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/pair',
   component: PairPage,
 })
 
-/**
- * Everything behind the login: setup done, a session, the active profile applied. Without an
- * active profile (several profiles, none restored for this device, or a PIN to type) every page
- * leads to "Who's watching?" first (§13.6).
- */
 const authedRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'authed',
@@ -247,7 +232,6 @@ const shellRoute = createRoute({
   },
 })
 
-/** "Who's watching?" and "Manage profiles" (§13.6): full screen, outside the shell. */
 const profilesRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/profiles',
@@ -276,7 +260,6 @@ const indexRoute = createRoute({
   component: HomePage,
 })
 
-/** `?sort=added`: "See all ›" of Recently added (§13.3). */
 const validateCatalogSearch = parseCatalogSearch
 
 const moviesRoute = createRoute({
@@ -297,7 +280,6 @@ const seriesRoute = createRoute({
   },
 })
 
-/** `/categories/anime`, `/categories/<genre id>`: "See all ›" of a category row (§13.3). */
 const categoryRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/categories/$category',
@@ -317,7 +299,6 @@ const watchlistRoute = createRoute({
   component: WatchlistPage,
 })
 
-/** Any other address once signed in: "not found" inside the shell, its navigation at hand. */
 const shellNotFoundRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '$',
@@ -355,7 +336,6 @@ const validateItemSearch = (search: Record<string, unknown>): { season?: number 
 const itemRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/items/$itemId',
-  // The season is read here, not as `loaderDeps`: switching tabs must not wait on the loader.
   loader: ({ context: { queryClient }, params: { itemId }, location }) =>
     Promise.all([
       ItemPage.preload?.(),
@@ -382,10 +362,6 @@ const watchRoute = createRoute({
   },
 })
 
-/**
- * OAuth consent of the MCP server (§27.3): behind the login and "Who's watching?", which come
- * back here with the client's query; outside the shell.
- */
 const oauthAuthorizeRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/oauth/authorize',
@@ -401,7 +377,6 @@ const adminRoute = createRoute({
   component: AdminLayout,
 })
 
-/** §15 "Dashboard": the administration's home. */
 const adminIndexRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/',
@@ -454,7 +429,6 @@ const adminUpdatesRoute = createRoute({
   component: UpdatesPage,
 })
 
-/** The settings of §15 are one page each; `/admin/settings` (M2–M4 links) leads to the first. */
 const adminSettingsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/settings',
@@ -508,7 +482,6 @@ const adminHiddenRoute = createRoute({
 const jobFilterValues = ['running', 'queued', 'failed'] as const
 type JobFilterSearch = (typeof jobFilterValues)[number]
 
-/** `?state=failed`: "Failed jobs" of the dashboard. */
 const adminJobsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/jobs',

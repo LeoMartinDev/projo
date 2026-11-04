@@ -13,10 +13,6 @@ import { SearchIcon } from '../admin-icons.tsx'
 import { tmdbPosterUrl, tmdbSearchQuery } from './queries.ts'
 import './identify.css'
 
-/**
- * What the admin says the file is (§7.8): "it's a movie", "it's an episode of…" (series +
- * season + episode), or, to re-identify a whole series, another series.
- */
 export type IdentifyMode = 'movie' | 'episode' | 'series'
 
 export type IdentifyInitial = {
@@ -44,7 +40,6 @@ const useDebounced = (value: string, delayMs: number): string => {
   return debounced
 }
 
-/** Proxied poster; the initial on a tile when there is none or it does not load. */
 const Poster = ({ result }: { result: TmdbSearchResult }) => {
   const [failed, setFailed] = useState(false)
   return result.posterPath === undefined || failed ? (
@@ -65,11 +60,6 @@ const Poster = ({ result }: { result: TmdbSearchResult }) => {
   )
 }
 
-/**
- * TMDB search with posters and year, and the assignment it leads to. The submit button lives
- * outside (dialog footer), tied by `formId`. Fills the height it is given: only the result list
- * scrolls (AGENTS.md, stable size).
- */
 export const IdentifyForm = ({
   formId,
   modes,
@@ -82,7 +72,6 @@ export const IdentifyForm = ({
   modes: readonly IdentifyMode[]
   initial: IdentifyInitial
   error?: unknown
-  /** Whether a TMDB result is picked (the submit button is enabled only then). */
   onSelect: (picked: boolean) => void
   onSubmit: (body: AssignBody) => void
 }) => {
@@ -286,7 +275,6 @@ export const IdentifyForm = ({
   )
 }
 
-/** The submit button of an `IdentifyForm`, for a dialog footer. */
 export const IdentifySubmit = ({
   formId,
   pending,

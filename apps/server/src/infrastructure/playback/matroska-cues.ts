@@ -2,7 +2,6 @@ import { open } from 'node:fs/promises'
 
 import { toHostPath } from '../fs/host-paths.ts'
 
-/** `length` bytes of the file from `position` (fewer at its end). */
 export type ReadAt = (position: number, length: number) => Promise<Uint8Array>
 
 const ids = {
@@ -34,33 +33,23 @@ const ids = {
 
 const videoTrackType = 1
 const keyframeFlag = 0x80
-/** Longest header of an element: 4-byte id, 8-byte size. */
 const maxHeaderBytes = 12
-/** Top-level elements looked at before the first cluster. */
 const maxTopLevelElements = 32
 const maxMetadataBytes = 16 * 1024 * 1024
-/** Bytes read per checked stretch of clusters; a longer stretch is not checked. */
 const maxCheckedBytes = 48 * 1024 * 1024
-/** Where the cues are checked against the clusters, as a fraction of the cue points. */
 const checkedStretches = [0.25, 0.5, 0.75]
 
 type Element = { id: number; dataStart: number; end: number }
 type CuePoint = { ticks: number; clusterPosition: number }
 
-/** Length of an EBML variable-size integer from its first byte, `undefined` if invalid. */
 const vintLength = (first: number | undefined): number | undefined =>
   first === undefined || first === 0 ? undefined : Math.clz32(first) - 23
 
 const readUint = (bytes: Uint8Array) => bytes.reduce((value, byte) => value * 256 + byte, 0)
 
-/** Value of the `length`-byte variable-size integer at the start of `bytes` (marker removed). */
 const readVint = (bytes: Uint8Array, length: number) =>
   readUint(bytes.subarray(1, length)) + ((bytes[0] ?? 0) & (0xff >> length)) * 256 ** (length - 1)
 
-/**
- * The element whose header starts at `offset` of `bytes` (`bytes[0]` is at file position `base`).
- * `undefined` when the header is truncated or the size unknown (live streams).
- */
 const elementAt = (bytes: Uint8Array, offset: number, base: number): Element | undefined => {
   const idLength = vintLength(bytes[offset])
   if (idLength === undefined || idLength > 4) return undefined
@@ -74,7 +63,6 @@ const elementAt = (bytes: Uint8Array, offset: number, base: number): Element | u
   return { id: readUint(bytes.subarray(offset, sizeOffset)), dataStart, end: dataStart + size }
 }
 
-/** The elements laid one after the other in `bytes`; stops at the first that does not fit. */
 const childrenOf = (bytes: Uint8Array, base: number): Element[] => {
   const elements: Element[] = []
   let offset = 0
@@ -90,7 +78,6 @@ const childrenOf = (bytes: Uint8Array, base: number): Element[] => {
 const dataOf = (bytes: Uint8Array, element: Element, base: number) =>
   bytes.subarray(element.dataStart - base, element.end - base)
 
-/** The element at `position` and its data; `undefined` when longer than `maxBytes`. */
 const loadElement = async (readAt: ReadAt, position: number, maxBytes: number) => {
   const element = elementAt(await readAt(position, maxHeaderBytes), 0, position)
   if (element === undefined || element.end - element.dataStart > maxBytes) return undefined
@@ -98,7 +85,6 @@ const loadElement = async (readAt: ReadAt, position: number, maxBytes: number) =
   return data.length === element.end - element.dataStart ? { element, data } : undefined
 }
 
-/** Track number, timecode relative to its cluster and flags of a `SimpleBlock` or `Block`. */
 const blockHeader = (block: Uint8Array) => {
   const length = vintLength(block[0])
   if (length === undefined || block.length < length + 3) return undefined
@@ -110,7 +96,6 @@ const blockHeader = (block: Uint8Array) => {
   }
 }
 
-/** Times (ticks) of the keyframes of `track` in a stretch of whole clusters. */
 const clusterKeyframes = (bytes: Uint8Array, base: number, track: number): number[] => {
   const keyframes: number[] = []
   for (const cluster of childrenOf(bytes, base)) {
@@ -127,7 +112,6 @@ const clusterKeyframes = (bytes: Uint8Array, base: number, track: number): numbe
         }
       }
       if (child.id === ids.blockGroup) {
-        // A `Block` is a keyframe when it references no other block.
         const parts = childrenOf(data, child.dataStart)
         const inner = parts.find((part) => part.id === ids.block)
         if (inner === undefined || parts.some((part) => part.id === ids.referenceBlock)) continue
@@ -139,7 +123,6 @@ const clusterKeyframes = (bytes: Uint8Array, base: number, track: number): numbe
   return keyframes
 }
 
-/** Positions of the top-level elements of the segment, from its `SeekHead` and its start. */
 const topLevelPositions = async (readAt: ReadAt, segmentStart: number) => {
   const positions = new Map<number, number>()
   let cursor = segmentStart
@@ -179,11 +162,6 @@ const topLevelPositions = async (readAt: ReadAt, segmentStart: number) => {
   return positions
 }
 
-/**
- * The cue points of the only video track, read from the Matroska `Cues` (§10.3), with the timecode
- * scale (ns per tick). `undefined` when the file is not Matroska, has several video tracks, or no
- * usable cues.
- */
 const readCues = async (readAt: ReadAt) => {
   const ebml = elementAt(await readAt(0, maxHeaderBytes), 0, 0)
   if (ebml?.id !== ids.ebml) return undefined
@@ -244,11 +222,6 @@ const readCues = async (readAt: ReadAt) => {
   return points.length < 2 ? undefined : { track, scale, points }
 }
 
-/**
- * Does the stretch of clusters between two cue points hold a video keyframe the cues miss? Reads
- * from the cluster of `points[index]` to the end of the one holding `points[index + 1]`.
- * `undefined` when that stretch is too long to check.
- */
 const missesKeyframes = async (
   readAt: ReadAt,
   track: number,
@@ -268,13 +241,6 @@ const missesKeyframes = async (
   )
 }
 
-/**
- * Video keyframe times (seconds from the file's time zero) from the Matroska cues, without reading
- * the whole file (§10.3): a few hundred kilobytes against the full packet scan of ffprobe, which
- * reads every byte (minutes on a network share). Only when they list every keyframe: three
- * stretches of clusters are checked block by block, and a cue missing from any of them, or no
- * stretch short enough to check, gives `undefined` (full scan instead).
- */
 export const matroskaKeyframes = async (readAt: ReadAt): Promise<number[] | undefined> => {
   const cues = await readCues(readAt)
   if (cues === undefined) return undefined
@@ -290,7 +256,6 @@ export const matroskaKeyframes = async (readAt: ReadAt): Promise<number[] | unde
   return [...new Set(points.map((point) => (point.ticks * scale) / 1e9))]
 }
 
-/** `matroskaKeyframes` of a file; `undefined` on any read error too. */
 export const matroskaKeyframesOf = async (path: string): Promise<number[] | undefined> => {
   try {
     const file = await open(toHostPath(path), 'r')

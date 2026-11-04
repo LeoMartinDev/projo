@@ -10,8 +10,6 @@ import { libraries } from './schema/libraries.ts'
 
 type ProfileRow = typeof profiles.$inferSelect
 
-/** `libraryIds` comes from `profile_libraries`; empty for `all` whatever the table holds. */
-/** A stored tier this version does not know fails closed: the strictest tier. */
 const toTier = (value: string): ContentRatingTier => {
   const parsed = contentRatingTierSchema.safeParse(value)
   return parsed.success ? parsed.data : '0'
@@ -57,7 +55,6 @@ const writeLibraries = (db: Writer, profile: Profile) => {
     .run()
 }
 
-/** Inserts a profile and its libraries (inside the caller's transaction when there is one). */
 export const insertProfile = (db: Writer, profile: Profile) => {
   db.insert(profiles).values(toProfileRow(profile)).run()
   writeLibraries(db, profile)
@@ -76,7 +73,6 @@ const libraryIdsByProfile = (db: Db, profileIds: readonly string[]) => {
   return byProfile
 }
 
-/** Profiles with their libraries, in the order of `rows`. */
 export const toProfiles = (db: Db, rows: readonly ProfileRow[]): Profile[] => {
   const byProfile = libraryIdsByProfile(
     db,

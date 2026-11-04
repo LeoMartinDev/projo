@@ -7,30 +7,15 @@ import type { EventBus } from '../../../core/events.ts'
 import type { AppEnv } from '../context.ts'
 import { currentPrincipal } from '../principal.ts'
 
-/** `Bun.serve` closes a connection idle for 120 s: stay well below (§ CLAUDE.md "SSE"). */
 export const defaultKeepAliveMs = 25_000
 
 type Deps = {
   eventBus: EventBus
-  /**
-   * Who holds the stream, re-read on every event and keep-alive: a revoked or expired session or
-   * a disabled account loses its stream; a demoted admin (or one switched to a restricted profile)
-   * stops receiving admin events at once.
-   */
   currentSubscriber: CurrentEventSubscriber
-  /** Open streams, by their `close`: the module closes them on shutdown. */
   openStreams: Set<() => void>
   keepAliveMs?: number
 }
 
-/**
- * §17.1 SSE: `GET /events`, one stream per client (`new EventSource('/api/v1/events')`).
- * Each event is `event: <type>` + `data: <JSON payload>` (`packages/shared/api/events.ts`),
- * filtered by audience, re-read at each event: admin events for admins acting from an unrestricted
- * profile, `owning_session` events for that session only.
- * A `: keep-alive` comment is sent every 25 s.
- * Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')`.
- */
 export const eventsRoutes = ({
   eventBus,
   currentSubscriber,
@@ -42,7 +27,6 @@ export const eventsRoutes = ({
     const logger = c.get('logger')
 
     return streamSSE(c, async (stream) => {
-      // Writes are serialized: events and keep-alives never interleave inside a frame.
       let writing = Promise.resolve()
       const send = (write: () => Promise<unknown>) => {
         writing = writing.then(async () => {

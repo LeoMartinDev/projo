@@ -51,7 +51,6 @@ const Ago = ({ iso }: { iso: string | undefined }) => {
   )
 }
 
-/** File name, then the full path (ellipsis at the start). */
 const FileCell = ({ source }: { source: SourceDto }) => (
   <div className="adm-cell" role="cell">
     <span className="adm-strong" title={source.relativePath}>
@@ -87,14 +86,6 @@ const MoreButton = ({
   )
 }
 
-// ── Fichiers en attente ──────────────────────────────────────────────────────
-
-/**
- * `/admin/pending` (§7.3, §15 "Fichiers en attente"): the files not ready yet, why (still
- * written, unreadable, damaged, too small), their size, since when they wait and when they last
- * changed; "Check again" probes one again now, "Hide" takes it out of every list (§7.8).
- * Follows the pipeline live.
- */
 export const PendingPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -212,8 +203,6 @@ export const PendingPage = () => {
   )
 }
 
-// ── Manquants ────────────────────────────────────────────────────────────────
-
 type Purging = { kind: 'one'; source: SourceDto } | { kind: 'all'; count: number }
 
 const PurgeDialog = ({ purging, onClose }: { purging: Purging; onClose: () => void }) => {
@@ -269,10 +258,6 @@ const PurgeDialog = ({ purging, onClose }: { purging: Purging; onClose: () => vo
   )
 }
 
-/**
- * `/admin/missing` (§7.5, §15 "Manquants"): files gone from the disk, since when, the item they
- * belong to; purge one or all (the daily `purge_missing` does it after 30 days).
- */
 export const MissingPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -366,12 +351,6 @@ export const MissingPage = () => {
   )
 }
 
-// ── Masqués ──────────────────────────────────────────────────────────────────
-
-/**
- * `/admin/hidden` (§7.8, §15 "Masqués"): the files hidden from "To review" or "Fichiers en
- * attente"; "Show again" sends one through the pipeline again (probe, then matching).
- */
 export const HiddenPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()

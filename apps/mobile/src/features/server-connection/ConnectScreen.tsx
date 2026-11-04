@@ -8,10 +8,6 @@ import { ErrorLine } from '../../shared/ui/ErrorLine.tsx'
 import { TextField } from '../../shared/ui/TextField.tsx'
 import { useServerConnection } from './ServerConnection.tsx'
 
-/**
- * Type the server URL; connecting checks its `/health` before keeping it (§26.3). Or scan the code
- * of "Connect a device", which carries the server URL (§14).
- */
 export const ConnectScreen = () => {
   const { t } = useTranslation()
   const router = useRouter()

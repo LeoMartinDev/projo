@@ -10,15 +10,6 @@ type Deps = {
 
 export type ResolveProfileError = AppError<'profile/forbidden' | 'profile/pin_required'>
 
-/**
- * Active profile of a request (§17.1, §13.6): `X-Profile-Id` when it belongs to the account
- * (remembered as the session's last profile), else the only profile of the account, else the
- * last profile used by this session. `undefined` when the client has to choose ("Who's watching?").
- *
- * A PIN-protected profile is accepted in `X-Profile-Id` only once this session unlocked it
- * (`POST /profiles/:id/select` with the PIN made it the session's last profile): switching to it
- * asks for the PIN every time (§13.6), and the header alone cannot bypass it.
- */
 export const resolveProfileFactory =
   ({ profileRepository, sessionRepository }: Deps) =>
   ({

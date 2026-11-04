@@ -4,10 +4,6 @@ import { dirname } from 'node:path'
 
 import { dockerRun, runtimeImage } from './runtime-image.ts'
 
-/**
- * Runs ffmpeg to write `output` (its folder created first); throws with its stderr on failure.
- * With a runtime image, the image's ffmpeg: the CI installs none on the host.
- */
 export const runFfmpeg = (args: readonly string[], output: string): void => {
   mkdirSync(dirname(output), { recursive: true })
   const [command = 'ffmpeg', ...prefix] = runtimeImage === '' ? ['ffmpeg'] : dockerRun('ffmpeg')

@@ -67,7 +67,6 @@ describe('item overrides (§9.3)', () => {
       posterImageId: 'poster-custom',
     })
 
-    // A second edit of the same field replaces the row.
     repo.set({ itemId: 'm1', overrides: { title: 'Inception (VF)' }, at })
     expect(repo.get('m1').title).toBe('Inception (VF)')
     expect(
@@ -88,7 +87,6 @@ describe('item overrides (§9.3)', () => {
     expect(repo.get('m1')).toEqual({})
     expect(row('m1')?.overview).toBeNull()
 
-    // Idempotent.
     repo.remove({ itemId: 'm1', field: 'overview', at })
     expect(repo.item('m1')).toMatchObject({ title: 'Origine', genres: [] })
     expect(repo.item('unknown')).toBeUndefined()
@@ -171,7 +169,6 @@ describe('refresh walk (§9.4)', () => {
     insertItem(db, { id: 'old-s1', kind: 'season', parentId: 'old', seasonNumber: 1 })
     insertItem(db, { id: 'old-e1', kind: 'episode', parentId: 'old-s1', episodeNumber: 1 })
     insertSource(db, { id: 'src-old-e1', itemId: 'old-e1' })
-    // No file left: not refreshed.
     insertItem(db, {
       id: 'empty',
       kind: 'series',
@@ -196,10 +193,6 @@ describe('refresh walk (§9.4)', () => {
 })
 
 describe('deciding library and stale language (§9.1, §9.4)', () => {
-  /**
-   * `library-1` (fr, FR, oldest) and `library-2` (en-US, US): series `both` has episode 1 in
-   * library 2 and episode 2 in library 1; `movie-2` only in library 2.
-   */
   const seed = () => {
     db.update(libraries)
       .set({ createdAt: '2026-01-01T00:00:00.000Z' })
@@ -251,14 +244,11 @@ describe('deciding library and stale language (§9.1, §9.4)', () => {
 
   test('the oldest library holding a file of the tree decides, for every item of it', () => {
     const repo = seed()
-    // Episode 1 is only in library 2, yet the series is decided by library 1.
     for (const id of ['both', 'both-s1', 'both-e1', 'both-e2'])
       expect(repo.libraryOf(id)).toEqual({ ratingCountry: 'FR' })
     expect(repo.libraryOf('movie-2')).toEqual({ ratingCountry: 'US', language: 'en-US' })
-    // Same creation date: the id breaks the tie.
     db.update(libraries).set({ createdAt: '2026-01-01T00:00:00.000Z' }).run()
     expect(repo.libraryOf('both-e1')).toEqual({ ratingCountry: 'FR' })
-    // Library 2 older: it decides.
     db.update(libraries)
       .set({ createdAt: '2025-01-01T00:00:00.000Z' })
       .where(eq(libraries.id, 'library-2'))
@@ -272,9 +262,7 @@ describe('deciding library and stale language (§9.1, §9.4)', () => {
     expect(repo.staleLanguage({ serverLanguage: 'fr-FR' })).toEqual([])
     expect(repo.decidedBy('library-1')).toEqual(['both'])
     expect(repo.decidedBy('library-2')).toEqual(['movie-2'])
-    // The server goes English: library 2 keeps its own language, `both` follows the server.
     expect(repo.staleLanguage({ serverLanguage: 'en-US' })).toEqual(['both'])
-    // One episode still in another language is enough; local items (no TMDB id) do not count.
     db.update(items).set({ metadataLanguage: 'en-US' }).run()
     db.update(items).set({ metadataLanguage: 'fr-FR' }).where(eq(items.id, 'both-e2')).run()
     insertItem(db, { id: 'local', kind: 'movie' })
@@ -282,7 +270,6 @@ describe('deciding library and stale language (§9.1, §9.4)', () => {
     expect(repo.staleLanguage({ serverLanguage: 'en-US' })).toEqual(['both'])
     db.update(items).set({ metadataLanguage: 'en-US' }).where(eq(items.id, 'both-e2')).run()
     expect(repo.staleLanguage({ serverLanguage: 'en-US' })).toEqual([])
-    // Never written (NULL) is stale too; by library: the trees with a file in it.
     db.update(items).set({ metadataLanguage: null }).where(eq(items.id, 'movie-2')).run()
     expect(repo.staleLanguage({ serverLanguage: 'en-US' })).toEqual(['movie-2'])
     expect(repo.staleLanguage({ serverLanguage: 'en-US', libraryId: 'library-1' })).toEqual([])
@@ -300,14 +287,12 @@ describe('deciding library and stale language (§9.1, §9.4)', () => {
       { topId: 'movie-2', ratingCountry: 'US', stale: false },
     ])
     expect(states('en-US')[0]).toEqual({ topId: 'both', ratingCountry: 'FR', stale: true })
-    // A rating picked from another country than the series' (seasons and episodes inherit it).
     db.update(items).set({ contentRatingCountry: 'FR' }).where(eq(items.id, 'both')).run()
     expect(states()[0]?.stale).toBe(true)
     db.update(items).set({ contentRatingCountry: 'FR' }).run()
     expect(states()[0]?.stale).toBe(false)
     db.update(items).set({ contentRatingCountry: 'US' }).where(eq(items.id, 'both-e1')).run()
     expect(states()[0]?.stale).toBe(true)
-    // No file left: left out.
     db.delete(sources).where(eq(sources.id, 'src-movie-2')).run()
     expect(states().map((state) => state.topId)).toEqual(['both'])
   })

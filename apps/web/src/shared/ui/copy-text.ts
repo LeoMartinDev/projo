@@ -1,11 +1,9 @@
-/** Selects the field and runs the `copy` command: works over plain HTTP on a LAN. */
 const copyBySelection = (input: HTMLInputElement | HTMLTextAreaElement | undefined): boolean => {
   if (input === undefined) return false
   input.select()
   return document.execCommand('copy')
 }
 
-/** Clipboard API where available (HTTPS, localhost), the selection otherwise or when refused. */
 export const copyText = async (
   text: string,
   input: HTMLInputElement | HTMLTextAreaElement | undefined,

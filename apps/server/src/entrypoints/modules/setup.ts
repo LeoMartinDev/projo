@@ -6,7 +6,6 @@ import { setupRoutes } from '../http/routes/setup.ts'
 import { buildAuthServices } from './auth.ts'
 import type { Platform } from './platform.ts'
 
-/** Wiring of the first-launch wizard (§15): admin account, first profile, server settings. */
 export const buildSetupModule = (platform: Platform) => {
   const { db, clock, ids, logger, config } = platform
   const { passwordHasher, openSession, getMe } = buildAuthServices(platform)

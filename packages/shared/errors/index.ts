@@ -49,7 +49,6 @@ export * from './setup.ts'
 export * from './source.ts'
 export * from './update.ts'
 
-/** Every stable error code. New domain = one file in this folder + one import and one spread here. */
 export const errorCodes = [
   ...accountErrorCodes,
   ...authErrorCodes,

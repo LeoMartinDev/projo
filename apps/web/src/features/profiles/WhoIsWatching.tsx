@@ -20,11 +20,6 @@ import './profiles.css'
 
 const maxProfiles = 5
 
-/**
- * "Who's watching?" (§13.6, artboard `Main`): one tile per profile, a lock on the protected ones
- * (PIN asked at each switch), "Add" up to five, "Manage profiles" to rename, recolour,
- * protect or delete them.
- */
 export const WhoIsWatching = ({
   me,
   manage: manageRequested,
@@ -35,7 +30,6 @@ export const WhoIsWatching = ({
   redirectTo?: string
 }) => {
   const { t } = useTranslation()
-  // §14: a restricted profile (or, before choosing, an account with one) only switches profile.
   const canManage = canManageAccount(me)
   const manage = manageRequested && canManage
   const navigate = useNavigate()
@@ -59,7 +53,6 @@ export const WhoIsWatching = ({
 
   const open = (profile: ProfileDto) => {
     if (manage) {
-      // Changing a protected profile other than the active one needs its PIN (§14).
       if (profile.hasPin && profile.id !== me.activeProfileId) {
         verify.reset()
         setPinFor({ profile, purpose: 'edit' })

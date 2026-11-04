@@ -52,7 +52,6 @@ const noSubtitles: SubtitleTrackRepository = { listForSource: () => [], findById
 
 const access = { sessionId: 's1', secret: 'secret-1' }
 
-/** A stream over one source and one session, recording the jobs handed to the segmenter. */
 const streamFor = ({
   playing,
   media = source.media,
@@ -292,7 +291,6 @@ describe('hlsStream: session ended while waiting for the keyframe index (§10.3,
       segmenter,
       subtitleTrackRepository: noSubtitles,
       playbackSettings: { read: () => defaultPlaybackSettings },
-      // While the index is being computed, the session ends (stop, timeout, cascade).
       delay: async () => {
         ended = true
         stream.forget(session.id)

@@ -10,12 +10,6 @@ import {
 } from '../support/library.ts'
 import { expectPoster } from '../support/media.ts'
 
-/**
- * §4 journey 1: first launch, library added through the folder explorer, TMDB key set from the
- * administration, movies and shows with clean titles and their posters (playback and resume:
- * `playback.e2e.ts`). Then login / logout and journey 2 (invitation). The UI runs in French
- * (`locale`).
- */
 test.describe.configure({ mode: 'serial' })
 
 test('first launch: wizard, library from the folder explorer, TMDB key, titles with posters, play and resume', async ({
@@ -37,7 +31,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
   })
 
   await test.step('library: walk the folder explorer down to the fixtures', async () => {
-    // First launch shows folders and name only: content type and options keep their defaults.
     await expect(page.getByRole('radiogroup', { name: fr.admin.form.contentType })).toHaveCount(0)
     await expect(page.getByLabel(fr.admin.form.quietPeriod)).toHaveCount(0)
     await page.getByRole('button', { name: fr.setup.library.browse }).click()
@@ -56,7 +49,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     const folders = page.getByRole('list', { name: fr.admin.form.folders })
     await expect(folders.getByRole('listitem')).toHaveText([libraryDir])
     await expect(folders.getByRole('checkbox', { name: libraryDir })).toBeChecked()
-    // The name is suggested by the folder.
     const folderName =
       libraryDir
         .split('/')
@@ -78,8 +70,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
 
   await test.step('settings: no quiet period, the fixtures are complete files', async () => {
     await expect(page).toHaveURL(/\/admin\/libraries$/)
-    // No timeline thumbnails for the whole run: the sprites are covered by the server's
-    // integration tests, and their jobs only queue the identification of the other journeys.
     const settings = await page.request.patch('/api/v1/admin/settings', {
       data: { playback: { trickplayEnabled: false } },
     })
@@ -99,7 +89,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
       tr(fr.admin.counts.ready_other, { formatted: fixtureFiles.length }),
       { timeout: 60_000 },
     )
-    // "À jour" only once the quiet period, the probes and the sample decodes are all done.
     await expect(row.getByRole('status')).toContainText(fr.admin.status.ok)
   })
 
@@ -110,7 +99,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     await expect(
       page.getByRole('heading', { name: fr.admin.settings.metadata, level: 1 }),
     ).toBeVisible()
-    // "Intros and credits" has its own page and key form (TheIntroDB, §15): the TMDB one is here.
     const metadata = page.getByRole('region', { name: fr.admin.settings.metadata })
     await metadata.getByLabel(fr.admin.settings.tmdbKey).fill(TEST_TMDB_KEY)
     await metadata.getByRole('button', { name: fr.admin.settings.validateKey }).click()
@@ -125,7 +113,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
       .getByRole('link', { name: startsWith(fr.admin.review.title) })
       .click()
     await expect(page.getByRole('heading', { name: fr.admin.review.title, level: 1 })).toBeVisible()
-    // Every other file is identified: only the made-up series is left to the admin.
     const queue = page.getByRole('list', { name: fr.admin.review.title }).getByRole('listitem')
     await expect(queue).toHaveCount(1, { timeout: 30_000 })
     await expect(queue).toContainText('Show.Name.S01E02.1080p.WEB.x264.mkv')
@@ -152,7 +139,6 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     for (const title of expectedSeries) {
       const tile = seriesTiles.filter({ hasText: title })
       if (identifiedTitles.some((identified) => identified === title)) await expectPoster(tile)
-      // Unidentified: the title on its tone, never a broken image.
       else await expect(tile.locator('img')).toHaveCount(0)
     }
   })
@@ -178,7 +164,6 @@ test('login and logout, wrong password shows a translated message', async ({ pag
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: fr.login.title })).toBeVisible()
 
-  // The session is really gone: the catalog sends back to the login.
   await page.goto('/movies')
   await expect(page).toHaveURL(/\/login/)
 })
@@ -215,7 +200,6 @@ test('invitation: a new member chooses a password and lands on the home (§4 jou
     invited.getByRole('button', { name: tr(fr.shell.accountMenu, { name: 'Camille' }) }),
   ).toBeVisible()
 
-  // The link was single use.
   await invited.goto(`/invite/${token}`)
   await expect(invited.getByRole('heading', { name: fr.invite.used })).toBeVisible()
   await guest.close()

@@ -20,7 +20,6 @@ const every = (step: number, durationS: number): number[] =>
 
 const bounds = (segments: HlsSegment[]) => segments.map((s) => [s.startS, s.endS])
 
-/** Invariants of any plan: contiguous from 0 to the end, cuts on keyframes, indexes in order. */
 const expectWellFormed = (segments: HlsSegment[], keyframes: number[], durationS: number) => {
   expect(segments[0]?.startS).toBe(0)
   expect(segments[segments.length - 1]?.endS).toBe(durationS)
@@ -107,7 +106,6 @@ describe('planSegments', () => {
   })
 
   test('a short last part is merged into the previous segment', () => {
-    // 6, 12, 18 then 19 s: a cut at 18 would leave 1 s.
     const segments = planSegments({ keyframes: every(2, 19), durationS: 19 })
     expect(bounds(segments)).toEqual([
       [0, 6],
@@ -117,7 +115,6 @@ describe('planSegments', () => {
   })
 
   test('a short last part can make the last segment longer than 8 s', () => {
-    // Keyframes every 7 s: cutting at 21 would leave a 1.5 s tail.
     const segments = planSegments({ keyframes: [0, 7, 14, 21], durationS: 22.5 })
     expect(bounds(segments)).toEqual([
       [0, 7],

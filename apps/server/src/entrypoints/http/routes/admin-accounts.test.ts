@@ -44,7 +44,6 @@ describe('admin accounts (§15 Comptes)', () => {
     const response = await admin.get('/api/v1/admin/accounts')
     expect(response.status).toBe(200)
     const { items } = (await response.json()) as { items: AccountBody[] }
-    // Oldest first: `addUser` backdates zoe to 2026-01-01.
     expect(items.map((item) => [item.username, item.role])).toEqual([
       ['zoe', 'user'],
       ['leo', 'admin'],
@@ -97,13 +96,11 @@ describe('admin accounts (§15 Comptes)', () => {
     })
     expect(deleted.status).toBe(409)
 
-    // Once zoe is admin too, leo may step down.
     const promoted = await admin.send('PATCH', `/api/v1/admin/accounts/${zoeId}`, { role: 'admin' })
     expect(await promoted.json()).toMatchObject({ role: 'admin' })
     expect(
       (await admin.send('PATCH', `/api/v1/admin/accounts/${leoId}`, { role: 'user' })).status,
     ).toBe(200)
-    // Now a user: the admin pages are closed to leo.
     expect((await admin.get('/api/v1/admin/accounts')).status).toBe(403)
   })
 
@@ -216,7 +213,6 @@ describe('profiles administered from an account or a library (§14, §15)', () =
       (await zoe.send('POST', `/api/v1/admin/accounts/${zoeId}/profiles`, { name: 'X' })).status,
     ).toBe(403)
 
-    // Deleting a profile, then the account: their playback sessions end first (§10.6).
     expect((await admin.send('DELETE', `/api/v1/profiles/${petit.id}`)).status).toBe(204)
     expect(t.endedPlayback).toEqual([{ profileIds: [petit.id] }])
     await admin.send('DELETE', `/api/v1/admin/accounts/${zoeId}`, { confirmUsername: 'zoe' })
@@ -238,7 +234,6 @@ describe('profiles administered from an account or a library (§14, §15)', () =
     expect(
       (await admin.get('/api/v1/admin/accounts', { 'x-profile-id': own?.id ?? '' })).status,
     ).toBe(200)
-    // A new device that has not chosen a profile yet: no active profile, no administration.
     const fresh = t.as(sessionCookieOf(await t.login('leo', adminPassword)))
     const unresolved = await fresh.get('/api/v1/admin/accounts')
     expect(unresolved.status).toBe(403)
@@ -259,7 +254,6 @@ describe('profiles administered from an account or a library (§14, §15)', () =
     const leoProfile = (await read()).find((row) => row.username === 'leo')?.profileId ?? ''
     const zoeProfile = `profile-zoe`
 
-    // zoe loses "films": from "all" to every other library.
     const set = await admin.send('PUT', '/api/v1/admin/libraries/films/profiles', {
       profileIds: [leoProfile],
     })
@@ -273,13 +267,11 @@ describe('profiles administered from an account or a library (§14, §15)', () =
     }
     expect(await zoeOf()).toMatchObject({ libraryAccess: 'selected', libraryIds: ['series'] })
 
-    // Given back: her selection plus "films".
     await admin.send('PUT', '/api/v1/admin/libraries/films/profiles', {
       profileIds: [leoProfile, zoeProfile],
     })
     expect((await zoeOf())?.libraryIds.sort()).toEqual(['films', 'series'])
 
-    // The admin cannot untick their own last unrestricted profile (§14).
     const lockout = await admin.send('PUT', '/api/v1/admin/libraries/films/profiles', {
       profileIds: [zoeProfile],
     })

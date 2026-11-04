@@ -4,20 +4,12 @@ import { outputTimestampOffsetS, transcodeSegmentS } from '../../core/playback/h
 import type { BurnInSubtitle, HlsAudio } from '../../core/playback/ports.ts'
 import { fileInput } from './ffprobe.ts'
 
-/** ffmpeg command lines, built by pure functions. */
-
 export type AudioDownmix = 'stereo' | 'keep'
 
 export { outputTimestampOffsetS }
 
 const head = ['-hide_banner', '-nostdin', '-loglevel', 'error']
 
-/**
- * - `+frag_keyframe`: a fragment per video keyframe; the segmenter groups them into segments.
- * - `+frag_discont`: `tfdt` follows the output timestamps instead of restarting at 0.
- * - `+negative_cts_offsets`: keyframe pts = dts, so no edit list is needed to keep A/V in sync.
- * - `+delay_moov`: moov written once AC-3/E-AC-3 parameters are known (copied Dolby audio).
- */
 const fragmentedMp4Output = [
   '-sn',
   '-dn',
@@ -34,14 +26,9 @@ const fragmentedMp4Output = [
   'pipe:1',
 ]
 
-/** AAC bitrate: 192 kb/s up to stereo, 64 kb/s per channel above (5.1 → 384), 512 at most. */
 export const aacBitrateKbps = (channels: number): number =>
   channels <= 2 ? 192 : Math.min(64 * channels, 512)
 
-/**
- * §10.2 audio: copied, or AAC. `stereo` (default) downmixes to 2 channels at 192 kb/s; `keep`
- * keeps the source channels (at most 8, the AAC encoder's limit), the bitrate following.
- */
 export const audioArgs = (audio: HlsAudio, downmix: AudioDownmix = 'stereo'): string[] => {
   if (audio.delivery === 'copy') return ['-c:a', 'copy']
   if (downmix === 'stereo') return ['-c:a', 'aac', '-ac', '2', '-b:a', '192k']
@@ -57,21 +44,12 @@ export const audioArgs = (audio: HlsAudio, downmix: AudioDownmix = 'stereo'): st
 
 export type RemuxArgsInput = {
   sourcePath: string
-  /** Start of the first segment to produce (a keyframe), seconds from the file start. */
   startS: number
   video: { index: number; codec: string }
   audio?: HlsAudio
   audioDownmix?: AudioDownmix
 }
 
-/**
- * HLS remux (§10.2): video copied, audio copied or AAC, fragmented MP4 on stdout with a fragment
- * per video keyframe. The caller groups fragments into the planned segments.
- *
- * - `-noaccurate_seek -ss`: input seek to the keyframe, audio kept from there too.
- * - `-copyts -start_at_zero`: source timestamps (0 = file start) whatever the seek point.
- * - `-tag:v hvc1`: Safari only plays HEVC tagged `hvc1` (not `hev1`).
- */
 export const remuxArgs = ({
   sourcePath,
   startS,
@@ -100,7 +78,6 @@ export const remuxArgs = ({
   ...fragmentedMp4Output,
 ]
 
-/** §10.2 qualities below Original: a box the picture fits in, and the target bitrate. */
 export const qualityTargets: Record<
   Exclude<PlaybackQuality, 'original'>,
   { maxWidth: number; maxHeight: number; bitrateKbps: number }
@@ -110,15 +87,8 @@ export const qualityTargets: Record<
   '480p': { maxWidth: 854, maxHeight: 480, bitrateKbps: 1500 },
 }
 
-/** Which optional ffmpeg filters the binary has (`ffmpeg -filters`). */
 export type FfmpegFilters = { zscale: boolean; tonemap: boolean }
 
-/**
- * HDR (PQ/HLG) → SDR BT.709: linearize, tonemap (Hable, no desaturation), back to BT.709. Only
- * with `zscale` (libzimg) and `tonemap`: without them the picture is just converted to 8 bits,
- * the source colour tags kept (right on an HDR screen, washed out elsewhere). Dolby Vision
- * profile 5 (no HDR10 base layer) comes out with wrong colours either way: v2 (libplacebo).
- */
 export const tonemaps = (
   video: Pick<TranscodeArgsInput['video'], 'dynamicRange'>,
   filters: FfmpegFilters,
@@ -133,7 +103,6 @@ const tonemapChain = [
   'zscale=t=bt709:m=bt709:r=tv',
 ]
 
-/** `w:h` options of `scale` and `scale_vaapi`: never upscaled, even (4:2:0), aspect ratio kept. */
 const scaleSize = (quality: PlaybackQuality): string => {
   if (quality === 'original') return 'trunc(iw/2)*2:trunc(ih/2)*2'
   const { maxWidth, maxHeight } = qualityTargets[quality]
@@ -142,18 +111,10 @@ const scaleSize = (quality: PlaybackQuality): string => {
 
 const subtitleInputFormat = { pgs: 'sup', vobsub: 'vobsub' } as const
 
-/**
- * A run starting mid-file decodes from this long before its first segment; the video is trimmed
- * back to the segment start, the audio is not. Within a run, ffmpeg closes a fragment's audio at
- * the keyframe's decode time (B-frame delay before its presentation time): without pre-roll the
- * audio of a run started at that keyframe would leave a ~50 ms hole after the previous run's
- * segment. With it the runs overlap a little, which MSE resolves by replacing the old frames.
- */
 export const transcodePrerollS = 0.5
 
 export type TranscodeArgsInput = {
   sourcePath: string
-  /** Start of the first segment to produce (a multiple of 4 s), seconds from the file start. */
   startS: number
   video: { index: number; codec: string; dynamicRange?: 'sdr' | 'hdr' | 'dv' }
   audio?: HlsAudio
@@ -161,7 +122,6 @@ export type TranscodeArgsInput = {
   quality: PlaybackQuality
   burnIn?: BurnInSubtitle
   filters: FfmpegFilters
-  /** VAAPI render node (`/dev/dri/renderD128`): the hardware pipeline; ignored with `burnIn`. */
   vaapiDevice?: string
 }
 
@@ -178,32 +138,6 @@ const vaapiInput = (device: string): string[] => [
   'vaapi',
 ]
 
-/**
- * HLS transcode (§10.2, §10.3): H.264 `libx264` `veryfast`, CRF 21 at Original, else the target
- * bitrate of the quality (`maxrate` = target, `bufsize` = 2 × target), 8-bit 4:2:0, a forced
- * IDR every 4 s (no other keyframe: scene cuts and the max GOP are off) so each planned segment
- * is exactly one fragment. Audio AAC (or copied when the client plays it).
- *
- * Seek: accurate (`-ss` before `-i`, frames before it decoded then dropped), `transcodePrerollS`
- * early for the audio, the video trimmed to the segment start; timestamps rebased to the source
- * timeline with `-output_ts_offset` (`t` of `-force_key_frames` counts from the first frame).
- *
- * HDR (§10.3): scaled to the quality, then tonemapped to SDR BT.709 (`tonemaps`), tagged BT.709.
- *
- * VAAPI (`vaapiDevice`, §10.3): decoded, scaled (`scale_vaapi`, to NV12) and encoded
- * (`h264_vaapi`, QP 21 at Original, else the target bitrate) on the GPU, the forced IDR every 4 s
- * kept. HDR: scaled on the GPU keeping 10 bits, downloaded, tonemapped on the CPU like above
- * (never `tonemap_vaapi`: Gen9 iGPUs have none), uploaded back for the encoder.
- *
- * Burn-in (§10.4): `overlay` of the bitmap track (sub2video) on the scaled (and tonemapped)
- * video. The subtitle canvas is scaled to the video first (a PGS authored at 1080 lines on a
- * cropped 800-line video stays visible, squeezed).
- * - embedded track: same input, seeked with the video; an event already on screen at the seek
- *   point is lost (the demuxer restarts at the video keyframe), the next ones are in sync.
- * - external `.sup` / VobSub `.idx`: second input read from its start (`-seek_timestamp 1`
- *   keeps its own timestamps instead of rebasing them on its first event), shifted by
- *   `-itsoffset -<start>` like the video: an event already on screen at the seek point shows.
- */
 export const transcodeArgs = ({
   sourcePath,
   startS,
@@ -222,7 +156,6 @@ export const transcodeArgs = ({
   const trim = preroll > 0 ? [`trim=start=${preroll.toFixed(6)}`] : []
   const external = burnIn?.origin === 'external' ? burnIn : undefined
   const tonemap = tonemaps(video, filters)
-  // Scaled first: the costly float tonemapping (and the overlay) work on the output size.
   const filtered =
     vaapi === undefined
       ? [`scale=${scaleSize(quality)}`, ...(tonemap ? tonemapChain : [])]
@@ -288,9 +221,7 @@ export const transcodeArgs = ({
     'high',
     ...rate,
     '-force_key_frames',
-    // `t` counts from the run's first video frame (after the trim): the segment start.
     `expr:gte(t,n_forced*${transcodeSegmentS})`,
-    // h264_vaapi makes forced keyframes IDRs; its own GOP (1000 frames) is longer than a segment.
     ...(vaapi === undefined
       ? ['-forced-idr', '1', '-sc_threshold', '0', '-x264-params', 'keyint=infinite']
       : ['-g', '1000']),

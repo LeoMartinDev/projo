@@ -1,9 +1,3 @@
-/*
- * Operations tables (§15: jobs, notifications, pending and missing files), in the look of the
- * accounts and sessions tables: rows flowing with the page, the body keeping its height while it
- * loads, is empty or fails (AGENTS.md). Each page sets its columns on `.adm-tr`.
- */
-
 @import '../../shared/styles/media.css';
 
 .adm-table {
@@ -89,7 +83,6 @@
   font-size: 12px;
 }
 
-/* Ellipsis at the start: the end of a path is what tells files apart. */
 .adm-path {
   direction: rtl;
   text-align: left;
@@ -107,7 +100,6 @@
   gap: 6px;
 }
 
-/* A row that opens its details: the whole row is the button's target. */
 .adm-open {
   min-width: 0;
   padding: 0;
@@ -138,7 +130,6 @@
   outline-offset: -2px;
 }
 
-/* Filters above a table: segmented control, then selects. */
 .adm-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -157,7 +148,6 @@
   align-self: flex-start;
 }
 
-/* Details of a record in its dialog: label / value pairs, then preformatted context. */
 .adm-details {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);

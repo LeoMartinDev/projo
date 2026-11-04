@@ -10,7 +10,6 @@ type Deps = {
   accountRepository: AccountRepository
   sessionRepository: SessionRepository
   passwordHasher: PasswordHasher
-  /** Same budget as login (§20), keyed by account. */
   rateLimiter: RateLimiter
   clock: Clock
   logger: Logger
@@ -20,7 +19,6 @@ export type ChangePasswordError = AppError<
   'auth/unauthenticated' | 'auth/rate_limited' | 'account/wrong_password'
 >
 
-/** `POST /auth/password`: proves the current password, then revokes every other session (§14). */
 export const changePasswordFactory =
   ({ accountRepository, sessionRepository, passwordHasher, rateLimiter, clock, logger }: Deps) =>
   async ({

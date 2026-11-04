@@ -2,7 +2,6 @@ import type { TFunction } from 'i18next'
 
 import type { SourceVersionDto } from '@projo/shared/api/versions'
 
-/** ffprobe `codec_name` → its usual name; acronyms are the same in every language. */
 const videoCodecs: Record<string, string> = {
   h264: 'H.264',
   avc1: 'H.264',
@@ -21,14 +20,12 @@ export const videoCodecLabel = (codec: string): string =>
 
 const dynamicRanges = { sdr: undefined, hdr: 'HDR', dv: 'DV' } as const
 
-/** §8.1: an edition id in the interface language (`editions.<id>`), a tag's text as written. */
 export const editionLabel = (
   t: TFunction,
   version: Pick<SourceVersionDto, 'edition' | 'editionName'>,
 ): string | undefined =>
   version.edition === undefined ? version.editionName : t(`editions.${version.edition}`)
 
-/** §7.7 `2160p HDR HEVC · Version longue`, composed from the codes; `undefined` when nothing is known. */
 export const versionLabel = (t: TFunction, version: SourceVersionDto): string | undefined => {
   const technical = [
     version.resolution,
@@ -43,11 +40,6 @@ export const versionLabel = (t: TFunction, version: SourceVersionDto): string | 
   return label === '' ? undefined : label
 }
 
-/**
- * Labels of the versions of one item, in their order, always distinct (§7.7): a version without
- * a label is "Version 3", two versions with the same label take their number after it
- * ("1080p H.264 · Version 2").
- */
 export const versionLabels = (t: TFunction, versions: readonly SourceVersionDto[]): string[] => {
   const labels = versions.map((version) => versionLabel(t, version))
   return labels.map((label, index) => {

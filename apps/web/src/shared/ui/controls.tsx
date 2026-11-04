@@ -3,11 +3,6 @@ import { useTranslation } from 'react-i18next'
 
 import { CheckIcon, ChevronDownIcon, EyeIcon, EyeOffIcon } from './icons.tsx'
 
-/**
- * Kit v2 form controls (artboard `Components`): the field box with its label inside, the
- * switch, the checkbox row. The input itself is the caller's (`className="field__input"`), so
- * every native attribute stays available.
- */
 export const Field = ({
   id,
   label,
@@ -41,21 +36,18 @@ export const Field = ({
   </div>
 )
 
-/** Chevron of a `<select>` field (the native arrow is hidden). */
 export const SelectChevron = () => (
   <span className="field__chevron" aria-hidden="true">
     <ChevronDownIcon />
   </span>
 )
 
-/** The check that pops in at the end of a valid field. */
 export const ValidMark = ({ label }: { label: string }) => (
   <span className="valid-mark" role="img" aria-label={label}>
     <CheckIcon size={12} stroke={3} />
   </span>
 )
 
-/** Show / hide toggle at the end of a password field. */
 export const RevealButton = ({ shown, onToggle }: { shown: boolean; onToggle: () => void }) => {
   const { t } = useTranslation()
   return (
@@ -99,7 +91,6 @@ export const Switch = ({
   </button>
 )
 
-/** A full-width checkbox row: box, then whatever the row shows. */
 export const Checkrow = ({
   checked,
   onChange,

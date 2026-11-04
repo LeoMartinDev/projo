@@ -6,7 +6,6 @@ import { toIso, toNullable } from './rows.ts'
 import { items } from './schema/items.ts'
 import { sourceItems, sources } from './schema/libraries.ts'
 
-/** Writes of the M1 local items (see `core/scanner/item-linking.ts`). */
 export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRepository => {
   const parentsOf = (ids: string[]): string[] =>
     ids.length === 0
@@ -44,8 +43,6 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
 
     moveItemRows: ({ from, into }) => {
       if (from === into) return
-      // Progress (§13.1): rows without conflict move as they are; on conflict, the most recent
-      // position wins, "watched" is kept from either side, play counts add up.
       db.run(sql`UPDATE OR IGNORE playback_progress SET item_id = ${into} WHERE item_id = ${from}`)
       db.run(sql`
         UPDATE playback_progress AS t SET
@@ -62,14 +59,12 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
         FROM playback_progress AS f
         WHERE f.item_id = ${from} AND t.item_id = ${into} AND t.profile_id = f.profile_id`)
       db.run(sql`DELETE FROM playback_progress WHERE item_id = ${from}`)
-      // Ma liste: one row per (profile, item), the earliest addition kept.
       db.run(sql`UPDATE OR IGNORE watchlist SET item_id = ${into} WHERE item_id = ${from}`)
       db.run(sql`
         UPDATE watchlist AS t SET added_at = min(t.added_at, f.added_at)
         FROM watchlist AS f
         WHERE f.item_id = ${from} AND t.item_id = ${into} AND t.profile_id = f.profile_id`)
       db.run(sql`DELETE FROM watchlist WHERE item_id = ${from}`)
-      // Track preferences (§11): the most recent choice wins.
       db.run(sql`UPDATE OR IGNORE track_preferences SET item_id = ${into} WHERE item_id = ${from}`)
       db.run(sql`
         UPDATE track_preferences AS t SET
@@ -81,12 +76,6 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
         WHERE f.item_id = ${from} AND t.item_id = ${into} AND t.profile_id = f.profile_id
           AND f.updated_at > t.updated_at`)
       db.run(sql`DELETE FROM track_preferences WHERE item_id = ${from}`)
-      // Segments (§12): what belongs to the file or the admin (manual, chapters, fingerprint)
-      // follows, per type when the target has none of that type; a manual marker first replaces
-      // the target's non-manual segment of its type (§12.1). What the community databases
-      // said about the other identity (segments, cached answers) is dropped: a rematch would
-      // otherwise carry them over. Negative markers follow and win over the target's non-manual
-      // segment of their type.
       db.run(sql`
         DELETE FROM segments
         WHERE item_id = ${into} AND origin <> 'manual'
@@ -106,11 +95,8 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
         WHERE item_id = ${into} AND origin <> 'manual'
           AND 'no_segment:' || type IN (
             SELECT provider FROM segment_lookups WHERE item_id = ${into})`)
-      // The submissions log (§12.5) follows: a marker is not submitted twice.
       db.run(sql`UPDATE segment_submissions SET item_id = ${into} WHERE item_id = ${from}`)
-      // Edits (§9.3) made on the local item survive when the target has none for that field.
       db.run(sql`UPDATE OR IGNORE item_overrides SET item_id = ${into} WHERE item_id = ${from}`)
-      // Sessions in progress follow the file.
       db.run(sql`UPDATE playback_sessions SET item_id = ${into} WHERE item_id = ${from}`)
       db.run(sql`
         UPDATE items SET added_at = (
@@ -156,7 +142,6 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
           id: item.id,
           kind: item.kind,
           parentId: toNullable(item.parentId),
-          // NOT NULL column: '' = no title of its own (§6.3).
           title: item.title ?? '',
           sortTitle: item.sortTitle,
           year: toNullable(item.year),

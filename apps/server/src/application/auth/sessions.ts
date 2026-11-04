@@ -10,7 +10,6 @@ type Deps = {
   logger: Logger
 }
 
-/** The account's devices (§14): active cookie sessions and bearer tokens. */
 export const listSessionsFactory =
   ({ sessionRepository, clock }: Omit<Deps, 'logger'>) =>
   ({ accountId }: { accountId: string }): Session[] =>
@@ -18,7 +17,6 @@ export const listSessionsFactory =
 
 export type RevokeSessionError = AppError<'auth/session_not_found'>
 
-/** Revokes one of the account's sessions (logout of a device). Idempotent on revoked sessions. */
 export const revokeSessionFactory =
   ({ sessionRepository, clock, logger }: Deps) =>
   ({

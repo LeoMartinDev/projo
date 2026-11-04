@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 
-/** Stroke icons drawn like the artboards (24 grid, 1.6 stroke, round caps). */
 const Icon = ({
   size = 18,
   stroke = 1.6,

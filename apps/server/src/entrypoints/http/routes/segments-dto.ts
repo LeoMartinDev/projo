@@ -2,7 +2,6 @@ import type { ItemSegmentsDto, SegmentLookupDto } from '@projo/shared/api/segmen
 
 import type { ItemSegmentsView } from '../../../application/segments/types.ts'
 
-/** The chain's sources; `no_segment:<type>` rows are negative markers, sent as `absent`. */
 const lookupSources = new Set<string>(['chapter', 'theintrodb', 'introdb', 'skipdb', 'fingerprint'])
 
 export const toItemSegmentsDto = (view: ItemSegmentsView): ItemSegmentsDto => ({

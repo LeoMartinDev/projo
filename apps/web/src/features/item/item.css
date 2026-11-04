@@ -1,5 +1,3 @@
-/* Detail pages (§13.5, artboards `Series`, `MobileSeries`). */
-
 @import '../../shared/styles/media.css';
 
 .detail {
@@ -7,8 +5,6 @@
   flex-direction: column;
   padding-bottom: 96px;
 }
-
-/* ── Hero ───────────────────────────────────────────────────────────────── */
 
 .detail-hero {
   position: relative;
@@ -111,8 +107,6 @@
   overflow-wrap: anywhere;
 }
 
-/* The logo sizes the title: the text waits for it (entrance paused, still hidden) rather than being
-   pushed up when it arrives. The route's loader has usually decoded it already. */
 .detail-hero__content:has(.detail-hero__logo[data-pending]) > * {
   animation-play-state: paused;
 }
@@ -231,8 +225,6 @@
   border-radius: var(--radius-button);
 }
 
-/* ── Body sections ──────────────────────────────────────────────────────── */
-
 .detail__body {
   display: flex;
   flex-direction: column;
@@ -261,8 +253,6 @@
   font-weight: 600;
   letter-spacing: -0.02em;
 }
-
-/* ── Episodes (artboard `Series`) ───────────────────────────────────────── */
 
 .episodes__bar {
   display: flex;
@@ -406,8 +396,6 @@
   color: var(--color-text);
 }
 
-/* Under its button (implicit popover anchor), above it when there is no room below; centered
-   where anchor positioning is unsupported. */
 .admin-menu__menu {
   inset: 0;
   width: max-content;
@@ -423,7 +411,6 @@
     position-try-fallbacks: flip-block;
   }
 
-  /* At the right edge of an episode row: opens leftwards. */
   .admin-menu--end .admin-menu__menu {
     position-area: bottom span-left;
   }
@@ -434,7 +421,6 @@
   height: 16px;
 }
 
-/* "Refresh" refused (a local item): said under the item, inside the menu. */
 .admin-menu__error {
   max-width: 260px;
   margin: 0;
@@ -445,7 +431,6 @@
   white-space: normal;
 }
 
-/* Several episodes can be in progress: their backgrounds must not touch. */
 .episode-list {
   display: flex;
   flex-direction: column;
@@ -483,7 +468,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* "1-2" (multi-episode file, §8.4) stays on one line within the number column. */
 .episode__number[data-range] {
   font-size: 14px;
   white-space: nowrap;
@@ -501,7 +485,6 @@
 
 .episode__still .cover-img {
   transition: transform 0.6s var(--ease);
-  /* Own layer: Firefox judders on the hover zoom otherwise (see `.card`, media.css). */
   will-change: transform;
 }
 
@@ -536,7 +519,6 @@
   transform: scale(1.04);
 }
 
-/* Without a still the play ring stays visible: the tile is never an empty box. */
 .episode__still:not(:has(.cover-img)) .episode__play {
   background: transparent;
   opacity: 0.8;
@@ -668,8 +650,6 @@
   color: var(--color-text);
 }
 
-/* ── Casting ────────────────────────────────────────────────────────────── */
-
 .cast {
   display: flex;
   gap: 20px;
@@ -684,7 +664,6 @@
   display: none;
 }
 
-/* Touch screens swipe the row; the arrows are for mouse and trackpad (as the home rows). */
 @media not (--fine-pointer) {
   .cast__pager {
     display: none;
@@ -733,15 +712,12 @@
   line-height: 1.3;
 }
 
-/* ── Technical details ──────────────────────────────────────────────────── */
-
 .tech-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
   gap: 16px;
 }
 
-/* The label column fits the card's longest label ("Langues audio"), shared by its rows (subgrid). */
 .tech {
   display: grid;
   grid-template-columns: minmax(110px, max-content) minmax(0, 1fr);
@@ -779,8 +755,6 @@
   padding: 0;
   list-style: none;
 }
-
-/* ── Phone (artboard `MobileSeries`) ────────────────────────────────────── */
 
 @media (--compact) {
   .detail-hero {
@@ -858,7 +832,6 @@
     height: 46px;
   }
 
-  /* Icons on one line even when a label wraps to two. */
   .detail-hero__actions .detail-action {
     flex: 1 1 0;
     align-self: stretch;
@@ -884,7 +857,6 @@
     color: var(--color-text);
   }
 
-  /* Level with the actions' icons, not with the middle of a two-line label. */
   .detail-hero__actions .admin-menu {
     align-self: flex-start;
   }
@@ -1029,7 +1001,6 @@
   flex: 0 0 auto;
 }
 
-/* The admin menu's "⋮" stands with the other actions: the same round glass button. */
 @media not (--compact) {
   .detail-hero__actions .admin-menu__button {
     width: 48px;
@@ -1055,7 +1026,6 @@
   }
 }
 
-/* Phone: lines wrap, a separator would start a line. */
 @media (--compact) {
   .detail-hero__meta {
     gap: 6px 12px;
@@ -1074,16 +1044,12 @@
   }
 }
 
-/* Like `.page__back`: in a phone's browser tab Safari's toolbar has the back arrow, and the
-   button would sit wedged under the header's navigation row. */
 @media (--phone) and (--in-browser) {
   .detail-hero__top {
     display: none;
   }
 }
 
-/* Tablet: the secondary actions turn into round icon buttons (their label stays their accessible
-   name), so the row holds on one line beside "Play". */
 @media (--tablet) {
   .detail-hero__actions {
     flex-wrap: nowrap;

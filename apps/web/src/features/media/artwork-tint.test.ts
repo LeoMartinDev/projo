@@ -16,7 +16,6 @@ const fromHex = (hex: string): Rgb => ({
   b: Number.parseInt(hex.slice(5, 7), 16),
 })
 
-/** RGBA pixels: `count` of each colour, opaque unless an alpha is given. */
 const pixels = (...runs: { color: string; count: number; alpha?: number }[]) =>
   Uint8ClampedArray.from(
     runs.flatMap(({ color, count, alpha = 255 }) => {
@@ -35,10 +34,8 @@ const hueOf = (hex: string) => {
   return Math.atan2(b, a)
 }
 
-// Text colours of the preview (tokens.css): title, line, genres and badges, progress.
 const text = ['#f4f4f5', '#a1a1aa', '#8b8b94'].map(fromHex)
 
-// Bright, dark, saturated and grey artworks.
 const samples = [
   '#ffffff',
   '#000000',
@@ -69,7 +66,6 @@ describe('averageColor', () => {
     expect(average).toBeDefined()
     if (average === undefined) return
     expect(Math.atan2(average.b, average.a)).toBeCloseTo(hueOf('#e5484d'), 1)
-    // Lightness stays the plain mean: mostly dark.
     expect(average.l).toBeLessThan(rgbToOklab(fromHex('#808080')).l)
   })
 

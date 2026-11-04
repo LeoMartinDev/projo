@@ -12,14 +12,12 @@ import { readParsedName } from './source-columns.ts'
 const expectedTables = [
   'accounts',
   'app_versions',
-  // §27.3 MCP assistants and OAuth (migration `assistants_and_oauth`).
   'assistant_tokens',
   'images',
   'invitations',
   'item_overrides',
   'item_people',
   'items',
-  // §13.5 search (migration `search`): FTS5 table, its shadow tables, rowid mapping.
   'items_fts',
   'items_fts_config',
   'items_fts_content',
@@ -29,13 +27,11 @@ const expectedTables = [
   'jobs',
   'libraries',
   'library_roots',
-  // §9.2 corrections by file (migrations `manual_matches_by_path` → `drop_item_manual_matches`).
   'manual_matches',
   'notifications',
   'oauth_clients',
   'oauth_codes',
   'oauth_tokens',
-  // §14 pairing a device (migration `pairings`).
   'pairings',
   'people',
   'playback_progress',
@@ -45,7 +41,6 @@ const expectedTables = [
   'scan_runs',
   'search_documents',
   'segment_lookups',
-  // §12.5 contribution log (migration `segments_m4`).
   'segment_submissions',
   'segments',
   'sessions',
@@ -53,10 +48,8 @@ const expectedTables = [
   'source_items',
   'source_subtitles',
   'sources',
-  // §9.2 TMDB responses cached in the database (migration `tmdb_responses`).
   'tmdb_responses',
   'track_preferences',
-  // §15 update log (migration `m5_contract`).
   'update_runs',
   'watchlist',
 ]
@@ -96,7 +89,6 @@ describe('openDatabase', () => {
         .query<{ name: string }, []>(`PRAGMA table_info('${table}')`)
         .all()
         .map((row) => row.name)
-    // Columns added after the first schema (one merged migration since).
     expect(columnsOf('sources')).toEqual(
       expect.arrayContaining(['pending_since', 'unchanged_since']),
     )
@@ -153,7 +145,6 @@ describe('openDatabase', () => {
     raw.close()
 
     open(file, backups)
-    // The copy just taken (the manual clock's 2026-01-01) and the one before it.
     expect(readdirSync(backups).sort()).toEqual(
       [
         ...kept,
@@ -164,7 +155,6 @@ describe('openDatabase', () => {
   })
 
   test('corrections of an existing database move to `manual_matches`, keyed by path (§9.2)', () => {
-    // The migrations up to `search`, then a correction in the former per-source table.
     const partial = join(temp.path, 'migrations')
     cpSync(migrationsDir, partial, { recursive: true })
     const journalFile = join(partial, 'meta', '_journal.json')
@@ -212,7 +202,6 @@ describe('openDatabase', () => {
         tmdb_id: 841,
       },
     ])
-    // Purging the source keeps the correction.
     after.value.$client.run(`DELETE FROM sources WHERE id = 'src'`)
     expect(
       after.value.$client.query('SELECT source_id, tmdb_id FROM manual_matches').all(),
@@ -259,7 +248,6 @@ describe('openDatabase', () => {
     expect(db.query('SELECT content_rating, content_rating_country FROM items').all()).toEqual([
       { content_rating: '12', content_rating_country: null },
     ])
-    // The admin who created it goes, the invitation stays (§14).
     db.run(`DELETE FROM accounts WHERE id = 'admin-2'`)
     expect(db.query('SELECT id, created_by FROM invitations').all()).toEqual([
       { id: 'inv', created_by: null },
@@ -309,7 +297,6 @@ describe('openDatabase', () => {
         JSON.stringify({ id: 1, genres }),
         fetchedAt,
       ])
-    // Cached details: they win over the stored names.
     item('inception', 'movie', '["Action","Science-Fiction"]', { tmdb_id: 27205 })
     response(
       'movie/27205?append_to_response=credits&language=fr-FR',
@@ -320,9 +307,7 @@ describe('openDatabase', () => {
       ],
       '2026-01-02',
     )
-    // `movie/2720?` must not match `movie/27205?`.
     item('other', 'movie', '["Drame"]', { tmdb_id: 2720 })
-    // A series: combined TMDB genres split, seasons and episodes follow.
     item('bear', 'series', '["Comédie"]', { tmdb_id: 136315 })
     response(
       'tv/136315?language=fr-FR',
@@ -337,14 +322,12 @@ describe('openDatabase', () => {
     response('tv/136315/season/1?language=fr-FR', [], '2026-01-02')
     item('bear-s1', 'season', '["Comédie"]', { parent_id: 'bear', season_number: 1 })
     item('bear-e1', 'episode', '["Comédie"]', { parent_id: 'bear-s1', episode_number: 1 })
-    // No cached response: by name, unknown names and duplicates dropped, order kept.
     item(
       'local',
       'movie',
       '["Guerre & Politique","Sci-Fi & Fantasy","Inconnu","Science-Fiction",{"name":"Kids"},"drame"]',
     )
     item('broken', 'movie', '"Drame"')
-    // A locked item takes its override, mapped by name.
     item('locked', 'movie', '["Comédie"]', { tmdb_id: 949 })
     response('movie/949?language=fr-FR', [{ id: 80, name: 'Crime' }], '2026-01-02')
     client.run(
@@ -410,14 +393,12 @@ describe('openDatabase', () => {
       year: 1982,
       edition: "Director's Cut",
     })
-    // A stacked file: its group key ends with the edition.
     source(
       'cd1',
       'Avatar (2009)/Avatar (2009) Extended Cut cd1.mkv',
       { title: 'Avatar', year: 2009, edition: 'Extended Cut', part: { index: 1, label: 'CD 1' } },
       'root|Avatar (2009)|avatar|2009|Extended Cut',
     )
-    // A `{edition-…}` tag keeps its text, even when it reads like a known label.
     source('tag', 'The Matrix (1999) {edition-Remastered}.mkv', {
       title: 'The Matrix',
       edition: 'Remastered',
@@ -453,7 +434,6 @@ describe('openDatabase', () => {
     expect(rows.find((row) => row.id === 'cd1')?.stack_group_id).toBe(
       'root|Avatar (2009)|avatar|2009|extended',
     )
-    // Every row reads with the current schema (`readParsedName` is strict).
     for (const row of rows) expect(() => readParsedName(JSON.parse(row.parsed))).not.toThrow()
     closeDatabase(after.value)
   })
@@ -480,7 +460,6 @@ describe('openDatabase', () => {
     client.run(
       `INSERT INTO settings (key, value, updated_at) VALUES ('metadata.language', '"en-US"', '2026-01-01')`,
     )
-    // `old` (its own language) is older than `new` (server language).
     client.run(
       `INSERT INTO libraries (id, name, metadata_language, created_at) VALUES ('new', 'Nouveau', NULL, '2026-02-01'), ('old', 'Ancien', 'de-DE', '2026-01-01')`,
     )
@@ -505,7 +484,6 @@ describe('openDatabase', () => {
       )
       client.run(`INSERT INTO source_items (source_id, item_id) VALUES (?, ?)`, [id, itemId])
     }
-    // A series in both libraries (episode 1 only in the newer one): `old` decides the tree.
     item('series', 'series', { tmdb_id: 1 })
     item('season', 'season', { tmdb_id: 10, parent_id: 'series', season_number: 1 })
     item('e1', 'episode', { tmdb_id: 11, parent_id: 'season', season_number: 1, episode_number: 1 })
@@ -514,7 +492,6 @@ describe('openDatabase', () => {
     source('f2', 'old', 'e2')
     item('movie', 'movie', { tmdb_id: 2 })
     source('f3', 'new', 'movie')
-    // Without any file: the server language. A local item has no TMDB metadata.
     item('fileless', 'movie', { tmdb_id: 3 })
     item('local', 'movie')
     source('f4', 'old', 'local')
@@ -567,7 +544,6 @@ describe('openDatabase', () => {
   })
 
   describe('a later migration', () => {
-    // A migrated database with a library and its root, then one extra migration on top.
     const migrateWith = (statements: (librariesDdl: string) => string[]) => {
       const file = join(temp.path, 'projo-fk.db')
       const before = open(file)

@@ -37,13 +37,6 @@ const toPlayableSource = ({ source, rootPath, rootState }: Row): PlayableSource 
   }
 }
 
-/**
- * The episodes of a season for `fingerprint_season` (§12.3): those with a ready source in a
- * `detect_segments` library (the chain's rule). Per episode, the version playback plays
- * (`groupVersions` + `rankVersions` over every ready source, in `listReadySources` order), so
- * that fingerprint positions are on the timeline the player uses; the episode is left out when a
- * part of that version is on an unreachable root, or lacks a probed duration or audio.
- */
 export const createSqliteFingerprintCatalog = ({ db }: { db: Db }): FingerprintCatalog => ({
   listSeasonEpisodes: (seasonId) => {
     const rows: Row[] = db

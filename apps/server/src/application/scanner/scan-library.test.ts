@@ -20,7 +20,6 @@ const library = {
   roots: [{ id: 'root', libraryId: 'lib', path: '/media', state: 'ok', lastFileCount: 1 }],
 } as unknown as Library
 
-/** Known at its old place, signed: a file of the same size elsewhere is probed as its move. */
 const film = {
   id: 's1',
   libraryId: 'lib',
@@ -86,7 +85,6 @@ test('a scan stopped while it probes moved files applies nothing', async () => {
       realPath: async (path) => ok(path),
     },
     prober: {
-      // A restart: the runner aborts the job, ffprobe is killed.
       probe: async () => {
         controller.abort()
         return err(appError('media/ffmpeg_failed', 'killed'))

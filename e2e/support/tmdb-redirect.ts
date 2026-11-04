@@ -1,9 +1,3 @@
-// Preloaded into each e2e server (`bun --preload <this file> server.js`, see scripts/serve.ts).
-// The server only reads PORT, DATA_DIR, TRUST_PROXY and LOG_LEVEL (§5.4) and its TMDB client
-// targets api.themoviedb.org / image.tmdb.org: this preload starts the recorded TMDB of the
-// server tests in the same process and reroutes `fetch` to it, without touching production
-// code. Any other request to a TMDB host fails: an e2e run never reaches the real TMDB. Same for
-// the segment databases (§12.2): TheIntroDB, IntroDB and SkipDB go to their recorded server.
 import { startSegmentProvidersServer } from '../../apps/server/test/support/segment-providers-server.ts'
 import { startTmdbServer } from '../../apps/server/test/support/tmdb-server.ts'
 
@@ -25,7 +19,6 @@ const isTmdbHost = (url: string): boolean => {
   )
 }
 
-/** The local URL for a replayed one, the same URL otherwise; `undefined`: a URL not replayed. */
 const reroute = (url: string): string | undefined => {
   const route = routes.find(({ from }) => url.startsWith(from))
   if (route !== undefined) return route.to + url.slice(route.from.length)

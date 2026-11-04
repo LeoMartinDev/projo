@@ -9,11 +9,6 @@ type Deps = {
   jobQueue: JobQueue
 }
 
-/**
- * What the scanner calls once a source is ready (§7.2 "→ matching"): enqueues `match_source`
- * (§18, one per source). Without a TMDB key nothing is queued: the source stays `unmatched` with
- * its local items and one notification tells the admin (§9.1); setting the key relaunches them.
- */
 export const requestMatchFactory =
   ({ settings, notifier, jobQueue }: Deps): MatchRequester =>
   ({ sourceId }) => {

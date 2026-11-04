@@ -37,7 +37,6 @@ const toToken = (row: typeof oauthTokens.$inferSelect): OAuthToken => {
   }
 }
 
-/** §27.3 OAuth clients, codes and tokens (only hashes). Synchronous (bun:sqlite). */
 export const createSqliteOAuthRepository = ({ db }: { db: Db }): OAuthRepository => ({
   findClient: (clientId) => {
     const row = db.select().from(oauthClients).where(eq(oauthClients.clientId, clientId)).get()
@@ -132,7 +131,6 @@ export const createSqliteOAuthRepository = ({ db }: { db: Db }): OAuthRepository
     const nowIso = toIso(now)
     db.delete(oauthCodes).where(lt(oauthCodes.expiresAt, nowIso)).run()
     db.delete(oauthTokens).where(lt(oauthTokens.expiresAt, nowIso)).run()
-    // Registrations unused for 30 days and without a live assistant (deleting one cascades).
     db.delete(oauthClients)
       .where(
         and(

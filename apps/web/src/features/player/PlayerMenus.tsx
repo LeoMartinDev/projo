@@ -42,17 +42,13 @@ import {
 } from './subtitles.ts'
 import { ratioAtPointer } from './timeline.ts'
 
-/** The menus of the controls row (§10.7), each behind its own button. */
 export type PlayerMenu = 'languages' | 'speed' | 'quality' | 'chapters'
 
-/** Tabs of the "Subtitles and audio" menu on narrow screens (two columns from `wideQuery`). */
 export type LanguagesTab = 'audio' | 'subtitles'
 
-/** Quality and version only appear when there is a choice to make. */
 export const hasQualityChoice = (session: PlaybackSessionDto) =>
   session.availableQualities.length > 1 || session.versions.length > 1
 
-/** Same breakpoint as `.player-menu--languages` in `player.css`. */
 const wideQuery = `(not ${media.compact}) and (not ${media.short})`
 const subscribeWide = (notify: () => void) => {
   const query = window.matchMedia(wideQuery)
@@ -66,7 +62,6 @@ const useWideMenu = () =>
     () => true,
   )
 
-/** The pill sliding under the selected segment (tabs, subtitle size). */
 const SegmentIndicator = ({ index, count }: { index: number; count: number }) => (
   <span
     className="menu-segments__indicator"
@@ -87,7 +82,6 @@ const CloseButton = ({ onClose }: { onClose: () => void }) => {
   )
 }
 
-/** Title and close: speed, quality, chapters. */
 const MenuHeader = ({ title, onClose }: { title: string; onClose: () => void }) => (
   <header className="menu-header">
     <h2 className="menu-header__title">{title}</h2>
@@ -139,7 +133,6 @@ const Option = ({
   </button>
 )
 
-/** A titled radio list: a column of the wide languages menu, a group of the quality menu. */
 const Section = ({
   title,
   className,
@@ -168,11 +161,6 @@ const Section = ({
   )
 }
 
-/**
- * Menu "Subtitles and audio" (§10.7, canvas "Subtitles and audio menu"). Wide screens: audio and
- * subtitles in two columns, size and delay under the subtitles. Narrow screens: tabs Audio and
- * Sous-titres, the height of the longer tab on both (AGENTS.md): the lists scroll inside.
- */
 export const LanguagesMenu = ({
   session,
   audioIndex,
@@ -196,7 +184,6 @@ export const LanguagesMenu = ({
   onSubtitle: (choice: SubtitleChoice) => void
   subtitleSettings: SubtitleSettings
   onSubtitleSettings: (update: (settings: SubtitleSettings) => SubtitleSettings) => void
-  /** False when iOS draws the stream's subtitles: their size is its accessibility setting (§10.4). */
   sizeAdjustable: boolean
 }) => {
   const { t } = useTranslation()
@@ -224,7 +211,6 @@ export const LanguagesMenu = ({
     track.title ??
     t('player.menu.track', { number: position + 1 })
   const audioLabels = session.audioTracks.map((track, position) => audioLabel(track, position))
-  /** The file's own title (`VFF`, `Commentaires`) only tells apart tracks of the same language. */
   const audioDetail = (track: AudioTrackDto, position: number) =>
     [
       languageName(track.language, locale) !== undefined &&
@@ -241,7 +227,6 @@ export const LanguagesMenu = ({
     languageName(track.language, locale) ??
     track.title ??
     t('player.menu.track', { number: position + 1 })
-  /** Forced, SDH, and an image track (burnt into the video when chosen, §10.4). */
   const subtitleTags = (track: SubtitleTrackDto) => [
     ...(track.forced ? [t('player.menu.forced')] : []),
     ...(track.sdh ? [t('player.menu.sdh')] : []),
@@ -250,10 +235,6 @@ export const LanguagesMenu = ({
   const subtitleKeys = session.subtitleTracks.map((track, position) =>
     [subtitleLabel(track, position), ...subtitleTags(track)].join('|'),
   )
-  /**
-   * Under the name: not supported, burnt in, or, between tracks that still read the same, where
-   * it comes from. The file's own title is left out (`French Full SRT`).
-   */
   const subtitleDetail = (track: SubtitleTrackDto, position: number) => {
     if (track.delivery === 'unsupported') return t('player.menu.unsupported')
     if (track.id === subtitleId && session.burnIn) return t('player.burnIn')
@@ -424,7 +405,6 @@ export const LanguagesMenu = ({
         <CloseButton onClose={onClose} />
       </header>
 
-      {/* Both panels in one cell: the menu takes the height of the longer one, on either tab. */}
       <div className="tracks-menu__panels">
         {tabs.map((name) => (
           <div
@@ -447,7 +427,6 @@ export const LanguagesMenu = ({
   )
 }
 
-/** Speed (0.5× to 2×, §10.7). */
 export const SpeedMenu = ({
   rate,
   onRate,
@@ -458,7 +437,6 @@ export const SpeedMenu = ({
   onClose: () => void
 }) => {
   const { t } = useTranslation()
-  /** Where the thumb is drawn while dragging (it resists between steps), else on the speed. */
   const [drag, setDrag] = useState<number>()
   const number = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 2 })
   const percent = (value: number) => `${ratioOfRate(value) * 100}%`
@@ -467,7 +445,6 @@ export const SpeedMenu = ({
   const value = number.format(rate)
   const label = `${value}×`
 
-  /** Each step passed while dragging gives a short tap where the device can vibrate. */
   const dragTo = (event: PointerEvent<HTMLDivElement>) => {
     const ratio = ratioAtPointer(event.clientX, event.currentTarget.getBoundingClientRect())
     setDrag(thumbRatioWhileDragging(ratio))
@@ -556,7 +533,6 @@ export const SpeedMenu = ({
   )
 }
 
-/** Quality, with the versions of the item when it has several (§7.7). */
 export const QualityMenu = ({
   session,
   onQuality,
@@ -609,7 +585,6 @@ export const QualityMenu = ({
   )
 }
 
-/** The file's chapters, the current one scrolled into view on opening. */
 export const ChaptersMenu = ({
   chapters,
   chapterIndex,

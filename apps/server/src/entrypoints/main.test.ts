@@ -62,7 +62,6 @@ describe('startProjo', () => {
     })
     if (!started.ok) throw new Error(started.error.message)
 
-    // No Content-Length: only the server's limit stops the read.
     const body = new ReadableStream<Uint8Array>({
       start: (controller) => {
         for (let i = 0; i < 12; i++) controller.enqueue(new Uint8Array(1024 * 1024))
@@ -91,7 +90,6 @@ describe('startProjo', () => {
     }
     await (await start()).stop()
 
-    // What a crash leaves behind: a job running on its last attempt, a scan run never finished.
     const db = new Database(join(temp.path, 'db/projo.db'))
     const at = '2026-01-01T00:00:00.000Z'
     db.run(
@@ -149,7 +147,6 @@ describe('startProjo', () => {
     expect(cookie.startsWith(`${sessionCookieName}=`)).toBe(true)
     const me = (await setup.json()) as MeResponse
 
-    // A movie with a poster in the only library, and a kids' profile that sees no library.
     const opened = openDatabase({
       file: join(temp.path, 'db/projo.db'),
       migrationsDir,

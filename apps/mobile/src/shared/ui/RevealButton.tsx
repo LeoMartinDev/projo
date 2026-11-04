@@ -4,7 +4,6 @@ import { Pressable, StyleSheet } from 'react-native'
 
 import { colors, sizes } from '../styles/tokens.ts'
 
-/** Show / hide toggle at the end of a password field (kit v2 "peek"). */
 export const RevealButton = ({ shown, onToggle }: { shown: boolean; onToggle: () => void }) => {
   const { t } = useTranslation()
   return (

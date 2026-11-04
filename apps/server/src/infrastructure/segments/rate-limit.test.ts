@@ -23,7 +23,6 @@ describe('provider limiter', () => {
     })
     const results = await Promise.all(Array.from({ length: 7 }, () => limiter.acquire()))
     expect(results.every((result) => result.ok)).toBe(true)
-    // Concurrent callers reserve in order: 3 now, 3 at +10 s, 1 at +20 s.
     expect(clock.slept).toEqual([10_000, 10_000, 10_000, 20_000])
   })
 
@@ -135,7 +134,6 @@ describe('throttled providers (§12.2)', () => {
       error: { code: 'segment/provider_rate_limited', context: { retryAfterSeconds: 30 } },
     })
     expect(server.callsTo('skipdb')).toHaveLength(1)
-    // Other providers are not paused.
     expect((await providers.theintrodb.lookup(items.simpsons, undefined)).ok).toBe(true)
     clock.advance(30_000)
     expect(await providers.skipdb.lookup(items.breakingBad, undefined)).toMatchObject({

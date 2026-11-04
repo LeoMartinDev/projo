@@ -6,7 +6,6 @@ import { Sheet } from './Sheet.tsx'
 
 export type Option<Value extends string> = { value: Value; label: string }
 
-/** The web's `<select>`: a sheet listing the options, the current one ticked; picking closes it. */
 export const OptionsSheet = <Value extends string>({
   open,
   title,

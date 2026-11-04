@@ -1,10 +1,3 @@
-/*
- * Player, after artboard `Player` (kit v2 tokens). Layers, bottom to top: video, subtitles,
- * gesture surface, centre (spinner, big play, touch controls), chrome, toast, menu and panel,
- * blocking overlays. Positions computed at run time go through the CSSOM (no inline style
- * attribute, §20 CSP).
- */
-
 @import '../../shared/styles/media.css';
 
 .player {
@@ -38,8 +31,6 @@
   background: #000000;
 }
 
-/* The `<track>` is `showing` for Firefox's own PiP; in the page `.captions` draws the cues.
-   Subtitles from the HLS stream (iOS) have no `.captions`: their cues stay visible. */
 .player__video:not(.player__video--native-cues)::cue {
   color: transparent;
   background: transparent;
@@ -53,8 +44,6 @@
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
 }
-
-/* ── Centre ─────────────────────────────────────────────────────────────── */
 
 .player__center {
   position: absolute;
@@ -105,7 +94,6 @@
   transform: translate(-50%, -50%) scale(0.96);
 }
 
-/* Touch screens: −10 s, play/pause, +10 s in the middle (the row keeps the rest). */
 .player__touch {
   position: absolute;
   top: 50%;
@@ -217,8 +205,6 @@
   background: var(--color-accent);
 }
 
-/* ── Subtitles ──────────────────────────────────────────────────────────── */
-
 .captions {
   --captions-scale: 1;
   position: absolute;
@@ -247,7 +233,6 @@
   bottom: calc(var(--player-chrome-bottom) + 8px);
 }
 
-/* Above the toast when one is shown. */
 .captions--above-toast {
   bottom: calc(var(--player-chrome-bottom) + 60px);
 }
@@ -287,8 +272,6 @@
 .captions__u {
   text-decoration: underline;
 }
-
-/* ── Chrome ─────────────────────────────────────────────────────────────── */
 
 .player__top,
 .player__bottom {
@@ -437,8 +420,6 @@
   text-overflow: ellipsis;
 }
 
-/* ── Timeline ───────────────────────────────────────────────────────────── */
-
 .timeline {
   position: relative;
   display: flex;
@@ -576,8 +557,6 @@
   font-weight: 600;
 }
 
-/* ── Volume ─────────────────────────────────────────────────────────────── */
-
 .volume {
   display: flex;
   align-items: center;
@@ -685,8 +664,6 @@
   }
 }
 
-/* ── Toast (bottom left, like "Intro skipped · Undo") ─────────────────── */
-
 .player-toast {
   position: absolute;
   bottom: var(--player-chrome-bottom);
@@ -747,12 +724,6 @@
   opacity: 0.5;
 }
 
-/* ── Menus of the controls row and episodes panel ──────────────────────── */
-
-/*
- * Smoked glass: the video shows through, darkened before it is blurred (`brightness`), so a
- * bright scene stays behind the text instead of washing it out.
- */
 .player-menu,
 .episodes-panel {
   position: absolute;
@@ -769,7 +740,6 @@
   animation: menu-in 0.35s var(--ease) both;
 }
 
-/* Without the filter nothing darkens the video: back to an opaque surface. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .player-menu,
   .episodes-panel {
@@ -777,7 +747,6 @@
   }
 }
 
-/* Each menu keeps to its content: a short list is a small menu. */
 .player-menu {
   bottom: 112px;
   width: min(var(--menu-width, 320px), calc(100% - 2 * var(--player-gutter)));
@@ -803,7 +772,6 @@
   max-height: min(440px, calc(100% - 180px));
 }
 
-/* Compact (tabs Audio, Sous-titres) by default; two columns from `wideQuery`. */
 .player-menu--languages {
   --menu-width: 400px;
 }
@@ -820,7 +788,6 @@
   }
 }
 
-/* Where there is room, the subtitles stay visible beside the menu while their size changes. */
 @media (--wide) and (not (--short)) {
   .player--menu .captions {
     right: min(620px, 52%);
@@ -910,7 +877,6 @@
   scrollbar-width: none;
 }
 
-/* Season tabs of the episodes panel. */
 .player-menu__tab {
   position: relative;
   flex: 0 0 auto;
@@ -950,7 +916,6 @@
   transform: none;
 }
 
-/* Header of a menu: its title (or the Audio / Sous-titres tabs) and close. */
 .menu-header {
   display: flex;
   flex: 0 0 auto;
@@ -1002,7 +967,6 @@
   transform: scale(0.94);
 }
 
-/* "Subtitles and audio": tabs and the tab's panel, or two columns with close at the top right. */
 .tracks-menu {
   position: relative;
   display: flex;
@@ -1017,7 +981,6 @@
   right: 6px;
 }
 
-/* Segmented control: the tabs, the subtitle size. The indicator slides under the selection. */
 .menu-segments {
   position: relative;
   display: grid;
@@ -1083,7 +1046,6 @@
   font-size: 13px;
 }
 
-/* The two tabs share one grid cell; the hidden one still sizes it. */
 .tracks-menu__panels {
   display: grid;
   flex: 0 1 auto;
@@ -1111,7 +1073,6 @@
   min-height: 0;
 }
 
-/* The list of a menu: scrolls inside once the menu reaches its maximum height. */
 .menu-list,
 .menu-section--column .menu-section__options {
   flex: 1 1 auto;
@@ -1146,7 +1107,6 @@
   letter-spacing: 0.01em;
 }
 
-/* Level with the close button at the top right. */
 .menu-section--column .menu-section__title {
   padding: 16px 48px 8px 18px;
 }
@@ -1165,7 +1125,6 @@
   margin-top: 10px;
 }
 
-/* A track: name and tags, what tells it apart below, a check on the right when chosen. */
 .menu-option {
   display: flex;
   flex: 0 0 auto;
@@ -1257,7 +1216,6 @@
   animation: tracks-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
-/* Subtitle size and delay, a card under the subtitles; dimmed while they are off. */
 .menu-style {
   display: flex;
   flex: 0 0 auto;
@@ -1375,7 +1333,6 @@
   cursor: default;
 }
 
-/* Compact: size and delay side by side, the controls saying what they are. */
 .tracks-menu--compact .menu-style {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1393,7 +1350,6 @@
   border-radius: 12px;
 }
 
-/* Speed: the speed in large, then a card with the slider held on its detents, their values under it. */
 .speed-value {
   padding: 0 0 12px;
   font-size: 34px;
@@ -1446,7 +1402,6 @@
   transition: width 0.18s var(--ease);
 }
 
-/* While dragging the thumb follows the pointer (held back by its step), only softened. */
 .speed-slider__control[data-dragging] .speed-slider__fill {
   transition: width 0.1s ease-out;
 }
@@ -1461,7 +1416,6 @@
   background: rgba(255, 255, 255, 0.45);
 }
 
-/* On the filled part the band speaks for itself. */
 .speed-slider__detent[data-passed] {
   opacity: 0;
 }
@@ -1566,8 +1520,6 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
-
-/* Episodes */
 
 .episodes-panel__head {
   display: flex;
@@ -1707,8 +1659,6 @@
   width: 40%;
 }
 
-/* ── Segments: "Skip intro", "Next episode" (§12.4) ───────────────── */
-
 .skip-segment {
   position: absolute;
   right: var(--player-gutter);
@@ -1774,7 +1724,6 @@
   transition: transform 0.3s linear;
 }
 
-/* After 8 s: the icon only, the label kept as the accessible name. */
 .skip-segment--icon .skip-segment__body {
   width: 48px;
   padding: 0;
@@ -1793,7 +1742,6 @@
   display: none;
 }
 
-/* The video shrinks into a thumbnail, top left, under the card (artboard `PlayerNext`). */
 .player__video {
   transform-origin: 6% 10%;
   transition:
@@ -2011,7 +1959,6 @@
   color: var(--color-text-muted-strong);
 }
 
-/* The bar of the artboard: where the credits are, the chrome being hidden. */
 .next-up__progress {
   position: absolute;
   right: 0;
@@ -2047,7 +1994,6 @@
     flex: 1 1 auto;
   }
 
-  /* The shrunk video (centred, above the card) is the picture: no still. */
   .next-up__still {
     display: none;
   }
@@ -2058,7 +2004,6 @@
   }
 }
 
-/* Phone in landscape, small windows: the card keeps to its text and buttons. */
 @media (--short) {
   .next-up {
     gap: 12px;
@@ -2092,8 +2037,6 @@
   }
 }
 
-/* ── Blocking overlays: error, interruption, end of the item ────────────── */
-
 .player__overlay {
   position: absolute;
   inset: 0;
@@ -2111,7 +2054,6 @@
   animation: fade-in 0.3s ease both;
 }
 
-/* The end screen leaves the chrome usable (quit, bar). */
 .player__overlay--end {
   z-index: 3;
 }
@@ -2135,8 +2077,6 @@
   margin-top: 6px;
 }
 
-/* ── Small screens ──────────────────────────────────────────────────────── */
-
 @media (--compact) {
   .player {
     --player-chrome-bottom: 168px;
@@ -2147,7 +2087,6 @@
     padding-top: 56px;
   }
 
-  /* The title gets a line of its own above the buttons, which no longer leave it any room. */
   .player__controls {
     gap: 4px 2px;
   }
@@ -2196,7 +2135,6 @@
     flex-basis: 112px;
   }
 
-  /* Every menu has its button: narrower ones, and Picture-in-Picture left to the system. */
   .player__controls > .player__control:not(.player__control--play) {
     width: 40px;
     height: 40px;
@@ -2207,7 +2145,6 @@
   }
 }
 
-/* Phone in landscape: the menus are sheets on the right, the subtitles stay visible beside. */
 @media (--short) and (not (--compact)) {
   .player-menu {
     right: max(8px, env(safe-area-inset-right));
@@ -2224,8 +2161,6 @@
     right: calc(min(360px, 100% - 16px) + 16px);
   }
 }
-
-/* ── Touch screens: the centre cluster replaces play and ±10 s of the row ── */
 
 @media (--touch) {
   .player .player__touch {

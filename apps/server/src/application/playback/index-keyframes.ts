@@ -11,7 +11,6 @@ import {
   type StoredKeyframeIndex,
 } from '../../core/playback/ports.ts'
 
-/** §18 `index_keyframes`: 100 when a player waits for it, 20 in the background. */
 export const keyframePriority = { interactive: 100, background: 20 } as const
 
 export const keyframesDedupeKey = (sourceId: string): string => `keyframes:${sourceId}`
@@ -37,10 +36,6 @@ export type IndexKeyframesError = AppError<
   'playback/source_unavailable' | 'playback/keyframes_unavailable' | 'media/ffprobe_failed'
 >
 
-/**
- * Builds `/data/cache/keyframes/<source>.json` (§10.3) unless a fresh one exists (same size and
- * mtime as the source). Idempotent: the background job and the interactive one may both run.
- */
 export const indexKeyframesFactory =
   ({ catalogRepository, keyframeStore, keyframeExtractor, mediaProber, logger }: Deps) =>
   async ({

@@ -8,7 +8,6 @@ const overscanRows = 3
 
 type Layout = { columns: number; rowHeight: number; gap: number; columnGap: number }
 
-/** Columns of ≥ 168 px (two at least), 2:3 cells: the row height follows from the width. */
 export const gridLayoutOf = (width: number): Layout => {
   const gap = width < 480 ? 12 : 16
   const rowGap = width < 480 ? 12 : 24
@@ -17,7 +16,6 @@ export const gridLayoutOf = (width: number): Layout => {
   return { columns, rowHeight: cell * 1.5 + rowGap, gap: rowGap, columnGap: gap }
 }
 
-/** Rows to render for the window's scroll position, with a few rows of margin. */
 export const visibleRowsOf = ({
   listTop,
   scrollY,
@@ -40,11 +38,6 @@ export const visibleRowsOf = ({
   }
 }
 
-/**
- * Poster grid of Movies, Shows and My list (§13.4 "virtualised scrolling"): only the rows near
- * the viewport are in the DOM, the others are reserved space, so thousands of titles scroll
- * without jank. Reaching the last rows asks for the next page.
- */
 export const VirtualGrid = <T extends { id: string }>({
   items,
   label,
@@ -67,8 +60,6 @@ export const VirtualGrid = <T extends { id: string }>({
   const [range, setRange] = useState({ first: 0, last: 3 })
   const rowCount = Math.ceil(items.length / layout.columns)
 
-  // Layout effect: the first measure lands before the first paint. A passive effect let one frame
-  // through with the placeholder layout (6 columns), the tiles then jumping to their real size.
   useLayoutEffect(() => {
     if (list === undefined) return
     const update = () => {
@@ -107,8 +98,6 @@ export const VirtualGrid = <T extends { id: string }>({
     if (nearEnd && hasMore && !fetchingMore && !pending) onMore()
   }, [nearEnd, hasMore, fetchingMore, pending, onMore])
 
-  // One `<ul>` for the skeleton and the tiles, measured from the start: they share their columns,
-  // so the tiles replace the placeholders in place instead of reflowing the whole grid.
   const gridStyle = {
     gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
     rowGap: `${layout.gap}px`,

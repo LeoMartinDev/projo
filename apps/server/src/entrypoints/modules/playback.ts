@@ -50,11 +50,6 @@ import { defineJobHandler } from '../jobs/handler.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * Wiring of playback (§10): sessions, heartbeats, `direct`, `hls_remux` and `hls_transcode`
- * streams, keyframe index (`index_keyframes`), session expiry and cache purge, transcode cache cap
- * (`cleanup_cache`), ffmpeg shutdown.
- */
 export const buildPlaybackModule = (
   { db, clock, ids, logger, eventBus, jobQueue, paths }: Platform,
   { visibilityScope }: ScopeDeps,
@@ -67,8 +62,6 @@ export const buildPlaybackModule = (
   const profileRepository = createSqliteProfileRepository({ db })
   const playbackSettings = createSqlitePlaybackSettings({ db })
   const ffprobe = createFfprobe()
-  // §18: background `index_keyframes` (after a scan) at the lowest CPU priority; the one a
-  // player waits for (priority `interactive`) keeps the normal one.
   const backgroundFfprobe = createFfprobe({ processPriority: 'background' })
   const keyframeStore = createFileKeyframeStore({ keyframesDir: paths.cache.keyframes })
   const segmenter = createHlsSegmenter({
@@ -153,7 +146,6 @@ export const buildPlaybackModule = (
     endWithin: endPlaybackSessionsWithinFactory({ sessionRepository, endSession }),
   }
 
-  // §10.3: background indexing once a source is ready, so most first plays find it done.
   const unsubscribe = eventBus.subscribe((event) => {
     if (event.type === 'source.ready') {
       requestKeyframes(jobQueue, event.payload.sourceId, keyframePriority.background)
@@ -161,11 +153,8 @@ export const buildPlaybackModule = (
   })
 
   return {
-    /** For the media-assets module: subtitle renditions under the capability URLs (§20). */
     authorizeStream,
-    /** For the libraries and scanner modules (§10.6). */
     playbackSessions,
-    /** For the admin playback module: "Stop" (§10.6, reason `admin`). */
     endSession,
     routes: playbackRoutes({
       createPlaybackSession: createPlaybackSessionFactory({
@@ -176,7 +165,6 @@ export const buildPlaybackModule = (
         trackPreferenceRepository,
         trickplayUrl,
         streamSecrets: sessionTokens,
-        // §11.1 settings of the profile, for the §11.2 cascade.
         profileTracks: (profileId) => {
           const profile = profileRepository.findById(profileId)
           return (
@@ -230,18 +218,15 @@ export const buildPlaybackModule = (
         payload: z.object({ sourceId: z.string().min(1) }),
         concurrency: 1,
         run: async ({ sourceId }, { signal, job }) => {
-          // A queued job takes the highest priority of its requests (`enqueue`).
           const index =
             job.priority >= keyframePriority.interactive
               ? indexKeyframes
               : indexKeyframesInBackground
           const indexed = await index({ sourceId, signal })
-          // A source gone since the job was queued: nothing left to do.
           if (indexed.ok || indexed.error.code === 'playback/source_unavailable') return ok()
           return indexed
         },
       }),
-      // §10.3, §18: singleton (dedupe key), hourly.
       cleanup_cache: defineJobHandler({
         payload: z.object({}),
         concurrency: 1,

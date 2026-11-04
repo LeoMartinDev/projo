@@ -8,7 +8,6 @@ import { type Db, openDatabase } from '../../src/infrastructure/sqlite/database.
 
 export const migrationsDir = resolve(import.meta.dir, '../../drizzle')
 
-/** Fresh in-memory SQLite with every migration applied. One per test for isolation. */
 export const createTestDatabase = (): Db => {
   const opened = openDatabase({
     file: ':memory:',
@@ -20,7 +19,6 @@ export const createTestDatabase = (): Db => {
   return opened.value
 }
 
-/** Temporary directory removed by `cleanup()` (use in `afterEach`). */
 export const createTempDir = (prefix = 'projo-test-') => {
   const path = mkdtempSync(join(tmpdir(), prefix))
   return { path, cleanup: () => rmSync(path, { recursive: true, force: true }) }

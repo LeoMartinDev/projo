@@ -5,12 +5,6 @@ import { createTempDir } from '../../../test/support/database.ts'
 import { hasFfmpeg, hasFfmpegEncoder } from '../../../test/support/media.ts'
 import { createTrickplayStore } from './trickplay-store.ts'
 
-/**
- * §10.5 against the real ffmpeg, keyframes only: thumbnail `i` is the last keyframe at or before
- * `i × interval`, and there is one thumbnail per started interval of the file, even when its last
- * keyframe is long before the end.
- */
-
 const dir = createTempDir('projo-trickplay-')
 const fingerprint = { sizeBytes: 1, mtimeMs: 1 }
 const videos = { long: '', short: '' }
@@ -26,10 +20,6 @@ const run = async (cmd: string[]) => {
   return out
 }
 
-/**
- * The luminance is 40 + 6 × the second: reading it back dates the picture. One keyframe every
- * 15 s (`-g 360` at 24 fps): for 25 s, keyframes at 0 and 15 s only, none at 10 s or 20 s.
- */
 const ramp = async (name: string, durationS: number) => {
   const path = join(dir.path, name)
   await run([
@@ -65,7 +55,6 @@ beforeAll(async () => {
 
 afterAll(() => dir.cleanup())
 
-/** Mean luminance (full range) of the middle of thumbnail `index` (320×180, 10 per row). */
 const luma = async (sheet: string, index: number) => {
   const bytes = await run([
     'ffmpeg',
@@ -85,7 +74,6 @@ const luma = async (sheet: string, index: number) => {
   return bytes[0] ?? -1
 }
 
-/** Limited-range luminance `y` once expanded to full range, as in the JPEG sheets. */
 const fullRange = (y: number) => ((y - 16) * 255) / 219
 
 describe.skipIf(!hasFfmpeg())('trickplay store', () => {
@@ -110,8 +98,6 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
       await luma(sheet, 2),
       await luma(sheet, 3),
     ]
-    // 0 s and 10 s: the keyframe at 0 s; 20 s: the one at 15 s, although it ends at 15.04 s
-    // (3 thumbnails for 25 s); no fourth one (the tile's black padding).
     const [at0 = 0, at10 = 0, at20 = 0, after = 255] = cells
     expect(Math.abs(at0 - fullRange(40))).toBeLessThan(8)
     expect(Math.abs(at10 - at0)).toBeLessThan(4)
@@ -157,7 +143,6 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
         value: join(dir.path, 'frames', 'src', 'frame-20.webp'),
       })
       if (!extracted.ok || extracted.value === undefined) return
-      // The frame at 20 s itself, not the keyframe at 15 s of its thumbnail; never upscaled.
       const mean = await run([
         'ffmpeg',
         '-hide_banner',
@@ -176,7 +161,6 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
       expect(new TextDecoder().decode(bytes.subarray(8, 12))).toBe('WEBP')
 
       expect(await still('src')).toEqual(extracted)
-      // The sprites are rebuilt (the file changed): the still goes with them.
       await store.generate({
         sourceId: 'src',
         path: videos.long,

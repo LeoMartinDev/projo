@@ -82,7 +82,6 @@ describe('GET /admin/fs/browse (§20)', () => {
         code,
       })
     }
-    // The link to a folder inside the browsed one is fine.
     const inside = (await (await browse(`${base}/films-link`)).json()) as FsBrowseResponse
     expect(inside.path).toBe(join(base, 'films-link'))
     expect(realpathSync(inside.path)).toBe(realpathSync(join(base, 'Films')))

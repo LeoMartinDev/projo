@@ -4,22 +4,13 @@ import { baseUrl } from './support/paths.ts'
 
 const ci = process.env['CI'] !== undefined && process.env['CI'] !== ''
 
-/** The journey that sets the server up (wizard, library, TMDB key): every other one needs it. */
 const firstLaunch = /first-launch\.e2e\.ts$/
 
-/**
- * E2E (PRODUCT.md §22): one real server (built bundle, fresh DATA_DIR, recorded TMDB), the
- * journeys one at a time. Chromium runs every journey, the first-launch one first. Then a WebKit
- * smoke test: desktop Safari for the journeys tagged `@webkit`, the iPhone viewport, touch and
- * user agent for those tagged `@mobile` (§23 M3). `bun run e2e` builds the bundle first.
- */
 export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.e2e.ts',
   outputDir: './test-results',
   globalSetup: './global-setup.ts',
-  // A journey mutates the server (setup, library, progress): no retry, no parallelism. One
-  // browser and one ffmpeg at a time keep the timings of a loaded CI runner predictable.
   fullyParallel: false,
   workers: 1,
   retries: 0,

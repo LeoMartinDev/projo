@@ -23,22 +23,15 @@ type Deps = {
   logger: Logger
 }
 
-/** Who an assistant token acts as (§27.3), checked again on every MCP request. */
 export type AssistantPrincipal = { tokenId: string; accountId: string; profileId: string }
 
-/** 401: no usable token. */
 export type AssistantUnauthenticated = AppError<
   'auth/unauthenticated' | 'auth/session_revoked' | 'auth/account_disabled'
 >
-/** 403: the token is fine, but its account or profile may no longer administer. */
 export type AssistantForbidden = AppError<'auth/forbidden' | 'auth/restricted_profile'>
 
 export type AuthenticateAssistantError = AssistantUnauthenticated | AssistantForbidden
 
-/**
- * Assistant tokens of the MCP server (§27.3): created by an admin from an unrestricted profile
- * (the `/admin/*` guard), shown once, accepted on `/mcp` only, valid until revoked.
- */
 export const assistantTokensFactory = ({
   assistantTokenRepository,
   accountRepository,
@@ -48,7 +41,6 @@ export const assistantTokensFactory = ({
   ids,
   logger,
 }: Deps) => {
-  /** An enabled admin on an unrestricted profile of its own (§15): who may use an assistant. */
   const administers = ({
     accountId,
     profileId,
@@ -77,10 +69,6 @@ export const assistantTokensFactory = ({
     return ok()
   }
 
-  /**
-   * A live assistant → its principal, checked again on every MCP request: a demoted admin or a
-   * profile given restrictions keeps its assistants but cannot use them.
-   */
   const authenticateAssistant = (
     found: AssistantToken,
   ): Result<AssistantPrincipal, AuthenticateAssistantError> => {
@@ -151,7 +139,6 @@ export const assistantTokensFactory = ({
       return ok()
     },
 
-    /** `Authorization: Bearer` of `/mcp` with a token created in the admin (§27.3). */
     authenticate: (token: string): Result<AssistantPrincipal, AuthenticateAssistantError> => {
       const found = assistantTokenRepository.findByTokenHash(tokens.hash(token))
       if (found === undefined || found.kind !== 'token') {

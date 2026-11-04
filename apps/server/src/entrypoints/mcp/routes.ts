@@ -10,9 +10,7 @@ import { statusForError } from '../http/error-mapping.ts'
 import { errorBody, respondError } from '../http/errors.ts'
 import type { McpProtocol } from './protocol.ts'
 
-/** Who a credential of `/mcp` acts as (§27.3): an assistant token or an OAuth access token. */
 export type McpPrincipal = {
-  /** Rate-limit and log key: the token or the OAuth grant. */
   credentialId: string
   accountId: string
   profileId: string
@@ -32,16 +30,11 @@ export type McpAuthenticate = (
   >
 >
 
-/** Where an OAuth client finds how to sign in (§27.3 discovery). */
 export const protectedResourceMetadataPath = '/.well-known/oauth-protected-resource'
 
 const bearer = (header: string | undefined): string | undefined =>
   header?.match(/^Bearer\s+(\S+)\s*$/i)?.[1]
 
-/**
- * `POST /mcp` (§27.2): a bearer of §27.3, the `Origin` check, the rate limit, then one JSON-RPC
- * message. A 401 carries the `WWW-Authenticate` pointer an OAuth client starts from.
- */
 export const mcpRoutes = ({
   protocol,
   authenticate,
@@ -105,7 +98,6 @@ export const mcpRoutes = ({
       }
       const logger = c.get('logger').child({ accountId, credentialId })
       const response = await protocol.handle(message.value, { accountId, profileId, logger })
-      // A notification: accepted, nothing to answer.
       if (response === undefined) return c.newResponse(undefined as never, 202)
       return c.json(response, 200)
     })

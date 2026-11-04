@@ -20,7 +20,6 @@ const names = (people: readonly PersonDto[], max: number) =>
     .map((person) => person.name)
     .join(', ')
 
-/** "With A, B, C · Created by X" (artboard `Series`), "Directed by X" for a movie. */
 const CreditsLine = ({ item }: { item: ItemDetailDto }) => {
   const { t } = useTranslation()
   const cast = item.cast.filter((person) => person.role === 'cast')
@@ -46,7 +45,6 @@ const CreditsLine = ({ item }: { item: ItemDetailDto }) => {
   )
 }
 
-/** One action of the head: icon over label on an iPhone, a glass button on an iPad. */
 export const HeadAction = ({
   regular,
   ...action
@@ -58,7 +56,6 @@ export const HeadAction = ({
   selected?: boolean
 }) => (regular ? <GlassButton {...action} showLabel /> : <ActionButton {...action} />)
 
-/** The "Resume" bar of a title page: progress and time left. */
 export const ProgressLine = ({ ratio, remaining }: { ratio: number; remaining: string }) => (
   <View style={styles.progress}>
     <ProgressBar ratio={ratio} style={styles.bar} />
@@ -66,12 +63,6 @@ export const ProgressLine = ({ ratio, remaining }: { ratio: number; remaining: s
   </View>
 )
 
-/**
- * Head of a title page (§13.5): on an iPhone the backdrop above the text (artboard
- * `MobileSeries`), on an iPad the text over the backdrop (artboard `Series`). Logo or title, the
- * metadata line (`extra`: running time or seasons), the main button and its progress, the
- * overview, the credits, the actions.
- */
 export const DetailHead = ({
   item,
   backdrop,

@@ -1,14 +1,11 @@
 import type { Context } from 'hono'
 
-/** What the server knows about the client, honouring `X-Forwarded-*` only with `TRUST_PROXY` (§20). */
 export type ClientInfo = {
   ip: string
   https: boolean
-  /** `scheme://host` this request was addressed to: the only accepted `Origin` (§20). */
   origin: string
 }
 
-/** Bun's `server.requestIP` (it answers `null` for unix sockets, handled by `?.`). */
 type RequestIpServer = { requestIP: (request: Request) => { address: string } | undefined }
 
 const hasRequestIp = (env: unknown): env is RequestIpServer =>
@@ -20,11 +17,9 @@ const hasRequestIp = (env: unknown): env is RequestIpServer =>
 const firstValue = (header: string | undefined): string | undefined =>
   header?.split(',')[0]?.trim() || undefined
 
-/** The proxy appends the address it received the request from: the last entry is trustworthy. */
 const lastValue = (header: string | undefined): string | undefined =>
   header?.split(',').at(-1)?.trim() || undefined
 
-/** Direct peer address from `Bun.serve` (the server is Hono's `env`); `unknown` in `app.request` tests. */
 const directIp = (c: Context): string => {
   const env: unknown = c.env
   return (hasRequestIp(env) && env.requestIP(c.req.raw)?.address) || 'unknown'

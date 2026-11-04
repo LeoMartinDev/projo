@@ -15,11 +15,6 @@ type Deps = {
   clock: Clock
 }
 
-/**
- * §7.4 "Startup" and "Periodic incremental": the first tick (10 s after start) scans every
- * library, fully (`rules_update`) when the name analysis rules changed since the names were last
- * read; later ticks scan the libraries whose last run started `scan_interval_minutes` ago.
- */
 export const periodicScansFactory = ({
   libraryRepository,
   scanRunRepository,

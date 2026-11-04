@@ -24,7 +24,6 @@ import { colors, fonts } from '../shared/styles/tokens.ts'
 setupI18n()
 const queryClient = createAppQueryClient()
 
-/** The screen each state lands on (§26.4, §26.3, §13.6). */
 const landing = {
   disconnected: '/connect',
   outdated: '/server-outdated',
@@ -34,10 +33,6 @@ const landing = {
   ready: '/',
 } as const
 
-/**
- * One set of screens per state: the server connection (§26.4), then the session (§26.3, §13.6).
- * A route whose guard is false is unreachable and redirects to the state's landing screen.
- */
 const AppStack = () => {
   const { t } = useTranslation()
   const connection = useServerConnection()
@@ -51,7 +46,6 @@ const AppStack = () => {
     )
   const redirectTo = landing[gate.kind]
   const signedOut = gate.kind === 'signed_out'
-  // Pushed over the connection or sign-in screen: a native back button and swipe.
   const pushed = {
     headerShown: true,
     headerTransparent: true,
@@ -59,7 +53,6 @@ const AppStack = () => {
     headerTintColor: colors.text,
     headerBackTitle: t('common.back'),
   } as const
-  // The settings behind the avatar: native header, back swipe (§26.5).
   const settings = {
     headerShown: true,
     headerTintColor: colors.text,
@@ -72,7 +65,6 @@ const AppStack = () => {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={gate.kind === 'ready'} redirectTo={redirectTo}>
-        {/* Its title is the back button of the settings. */}
         <Stack.Screen name="(tabs)" options={{ title: t('common.home') }} />
         <Stack.Screen
           name="settings/index"
@@ -110,7 +102,6 @@ const AppStack = () => {
   )
 }
 
-/** Geist and Geist Mono, bundled with the app (§26.5): the names of `fonts`. */
 const fontFiles = {
   [fonts.regular]: Geist_400Regular,
   [fonts.medium]: Geist_500Medium,
@@ -120,7 +111,6 @@ const fontFiles = {
 }
 
 const RootLayout = () => {
-  // Local files: ready in a few frames. A font that fails to load falls back to the system's.
   const [loaded, error] = useFonts(fontFiles)
   return (
     <SafeAreaProvider style={styles.root}>

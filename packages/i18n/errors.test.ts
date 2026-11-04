@@ -11,7 +11,6 @@ import fr from './fr.json'
 
 const locales = { fr, en } as const
 
-/** Flattens `{ a: { b: 'x' } }` into `['a.b']`. Error keys keep their `/`. */
 const keysOf = (value: unknown, prefix = ''): string[] =>
   typeof value === 'object' && Object(value) === value
     ? Object.entries(value as Record<string, unknown>).flatMap(([key, child]) =>

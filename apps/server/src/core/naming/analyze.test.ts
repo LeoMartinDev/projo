@@ -1,4 +1,3 @@
-/** Real-world names "en vrac", library hints, mixed folders and ambiguous cases. The §8 table itself is in `naming-table.test.ts`. */
 import { describe, expect, test } from 'bun:test'
 
 import { analyzeMediaPath } from './analyze'
@@ -9,7 +8,6 @@ const analyze = (relativePath: string, hint: LibraryHint = 'auto') =>
 
 describe('films : noms de release réels', () => {
   test.each<[string, ParsedName]>([
-    // scene
     ['Inception.2010.1080p.BluRay.x264-SPARKS.mkv', { title: 'Inception', year: 2010 }],
     [
       'The.French.Connection.1971.REMASTERED.1080p.BluRay.x264.mkv',
@@ -40,11 +38,9 @@ describe('films : noms de release réels', () => {
     ['INCEPTION.2010.DVDRip.avi', { title: 'Inception', year: 2010 }],
     ['Heat.1995.DC.1080p.mkv', { title: 'Heat', year: 1995 }],
     ['Avatar.2009.EXTENDED.Cut.1080p.mkv', { title: 'Avatar', year: 2009, edition: 'extended' }],
-    // torrents
     ['Inception (2010) [1080p] [BluRay] [5.1] [YTS.MX].mp4', { title: 'Inception', year: 2010 }],
     ['[YTS.MX] Inception (2010).mp4', { title: 'Inception', year: 2010 }],
     ['Inception 2010 1080p BrRip x264 - YIFY.mp4', { title: 'Inception', year: 2010 }],
-    // Radarr
     ['The Matrix (1999)/The Matrix (1999) Bluray-1080p.mkv', { title: 'The Matrix', year: 1999 }],
     [
       'The Matrix (1999) [imdbid-tt0133093]/The Matrix (1999) {edition-Remastered} [imdbid-tt0133093] Bluray-2160p.mkv',
@@ -54,7 +50,6 @@ describe('films : noms de release réels', () => {
       'WALL-E (2008)/WALL-E (2008) [tmdbid-10681] - WEBDL-1080p.mkv',
       { title: 'Wall-E', year: 2008, ids: { tmdb: 10681 } },
     ],
-    // French releases
     [
       'Astérix.et.Obélix.Mission.Cléopâtre.2002.FRENCH.1080p.BluRay.x264-LOST.mkv',
       { title: 'Astérix et Obélix Mission Cléopâtre', year: 2002 },
@@ -71,7 +66,6 @@ describe('films : noms de release réels', () => {
       { title: 'OSS 117 Le Caire Nid D Espions', year: 2006 },
     ],
     ['La.Haine.MULTi.VFF.1080p.mkv', { title: 'La Haine' }],
-    // channel layout glued to the codec (`5.1x265`) or a resolution: not an `NxNN` episode
     [
       'Furiosa.une.Saga.Mad Max.2024.MULTi.VFF.4K.2160p.10bit.HDR10Plus.DV.WEBRip.DDP.Atmos.5.1x265-Elcrackito (Furiosa A Mad Max Saga).mkv',
       { title: 'Furiosa une Saga Mad Max', year: 2024 },
@@ -95,11 +89,9 @@ describe('films : noms de release réels', () => {
     ['Heat.1995.DTS-HD.MA.7.1x264-GRP.mkv', { title: 'Heat', year: 1995 }],
     ['Heat.1995.TrueHD.Atmos.7.1.4x265-GRP.mkv', { title: 'Heat', year: 1995 }],
     ['Heat [5.1x265].mkv', { title: 'Heat' }],
-    // `H.264` without a year: not an absolute episode number
     ['Heat.1080p.WEB-DL.DDP5.1.H.264-GRP.mkv', { title: 'Heat' }],
     ['Heat.1080p.WEB-DL.DDP5.1.H.265-GRP.mkv', { title: 'Heat' }],
     ['The.French.Dispatch.MULTi.1080p.WEB.mkv', { title: 'The French Dispatch' }],
-    // folders
     [
       'Downloads/Inception.2010.1080p.BluRay.x264-GRP/Inception.2010.1080p.BluRay.x264-GRP.mkv',
       { title: 'Inception', year: 2010 },
@@ -114,12 +106,10 @@ describe('films : noms de release réels', () => {
     ['Fahrenheit 451/Fahrenheit 451.mkv', { title: 'Fahrenheit 451' }],
     ['Apollo 13/Apollo.13.1080p.mkv', { title: 'Apollo 13' }],
     ['Toy.Story.3.1080p.mkv', { title: 'Toy Story 3' }],
-    // a number outside a show folder belongs to the title (§8.2 "Absolute numbering")
     ['OSS.117.Rio.ne.répond.plus.mkv', { title: 'OSS 117 Rio ne répond plus' }],
     ['Films/Fahrenheit.451.1080p.mkv', { title: 'Fahrenheit 451' }],
     ['The 355.mkv', { title: 'The 355' }],
     ['(500) Days of Summer (2009).mkv', { title: '(500) Days of Summer', year: 2009 }],
-    // tags that are never title words, and title-like words at the end
     ['Le.Film.MULTi.HDLight.mkv', { title: 'Le Film' }],
     [
       'The.Informer.2019.MULTi.1080p.HDLight.x264.AC3-EXTREME.mkv',
@@ -146,7 +136,6 @@ describe('films : noms de release réels', () => {
 
 describe('épisodes : noms de release réels', () => {
   test.each<[string, ParsedName]>([
-    // scene
     [
       'The.Office.US.S01E01.720p.HDTV.x264-CTU.mkv',
       { series: 'The Office US', season: 1, episode: 1 },
@@ -178,7 +167,6 @@ describe('épisodes : noms de release réels', () => {
       { series: 'The Bear', season: 3, episode: 1 },
     ],
     ['Plus.Belle.la.Vie.1x264.mkv', { series: 'Plus Belle la Vie', season: 1, episode: 264 }],
-    // Sonarr
     [
       'The Office (US)/Season 01/The Office (US) - S01E01 - Pilot [HDTV-720p].mkv',
       { series: 'The Office (US)', season: 1, episode: 1, episodeTitle: 'Pilot' },
@@ -205,7 +193,6 @@ describe('épisodes : noms de release réels', () => {
         episodeTitle: 'Blood Money',
       },
     ],
-    // French releases
     [
       'Les.Revenants.S01E01.FRENCH.720p.HDTV.x264.mkv',
       { series: 'Les Revenants', season: 1, episode: 1 },
@@ -219,7 +206,6 @@ describe('épisodes : noms de release réels', () => {
       'Kaamelott/Livre I/Kaamelott.S01E01.Heat.mkv',
       { series: 'Kaamelott', season: 1, episode: 1, episodeTitle: 'Heat' },
     ],
-    // season packs and release folders
     [
       'The.Office.US.S01.COMPLETE.720p/The.Office.US.S01E03.720p.mkv',
       { series: 'The Office US', season: 1, episode: 3 },
@@ -234,7 +220,6 @@ describe('épisodes : noms de release réels', () => {
     ],
     ['Game of Thrones/S01/S01E02.mkv', { series: 'Game of Thrones', season: 1, episode: 2 }],
     ['Downloads/The.Bear.S03E01.mkv', { series: 'The Bear', season: 3, episode: 1 }],
-    // anime
     [
       'Sousou no Frieren/[Erai-raws] Sousou no Frieren - 12 [1080p][Multiple Subtitle].mkv',
       { series: 'Sousou no Frieren', absoluteEpisode: 12 },
@@ -245,7 +230,6 @@ describe('épisodes : noms de release réels', () => {
     ],
     ['Bleach/Season 2/Bleach - 21.mkv', { series: 'Bleach', season: 2, episode: 21 }],
     ['Bleach/Bleach 265.mkv', { series: 'Bleach', absoluteEpisode: 265 }],
-    // SubsPlease / fansub naming of later seasons
     [
       'Shingeki no Kyojin/[SubsPlease] Shingeki no Kyojin S3 - 05 (1080p) [ABCD1234].mkv',
       { series: 'Shingeki no Kyojin', season: 3, episode: 5 },
@@ -343,15 +327,12 @@ describe('indice de librairie', () => {
 
 describe('cas ambigus : unknown', () => {
   test.each<[string, ParsedName]>([
-    // absolute numbering without a series folder
     ['Naruto - 101.mkv', { title: 'Naruto - 101', series: 'Naruto', absoluteEpisode: 101 }],
     [
       'Downloads/Naruto - 101.mkv',
       { title: 'Naruto - 101', series: 'Naruto', absoluteEpisode: 101 },
     ],
-    // dated episode at the root
     ['Show.20.04.2017.mkv', { title: 'Show', airDate: '2017-04-20' }],
-    // nothing but release tags
     ['1080p.mkv', {}],
     ['MULTi.1080p.x264.mkv', {}],
   ])('%s', (path, parsed) => {
@@ -370,7 +351,6 @@ describe('cas ambigus : unknown', () => {
     })
   })
 
-  // Ambiguity: §8.2 lists `Episode 02` and `02 - Titre` only under a season folder; elsewhere (auto) they stay movies.
   test('`Episode 02` hors dossier saison : pas un épisode (Star Wars Episode 1…)', () => {
     expect(analyze('Star.Wars.Episode.1.The.Phantom.Menace.1999.mkv').classification).toBe('movie')
     expect(analyze('Show/Episode 02.mkv').classification).toBe('movie')

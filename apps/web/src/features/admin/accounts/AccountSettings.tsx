@@ -172,11 +172,6 @@ const DeleteAccountDialog = ({
   )
 }
 
-/**
- * Settings of an account (§14, §15 Comptes), in its detail dialog: role, disable, reset the
- * password, revoke the sessions, delete (confirmed by typing the username; `onDeleted` then
- * closes the detail). 409 `account/last_admin` is shown as is.
- */
 export const AccountSettings = ({
   account,
   onDeleted,

@@ -83,7 +83,6 @@ export const createSqliteSessionRepository = ({ db }: { db: Db }): SessionReposi
       .all()
       .map(toSession),
   revokeAllByAccount: ({ accountId, revokedAt, exceptId }) => {
-    // §27.3: the account's assistant tokens go with its sessions (revoke all, password change).
     db.update(assistantTokens)
       .set({ revokedAt: toIso(revokedAt) })
       .where(and(eq(assistantTokens.accountId, accountId), isNull(assistantTokens.revokedAt)))

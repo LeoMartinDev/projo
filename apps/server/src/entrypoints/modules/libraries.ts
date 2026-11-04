@@ -19,10 +19,6 @@ import type { LibraryMetadataContextObserver } from '../../core/library/library.
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * Wiring of the libraries domain (§7.1, §17.2 Admin librairies): CRUD with root validation, scan
- * requests (the scans themselves run in the scanner module), scan history.
- */
 export const buildLibrariesModule = (
   { db, ids, clock, logger, jobQueue, jobRepository, eventBus }: Platform,
   {
@@ -30,14 +26,8 @@ export const buildLibrariesModule = (
     metadataContext,
     jobControl,
   }: {
-    /** From the playback module: sessions on deleted sources are ended first. */
     playbackSessions: PlaybackSessionTerminator
-    /**
-     * From the metadata module: a new language or rating country, or files leaving that change
-     * the deciding library of a movie or series, refresh (§9.1, §9.4).
-     */
     metadataContext: LibraryMetadataContextObserver
-    /** The runner (bound after the modules): a deletion aborts the running jobs on what goes. */
     jobControl: Pick<JobControl, 'cancel'>
   },
 ) => {

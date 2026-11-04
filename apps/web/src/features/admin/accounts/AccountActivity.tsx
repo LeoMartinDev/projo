@@ -6,7 +6,6 @@ import { formatRelative } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { useNow } from '../../../shared/ui/use-now.ts'
 
-/** "En lecture" (green dot) or the last activity, then the last device (artboard `AdminAccounts`). */
 export const AccountActivity = ({ account }: { account: AdminAccountDto }) => {
   const { t } = useTranslation()
   const locale = currentLocale()

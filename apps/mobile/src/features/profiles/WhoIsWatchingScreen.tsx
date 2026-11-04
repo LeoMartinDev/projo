@@ -21,12 +21,6 @@ import { useVerifyPin } from './queries.ts'
 const tileSize = 104
 const maxProfiles = 5
 
-/**
- * "Who's watching?" (§13.6, artboard `Main`): one tile per profile, a padlock on the protected
- * ones (PIN asked at each switch), "Add" up to five and "Manage profiles" to rename, recolour,
- * protect or delete them; neither from a restricted profile (or, before choosing, on an account
- * that has one, §14).
- */
 export const WhoIsWatchingScreen = () => {
   const { t } = useTranslation()
   const { gate, selectProfile, cancelSwitch, signOut, signingOut } = useSession()
@@ -42,7 +36,6 @@ export const WhoIsWatchingScreen = () => {
 
   const open = (profile: ProfileDto) => {
     if (manage) {
-      // Changing a protected profile other than the active one needs its PIN (§14).
       if (profile.hasPin && profile.id !== me.activeProfileId) {
         verify.reset()
         setPinFor({ profile, purpose: 'edit' })

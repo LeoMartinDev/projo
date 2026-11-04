@@ -30,10 +30,6 @@ const SkeletonRows = () => (
 
 type Libraries = readonly { id: string; name: string }[]
 
-/**
- * The profiles of an account as a stack of avatars; name and access summary (§15: "Movies, Shows
- * · 16 and over") in the tooltip and for assistive technologies.
- */
 const ProfileStack = ({
   account,
   libraries,
@@ -105,10 +101,6 @@ const AccountRow = ({
   )
 }
 
-/**
- * `/admin/accounts` (§14, §15 Comptes): a table of the accounts, then the pending invitations. A
- * row opens the account's detail (settings and profiles) in a dialog.
- */
 export const AccountsPage = () => {
   const { t } = useTranslation()
   const accounts = useQuery(accountsQuery)
@@ -119,7 +111,6 @@ export const AccountsPage = () => {
   const invite = useCreateInvitation(setToken)
 
   const items = accounts.data?.items ?? []
-  // Gone once deleted (or refetched without it): the dialog closes.
   const opened = items.find((account) => account.id === openId)
   const profileCount = items.reduce((total, account) => total + account.profiles.length, 0)
 

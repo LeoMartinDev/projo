@@ -47,7 +47,6 @@ const stringify = (record: Record<string, unknown>): string => {
   }
 }
 
-/** One JSON object per line on stdout (§21). */
 export const createJsonLogger = ({
   level,
   clock,

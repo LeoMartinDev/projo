@@ -19,7 +19,6 @@ import {
 } from '../support/media-fixtures.ts'
 import { createScannerWorld, type ScannerWorld } from '../support/scanner-world.ts'
 
-// Real ffprobe and ffmpeg on generated 3 s videos (§22).
 setDefaultTimeout(60_000)
 
 type SourceRow = {
@@ -81,7 +80,6 @@ const watchPending = async () => {
   await world.runJobs(['watch_pending'])
 }
 
-/** Quiet period over, `watch_pending` then every probe. */
 const settle = async () => {
   world.clock.advance(QUIET_MS + 1_000)
   await watchPending()
@@ -95,11 +93,9 @@ const sourceAt = (relativePath: string) => {
   return found
 }
 const items = () => world.query<ItemRow>('SELECT * FROM items ORDER BY kind, title')
-/** §6.3 visibility: a movie or episode with a ready source. */
 const visibleTitles = () =>
   world
     .query<{ title: string; kind: string }>(
-      // An episode without a title of its own (§6.3) shows its number: '#2'.
       `SELECT DISTINCT coalesce(nullif(i.title, ''), '#' || i.episode_number) AS title, i.kind
        FROM items i
        JOIN source_items si ON si.item_id = i.id
@@ -138,7 +134,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const library = await createLibrary([root])
     await world.runJobs(['scan_library'])
 
-    // Every candidate is in quarantine first: nothing visible (§7.3).
     const discovered = sources()
     expect(discovered.map((s) => s.relative_path)).toEqual([
       'Broken (2001).mkv',
@@ -158,7 +153,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     )
     expect(visibleTitles()).toEqual([])
 
-    // Quiet period not over: still nothing to probe.
     world.clock.advance(60_000)
     await watchPending()
     expect(await world.runJobs(['probe_source'])).toBe(0)
@@ -181,7 +175,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       state: 'ready',
       classification: 'episode',
     })
-    // §7.7 version, from the probe: codes, never a composed label.
     const ready = (await (
       await world.request(`/sources?libraryId=${library.id}&state=ready&limit=100`)
     ).json()) as SourcesPage
@@ -199,13 +192,11 @@ describe('scanner on a messy folder (§7, §8)', () => {
       'movie:Le Fabuleux Destin',
     ])
 
-    // Series tree: The Bear / Season 3 / E01-E02, Dexter / Season 4 / E01+E02 from one file.
     const all = items()
     const series = all.filter((i) => i.kind === 'series').map((i) => i.title)
     expect(series).toEqual(['Dexter', 'The Bear'])
     const dexter = all.find((i) => i.title === 'Dexter')
     const season4 = all.find((i) => i.kind === 'season' && i.parent_id === dexter?.id)
-    // No title of its own (§6.3): '' in the NOT NULL column, the clients say "Saison 4".
     expect(season4).toMatchObject({ title: '', season_number: 4 })
     const dexterEpisodes = all.filter((i) => i.parent_id === season4?.id)
     expect(dexterEpisodes.map((e) => e.episode_number).sort()).toEqual([1, 2])
@@ -215,7 +206,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const matchStates = world.query<{ match_state: string }>(
       "SELECT DISTINCT match_state FROM sources WHERE state = 'ready' ORDER BY match_state",
     )
-    // The unknown waits for "To review" (§7.8); everything else stays unmatched until TMDB (M2).
     expect(matchStates.map((row) => row.match_state)).toEqual(['needs_review', 'unmatched'])
     expect(
       world.query(
@@ -224,7 +214,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       ),
     ).toEqual([])
 
-    // Parts: one movie, two sources in one stack (§7.7).
     const cd1 = sourceAt('Film (2010)/Film (2010) - cd1.mkv')
     const cd2 = sourceAt('Film (2010)/Film (2010) - cd2.mkv')
     expect(cd1.stack_group_id).toBeDefined()
@@ -232,7 +221,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     expect([cd1.part_index, cd2.part_index]).toEqual([1, 2])
     expect(all.filter((i) => i.kind === 'movie' && i.title === 'Film')).toHaveLength(1)
 
-    // Subtitles: same-name files, the Subs/ folder, and the embedded track (§8.3).
     const subtitles = world.query<{
       path?: string
       kind: string
@@ -258,7 +246,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       { kind: 'embedded', language: 'en', forced: 0, sdh: 1, stream_index: 2 },
     ])
 
-    // Events: progress, end of scan, one `source.ready` per ready source.
     const types = world.events.map((e) => e.type)
     expect(types).toContain('scan.progress')
     expect(types).toContain('scan.finished')
@@ -266,10 +253,8 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const notifications = world.query<{ kind: string }>('SELECT kind FROM notifications')
     expect(notifications.map((n) => n.kind)).toEqual(['scan/unsupported_layout'])
 
-    // Admin: counts by state, scan history.
     const detail = (await (await world.request(`/libraries/${library.id}`)).json()) as LibraryDto
     expect(detail.sourceCounts).toEqual({ pending: 2, ready: 9, missing: 0, rejected: 0 })
-    // The two left pending are failures: the analysis is over.
     expect(detail.analysis).toEqual({ waiting: 0, verifying: 0, failed: 2 })
     expect(detail.roots[0]).toMatchObject({ state: 'ok', lastFileCount: 11 })
     expect(detail.lastScan).toMatchObject({
@@ -295,7 +280,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       pending_reason: 'growing',
     })
 
-    // The download keeps going: every check restarts the quiet period.
     for (const fraction of [0.7, 0.85]) {
       world.clock.advance(100_000)
       placePartialVideo(root, 'Downloads/Arrival.2016.1080p.mkv', fraction)
@@ -303,7 +287,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       expect(await world.runJobs(['probe_source'])).toBe(0)
       expect(visibleTitles()).toEqual([])
     }
-    // Pre-allocated (qBittorrent): same size, only the mtime moves.
     world.clock.advance(100_000)
     const { size } = statSync(path)
     utimesSync(path, new Date(), new Date(Date.now() + 5_000))
@@ -313,7 +296,7 @@ describe('scanner on a messy folder (§7, §8)', () => {
 
     completeVideo(path)
     world.clock.advance(30_000)
-    await watchPending() // change seen: counter restarts
+    await watchPending()
     world.clock.advance(60_000)
     await watchPending()
     expect(await world.runJobs(['probe_source'])).toBe(0)
@@ -329,7 +312,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     placeVideo(root, 'Instant (2020).mkv')
     await createLibrary([root], { quietPeriodSeconds: 0 })
     await world.runJobs(['scan_library'])
-    // The scan itself asks for the check: no tick needed.
     await world.runJobs(['watch_pending'])
     expect(await world.runJobs(['probe_source'])).toBe(1)
     expect(sourceAt('Instant (2020).mkv').state).toBe('ready')
@@ -366,13 +348,11 @@ describe('scanner on a messy folder (§7, §8)', () => {
     world.events.length = 0
     await scan(library.id)
     const second = progress()
-    // Expected from the previous walk (2), then the files actually found (3).
     expect(second[0]).toMatchObject({ phase: 'discovering', total: 2 })
     expect(second.at(-1)).toMatchObject({ phase: 'processing', total: 3, stats: { seen: 3 } })
   })
 
   test('an interrupted scan is not done: a clean stop puts it back in the queue (§18)', async () => {
-    // Inserted directly: the route only takes POSIX roots, this test also runs on Windows.
     const { libraryId } = insertLibrary(world.db, { id: 'lib-interrupted', rootPath: tmp.path })
     world.jobQueue.enqueue({ type: 'scan_library', payload: { libraryId, kind: 'manual_quick' } })
     const job = world.jobRepository.claimNext({ types: ['scan_library'], now: world.clock.now() })
@@ -407,7 +387,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const linksBefore = links()
     expect(linksBefore).toHaveLength(1)
 
-    // Same inode: a rename (Radarr), across folders.
     mkdirSync(join(root, 'Films'))
     renameSync(join(root, 'Dune (2021)/Dune.2021.2160p.mkv'), join(root, 'Films/Dune (2021).mkv'))
     await scan(library.id)
@@ -415,14 +394,12 @@ describe('scanner on a messy folder (§7, §8)', () => {
     expect(sourceAt('Films/Dune (2021).mkv')).toMatchObject({ id: before.id, state: 'ready' })
     expect(links()).toEqual(linksBefore)
 
-    // Different inode, same bytes (copy then delete): matched by signature.
     placeVideo(root, 'Archive/Dune.mkv')
     rmSync(join(root, 'Films/Dune (2021).mkv'))
     await scan(library.id)
     expect(sources()).toHaveLength(1)
     expect(sourceAt('Archive/Dune.mkv')).toMatchObject({ id: before.id, state: 'ready' })
 
-    // A different file of another size is a new source; the old one goes missing.
     rmSync(join(root, 'Archive/Dune.mkv'))
     placeVideo(root, 'Archive/Dune Part Two (2024).mkv', otherVideo())
     await scan(library.id)
@@ -505,7 +482,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     expect(sourceAt('Heat (1995).mkv')).toMatchObject({ id, state: 'ready' })
     expect(visibleTitles()).toEqual(['movie:Heat'])
 
-    // Upgrade in place: invisible until probed again, same item afterwards.
     const itemBefore = world.query('SELECT item_id FROM source_items WHERE source_id = ?', id)
     placeVideo(root, 'Heat (1995).mkv', otherVideo())
     await scan(library.id)
@@ -531,7 +507,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const readyBefore = sources().map((s) => s.state)
     expect(readyBefore).toEqual(['ready', 'ready'])
 
-    // Disk unmounted: the path is gone.
     renameSync(root, join(tmp.path, 'elsewhere'))
     await scan(library.id)
     expect(sources().map((s) => s.state)).toEqual(['ready', 'ready'])
@@ -541,7 +516,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const finished = world.events.filter((e) => e.type === 'scan.finished').at(-1)
     expect(finished?.payload).toMatchObject({ error: { code: 'library/root_unreachable' } })
 
-    // Mount point present but empty.
     mkdirSync(root)
     await scan(library.id)
     expect(sources().map((s) => s.state)).toEqual(['ready', 'ready'])
@@ -550,7 +524,6 @@ describe('scanner on a messy folder (§7, §8)', () => {
       { kind: 'library/root_unreachable' },
     ])
 
-    // Back: the root is ok again, the notification resolved, a real deletion is a deletion.
     rmSync(root, { recursive: true })
     renameSync(join(tmp.path, 'elsewhere'), root)
     rmSync(join(root, 'Aliens (1986).mkv'))

@@ -7,7 +7,6 @@ import { fromIso, toIso } from './rows.ts'
 import { sessions } from './schema/accounts.ts'
 import { playbackSessions } from './schema/playback.ts'
 
-/** Last activity, open sessions and current playback of every account (admin list, §15). */
 export const createSqliteAccountActivity =
   ({ db }: { db: Db }): AccountActivityQuery =>
   ({ now }) => {
@@ -21,7 +20,6 @@ export const createSqliteAccountActivity =
     }
 
     const nowIso = toIso(now)
-    // Most recently seen first: the first row of an account is its last activity.
     for (const row of db
       .select({
         accountId: sessions.accountId,

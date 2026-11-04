@@ -5,12 +5,6 @@ import {
   RELEASES_REPOSITORY,
 } from '../../src/core/updates/update.ts'
 
-/**
- * A local HTTP server standing for GitHub Releases (§22: no real network in tests): the API's
- * `GET /repos/LeoMartinDev/projo/releases/latest` and the release files under `/download/`.
- * Releases are real, tiny app bundles packed by `buildTestRelease` (Bun's tar.gz writer).
- */
-
 const sha256 = (data: Uint8Array | string): string => {
   const hasher = new Bun.CryptoHasher('sha256')
   hasher.update(data)
@@ -21,9 +15,7 @@ export type TestRelease = {
   version: string
   runtimeMin: string
   notes: string
-  /** Release file name → bytes. */
   files: Map<string, Uint8Array>
-  /** The bundle as installed (`versions/<v>` should hold exactly this). */
   bundle: Record<string, string>
 }
 
@@ -31,13 +23,9 @@ export type TestReleaseOptions = {
   version: string
   runtimeMin?: string
   notes?: string
-  /** `SHA256SUMS` lists a wrong hash for the archive. */
   badArchiveChecksum?: boolean
-  /** This bundle file is changed after the manifest is computed. */
   corruptFile?: string
-  /** Extra archive entries, outside the manifest (e.g. `../evil.txt`). */
   extraEntries?: Record<string, string>
-  /** Asset names to leave out of the release. */
   omit?: string[]
 }
 
@@ -116,9 +104,7 @@ export const startGithubReleasesServer = () => {
   })
   const origin = `http://127.0.0.1:${server.port}`
   return {
-    /** API base URL (`releasesBaseUrl`). */
     apiBaseUrl: origin,
-    /** Prefix of the release files (`releasesDownloadPrefix`). */
     downloadPrefix: `${origin}/download/`,
     publish: (next: TestRelease | undefined) => {
       release = next

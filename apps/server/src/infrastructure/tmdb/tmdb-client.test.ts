@@ -51,7 +51,6 @@ describe('TMDB client (§9.1)', () => {
     clock.advance(11 * 60_000)
     await tmdb.searchMovies({ query: 'Inception', year: 2010, language: 'fr-FR' })
     expect(server.callsTo('search/movie')).toHaveLength(2)
-    // The key never reaches the cache key nor the logs: only the query string to TMDB.
     expect(server.callsTo('search/movie')[0]?.params).toMatchObject({ api_key: TEST_TMDB_KEY })
   })
 
@@ -171,7 +170,6 @@ describe('TMDB client (§9.1)', () => {
     ])
     expect(lines.filter((line) => line.level === 'warn')).toEqual([])
 
-    // A genre TMDB adds later: dropped, and logged once per response read.
     for (const row of rows.values()) {
       const payload = row.payload as { genres: { id: number; name: string }[] }
       payload.genres = [...payload.genres, { id: 424_242, name: 'Nouveau' }]

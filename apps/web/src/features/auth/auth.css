@@ -1,5 +1,3 @@
-/* Login: same composition as the first-launch steps (artboards Onb*), panel on the right when wide. */
-
 @import '../../shared/styles/media.css';
 
 .auth {
@@ -49,7 +47,6 @@
   margin-top: 8px;
 }
 
-/* The panel only steps aside to show the backdrop on a wide screen. */
 @media not (--wide) {
   .auth__main {
     justify-content: center;
@@ -74,8 +71,6 @@
   }
 }
 
-/* Phone in landscape: little height. A narrow, tighter panel in the middle, whole on screen
-   without scrolling. */
 @media (--phone) and (not (--compact)) {
   .auth__header {
     padding-top: 12px;

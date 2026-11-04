@@ -2,10 +2,6 @@ import type { CatalogItem, CatalogRepository, VisibilityScope } from '../../core
 import type { ProgressRepository } from '../../core/progress/progress.ts'
 import { seriesPlayTarget } from '../../core/progress/rows.ts'
 
-/**
- * A main button: `resume` ("Resume S2 · E4", "Resume at 1:12") at `positionMs`, or `play`
- * ("Play") from the start. `item` is the movie or the episode it plays.
- */
 export type PlayButton = { action: 'resume' | 'play'; item: CatalogItem; positionMs: number }
 
 type Deps = { catalogRepository: CatalogRepository; progressRepository: ProgressRepository }
@@ -13,12 +9,10 @@ type Deps = { catalogRepository: CatalogRepository; progressRepository: Progress
 export type SeriesPlay = (input: {
   profileId: string
   seriesId: string
-  /** Restricts the choice to one season (the season page). */
   seasonNumber?: number
   scope: VisibilityScope
 }) => PlayButton | undefined
 
-/** "Resume S2 · E4" / "Play" of a series or a season (§13.5), from the profile's progress. */
 export const seriesPlayFactory =
   ({ catalogRepository, progressRepository }: Deps): SeriesPlay =>
   ({ profileId, seriesId, seasonNumber, scope }) => {

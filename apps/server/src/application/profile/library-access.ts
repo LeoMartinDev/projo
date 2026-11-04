@@ -10,16 +10,13 @@ type Deps = {
   profileRepository: Pick<ProfileRepository, 'listByAccount' | 'update'>
   accountRepository: Pick<AccountRepository, 'list'>
   libraryRepository: Pick<LibraryRepository, 'list' | 'findById'>
-  /** Called after any change of a profile (cached visibility scopes). */
   profileChanged: (profileId: string) => void
   logger: Logger
 }
 
-/** A profile as "Profiles with access" shows it (§14, §15 Libraries). */
 export type LibraryProfileAccess = {
   profile: Profile
   username: string
-  /** Sees the library: `library_access = all`, or the library is among its `profile_libraries`. */
   hasAccess: boolean
 }
 
@@ -30,11 +27,6 @@ export type LibraryAccessError = AppError<
 const sees = (profile: Profile, libraryId: string): boolean =>
   profile.libraryAccess === 'all' || profile.libraryIds.includes(libraryId)
 
-/**
- * "Profiles with access" (§14: "set by the admin from the library or from the profile"): the
- * same `library_access` / `profile_libraries` the profile page edits, seen from one library.
- * Admin only (`/admin/libraries/:id/profiles`).
- */
 export const libraryAccessFactory = ({
   profileRepository,
   accountRepository,
@@ -71,11 +63,6 @@ export const libraryAccessFactory = ({
         ? libraryNotFound(libraryId)
         : ok(view(libraryId)),
 
-    /**
-     * Exactly `profileIds` see the library afterwards. A profile that saw everything and loses
-     * this library keeps every other one (`selected` with all the others); one that gains it keeps
-     * its own selection plus this library.
-     */
     set: ({
       libraryId,
       profileIds,
@@ -114,7 +101,6 @@ export const libraryAccessFactory = ({
               },
         ]
       })
-      // §14: an admin account keeps at least one unrestricted profile.
       const lockedOut = accountRepository.list().find((account) => {
         const before = profileRepository.listByAccount(account.id)
         const after = before.map((p) => changes.find((next) => next.id === p.id) ?? p)

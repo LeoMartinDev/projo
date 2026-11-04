@@ -29,12 +29,6 @@ import { createTestDatabase } from './database.ts'
 import { createRecordingEventBus } from './fakes.ts'
 import { silentLogger } from './logger.ts'
 
-/**
- * The libraries, fs, sources and scanner modules on an in-memory database with a manual clock,
- * the real job queue, real file system, ffprobe and ffmpeg. Jobs run only when `runJobs` says so.
- * Playback sessions are ended for real (rows, events), with a segmenter that only records `stop`
- * (`stoppedStreams`); `startPlayback(sourceId)` opens one on a source.
- */
 export const createScannerWorld = () => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-06-01T10:00:00.000Z'))
@@ -79,7 +73,6 @@ export const createScannerWorld = () => {
       }),
     }),
   }
-  // Bound by the metadata world (§9.4 refresh on a new language or rating country); else no-op.
   const metadataContextLater: { current?: LibraryMetadataContextObserver } = {}
   const libraries = buildLibrariesModule(platform, {
     playbackSessions,
@@ -87,7 +80,6 @@ export const createScannerWorld = () => {
       changed: (input) => metadataContextLater.current?.changed(input),
       filesLeaving: (files) => metadataContextLater.current?.filesLeaving(files) ?? (() => {}),
     },
-    // No runner: a cancelled running job is only marked so (`runJobs` claims by hand).
     jobControl: { cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }) },
   })
   const fs = buildFsModule(platform)
@@ -95,7 +87,6 @@ export const createScannerWorld = () => {
   const scanner = buildScannerModule(platform, { playbackSessions })
 
   let viewer: ReturnType<typeof seedViewer> | undefined
-  /** An active `direct` session on this source and its first linked item. */
   const startPlayback = (sourceId: string) => {
     viewer ??= seedViewer(db, 'viewer-1')
     const [link] = query<{ item_id: string }>(
@@ -120,7 +111,6 @@ export const createScannerWorld = () => {
   }
   const handlers = scanner.jobHandlers ?? {}
 
-  /** Admin API: every request is made by an admin (the auth module is tested on its own). */
   const app = new Hono<AppEnv>()
     .use('*', async (c, next) => {
       c.set('logger', silentLogger)
@@ -141,7 +131,6 @@ export const createScannerWorld = () => {
     })
   }
 
-  /** Runs due jobs of these types (oldest, highest priority first) until none is left. */
   const runJobs = async (types: readonly JobType[], max = 500): Promise<number> => {
     let ran = 0
     while (ran < max) {
@@ -167,7 +156,6 @@ export const createScannerWorld = () => {
     return ran
   }
 
-  /** Raw SQL for assertions; NULL columns are left out of the rows. */
   const query = <T>(sql: string, ...params: (string | number)[]): T[] =>
     (db.$client.query(sql).all(...params) as Record<string, unknown>[]).map(stripNulls) as T[]
 

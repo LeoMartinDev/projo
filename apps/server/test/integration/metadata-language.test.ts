@@ -6,11 +6,6 @@ import { insertItem, insertLibrary, insertSource } from '../support/catalog-fixt
 import { silentLogger } from '../support/logger.ts'
 import { createMetadataWorld, type MetadataWorld } from '../support/metadata-world.ts'
 
-/**
- * §9.1 / §9.4: `items.metadata_language`, the deciding library of an item in two libraries, and the
- * refresh queued when the server language, a library language or its rating country changes.
- * Rows are seeded directly (no scan): only the metadata module and the TMDB replay server run.
- */
 let world: MetadataWorld
 
 beforeEach(async () => {
@@ -85,7 +80,6 @@ describe('metadata language (§9.1, §9.4)', () => {
     await world.runJobs(['refresh_metadata'])
     expect(movieLanguages()).toContain('en-US')
     expect(languageOf('inception')).toBe('en-US')
-    // Up to date: the same language again queues nothing.
     await world.request('/settings', { method: 'PATCH', json: { metadata: { language: 'en-US' } } })
     expect(queuedRefreshes()).toEqual([])
   })
@@ -136,7 +130,6 @@ describe('metadata language (§9.1, §9.4)', () => {
   })
 })
 
-/** The Bear S01E0n in a library: an unmatched episode file, identified by `match_source`. */
 const bearEpisode = (id: string, libraryId: string, episode: number) => {
   insertSource(world.db, {
     id,
@@ -169,7 +162,6 @@ describe('a tree in two libraries keeps one language and one rating country (§9
     )
     bearEpisode('e1', 'kids', 1)
     await world.runJobs(['match_source'])
-    // Only in "kids": it decides, nothing to refresh.
     expect(queuedRefreshes()).toEqual([])
     expect(bearRows()).toEqual([
       { kind: 'episode', metadata_language: 'en-US', content_rating_country: 'US' },
@@ -177,8 +169,6 @@ describe('a tree in two libraries keeps one language and one rating country (§9
       { kind: 'series', metadata_language: 'en-US', content_rating_country: 'US' },
     ])
 
-    // E02 in the older "series": written in its settings, which now decide the whole tree, E01
-    // included (written before in English with a US rating).
     bearEpisode('e2', 'series', 2)
     await world.runJobs(['match_source'])
     expect(queuedRefreshes()).toEqual([bearRefresh()])
@@ -190,12 +180,10 @@ describe('a tree in two libraries keeps one language and one rating country (§9
       { kind: 'season', ...consistent },
       { kind: 'series', ...consistent },
     ])
-    // A refresh queues nothing; a consistent tree is not refreshed at its next episode.
     expect(queuedRefreshes()).toEqual([])
     bearEpisode('e3', 'series', 3)
     await world.runJobs(['match_source'])
     expect(queuedRefreshes()).toEqual([])
-    // Written in the settings of "kids": refreshed in the deciding ones.
     bearEpisode('e4', 'kids', 4)
     await world.runJobs(['match_source'])
     expect(queuedRefreshes()).toEqual([bearRefresh()])
@@ -206,7 +194,6 @@ describe('a tree in two libraries keeps one language and one rating country (§9
 })
 
 describe('the deciding library losing its files (§9.1, §9.4)', () => {
-  /** Inception also in a newer library "kids" (US ratings, its own language when given). */
   const alsoInKids = (language?: string) => {
     insertLibrary(world.db, { id: 'kids', rootPath: '/kids', ratingCountry: 'US' })
     world.db.$client.run(`UPDATE libraries SET created_at = '2026-02-01' WHERE id = 'kids'`)
@@ -235,7 +222,6 @@ describe('the deciding library losing its files (§9.1, §9.4)', () => {
       rootId: 'teens-root',
       relativePath: 'Inception (2010).mkv',
     })
-    // Not the deciding library: nothing changes.
     expect((await world.request('/libraries/teens', { method: 'DELETE' })).status).toBe(204)
     expect(queuedRefreshes()).toEqual([])
     expect((await world.request('/libraries/films', { method: 'DELETE' })).status).toBe(204)

@@ -17,11 +17,6 @@ import {
 import { useLongPress } from './use-long-press.ts'
 import './media.css'
 
-/**
- * 2:3 tile of Movies, Shows, My list and the search (§13.4). With a poster the title stays in
- * the text for assistive technologies; without one (no TMDB match yet, image missing) the tile
- * shows the title and the year on its tone.
- */
 export const PosterTile = ({
   item,
   onLongPress,

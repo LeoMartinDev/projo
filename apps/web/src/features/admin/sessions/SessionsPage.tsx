@@ -113,11 +113,6 @@ const SessionRow = ({
   )
 }
 
-/**
- * `/admin/sessions` (§10.6, §15 "Active sessions"): who watches what, how (mode, quality, burnt-in
- * subtitles, version), where in it and from which device; "Stop" ends a session (the player
- * shows "Playback stopped by the administrator"). Polled every 5 s.
- */
 export const SessionsPage = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()

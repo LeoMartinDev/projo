@@ -64,7 +64,6 @@ describe('build-bundle', () => {
     const onDisk = await readManifest(outDir)
     expect(onDisk.ok && (await verifyTree(outDir, onDisk.value)).ok).toBe(true)
 
-    // The app finds its assets relative to its own entry file.
     const run = Bun.spawnSync([process.execPath, join(outDir, 'server.js')])
     const realOut = await realpath(outDir)
     expect(JSON.parse(run.stdout.toString())).toEqual({

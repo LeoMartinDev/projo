@@ -10,10 +10,6 @@ import { Avatar } from '../shell/Avatar.tsx'
 
 const pinLength = 4
 
-/**
- * The 4-digit PIN of a profile (§13.6, §14): four boxes over one numeric field, sent as soon as
- * the fourth digit is typed. A refused PIN shakes the empty boxes.
- */
 export const PinDialog = ({
   profile,
   open,
@@ -59,7 +55,6 @@ const PinForm = ({
   const inputId = useId()
   const [pin, setPin] = useState('')
   const [input, inputRef] = useElement<HTMLInputElement>()
-  // The modal focuses its first button when it opens: the PIN field takes the focus back.
   useEffect(() => {
     if (input === undefined) return
     const frame = requestAnimationFrame(() => input.focus())
@@ -87,7 +82,6 @@ const PinForm = ({
           value={pin}
           onChange={(event) => {
             const digits = event.target.value.replace(/\D/g, '').slice(0, pinLength)
-            // Sent at the fourth digit; the boxes empty for the next try if it is refused.
             if (digits.length === pinLength) {
               setPin('')
               onSubmit(digits)

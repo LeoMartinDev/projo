@@ -17,10 +17,6 @@ type NotificationRow = typeof notifications.$inferSelect
 
 const contextSchema = z.record(z.string(), z.unknown())
 
-/**
- * A row of a kind this version does not know (written by another version) is left out of the
- * lists, and does not count as unread either.
- */
 const toNotification = (row: NotificationRow): Notification | undefined => {
   const kind = notificationKindSchema.safeParse(row.kind)
   if (!kind.success) return undefined
@@ -53,7 +49,6 @@ const statusFilter = (status: NotificationStatus | undefined): SQL | undefined =
 const isKnown = (notification: Notification | undefined): notification is Notification =>
   notification !== undefined
 
-/** `notifications` (§6.5) for the admin's notification centre (§15). */
 export const createSqliteNotificationRepository = ({
   db,
 }: {

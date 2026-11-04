@@ -21,10 +21,6 @@ import { playbackSessions } from './schema/playback.ts'
 const seasons = alias(items, 'season')
 const series = alias(items, 'series')
 
-/**
- * Item duration of the version played (§8.4), as the heartbeats measure it: the source's, or its
- * ready parts added up; undefined when one has no duration.
- */
 const versionDurationMs = (
   db: Db,
   row: { probe: unknown; stackGroupId: string | null; itemId: string },
@@ -49,7 +45,6 @@ const versionDurationMs = (
   return durations.reduce<number>((total, duration) => total + (duration ?? 0), 0)
 }
 
-/** §10.6 "the admin sees active sessions": who watches what, from which device. */
 export const createSqliteAdminPlaybackSessions = ({
   db,
 }: {

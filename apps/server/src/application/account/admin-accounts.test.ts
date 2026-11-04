@@ -138,10 +138,8 @@ describe('admin accounts', () => {
       ok: false,
       error: { code: 'account/last_admin' },
     })
-    // With a second admin, it can.
     expect(t.accounts.update({ accountId: 'account-2', role: 'admin' }).ok).toBe(true)
     expect(t.accounts.update({ accountId: 'account-1', role: 'user' }).ok).toBe(true)
-    // A disabled admin does not count.
     const u = setup([
       leo,
       sampleAccount({ id: 'account-3', username: 'old', disabledAt: new Date(0) }),
@@ -159,7 +157,6 @@ describe('admin accounts', () => {
       value: { account: { disabledAt: expect.any(Date) } },
     })
     expect(revokedIds(t)).toEqual(['s2', 's3'])
-    // Its playback stops too (§10.6): ffmpeg, players told.
     expect(t.endedPlayback).toEqual([{ accountId: 'account-2' }])
     const enabled = t.accounts.update({ accountId: 'account-2', disabled: false })
     expect(enabled.ok && enabled.value.account.disabledAt).toBeUndefined()

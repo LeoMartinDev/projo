@@ -53,10 +53,6 @@ const minute = 60_000
 const hour = 60 * minute
 const day = 24 * 60 * minute
 
-/**
- * §15 "Playback" and "Server": sections of `GET/PATCH /admin/settings`, built here and passed to
- * the metadata module that serves the route.
- */
 export const buildOperationsSettings = ({ db, config, clock, logger }: Platform) => ({
   playback: playbackSettingsAdminFactory({
     reader: createSqlitePlaybackSettings({ db }),
@@ -74,25 +70,12 @@ export const buildOperationsSettings = ({ db, config, clock, logger }: Platform)
 export type OperationsSettings = ReturnType<typeof buildOperationsSettings>
 
 export type OperationsModuleDeps = {
-  /** Ends the sessions on purged files (§10.6). */
   playbackSessions: PlaybackSessionTerminator
-  /**
-   * From the metadata module (built later: bound by `main.ts`): purged files may change the
-   * library deciding a movie or series (§9.1).
-   */
   metadataContext: Pick<LibraryMetadataContextObserver, 'filesLeaving'>
-  /** The job runner (cancel, wake), built after the modules: bound later by `main.ts`. */
   jobControl: JobControl
-  /** Tests: a fake disk. */
   diskUsage?: DiskUsage
 }
 
-/**
- * Wiring of the operations admin (§15): dashboard (`/admin/stats`), storage, database export, jobs
- * (list, retry, cancel through the runner, hourly `purge-jobs`, with old notifications and scan runs), notifications, missing sources and their purge
- * (`DELETE /admin/sources/:id`, `/admin/sources/purge-missing`, daily `purge_missing`), the
- * `cache/disk_low` and `scan/needs_review_count` checks.
- */
 export const buildOperationsModule = (platform: Platform, deps: OperationsModuleDeps) => {
   const { db, ids, clock, eventBus, jobQueue, jobRepository, logger, paths, version, runtime } =
     platform
@@ -139,7 +122,6 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
       },
     },
     {
-      // Run directly: as a job, it would add a row an hour to the table it trims.
       name: 'purge-jobs',
       intervalMs: hour,
       initialDelayMs: 5 * minute,

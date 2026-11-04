@@ -11,7 +11,6 @@ import { requestApi } from '../../shared/api/client.ts'
 import { unwrap } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 
-/** The session's client, or a failure if the server is gone meanwhile. */
 const useApi = () => {
   const session = useSession()
   const api = () => {
@@ -21,7 +20,6 @@ const useApi = () => {
   return { session, api }
 }
 
-/** `POST /profiles` (§13.6): up to five; the session's profiles follow. */
 export const useCreateProfile = () => {
   const { session, api } = useApi()
   return useMutation({
@@ -31,7 +29,6 @@ export const useCreateProfile = () => {
   })
 }
 
-/** `PATCH /profiles/:id`: name, colour, PIN, settings (§11.1, §12.4). */
 export const useUpdateProfile = () => {
   const { session, api } = useApi()
   return useMutation({
@@ -46,7 +43,6 @@ export const useUpdateProfile = () => {
   })
 }
 
-/** `DELETE /profiles/:id`: its progress is lost (§13.6). */
 export const useDeleteProfile = () => {
   const { session, api } = useApi()
   return useMutation({
@@ -63,7 +59,6 @@ export const useDeleteProfile = () => {
   })
 }
 
-/** `POST /profiles/:id/verify-pin`: unlocks the editor of another protected profile (§14). */
 export const useVerifyPin = () => {
   const { api } = useApi()
   return useMutation({

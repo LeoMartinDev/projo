@@ -26,11 +26,6 @@ import {
   toContributionError,
 } from './http.ts'
 
-/**
- * SkipDB (https://skipdb.tv/docs, no OpenAPI published): `GET /api/segments` read without a key
- * (120/min), `POST /api/segments` with an anonymous key (`POST /api/keys/anonymous`, 5/hour per
- * IP) to contribute (§12.5). Types `intro`, `recap`, `outro` (→ `credits`), `preview`.
- */
 export const SKIPDB_BASE_URL = 'https://api.skipdb.tv'
 
 const PROVIDER = 'skipdb'
@@ -38,7 +33,6 @@ const PROVIDER = 'skipdb'
 const segmentSchema = z.object({
   start_ms: z.number(),
   end_ms: z.number(),
-  /** `exact` | `shifted` | `agnostic` | `out-of-range` (a string: new values must not break). */
   match: z.string().optional(),
   confidence: z.number().optional(),
 })
@@ -74,7 +68,6 @@ const skipdbTypeOf: Record<SegmentType, string> = {
 const isImdbId = (value: string | undefined): value is string =>
   value !== undefined && /^tt\d{7,}$/u.test(value)
 
-/** `{}` for a movie, `{ season, episode }` for an episode, `undefined` when unnumbered. */
 const episodeAddress = (item: SegmentItemRef): Record<string, number> | undefined => {
   if (item.kind === 'movie') return {}
   return item.seasonNumber === undefined || item.episodeNumber === undefined
@@ -101,7 +94,6 @@ export const createSkipdbProvider = ({
       query: {
         imdb_id: item.imdbId,
         ...episode,
-        // Seconds; lets SkipDB match (and shift) the timestamps to this release.
         ...(duration === undefined ? {} : { duration: Math.round(duration) / 1000 }),
       },
       ...(signal === undefined ? {} : { signal }),
@@ -126,12 +118,10 @@ export const createSkipdbProvider = ({
     for (const { field, type } of typeMap) {
       const found = parsed.value.segments[field]
       if (found === undefined) continue
-      // `0 / 0` is SkipDB's "confirmed: no such segment".
       if (found.start_ms === 0 && found.end_ms === 0) {
         absent.push(type)
         continue
       }
-      // Stored for a release too different from this file to be shifted: not trusted.
       if (found.match === 'out-of-range') continue
       const candidate = toCandidate({
         type,
@@ -146,10 +136,6 @@ export const createSkipdbProvider = ({
   },
 })
 
-/**
- * §12.5: `POST /api/segments` with the anonymous key, created on the first submission and kept
- * through `saveAnonymousKey`. A key SkipDB no longer accepts (401) is replaced once.
- */
 export const createSkipdbContributor = ({
   http,
   baseUrl,
@@ -163,7 +149,6 @@ export const createSkipdbContributor = ({
   saveAnonymousKey: (key: string) => void
   logger: Logger
 }): SegmentContributor => {
-  /** One key creation at a time: concurrent submissions share it. */
   let creating: Promise<Result<string, ContributionError>> | undefined
 
   const createKey = async (): Promise<Result<string, ContributionError>> => {

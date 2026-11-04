@@ -29,7 +29,6 @@ import { settingsQuery } from './settings/queries.ts'
 import { useUpdateSummary } from './updates/queries.ts'
 import './admin.css'
 
-/** Sidebar badge of "To review": the size of the whole queue. */
 const ReviewCount = () => {
   const { t } = useTranslation()
   const count = useQuery(reviewCountQuery)
@@ -41,7 +40,6 @@ const ReviewCount = () => {
   )
 }
 
-/** Sidebar badge of "Notifications" (§15): unread ones. */
 const UnreadCount = () => {
   const { t } = useTranslation()
   const count = useQuery(unreadNotificationsQuery)
@@ -56,7 +54,6 @@ const UnreadCount = () => {
   )
 }
 
-/** Sidebar dot of "Updates": a newer release is available (§16.4). */
 const UpdateAvailable = () => {
   const { t } = useTranslation()
   const { available } = useUpdateSummary()
@@ -70,10 +67,6 @@ const UpdateAvailable = () => {
   )
 }
 
-/**
- * §9.1: without a TMDB key, or with one TMDB now refuses, nothing is identified; the notification
- * of M5 is this banner for now.
- */
 const TmdbKeyBanner = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)
@@ -94,10 +87,6 @@ const TmdbKeyBanner = () => {
   )
 }
 
-/**
- * Finished scans and identification jobs change the "To review" queue: refetched live (SSE,
- * admin audience), debounced.
- */
 const useLiveReviewQueue = () => {
   const queryClient = useQueryClient()
   useEffect(() => {
@@ -123,7 +112,6 @@ const useLiveReviewQueue = () => {
   }, [queryClient])
 }
 
-/** Administration layout (§15, artboards `AdminLibraries` / `AdminAccounts`): sidebar + page. */
 export const AdminLayout = () => {
   const { t } = useTranslation()
   const status = useQuery(setupStatusQuery)
@@ -132,7 +120,6 @@ export const AdminLayout = () => {
   useLiveNotifications()
   const [nav, navRef] = useElement<HTMLElement>()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
-  // Narrow screens scroll the links in a row: the current one is brought into view.
   useEffect(() => {
     nav
       ?.querySelector('[aria-current="page"]')

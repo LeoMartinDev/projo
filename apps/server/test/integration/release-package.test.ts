@@ -17,14 +17,6 @@ import { createTempDir } from '../support/database.ts'
 import { startGithubReleasesServer, type TestRelease } from '../support/github-releases-server.ts'
 import { silentLogger } from '../support/logger.ts'
 
-/**
- * The release pipeline (§22) against the updater (§16.4): a bundle built by
- * `runtime/scripts/build-bundle.ts`, packed by `runtime/scripts/package-release.ts`, published on
- * the fake GitHub, then found and installed by the real release source and installer.
- * `PROJO_RELEASE_DIR` (the release job of CI) also runs it on the real release about to be
- * published (`dist/release`).
- */
-
 const server = startGithubReleasesServer()
 const temps: ReturnType<typeof createTempDir>[] = []
 const tempDir = () => {
@@ -45,7 +37,6 @@ const writeFiles = (root: string, files: Record<string, string>) => {
   }
 }
 
-/** The three release assets of `dir` as the fake GitHub serves them. */
 const loadRelease = (dir: string): TestRelease => {
   const manifest = JSON.parse(readFileSync(join(dir, RELEASE_MANIFEST_NAME), 'utf8')) as {
     version: string
@@ -66,7 +57,6 @@ const loadRelease = (dir: string): TestRelease => {
   }
 }
 
-/** Finds the published release and installs it into a fresh data directory. */
 const installPublished = async (release: TestRelease) => {
   server.publish(release)
   const source = createGithubReleaseSource({

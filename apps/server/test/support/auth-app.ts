@@ -30,7 +30,6 @@ import { silentLogger } from './logger.ts'
 
 export const adminPassword = 'correct horse battery'
 
-/** Probe routes standing for other domains: one for any account, one under `/admin`. */
 const probeRoutes = () =>
   new Hono<AppEnv>()
     .get('/probe', (c) =>
@@ -41,10 +40,6 @@ const adminProbeRoutes = () => new Hono<AppEnv>().get('/libraries', (c) => c.jso
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
-/**
- * HTTP app with the real auth (invitations, admin accounts), setup, profiles and events modules
- * on an in-memory database. `visibilityScope` is the profiles module's resolver.
- */
 export const createAuthTestApp = ({
   trustProxy = false,
   keepAliveMs,
@@ -81,14 +76,12 @@ export const createAuthTestApp = ({
     connectJobRunner: () => {},
   }
 
-  /** Scopes the account and profile use cases asked to end playback for (§10.6). */
   const endedPlayback: PlaybackScope[] = []
   const playbackSessions = { endWithin: (scope: PlaybackScope) => void endedPlayback.push(scope) }
   const auth = buildAuthModule(platform, { playbackSessions })
   const setup = buildSetupModule(platform)
   const profilesModule = buildProfilesModule(platform, { playbackSessions })
   const events = buildEventsModule(platform, keepAliveMs === undefined ? {} : { keepAliveMs })
-  // Operations admin (§15): "Jobs" cancels straight in the table (no runner in these tests).
   const operations = buildOperationsModule(platform, {
     playbackSessions,
     metadataContext: { filesLeaving: () => () => {} },
@@ -97,7 +90,6 @@ export const createAuthTestApp = ({
       wake: () => {},
     },
   })
-  // Module-level listeners (`catalog.changed`) are not streams.
   const baseline = subscriptions
   const api = createApi({
     middleware: auth.middleware,
@@ -161,7 +153,6 @@ export const createAuthTestApp = ({
       body: JSON.stringify(body),
     })
 
-  /** Requests as the holder of `cookie` (JSON body, same-origin `Origin` on mutations). */
   const as = (cookie: string) => ({
     get: (path: string, headers: Record<string, string> = {}) =>
       request(path, { headers: { cookie, ...headers } }),
@@ -178,7 +169,6 @@ export const createAuthTestApp = ({
       }),
   })
 
-  /** Runs the wizard; returns the session cookie (`projo_session=…`). */
   const completeSetup = async (body: Record<string, unknown> = {}) => {
     const response = await json('POST', '/api/v1/setup', {
       username: 'leo',
@@ -193,7 +183,6 @@ export const createAuthTestApp = ({
   const login = (username: string, password: string, headers: Record<string, string> = {}) =>
     json('POST', '/api/v1/auth/login', { username, password }, headers)
 
-  /** A plain `user` account with one profile, inserted directly. */
   const addUser = async (username = 'zoe', password = 'another long password') => {
     const account = sampleAccount({
       id: `account-${username}`,
@@ -232,7 +221,6 @@ export const createAuthTestApp = ({
   }
 }
 
-/** `projo_session=<token>` from a response's `Set-Cookie`, ready for a `Cookie` header. */
 export const sessionCookieOf = (response: Response): string => {
   const header = response.headers
     .getSetCookie()
@@ -242,7 +230,6 @@ export const sessionCookieOf = (response: Response): string => {
   return pair
 }
 
-/** Reads an SSE body until `predicate` holds on the accumulated text (or the stream ends). */
 export const readUntil = async (
   reader: { read: () => Promise<{ done: boolean; value?: unknown }> },
   predicate: (text: string) => boolean,

@@ -33,22 +33,13 @@ type Deps = {
 }
 
 export type AppliedMatch = {
-  /** Items the source is now linked to. */
   itemIds: string[]
-  /** Items whose metadata was written: their images are fetched next (`fetch_images`). */
   enriched: string[]
-  /** The movie or the series written (§9.1: its whole tree follows one library). */
   topLevelId: string
 }
 
 type Matched = Exclude<Resolution, { kind: 'review' }>
 
-/**
- * Writes an identification (§9.2 step 3, §9.1) in one transaction: TMDB items found or created
- * (series → season → episode, never an episode without file), metadata written except locked
- * fields (§9.3), cast and crew, then the source moves from its local items to the TMDB ones
- * without losing per-profile rows (see `core/metadata/linking.ts`).
- */
 export const applyMatchFactory = ({
   items,
   overrides,
@@ -57,7 +48,6 @@ export const applyMatchFactory = ({
   ids,
   clock,
 }: Deps) => {
-  // The edits that moved are locks on the target: their values replace TMDB's (§9.3).
   const moveItemRows = (pair: { from: string; into: string }) => {
     items.moveItemRows(pair)
     overrides.set({ itemId: pair.into, overrides: overrides.get(pair.into), at: clock.now() })
@@ -94,7 +84,6 @@ export const applyMatchFactory = ({
   const people = (itemId: string, credits: PersonCredit[]) =>
     items.replacePeople({ itemId, people: credits, newId: () => ids.next() })
 
-  /** The TMDB top-level item, else the local one adopted, else a new one. */
   const topLevel = (
     kind: 'movie' | 'series',
     tmdbId: number,
@@ -133,7 +122,6 @@ export const applyMatchFactory = ({
     })
   }
 
-  /** The local series above a local episode the source was linked to (adoption candidate). */
   const localSeriesOf = (links: readonly LinkedItemInfo[]): string | undefined => {
     for (const link of links) {
       if (link.kind !== 'episode' || !isLocal(link) || link.parentId === undefined) continue
@@ -222,7 +210,6 @@ export const applyMatchFactory = ({
     apply: (input: {
       source: { id: string; readyAt?: Date }
       resolution: Matched
-      /** Language the resolution was fetched in (`metadata_language`, §9.1). */
       language: string
       ratingCountry: string
       state: 'matched' | 'manual'
@@ -235,7 +222,6 @@ export const applyMatchFactory = ({
         })
         const itemIds = targets.map((target) => target.id)
         items.replaceLinks({ sourceId: input.source.id, itemIds })
-        // An item (or its season, series) left without any file: nothing visible holds its rows.
         const withoutFile = (id: string) => items.sourcesUnder(id).length === 0
         const orphaned = new Set(
           links
@@ -243,9 +229,6 @@ export const applyMatchFactory = ({
             .filter((link) => withoutFile(link.id))
             .map((link) => link.id),
         )
-        // Per-profile rows of the local items left behind (and of the TMDB items left without
-        // file, §7.8) go to their replacements, and those of their season and series to the new
-        // season and series.
         for (const pair of pairReplacedItems(links, targets, orphaned)) {
           moveItemRows(pair)
           const left = links.find((link) => link.id === pair.from)
@@ -278,7 +261,6 @@ export const applyMatchFactory = ({
         return { itemIds, enriched, topLevelId }
       }),
 
-    /** §7.8: the source waits in "To review"; its local items (if any) stay as they are. */
     review: (sourceId: string, reason: TmdbReviewReason) => {
       sourceRepository.patch(sourceId, { matchState: 'needs_review', reviewReason: reason })
     },

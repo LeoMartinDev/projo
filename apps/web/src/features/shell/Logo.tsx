@@ -1,6 +1,5 @@
 import './shell.css'
 
-/** `projo.` wordmark of the artboards. */
 export const Logo = ({ subtitle }: { subtitle?: string }) => (
   <span className="logo">
     <span className="logo__word">

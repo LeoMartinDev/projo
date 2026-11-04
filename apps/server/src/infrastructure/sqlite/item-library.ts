@@ -2,20 +2,8 @@ import type { LeavingFiles } from '../../core/library/library.ts'
 import type { Db } from './database.ts'
 import { stripNulls } from './rows.ts'
 
-/**
- * §9.1 multi-library rule: an item follows the settings (metadata language, rating country) of the
- * oldest library (`created_at`, then `id`) holding a file of its movie or series, episodes
- * included. The whole tree (series, seasons, episodes) thus follows one library, whatever library
- * the file being identified belongs to.
- */
 export type DecidingLibrary = { libraryId: string; language?: string; ratingCountry: string }
 
-/**
- * `top_of`: each item with the top of its tree (movie or series; items are at most 3 levels
- * deep). `deciding`: the deciding library of each tree holding a file. Set-based for the queries
- * over the whole catalog; `CROSS JOIN` and `+column` keep SQLite from walking `items` by
- * `parent_id IS NULL` against the derived tables (seconds on 20 000 items otherwise).
- */
 const withTrees = `
   WITH top_of AS MATERIALIZED (
     SELECT i.id AS item_id, coalesce(g.id, p.id, i.id) AS top_id,
@@ -34,7 +22,6 @@ const withTrees = `
     ) WHERE rank = 1
   )`
 
-/** The library deciding the item's language and rating country; `undefined`: no file at all. */
 export const decidingLibraryOf = (db: Db, itemId: string): DecidingLibrary | undefined => {
   const row = db.$client
     .query<{ libraryId: string; language: string | null; ratingCountry: string }, [string]>(
@@ -63,12 +50,6 @@ export const decidingLibraryOf = (db: Db, itemId: string): DecidingLibrary | und
   return row === null ? undefined : stripNulls(row)
 }
 
-/**
- * Identified movies and series (`tmdb_id`, no parent) with at least one identified item of their
- * tree whose `metadata_language` is not the language their deciding library resolves to (its own,
- * else `serverLanguage`); a row never written (NULL) counts. `libraryId`: only the trees holding a
- * file in that library.
- */
 export const staleLanguageTopLevel = (
   db: Db,
   { serverLanguage, libraryId }: { serverLanguage: string; libraryId?: string },
@@ -95,7 +76,6 @@ export const staleLanguageTopLevel = (
     .all(serverLanguage, libraryId ?? null)
     .map((row) => row.id)
 
-/** Identified movies and series whose deciding library is this one (its rating country rules). */
 export const topLevelDecidedBy = (db: Db, libraryId: string): string[] =>
   db.$client
     .query<{ id: string }, [string]>(
@@ -111,15 +91,6 @@ export const topLevelDecidedBy = (db: Db, libraryId: string): string[] =>
 
 export type TreeState = { topId: string; ratingCountry: string; stale: boolean }
 
-/**
- * Deciding library and staleness of these trees (movies and series), the ones without any file
- * left out. Stale: an identified item whose `metadata_language` is not the one the tree resolves
- * to (NULL counts), or whose `content_rating_country` is not the top's. The country actually
- * requested is not stored (only the one of the rating picked, the library's or the US fallback):
- * seasons and episodes inherit the series rating, so after a write of the top in the deciding
- * library's settings, an item picked from another country was written with other settings, and an
- * item with the same country holds the same rating.
- */
 export const treeStates = (
   db: Db,
   { topIds, serverLanguage }: { topIds: readonly string[]; serverLanguage: string },
@@ -171,7 +142,6 @@ export const treeStates = (
           stale: row.stale === 1,
         }))
 
-/** Identified movies and series holding one of these files (episodes included). */
 export const topLevelWithFiles = (db: Db, files: LeavingFiles): string[] => {
   const [scope, value] =
     'libraryId' in files

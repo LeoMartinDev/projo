@@ -16,7 +16,6 @@ import type { DynamicRange } from '../../core/media/version.ts'
 import { toHostPath } from '../fs/host-paths.ts'
 import { type ProcessPriority, runProcess, stderrTail } from './process.ts'
 
-// ffprobe prints numbers as strings in many places: accept both.
 const numeric = z.union([z.number(), z.string()]).transform((value, ctx) => {
   const parsed = typeof value === 'number' ? value : Number.parseFloat(value)
   if (!Number.isFinite(parsed)) {
@@ -94,11 +93,6 @@ const frameRateOf = (value: string | undefined): number | undefined => {
   return rate > 0 ? Math.round(rate * 1000) / 1000 : undefined
 }
 
-/**
- * Dynamic range of a raw ffprobe video stream: Dolby Vision (side data or fourcc), else HDR by
- * its transfer (PQ, HLG). `undefined` without a transfer: the scanner reads it as SDR, the
- * playback reader of stored probes leaves it unknown.
- */
 export const rawDynamicRange = (stream: {
   side_data_list?: readonly Record<string, unknown>[] | undefined
   codec_tag_string?: string | undefined
@@ -126,13 +120,11 @@ const optional = <K extends string, V>(key: K, value: V | undefined) =>
 
 const flag = (value: number | undefined): boolean => value === 1
 
-/** A real fourcc (`hvc1`, `avc1`); Matroska reports `[0][0][0][0]`. */
 const codecTagOf = (stream: RawStream): string | undefined => {
   const value = stream.codec_tag_string
   return value !== undefined && /^[A-Za-z0-9]{4}$/.test(value) ? value.toLowerCase() : undefined
 }
 
-/** `HH:MM:SS.fraction` (the Matroska `DURATION` tag) → milliseconds. */
 export const parseDurationTag = (value: string | undefined): number | undefined => {
   const match = /^(\d+):(\d{2}):(\d{2}(?:\.\d+)?)$/.exec(value ?? '') ?? undefined
   if (match === undefined) return undefined
@@ -187,7 +179,6 @@ const toSubtitle = (stream: RawStream): SubtitleStream => {
   }
 }
 
-/** Raw ffprobe JSON → `MediaProbe`. Exported for tests. */
 export const parseProbeOutput = (stdout: string): Result<MediaProbe, MediaError> => {
   let json: unknown
   try {
@@ -227,7 +218,6 @@ export const parseProbeOutput = (stdout: string): Result<MediaProbe, MediaError>
   })
 }
 
-/** `MediaProber` over the `ffprobe` binary (§7.3 step 4). */
 export const createFfprobeProber = ({
   binary = 'ffprobe',
   timeoutMs = 60_000,
@@ -249,7 +239,6 @@ export const createFfprobeProber = ({
         '-of',
         'json',
         '-i',
-        // `file:` stops ffmpeg from reading a protocol or option in the name (§20).
         `file:${toHostPath(path)}`,
       ],
       timeoutMs,

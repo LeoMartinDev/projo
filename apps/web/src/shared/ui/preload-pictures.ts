@@ -1,12 +1,7 @@
 import { artworkSources } from './Artwork.tsx'
 
-/** Longest wait for a page's head pictures; past it the page shows and they fade in on arrival. */
 export const pictureWaitMs = 700
 
-/**
- * Resolves once the picture is decoded, failed, or `ms` passed. Same sources as its `Artwork`
- * (`sizes` included), so the browser picks the same variant and the page finds it in the cache.
- */
 const decoded = (picture: { src: string; sizes: string }, ms: number): Promise<void> => {
   const image = new Image()
   const { srcSet, sizes, src } = artworkSources(picture.src, picture.sizes)
@@ -19,11 +14,6 @@ const decoded = (picture: { src: string; sizes: string }, ms: number): Promise<v
   ])
 }
 
-/**
- * For a route loader: the backdrop and logo of a page's head are in the image cache before it
- * renders, so they show at once (Artwork only fades in what is still loading) and the logo, which
- * sizes the title, never pushes the text after the first frame.
- */
 export const picturesDecoded = async (
   pictures: ReadonlyArray<{ src: string | undefined; sizes: string }>,
   ms = pictureWaitMs,

@@ -16,11 +16,6 @@ import '../media/media.css'
 
 const skeletonRows = [0, 1, 2, 3, 4]
 
-/**
- * Episodes of the season, beside the video (control "Episode list"): season pills when
- * the series has several, the episodes with still, progress and duration; the playing one is
- * marked. Fixed width and height, the list scrolls (AGENTS.md).
- */
 export const EpisodesPanel = ({
   seriesId,
   seasonId,

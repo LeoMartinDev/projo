@@ -10,7 +10,6 @@ const toManualMatch = (row: typeof manualMatches.$inferSelect): ManualMatch => {
   return { ...rest, createdAt: fromIso(createdAt) }
 }
 
-/** `manual_matches` (§7.8, §9.2 "avant tout"), by file rather than by `sources` row. */
 export const createSqliteManualMatchRepository = ({ db }: { db: Db }): ManualMatchRepository => {
   const first = (condition: ReturnType<typeof and>) => {
     const row = db
@@ -43,7 +42,6 @@ export const createSqliteManualMatchRepository = ({ db }: { db: Db }): ManualMat
       }
       db.transaction((tx) => {
         if (match.sourceId !== undefined) {
-          // The source moved (recognized by the scan): its correction at the old path is stale.
           tx.delete(manualMatches)
             .where(
               and(

@@ -5,10 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { colors, fonts } from '../../shared/styles/tokens.ts'
 import { Skeleton } from '../../shared/ui/states.tsx'
 
-/**
- * A home row (§13.3, artboard `MobileHome`): its title, "See all ›" when it has a page, and its
- * cards scrolled sideways.
- */
 export const Row = ({
   title,
   gutter,
@@ -52,7 +48,6 @@ export const Row = ({
   )
 }
 
-/** A row while it loads: the same boxes as its cards, so nothing moves after (AGENTS.md). */
 export const RowSkeleton = ({
   gutter,
   gap,

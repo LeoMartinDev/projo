@@ -1,4 +1,3 @@
-/** Where the header's pieces sit, in px from the header's edge, before the merge moves them. */
 export type PillLayout = {
   logo: { left: number; width: number }
   nav: { left: number; width: number }
@@ -7,15 +6,11 @@ export type PillLayout = {
   height: number
 }
 
-/** A side's spring: 0 = apart, 1 = merged (it overshoots both), its speed and pull per second. */
 export type SideMotion = { progress: number; velocity: number; acceleration: number }
 
-// Room around the wordmark and the actions inside their bubbles: [left, right].
 const logoPadding = [22, 14] as const
 const actionsPadding = [6, 7] as const
-// Gap under which two bubbles reach for each other.
 const bridgeReach = 32
-// Liquid deformation: stretched by speed, squashed while braking (the impact).
 const stretchPerSpeed = 0.02
 const squashPerBraking = 0.0022
 
@@ -23,23 +18,15 @@ const clamp = (x: number, min: number, max: number) => Math.min(max, Math.max(mi
 const easeOut = (x: number) => 1 - (1 - x) ** 3
 const px = (x: number) => Math.round(x * 100) / 100
 
-/** > 0 stretched along the glide, < 0 squashed; 0 at rest. */
 const deformation = ({ velocity, acceleration }: SideMotion) => {
-  // Pulled against its motion; a smooth sign, so it does not jump as the motion turns back.
   const braking = Math.max(0, (-acceleration * velocity) / (Math.abs(velocity) + 0.5))
   return clamp(stretchPerSpeed * Math.abs(velocity) - squashPerBraking * braking, -0.15, 0.25)
 }
 
-/** A pill from `left` to `right` around the line `cy`, drawn clockwise (the subpaths add up). */
 const stadium = (left: number, right: number, cy: number, r: number) =>
   `M${px(left + r)} ${px(cy - r)}H${px(right - r)}A${px(r)} ${px(r)} 0 0 1 ${px(right - r)} ${px(cy + r)}` +
   `H${px(left + r)}A${px(r)} ${px(r)} 0 0 1 ${px(left + r)} ${px(cy - r)}Z`
 
-/**
- * The liquid neck between the facing ends of two pills (circles of radius `r1` centred on `a`,
- * `r2` on `b`): it leaves each circle along its tangent, pinched at first (`reach` 0), straight
- * once they touch (1).
- */
 const bridge = (a: number, r1: number, b: number, r2: number, cy: number, reach: number) => {
   const angle = (1 - reach) * 1.35
   const sin = Math.sin(angle)
@@ -59,12 +46,6 @@ const bridge = (a: number, r1: number, b: number, r2: number, cy: number, reach:
   )
 }
 
-/**
- * The header as each side's spring has it: a bubble swells behind the wordmark and the actions
- * while they glide to the navigation pill, stretching with speed and squashing as they brake,
- * then each fuses with it like two drops. Returns the outline (SVG path, nonzero) and, per
- * side, how far it moves and its motion blur (px).
- */
 export const pillMerge = (
   layout: PillLayout,
   motion: { logo: SideMotion; actions: SideMotion },

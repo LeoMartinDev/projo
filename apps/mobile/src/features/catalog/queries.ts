@@ -24,13 +24,8 @@ export type CatalogKind = 'movies' | 'series'
 
 const pageSize = 60
 
-/** Prefix of every catalogue query: dropped with the server, refreshed by any card action. */
 export const catalogPrefix = [sessionQueryPrefix, 'catalog'] as const
 
-/**
- * The queries of the browsing screens (the web's `catalog/queries.ts`), for the active profile:
- * its id is part of every key, so switching profiles never shows the previous one's rows.
- */
 export const useCatalogQueries = () => {
   const { api, gate } = useSession()
   const profileId = gate.kind === 'ready' ? gate.profile.id : ''
@@ -45,12 +40,10 @@ export const useCatalogQueries = () => {
   })
 
   return {
-    /** `GET /home` (§13.3). */
     home: queryOptions({
       queryKey: key('home'),
       queryFn: () => unwrap(requestApi(() => client().home.$get(), homeDtoSchema)),
     }),
-    /** `GET /home/categories`, batch by batch. */
     homeCategories: infiniteQueryOptions({
       queryKey: key('home', 'categories'),
       initialPageParam: '',
@@ -66,7 +59,6 @@ export const useCatalogQueries = () => {
         ),
       getNextPageParam: (last) => last.nextCursor,
     }),
-    /** `GET /home/categories/:category`: the page behind a category row's "See all ›". */
     categoryPage: (category: HomeCategorySlug) =>
       infiniteQueryOptions({
         queryKey: key('category', category),
@@ -84,7 +76,6 @@ export const useCatalogQueries = () => {
           ),
         getNextPageParam: (last) => last.nextCursor,
       }),
-    /** `GET /movies`, `GET /series` (§13.4). */
     catalog: (kind: CatalogKind, state: CatalogQueryState) =>
       infiniteQueryOptions({
         queryKey: key(kind, state),
@@ -103,7 +94,6 @@ export const useCatalogQueries = () => {
         },
         getNextPageParam: (last) => last.nextCursor,
       }),
-    /** `GET /genres?kind=`: the genres and years the filters offer. */
     genres: (kind: CatalogKind) =>
       queryOptions({
         queryKey: key('genres', kind),
@@ -117,7 +107,6 @@ export const useCatalogQueries = () => {
           ),
         staleTime: 5 * 60_000,
       }),
-    /** `GET /watchlist`: My list, last added first. */
     watchlist: infiniteQueryOptions({
       queryKey: key('watchlist'),
       initialPageParam: '',
@@ -135,7 +124,6 @@ export const useCatalogQueries = () => {
             requestApi(() => client().items[':id'].$get({ param: { id } }), itemDetailDtoSchema),
           ),
       }),
-    /** Seasons of a series, episodes of a season. */
     children: (id: string) =>
       queryOptions({
         queryKey: key('children', id),
@@ -147,7 +135,6 @@ export const useCatalogQueries = () => {
             ),
           ),
       }),
-    /** `GET /search?q=` (§13.5), from 2 characters. */
     search: (q: string) =>
       queryOptions({
         queryKey: key('search', q),

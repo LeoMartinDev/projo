@@ -1,15 +1,9 @@
 import type { Job } from '../../core/jobs/job.ts'
 import type { AdminNotifier } from '../../core/scanner/ports.ts'
 
-/**
- * §18 "A job that fails on its last attempt creates a notification with the error code":
- * the runner's `onFinalFailure`. One open notification per job type and error code
- * (`job/failed`): a TMDB outage that fails thousands of matches is one notification, not one each.
- */
 export const notifyJobFailureFactory =
   ({ notifier }: { notifier: AdminNotifier }) =>
   (job: Job): void => {
-    // `apply_update` raises its own `update/failed` for the update errors (§16.4).
     if (job.type === 'apply_update' && job.error?.code.startsWith('update/') === true) return
     notifier.notify({
       kind: 'job/failed',

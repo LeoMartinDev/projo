@@ -25,7 +25,6 @@ const modesOf: Record<RematchKind, readonly IdentifyMode[]> = {
 }
 
 const initialOf = (kind: RematchKind, item: IdentifyItem | undefined): IdentifyInitial => {
-  // The current year is the one of the suspected wrong match: the title alone is searched.
   if (kind !== 'episode') return { mode: kind, query: item?.title ?? '' }
   return {
     mode: 'episode',
@@ -35,7 +34,6 @@ const initialOf = (kind: RematchKind, item: IdentifyItem | undefined): IdentifyI
   }
 }
 
-/** The movie or series an item now belongs to (episodes and seasons walk up to their series). */
 const topLevelOf = async (id: string): Promise<string> => {
   let item = await request(() => api.items[':id'].$get({ param: { id } }))
   for (let hop = 0; hop < 2 && item.kind !== 'movie' && item.kind !== 'series'; hop += 1) {
@@ -46,12 +44,6 @@ const topLevelOf = async (id: string): Promise<string> => {
   return item.id
 }
 
-/**
- * "Fix the match" (§7.8, §9.3): the TMDB search of "To review" on an item of the
- * catalog, then `POST /admin/items/:id/rematch`. Every viewer query is refetched; when the movie or
- * series that was open no longer exists (merged into another one), the page follows to the new
- * one. Admin only: the caller shows it to admins.
- */
 export const RematchDialog = ({
   itemId,
   kind,
@@ -68,7 +60,6 @@ export const RematchDialog = ({
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
-  /** Rematch of a series: episodes the new series lacks, left in "To review" (§7.8). */
   const [leftForReview, setLeftForReview] = useState(0)
   const item = useQuery({ ...identifyItemQuery(itemId), enabled: open })
 

@@ -37,7 +37,6 @@ const ask = (positionMs: number) => ({ itemId: 'movie', positionMs, profileId: '
 describe('resumeFramesFactory', () => {
   test('the thumbnail instant of the position, never past the last one', () => {
     const frames = framesFor([part('a', 3_600_000, 0)], ['a'])
-    // 1234 s → thumbnail 123, at 1230 s of the file.
     expect(frames(ask(1_234_000))).toEqual({ sourceId: 'a', second: 1230 })
     expect(frames(ask(9_999_000))).toEqual({ sourceId: 'a', second: 3590 })
   })
@@ -51,12 +50,10 @@ describe('resumeFramesFactory', () => {
 
   test('a stack of parts: the position is on the item timeline, the sprites those of the part', () => {
     const parts = [part('cd1', 600_000, 0, 'stack'), part('cd2', 600_000, 1, 'stack')]
-    // 15 min = 5 min into the second part.
     expect(framesFor(parts, ['cd1', 'cd2'])(ask(900_000))).toEqual({
       sourceId: 'cd2',
       second: 300,
     })
-    // The part holding the position has no sprites: nothing, not the other part's.
     expect(framesFor(parts, ['cd1'])(ask(900_000))).toBeUndefined()
   })
 

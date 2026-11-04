@@ -26,7 +26,6 @@ import {
   useRevokeAssistantToken,
 } from './queries.ts'
 
-/** A configuration to paste, in a field the plain-HTTP copy fallback can select. */
 const CopyBlock = ({
   label,
   value,
@@ -83,7 +82,6 @@ const CopyBlock = ({
   )
 }
 
-/** Step 2: the token, shown this once (§27.3), as the Claude Code and Claude Desktop setups. */
 const AssistantSetup = ({ token }: { token: string }) => {
   const { t } = useTranslation()
   const origin = window.location.origin
@@ -110,7 +108,6 @@ const AssistantSetup = ({ token }: { token: string }) => {
   )
 }
 
-/** "Ajouter": a name, then the configuration to copy. Same size at both steps. */
 const AddAssistantDialog = ({ onClose }: { onClose: () => void }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -275,11 +272,6 @@ const AssistantRow = ({
   )
 }
 
-/**
- * "Assistants IA" (§27.3): the admin's assistant tokens and OAuth connections (name and kind,
- * created, last used), each revocable after a confirmation; "Ajouter" creates a token and shows
- * its configuration once.
- */
 export const AssistantTokens = () => {
   const { t } = useTranslation()
   const tokens = useQuery(assistantTokensQuery)

@@ -24,11 +24,6 @@ const invalidPath = (path: string, reason: string) =>
 
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
-/**
- * §20 directory picker: read only, directories only, absolute paths without `..`. Symbolic links
- * are listed only when they resolve inside the browsed directory, and a path that goes through a
- * link escaping its own parent is refused.
- */
 export const browseDirectoriesFactory =
   ({ fileSystem }: { fileSystem: FileSystem }) =>
   async ({ path: raw }: { path: string }): Promise<Result<BrowseResult, BrowseError>> => {
@@ -36,7 +31,6 @@ export const browseDirectoriesFactory =
     if (!normalized.ok) return normalized
     const path = normalized.value
 
-    // Every step of the path must stay inside the real directory of its parent.
     let realParent = '/'
     let walked = '/'
     for (const segment of path.split('/').filter((s) => s !== '')) {

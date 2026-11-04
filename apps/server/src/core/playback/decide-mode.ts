@@ -8,12 +8,6 @@ import type {
 
 import type { AudioStreamInfo, MediaInfo, VideoStreamInfo } from './media-info.ts'
 
-/**
- * §10.2 decision of the playback mode, from the probe, the client capabilities, the wanted
- * quality and whether a bitmap subtitle is burnt in: `direct`, `hls_remux` or `hls_transcode`.
- */
-
-/** Browsers decode 8-bit 4:2:0 H.264 only: High 10 / 4:2:2 / 4:4:4 need a transcode. */
 const isBrowserH264 = (stream: VideoStreamInfo): boolean => {
   const profile = stream.profile?.toLowerCase() ?? ''
   const pixelFormat = stream.pixelFormat ?? 'yuv420p'
@@ -23,7 +17,6 @@ const isBrowserH264 = (stream: VideoStreamInfo): boolean => {
   )
 }
 
-/** ffprobe `codec_name` → the codec id the client reports, undefined when no browser plays it. */
 export const videoCodecId = (stream: VideoStreamInfo): VideoCodecId | undefined => {
   switch (stream.codec) {
     case 'h264':
@@ -56,11 +49,9 @@ export const audioCodecId = (codec: string): AudioCodecId | undefined => {
   }
 }
 
-/** Containers a `<video>` reads progressively (§10.2), by file extension, with the MIME served. */
 const directContainers: Record<string, string> = {
   mp4: 'video/mp4',
   m4v: 'video/mp4',
-  // QuickTime is ISO BMFF: browsers play it when labelled MP4.
   mov: 'video/mp4',
   webm: 'video/webm',
 }
@@ -68,16 +59,10 @@ const directContainers: Record<string, string> = {
 export const directMimeType = (extension: string): string | undefined =>
   directContainers[extension.toLowerCase().replace(/^\./, '')]
 
-/**
- * Audio codecs copied into fMP4 HLS segments when the client supports them. Apple's HLS spec and
- * hls.js both accept AAC, AC-3 and E-AC-3 in fMP4; Opus and FLAC in HLS are not reliable on
- * Safari, so they are transcoded (as DTS, TrueHD, MP3, PCM…).
- */
 const hlsCopyableAudio: ReadonlySet<AudioCodecId> = new Set(['mp4a.40.2', 'ac-3', 'ec-3'])
 
 export type AudioDelivery = 'direct' | 'copy' | 'aac'
 
-/** Why the video is re-encoded: unsupported codec, lower quality asked, bitmap subtitle burnt in. */
 export type TranscodeReason = 'video_codec' | 'quality' | 'burn_in'
 
 export type PlaybackPlan =
@@ -97,11 +82,9 @@ export type PlaybackPlan =
     }
   | {
       mode: 'hls_transcode'
-      /** The quality actually produced: the asked one, lowered to what the source allows. */
       quality: PlaybackQuality
       video: VideoStreamInfo
       reasons: TranscodeReason[]
-      /** Always AAC in a transcode (§10.2). */
       audio?: { stream: AudioStreamInfo; delivery: 'aac' }
     }
 
@@ -111,16 +94,12 @@ type DecideInput = {
   media: MediaInfo
   extension: string
   capabilities: ClientCapabilities
-  /** ffprobe index of the wanted audio track; default track of the file otherwise. */
   audioStreamIndex?: number
   quality: PlaybackQuality
-  /** A bitmap subtitle track is burnt into the video (§10.4). */
   burnIn?: boolean
-  /** A text subtitle track is shown: inside the stream for an `hls` client (§10.4), never direct. */
   textSubtitle?: boolean
 }
 
-/** Target height of each lower quality (§10.2: 8 / 4 / 1.5 Mb/s). */
 export const qualityHeights: Record<Exclude<PlaybackQuality, 'original'>, number> = {
   '1080p': 1080,
   '720p': 720,
@@ -129,19 +108,11 @@ export const qualityHeights: Record<Exclude<PlaybackQuality, 'original'>, number
 
 const lowerQualities = ['1080p', '720p', '480p'] as const
 
-/**
- * Height the picture would have at 16:9 (a 1920×800 scope film is "1080p"): the larger of the
- * height and 9/16 of the width. Undefined when the probe has neither.
- */
 const effectiveHeight = (video: VideoStreamInfo): number | undefined => {
   if (video.width === undefined && video.height === undefined) return undefined
   return Math.max(video.height ?? 0, Math.round(((video.width ?? 0) * 9) / 16))
 }
 
-/**
- * `original` plus the lower qualities not above the source height (never an upscale). A source
- * of unknown size offers them all; no video stream, only `original`.
- */
 export const availableQualities = (video: VideoStreamInfo | undefined): PlaybackQuality[] => {
   if (video === undefined) return ['original']
   const height = effectiveHeight(video)
@@ -153,7 +124,6 @@ export const availableQualities = (video: VideoStreamInfo | undefined): Playback
   ]
 }
 
-/** The asked quality, lowered to the best available one (a 720p source asked in 1080p: 720p). */
 export const effectiveQuality = (
   video: VideoStreamInfo,
   quality: PlaybackQuality,
@@ -169,7 +139,6 @@ const supportsAudio = (capabilities: ClientCapabilities, stream: AudioStreamInfo
   return id !== undefined && capabilities.audioCodecs.includes(id)
 }
 
-/** How a track reaches the browser once remuxed to HLS. */
 export const hlsAudioDelivery = (
   capabilities: ClientCapabilities,
   stream: AudioStreamInfo,
@@ -220,7 +189,6 @@ export const decidePlayback = ({
     ...(target === 'original' ? [] : (['quality'] as const)),
     ...(burnIn ? (['burn_in'] as const) : []),
   ]
-  // `codec === undefined` implies the `video_codec` reason; tested again for the narrowing below.
   if (codec === undefined || reasons.length > 0) {
     if (capabilities.hls === 'none') {
       return noHls({ videoCodec: video.codec, quality: target, burnIn })
@@ -235,10 +203,7 @@ export const decidePlayback = ({
   }
 
   const mimeType = directMimeType(extension)
-  // A <video> only plays the first audio track of a file.
   const audioIsFirst = audio === undefined || media.audio[0]?.index === audio.index
-  // Safari plays HEVC tagged `hvc1` only: an `hev1` file goes through the remux, which retags it.
-  // A probe without the tag (stored before it was read) is trusted as before.
   const directTag = video.codecTag?.toLowerCase() !== 'hev1'
   const subtitlesInStream = textSubtitle && capabilities.subtitleDelivery === 'hls'
   if (

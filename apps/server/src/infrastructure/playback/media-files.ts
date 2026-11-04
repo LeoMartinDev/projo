@@ -4,12 +4,10 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import { toHostPath } from '../fs/host-paths.ts'
 
-/** Read access to media files for HTTP responses (direct stream, HLS segments). */
 export type MediaFiles = {
   stat: (
     path: string,
   ) => Result<{ size: number; mtimeMs: number }, AppError<'playback/source_unavailable'>>
-  /** Bytes `start..end` inclusive, streamed lazily by Bun. */
   slice: (path: string, range?: { start: number; end: number }) => Blob
 }
 

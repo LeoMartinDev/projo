@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { createSessionEnds } from './session-ends.ts'
 
-/** Manual ticks and DELETEs that settle when the test says so. */
 const world = () => {
   const ticks: (() => void)[] = []
   const deletes = new Map<string, () => void>()
@@ -35,7 +34,6 @@ const last = { positionMs: 1000, paused: false }
 describe('session ends', () => {
   test('a released session holds the next POST back until its DELETE settles', async () => {
     const { ends, tick, deletes, flush } = world()
-    // The next episode's player mounts in the same tick as the previous one unmounts.
     ends.release('a', () => ends.endOnce('a', last))
     let posted = false
     void ends.settled().then(() => {
@@ -97,12 +95,10 @@ describe('session ends', () => {
   test('a session is let go from its DELETE on: its terminated event is our own echo', () => {
     const { ends } = world()
     expect(ends.isLetGo('a')).toBe(false)
-    // The server publishes `session_terminated` while the DELETE is still in flight.
     void ends.endOnce('a', last)
     expect(ends.isLetGo('a')).toBe(true)
     ends.forget('b')
     expect(ends.isLetGo('b')).toBe(true)
-    // Stopped by the admin while playing: not let go, the player shows it.
     expect(ends.isLetGo('c')).toBe(false)
   })
 })

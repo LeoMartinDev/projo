@@ -31,18 +31,10 @@ import { decodeSubtitle, detectSubtitleCharset } from './subtitle-charset.ts'
 
 const conversionTimeoutMs = 10 * 60_000
 
-/** `file:` keeps ffmpeg from reading a path as a protocol or an option (§20). */
 const fileArg = (path: string): string => `file:${toHostPath(path)}`
 
 const webVttOutput = (path: string): string[] => ['-c:s', 'webvtt', '-f', 'webvtt', fileArg(path)]
 
-/**
- * `/data/cache/subtitles/<source>/<track>.vtt` (§10.4), next to `<track>.json`: the size and
- * mtime of the input it was converted from (the external file, or the video file for an embedded
- * track). External text files are re-encoded to UTF-8 first when they are not (Latin-1…).
- * `ensure` (a player waits for it) runs ffmpeg at normal priority, `ensureEmbedded` (the
- * `extract_subtitles` pre-extraction job) at background priority (§18).
- */
 export const createSubtitleCache = ({
   subtitlesDir,
   ffmpeg = 'ffmpeg',
@@ -65,7 +57,6 @@ export const createSubtitleCache = ({
     )
   }
 
-  /** Moves the converted file in place, then records what it was built from. */
   const commit = (
     sourceId: string,
     trackId: string,
@@ -106,7 +97,6 @@ export const createSubtitleCache = ({
   const temporaryName = (sourceId: string, trackId: string, suffix: string) =>
     join(sourceDir(sourceId), `${assetName(trackId)}.tmp-${process.pid}-${Date.now()}${suffix}`)
 
-  /** An external file in UTF-8: itself, or a re-encoded copy (removed by the caller). */
   const utf8Input = (
     sourceId: string,
     trackId: string,
@@ -124,7 +114,6 @@ export const createSubtitleCache = ({
       )
     }
     const charset = detectSubtitleCharset(bytes)
-    // UTF-8 (with or without BOM) is read as is by ffmpeg.
     if (charset === 'utf-8') return ok({ path, copy: false })
     const copy = temporaryName(sourceId, trackId, `.input${extname(path).toLowerCase()}`)
     const written = attemptFs(() => writeFileSync(copy, decodeSubtitle(bytes, charset)), {
@@ -181,14 +170,11 @@ export const createSubtitleCache = ({
     inFlight.set(key, promise)
     return promise
   }
-  /** Tracks of a running `ensureEmbedded` pass: a request for one waits for the pass first. */
   const passes = new Map<string, Promise<Result<void, SubtitleCacheError>>>()
 
   return {
     ensure: ({ sourceId, trackId, input, signal }) =>
       share(`${sourceId}/${trackId}`, async () => {
-        // A pass that fails or is cancelled (job aborted, one bad track of the file) does not
-        // fail this track: converted on its own below.
         await passes.get(`${sourceId}/${trackId}`)
         const target = vttPath(sourceId, trackId)
         const fingerprint = fingerprintOf(input.path)
@@ -213,8 +199,6 @@ export const createSubtitleCache = ({
         ...track,
         output: temporaryName(sourceId, track.trackId, '.vtt'),
       }))
-      // One demux of the file for every track (§7.1 pre-extraction); `ensure` calls made
-      // meanwhile wait for it, then convert their track alone if it failed.
       const pass = runFfmpeg(
         [
           '-i',

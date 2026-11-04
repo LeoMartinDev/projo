@@ -196,7 +196,6 @@ describe('createSqliteJobRepository', () => {
       repo.enqueue(newJob({ id: 'running', runAfter: ago(90 * day) }))
       repo.claimNext({ types: ['scan_library'], now: ago(90 * day) })
       repo.enqueue(newJob({ id: 'queued', runAfter: ago(90 * day) }))
-      // Failed once, waiting for its retry: back to queued with a past finished_at.
       repo.enqueue(newJob({ id: 'retrying', type: 'probe_source', runAfter: ago(90 * day) }))
       repo.claimNext({ types: ['probe_source'], now: ago(90 * day) })
       repo.fail({

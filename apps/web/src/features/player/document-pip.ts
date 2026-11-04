@@ -1,9 +1,3 @@
-/**
- * Document Picture-in-Picture (Chromium desktop): a PiP window holding our own HTML, so the
- * player's subtitles show in it (Chromium's video PiP draws the frames only). The `<video>` moves
- * into the window and back; the browser's own controls stand in for the player's chrome there.
- */
-
 type DocumentPictureInPicture = {
   requestWindow: (options: { width: number; height: number }) => Promise<Window>
 }
@@ -12,10 +6,6 @@ const documentPictureInPicture = (): DocumentPictureInPicture | undefined =>
   (window as unknown as { documentPictureInPicture?: DocumentPictureInPicture })
     .documentPictureInPicture
 
-/**
- * An embedded Chromium (Electron) has the API but no PiP window ("no window"); the refusal uses
- * up the click's activation, so the video's own PiP serves from the next click on.
- */
 let refused = false
 
 export const documentPictureInPictureSupported = (): boolean =>
@@ -23,10 +13,6 @@ export const documentPictureInPictureSupported = (): boolean =>
 
 const windowWidth = 480
 
-/**
- * Opens the window (needs the click's user activation) with the page's styles and an empty
- * `.player` stage. Undefined when the browser refuses it.
- */
 export const openDocumentPictureInPicture = async (
   video: HTMLVideoElement,
 ): Promise<HTMLElement | undefined> => {
@@ -52,10 +38,6 @@ export const openDocumentPictureInPicture = async (
   return stage
 }
 
-/**
- * Moves `video` onto the stage, back to its place in the page when the window closes
- * (`onClosed`) or on cleanup, which also closes the window.
- */
 export const showInDocumentPictureInPicture = (
   stage: HTMLElement,
   video: HTMLVideoElement,
@@ -63,7 +45,6 @@ export const showInDocumentPictureInPicture = (
 ): (() => void) => {
   const home = video.parentElement
   const pipWindow = stage.ownerDocument.defaultView
-  // Moved within one task: the element stays in a document and keeps playing.
   stage.prepend(video)
   video.controls = true
   video.disablePictureInPicture = true

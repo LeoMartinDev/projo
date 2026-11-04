@@ -54,7 +54,6 @@ describe('local → TMDB fusion (§9.2)', () => {
   test('re-identification: a TMDB item keeps its history while it has another file', () => {
     const wrong = { ...local('wrong', 'movie'), tmdbId: 841 }
     expect(pairReplacedItems([wrong], [{ id: 'right' }])).toEqual([])
-    // Left without any file: its rows follow the file (§7.8).
     expect(pairReplacedItems([wrong], [{ id: 'right' }], new Set(['wrong']))).toEqual([
       { from: 'wrong', into: 'right' },
     ])

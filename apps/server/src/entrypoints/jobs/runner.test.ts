@@ -23,7 +23,6 @@ const deferred = () => {
   return { promise, resolve }
 }
 
-/** Resolves after the pump `wake` scheduled: timers of equal delay fire in order. */
 const scheduledPump = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 const setup = (handlers: JobHandlers, options: { onFinalFailure?: (job: Job) => void } = {}) => {
@@ -130,7 +129,6 @@ describe('createJobRunner', () => {
   })
 
   describe('heavy ffmpeg group (§18)', () => {
-    /** Each job runs until `finish(key)` (or an abort); `running` lists the jobs in flight. */
     const heavySetup = () => {
       const running = new Set<string>()
       const started: string[] = []
@@ -161,7 +159,6 @@ describe('createJobRunner', () => {
       const finish = async (key: string) => {
         gates.get(key)?.resolve()
         while (running.has(key)) await Bun.sleep(1)
-        // The next claim waits for a macrotask after the job settles (`schedulePump`).
         await Bun.sleep(5)
       }
       return { ...world, running, started, finish }
@@ -405,7 +402,6 @@ describe('createJobRunner', () => {
     await runner.stop()
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'queued', attempts: 0 })
 
-    // The next start does not see it as a crash: it runs again instead of failing.
     const restarted = createJobRunner({
       jobRepository,
       handlers: { trickplay: { concurrency: 1, run: async () => ok() } },
@@ -472,8 +468,6 @@ describe('createJobRunner', () => {
   })
 
   test('lets timers and I/O run between jobs that finish without awaiting anything', async () => {
-    // A library deleted mid-scan leaves thousands of `probe_source` that skip at once: drained
-    // in one microtask chain, they kept HTTP (and /health) waiting for minutes.
     let handled = 0
     const { queue, runner } = setup({
       probe_source: { concurrency: 2, run: async () => (handled++, ok()) },

@@ -5,7 +5,6 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
 
-/** The words of a card (`cardTextOf` of `@projo/i18n/media`, shared with the mobile app). */
 export const useCardText = () => {
   const { t } = useTranslation()
   const locale = currentLocale()

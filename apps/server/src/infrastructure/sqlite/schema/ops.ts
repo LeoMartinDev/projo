@@ -1,7 +1,5 @@
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
-// §6.5 Exploitation
-
 export const jobs = sqliteTable(
   'jobs',
   {
@@ -22,7 +20,6 @@ export const jobs = sqliteTable(
   (t) => [
     index('jobs_state_priority_idx').on(t.state, t.priority, t.runAfter),
     index('jobs_dedupe_key_idx').on(t.dedupeKey, t.state),
-    // §18 retention: `purgeFinished` searches each finished state below its cutoff.
     index('jobs_state_finished_at_idx').on(t.state, t.finishedAt),
   ],
 )
@@ -41,9 +38,7 @@ export const notifications = sqliteTable(
   },
   (t) => [
     index('notifications_created_at_idx').on(t.createdAt),
-    // §15: the unread badge, on every admin page.
     index('notifications_unread_idx').on(t.readAt, t.resolvedAt),
-    // The notifier's open notification of a (kind, key), at every notify and resolve.
     index('notifications_kind_resolved_idx').on(t.kind, t.resolvedAt),
   ],
 )
@@ -61,11 +56,6 @@ export const appVersions = sqliteTable('app_versions', {
   runtimeMin: text().notNull(),
 })
 
-/**
- * The update log (§15 "update log"): one row per update or rollback, from its
- * request to its outcome. `pending` until the app restarted on the new version reads the
- * supervisor's switch report (§16.3).
- */
 export const updateRuns = sqliteTable(
   'update_runs',
   {

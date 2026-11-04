@@ -5,12 +5,6 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 import type { AuthAccount, AuthSession } from '../../core/auth/principal.ts'
 import type { AppEnv } from './context.ts'
 
-/**
- * Helpers for routes behind authentication. Every `/api/v1` route that is not public (setup,
- * login, logout, invitations) only runs with an account: `authenticate` answers 401 before.
- */
-
-/** The authenticated account and session. Missing = the route is not behind `authenticate`: a bug. */
 export const currentPrincipal = (
   c: Context<AppEnv>,
 ): { account: AuthAccount; session: AuthSession } => {
@@ -22,10 +16,6 @@ export const currentPrincipal = (
   return { account, session }
 }
 
-/**
- * The active profile (`X-Profile-Id`, or the account's only profile). Reading progress and
- * playback need one: `profile/required` (400) tells the client to choose.
- */
 export const currentProfileId = (
   c: Context<AppEnv>,
 ): Result<string, AppError<'profile/required'>> => {

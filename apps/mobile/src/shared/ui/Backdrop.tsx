@@ -6,7 +6,6 @@ import dunes from '../../../../web/src/shared/backdrops/dunes.webp'
 import forest from '../../../../web/src/shared/backdrops/forest.webp'
 import ocean from '../../../../web/src/shared/backdrops/ocean.webp'
 
-/** The web's illustrations (§26.5), same files; origin of the zoom as in `backdrops.css`. */
 const images = {
   ocean: { source: ocean, origin: '70% 30%' },
   forest: { source: forest, origin: '75% 22%' },
@@ -16,7 +15,6 @@ const images = {
 
 export type BackdropImage = keyof typeof images
 
-/** `prefers-reduced-motion` of iOS (Settings › Accessibility › Motion). */
 export const useReducedMotion = (): boolean => {
   const [reduced, setReduced] = useState(false)
   useEffect(() => {
@@ -29,10 +27,6 @@ export const useReducedMotion = (): boolean => {
 
 const still = 1.04
 
-/**
- * A full-screen illustration behind an entry screen, darkened for the panel over it: the web's
- * `Backdrop` (narrow-screen shade), with its slow Ken Burns (32 s), still under reduced motion.
- */
 export const Backdrop = ({ image }: { image: BackdropImage }) => {
   const reduced = useReducedMotion()
   const [scale] = useState(() => new Animated.Value(still))

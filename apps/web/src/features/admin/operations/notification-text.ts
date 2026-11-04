@@ -18,10 +18,6 @@ const number = (context: Record<string, unknown>, key: string): number | undefin
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-/**
- * The line under a notification's title (§15 centre): what it is about, from its `context`
- * (paths, versions, the failed job and its error). `undefined` when the title says it all.
- */
 export const notificationDetail = (
   notification: Pick<NotificationDto, 'kind' | 'context'>,
   t: TFunction,
@@ -94,7 +90,6 @@ export const notificationDetail = (
   }
 }
 
-/** Where a notification is acted upon: the admin screen of its subject. */
 export const notificationTarget = (
   kind: NotificationKind,
 ):

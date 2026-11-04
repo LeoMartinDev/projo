@@ -15,7 +15,6 @@ import {
 } from './enrichment.ts'
 import type { TmdbImage, TmdbMovie, TmdbSeries } from './tmdb.ts'
 
-/** `undefined` in `overrides` removes the property (TMDB had no value). */
 const movie = (overrides: { [K in keyof TmdbMovie]?: TmdbMovie[K] | undefined } = {}): TmdbMovie =>
   Object.fromEntries(
     Object.entries({ ...base, ...overrides }).filter(([, value]) => value !== undefined),

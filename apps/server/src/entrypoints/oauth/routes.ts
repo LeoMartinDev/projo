@@ -13,7 +13,6 @@ import { protectedResourceMetadataPath } from '../mcp/routes.ts'
 
 const authorizationServerMetadataPath = '/.well-known/oauth-authorization-server'
 
-/** RFC 6749 §5.2 / RFC 7591 §3.2.2 error bodies, never cached. */
 const oauthError = (c: Context, error: string, description: string, status: 400 | 401 | 429) => {
   c.header('Cache-Control', 'no-store')
   return c.json({ error, error_description: description }, status)
@@ -47,10 +46,6 @@ const errorStrings = {
   'oauth/invalid_request': 'invalid_client_metadata',
 } as const
 
-/**
- * The machine side of §27.3, outside `/api/v1`: discovery documents, client registration
- * (RFC 7591) and the token endpoint. The consent page is the web app's `/oauth/authorize`.
- */
 export const oauthRoutes = ({
   oauth,
   registrationLimiter,
@@ -58,9 +53,7 @@ export const oauthRoutes = ({
   trustProxy,
 }: {
   oauth: OAuth
-  /** §27.3: 10 registrations per hour per IP. */
   registrationLimiter: RateLimiter
-  /** §27.3: 20 failed token requests per 15 min per IP. */
   tokenFailureLimiter: RateLimiter
   trustProxy: boolean
 }) => {

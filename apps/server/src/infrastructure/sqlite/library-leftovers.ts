@@ -10,13 +10,6 @@ import { jobs, notifications } from './schema/ops.ts'
 const field = (column: typeof jobs.payload | typeof notifications.context, name: string) =>
   sql`json_extract(${column}, ${`$.${name}`})`
 
-/**
- * `jobs` and `notifications` of a deleted library or removed roots (§7.1). A job is on them when
- * its payload names the library (`scan_library`, `refresh_metadata`) or one of their sources
- * (`probe_source`, `match_source`, `extract_subtitles`, `index_keyframes`, `trickplay`): the
- * fields `jobTargetOf` reads. Their items may live on in other libraries: their jobs stay. A
- * notification is about them when its context names the library, a root or a source.
- */
 export const createSqliteLibraryLeftovers = ({
   db,
   clock,

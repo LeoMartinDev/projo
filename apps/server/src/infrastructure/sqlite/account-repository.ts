@@ -29,7 +29,6 @@ export const toAccountRow = (account: Account): AccountRow => ({
   disabledAt: toNullable(account.disabledAt && toIso(account.disabledAt)),
 })
 
-/** Case-insensitive username lookup, usable inside a transaction. */
 export const usernameTaken = (db: Pick<Db, 'select'>, username: string): boolean =>
   db
     .select({ id: accounts.id })

@@ -39,7 +39,6 @@ describe('§13.1 progress rules', () => {
     expect(end).toMatchObject({ watched: true, playCount: 1, watchedAt: later(30) })
     expect(progressState(end)).toBe('watched')
     expect(resumePositionMs(end)).toBe(0)
-    // Heartbeats keep coming during the credits: no double count.
     const credits = play(end, 0.99 * hour, later(33))
     expect(credits).toMatchObject({ playCount: 1, watchedAt: later(30) })
   })

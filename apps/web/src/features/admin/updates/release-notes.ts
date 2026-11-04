@@ -1,8 +1,3 @@
-/**
- * The Markdown subset of the release notes (runtime/scripts/release-notes.ts): `## ` headings,
- * `- ` lists and paragraphs, separated by blank lines. Rendered as React text, never as HTML:
- * the notes come from GitHub.
- */
 export type NotesBlock =
   | { kind: 'heading'; text: string }
   | { kind: 'list'; items: string[] }
@@ -26,7 +21,6 @@ export const parseReleaseNotes = (notes: string): NotesBlock[] =>
 export type InlinePart =
   { kind: 'text'; text: string } | { kind: 'code'; text: string } | { kind: 'link'; href: string }
 
-/** `code` spans and bare https links; everything else is text. */
 export const parseInline = (text: string): InlinePart[] =>
   text
     .split(/(`[^`]+`|https:\/\/[^\s)]+)/u)

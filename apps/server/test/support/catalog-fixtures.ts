@@ -9,11 +9,6 @@ import {
 import { playbackProgress, watchlist } from '../../src/infrastructure/sqlite/schema/playback.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
 
-/**
- * Direct inserts for catalog / playback / progress tests (the scanner writes these rows in the
- * app). Every helper returns the inserted id; `seed*` helpers build small graphs.
- */
-
 const at = '2026-01-01T00:00:00.000Z'
 
 export const insertAccount = (db: Db, id = 'account-1') => {
@@ -55,7 +50,6 @@ export const insertProfile = (db: Db, accountId: string, id = `profile-of-${acco
   return id
 }
 
-/** A library with one root at `rootPath`. */
 export const insertLibrary = (
   db: Db,
   { id = 'library-1', rootPath = '/media', ratingCountry = 'FR' } = {},
@@ -110,7 +104,6 @@ export const insertSource = (db: Db, { itemId, ...input }: SourceInput) => {
   return input.id
 }
 
-/** Account + auth session + profile: what the auth middleware would resolve. */
 export const seedViewer = (db: Db, accountId = 'account-1') => {
   insertAccount(db, accountId)
   return {
@@ -131,7 +124,6 @@ export const insertImage = (
   return id
 }
 
-/** A person credited on an item. */
 export const insertCredit = (
   db: Db,
   {
@@ -166,7 +158,6 @@ export const insertCredit = (
     .run()
 }
 
-/** A `playback_progress` row (ratio of a 1 h duration). */
 export const insertProgress = (
   db: Db,
   {
@@ -204,10 +195,6 @@ export const insertWatchlist = (db: Db, profileId: string, itemId: string, added
   db.insert(watchlist).values({ profileId, itemId, addedAt }).run()
 }
 
-/**
- * A series with ready episodes: `episodes` is `[season, episode]` pairs; ids are
- * `<id>-s<n>` for seasons and `<id>-s<n>e<m>` for episodes, sources `f-<episode id>`.
- */
 export const seedSeries = (
   db: Db,
   {

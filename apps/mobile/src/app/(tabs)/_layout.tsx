@@ -6,11 +6,6 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors } from '../../shared/styles/tokens.ts'
 import { OfflineBanner } from '../../shared/ui/states.tsx'
 
-/**
- * Browsing (§26.5): on an iPhone the tab bar Home · Shows · Movies · My list · Search; on an iPad
- * the same entries in a sidebar, in the manner of the Apple TV app (the system's sidebar-adaptable
- * tab bar). Each tab keeps its own stack.
- */
 const TabsLayout = () => {
   const { t } = useTranslation()
   return (

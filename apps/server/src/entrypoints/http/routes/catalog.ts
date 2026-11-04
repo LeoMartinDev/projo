@@ -39,13 +39,11 @@ import { progressFields } from './progress.ts'
 const optional = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }
 
-/** `2025-06-26` → 2025. */
 const yearOf = (date: string | undefined): number | undefined => {
   const year = date === undefined ? Number.NaN : Number.parseInt(date.slice(0, 4), 10)
   return Number.isInteger(year) ? year : undefined
 }
 
-/** §9.1: images are served by `GET /api/v1/images/:id` (immutable, the id changes with the file). */
 export const imageUrl = (imageId: string): string => `/api/v1/images/${encodeURIComponent(imageId)}`
 
 const imageOf = (imageId: string | undefined) =>
@@ -66,7 +64,6 @@ export const toItemRefDto = (item: CatalogItem): ItemRefDto => ({
   images: toImagesDto(item),
 })
 
-/** §9.1: the stored code and its country, with the §14 tier it falls in (the badge, §13.5). */
 export const toContentRatingDto = ({
   contentRating: code,
   contentRatingCountry: country,
@@ -170,16 +167,9 @@ type Deps = {
   listGenres: ListGenres
   getItem: GetItem
   listChildren: ListChildren
-  /** What the active profile may see (§14: library access, content rating). */
   scopeFor: VisibilityScopeResolver
 }
 
-/**
- * §17.2 Catalogue: `/movies`, `/series`, `/genres`, `/items/:id`, `/items/:id/children` (`/home`
- * and `/search` have their own files; `/images/:id` belongs to the metadata domain). Mounted at
- * `/api/v1`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is mounted at a
- * shared prefix, a wildcard would leak to every other domain).
- */
 export const catalogRoutes = ({
   listCatalog,
   listGenres,

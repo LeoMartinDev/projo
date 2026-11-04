@@ -1,10 +1,5 @@
 import type { GenreId } from '@projo/shared/api/genres'
 
-/**
- * §9.1: TMDB genre ids → projo genre ids. Movies and series share the common TMDB ids; the
- * combined series genres are split (`10759` Action & Adventure → `action` + `adventure`…).
- */
-
 const shared: Record<number, readonly GenreId[]> = {
   16: ['animation'],
   35: ['comedy'],
@@ -45,10 +40,6 @@ const seriesGenres: Record<number, readonly GenreId[]> = {
 
 export type TmdbGenreKind = 'movie' | 'series'
 
-/**
- * The projo genres of TMDB genre ids, in TMDB order without duplicates; `unknown`: the TMDB ids
- * without a mapping (dropped, for the caller to log).
- */
 export const tmdbGenres = (
   kind: TmdbGenreKind,
   tmdbIds: readonly number[],

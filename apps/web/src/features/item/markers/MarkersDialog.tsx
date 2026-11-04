@@ -36,7 +36,6 @@ import './markers.css'
 
 type Drafts = Partial<Record<SegmentTypeDto, Draft>>
 
-/** The segments drawn over the duration: the drafts being typed, else the stored markers. */
 const Timeline = ({
   spans,
   lengthMs,
@@ -70,7 +69,6 @@ const Timeline = ({
   )
 }
 
-/** What the chain asked (admin diagnosis, §12.2): one chip per source. */
 const Lookups = ({ lookups }: { lookups: readonly SegmentLookupDto[] }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -224,7 +222,6 @@ const ApplyToSeasonDialog = ({
           json: {},
         }),
       ),
-    // The other episodes of the season changed.
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalog', 'segments'] }),
   })
   const close = () => {
@@ -276,12 +273,6 @@ const ApplyToSeasonDialog = ({
 
 type RowAction = { type: SegmentTypeDto; action: 'absent' | 'present' | 'remove' }
 
-/**
- * "Markers" (§12.5, admin ⋮ menu of a movie or an episode): per type, two time fields, the
- * origin, "Pas d'intro" (negative marker) and delete; the timeline previews the drafts.
- * "Enregistrer" stores the edited rows as manual markers; an episode can copy its manual markers
- * onto its season.
- */
 export const MarkersDialog = ({
   itemId,
   name,
@@ -291,7 +282,6 @@ export const MarkersDialog = ({
   onClose,
 }: {
   itemId: string
-  /** Episode code (`S1 · E3`), in the title. */
   name?: string
   episode: boolean
   durationMs?: number
@@ -439,7 +429,6 @@ export const MarkersDialog = ({
           )}
         </div>
       </Dialog>
-      {/* A sibling, not a child: React would bubble its close and cancel events to this dialog. */}
       {episode ? (
         <ApplyToSeasonDialog
           itemId={itemId}

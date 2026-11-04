@@ -14,10 +14,6 @@ import { useCreateProfile, useDeleteProfile, useUpdateProfile } from './queries.
 export type EditorTarget =
   { mode: 'create' } | { mode: 'edit'; profile: ProfileDto; currentPin?: string }
 
-/**
- * Create or change a profile (§13.6), as the web's editor: name, colour, optional PIN; delete
- * with confirmation (its progress is lost).
- */
 export const ProfileEditorSheet = ({
   target,
   canDelete,

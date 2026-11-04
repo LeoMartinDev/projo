@@ -23,7 +23,6 @@ type ProfileBody = {
   libraryIds: string[]
 }
 
-/** Admin with three profiles: its own, "Enfants" (limited to 10) and "Parent" (PIN 1234). */
 const family = async () => {
   const t = createAuthTestApp()
   const { cookie } = await t.completeSetup()
@@ -120,7 +119,6 @@ describe('"Qui regarde ?" (§13.6)', () => {
     expect(((await (await device.get('/api/v1/auth/me')).json()) as Me).needsProfileSelection).toBe(
       true,
     )
-    // Other domains see no active profile until one is chosen.
     expect(await (await device.get('/api/v1/probe')).json()).toEqual({ account: 'leo' })
 
     const selected = await device.send('POST', `/api/v1/profiles/${kid.id}/select`, {})
@@ -129,7 +127,6 @@ describe('"Qui regarde ?" (§13.6)', () => {
       activeProfileId: kid.id,
       needsProfileSelection: false,
     })
-    // Restored on the next visit, without header.
     expect(await (await device.get('/api/v1/auth/me')).json()).toMatchObject({
       activeProfileId: kid.id,
       needsProfileSelection: false,
@@ -148,7 +145,6 @@ describe('"Qui regarde ?" (§13.6)', () => {
     const sneaky = await admin.get('/api/v1/probe', header)
     expect(sneaky.status).toBe(403)
     expect(await errorCode(sneaky)).toBe('profile/pin_required')
-    // /auth/me still answers, and asks for a choice.
     const me = await admin.get('/api/v1/auth/me', header)
     expect(me.status).toBe(200)
     expect(await me.json()).toMatchObject({ needsProfileSelection: true })
@@ -166,7 +162,6 @@ describe('"Qui regarde ?" (§13.6)', () => {
       profileId: parent.id,
     })
 
-    // Switching away and back asks again.
     expect((await admin.get('/api/v1/probe', { 'X-Profile-Id': kid.id })).status).toBe(200)
     expect((await admin.get('/api/v1/probe', header)).status).toBe(403)
   })
@@ -221,7 +216,6 @@ describe('access and maximum rating (§14)', () => {
       (await zoe.send('PATCH', `/api/v1/profiles/${kid.id}`, { maxContentRating: '0' })).status,
     ).toBe(200)
 
-    // The admin manages any account's profiles.
     const widened = await admin.send('PATCH', `/api/v1/profiles/${kid.id}`, {
       maxContentRating: '16',
     })
@@ -235,7 +229,6 @@ describe('access and maximum rating (§14)', () => {
       expect.objectContaining({ name: 'Petit', maxContentRating: '16' }),
     ])
 
-    // The resolver of the catalogue follows at once.
     expect(t.visibilityScope(kid.id).allowedRatings?.['FR']).toEqual(['U', 'TP', '10', '12', '16'])
 
     const unknown = await admin.send('PATCH', `/api/v1/profiles/${kid.id}`, {
@@ -245,7 +238,6 @@ describe('access and maximum rating (§14)', () => {
     expect(unknown.status).toBe(400)
     expect(await errorCode(unknown)).toBe('profile/unknown_library')
 
-    // A user does not reach another account's profiles.
     const own = (await (await admin.get('/api/v1/profiles')).json()) as { items: ProfileBody[] }
     const foreign = await zoe.send('PATCH', `/api/v1/profiles/${own.items[0]?.id}`, { name: 'x' })
     expect(foreign.status).toBe(404)
@@ -282,7 +274,6 @@ describe('no widening without a resolved unrestricted profile (§14)', () => {
       maxContentRating: '',
     })
     expect(lifted.status).toBe(403)
-    // Once its own profile is chosen, the admin manages profiles again.
     const own = (await (await device.get('/api/v1/profiles')).json()) as { items: ProfileBody[] }
     await device.send('POST', `/api/v1/profiles/${own.items[0]?.id}/select`, {})
     expect(
@@ -299,7 +290,6 @@ describe('no widening without a resolved unrestricted profile (§14)', () => {
     const own = (await (await admin.get('/api/v1/profiles')).json()) as { items: ProfileBody[] }
     const leo = own.items[0]?.id ?? ''
     expect((await admin.send('PATCH', `/api/v1/profiles/${leo}`, { pin: '4321' })).status).toBe(200)
-    // Another device, signed in: Léo's profile is locked there.
     const device = t.as(sessionCookieOf(await t.login('leo', adminPassword)))
     const widened = await device.send(
       'PATCH',
@@ -357,7 +347,6 @@ describe('account actions from a restricted profile (§14)', () => {
     })
     expect(own.status).toBe(200)
     expect(await own.json()).toMatchObject({ name: 'Les petits', audioLanguage: 'en' })
-    // Narrowing itself stays possible; switching profile too.
     expect(
       (await admin.send('PATCH', `/api/v1/profiles/${kid.id}`, { maxContentRating: '0' })).status,
     ).toBe(200)

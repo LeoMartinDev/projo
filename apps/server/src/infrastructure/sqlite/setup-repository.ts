@@ -11,7 +11,6 @@ import { settings } from './schema/ops.ts'
 const accountCount = (db: Pick<Db, 'select'>): number =>
   db.select({ value: count() }).from(accounts).get()?.value ?? 0
 
-/** The check and the writes share one transaction: a concurrent second setup sees the account. */
 export const createSqliteSetupRepository = ({ db }: { db: Db }): SetupRepository => ({
   isCompleted: () => accountCount(db) > 0,
   complete: ({ account, profile, settings: values, at }) =>

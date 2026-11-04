@@ -91,13 +91,11 @@ const jobFor = async (
   }
 }
 
-/** init + segment glued together: what a player's MSE buffer receives. */
 const playable = (init: string, segment: string, out: string): string => {
   writeFileSync(out, Buffer.concat([readFileSync(init), readFileSync(segment)]))
   return out
 }
 
-/** Start time (s, offset removed) of every video fragment of a segment file. */
 const fragmentStarts = (init: string, segment: string): number[] => {
   const [moov] = createBoxSplitter()
     .push(new Uint8Array(readFileSync(init)))
@@ -122,7 +120,6 @@ describe.skipIf(!hasFfmpeg())('ffprobe (real binary)', () => {
   test('probes streams of a MKV', async () => {
     const probe = unwrap(await ffprobe.probe(files['mkvAc3'] ?? ''))
     expect(probe.formatName).toBe('matroska,webm')
-    // ffmpeg 9's muxer ends the file 5 ms after the last frame; 7.1 (the image's) on it.
     expect(Math.abs((probe.durationMs ?? 0) - 20_000)).toBeLessThanOrEqual(10)
     expect(probe.video).toMatchObject([{ index: 0, codec: 'h264', width: 160, height: 90 }])
     expect(probe.audio).toMatchObject([{ index: 1, codec: 'ac3' }])
@@ -187,7 +184,6 @@ describe.skipIf(!hasFfmpeg())('HLS remux segmenter (real ffmpeg)', () => {
       ['video', 'h264'],
       ['audio', 'aac'],
     ])
-    // Timestamps carry the constant output offset (see ffmpeg-args.ts).
     expect(Number(probe.format.duration) - outputTimestampOffsetS).toBeCloseTo(6, 0)
     expect(await decodesCleanly(glued)).toBe(true)
     expect(fragmentStarts(init, first)).toEqual([0, 2, 4])
@@ -222,9 +218,7 @@ describe.skipIf(!hasFfmpeg())('HLS remux segmenter (real ffmpeg)', () => {
     const { segmenter, dir } = newSegmenter({ bufferAhead: 0 })
     unwrap(await segmenter.segment(job, 0))
     await Bun.sleep(300)
-    // Only the requested segment (and the one being accumulated) can exist.
     expect(existsSync(join(dir, 's-throttle', 'seg-00003.m4s'))).toBe(false)
-    // The next request lets it go on.
     unwrap(await segmenter.segment(job, 1))
     segmenter.stop('s-throttle')
   })

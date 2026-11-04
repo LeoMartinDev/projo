@@ -91,7 +91,6 @@ describe('fetch_segments (§12.2)', () => {
       ['credits', 'introdb'],
     ])
     expect(store.repository.find({ itemId: 'e1', type: 'intro' })?.startMs).toBe(60_000)
-    // recap and preview still missing: SkipDB asked too.
     expect(calls.map((call) => call.provider)).toEqual(['theintrodb', 'introdb', 'skipdb'])
     expect(calls[0]).toMatchObject({ itemId: 'e1', durationMs })
     expect(outcomes()).toEqual({
@@ -142,7 +141,6 @@ describe('fetch_segments (§12.2)', () => {
     await fetch()
     expect(types()).toEqual([['intro', 'manual']])
     expect(store.repository.find({ itemId: 'e1', type: 'intro' })?.startMs).toBe(60_000)
-    // Neither intro nor credits wanted: no fingerprinting.
     expect(jobs.enqueued.filter((job) => job.type === 'fingerprint_season')).toEqual([])
   })
 
@@ -153,7 +151,6 @@ describe('fetch_segments (§12.2)', () => {
     clock.advance(10 * 24 * 60 * minute)
     await fetch()
     expect(calls).toHaveLength(3)
-    // `none` is retried after 30 days.
     clock.advance(21 * 24 * 60 * minute)
     await fetch()
     expect(calls).toHaveLength(6)
@@ -191,7 +188,6 @@ describe('fetch_segments (§12.2)', () => {
     expect(calls.map((call) => call.provider)).toEqual(['theintrodb', 'introdb', 'skipdb'])
     expect(types()).toEqual([['intro', 'skipdb']])
     expect(outcomes()).toMatchObject({ introdb: 'none', skipdb: 'found' })
-    // credits only "absent" for a provider: still fingerprinted.
     expect(jobs.enqueued.map((job) => job.type)).toEqual(['fingerprint_season'])
   })
 

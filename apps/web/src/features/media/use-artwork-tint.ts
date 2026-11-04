@@ -2,21 +2,15 @@ import { useSyncExternalStore } from 'react'
 
 import { artworkTint } from './artwork-tint.ts'
 
-/**
- * The tints of the artworks sampled so far, by URL, for the life of the page. Artworks are
- * same-origin (`/api/v1/images/:id`), so the canvas stays readable.
- */
 const tints = new Map<string, string>()
 const requested = new Set<string>()
 const listeners = new Set<() => void>()
 
-/** Side of the square the artwork is drawn into: enough pixels for a stable average. */
 const sampleSize = 24
 
 const sample = async (src: string) => {
   const image = new Image()
   image.decoding = 'async'
-  // The smallest WebP variant (§9.1): plenty for a 24 px average.
   image.src = `${src}?w=185`
   await image.decode()
   const canvas = document.createElement('canvas')
@@ -29,10 +23,6 @@ const sample = async (src: string) => {
   return artworkTint(context.getImageData(0, 0, sampleSize, sampleSize).data)
 }
 
-/**
- * Samples the tint of `src` once, from its smallest variant (a few kB, fetched on the first
- * hover). A failed sample leaves the neutral panel.
- */
 export const requestArtworkTint = (src: string | undefined) => {
   if (src === undefined || requested.has(src)) return
   requested.add(src)
@@ -52,6 +42,5 @@ const subscribe = (listener: () => void) => {
   }
 }
 
-/** The tint of `src` (`#rrggbb`) once `requestArtworkTint` has sampled it. */
 export const useArtworkTint = (src: string | undefined): string | undefined =>
   useSyncExternalStore(subscribe, () => (src === undefined ? undefined : tints.get(src)))

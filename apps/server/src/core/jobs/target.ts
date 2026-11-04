@@ -20,7 +20,6 @@ const targetKinds: Record<JobType, readonly (readonly [JobTargetRef['kind'], str
   trickplay: [['source', 'sourceId']],
   preview_clip: [['item', 'itemId']],
   extract_subtitles: [['source', 'sourceId']],
-  // One item, or a whole library ("Refresh the whole library").
   refresh_metadata: [
     ['item', 'itemId'],
     ['library', 'libraryId'],
@@ -32,11 +31,6 @@ const targetKinds: Record<JobType, readonly (readonly [JobTargetRef['kind'], str
   image_variants: [],
 }
 
-/**
- * "Cible" of a job (§15), read from its payload: the first field of its type that is set.
- * `undefined` for the jobs without a subject (`watch_pending`, `check_updates`, `cleanup_cache`,
- * `purge_missing`, `image_variants`) and for a payload that does not carry the expected field.
- */
 export const jobTargetOf = (type: JobType, payload: unknown): JobTargetRef | undefined => {
   for (const [kind, field] of targetKinds[type]) {
     const id = stringField(payload, field)

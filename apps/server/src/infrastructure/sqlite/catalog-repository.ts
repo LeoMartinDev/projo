@@ -48,23 +48,12 @@ import {
 } from './schema/libraries.ts'
 import { segments } from './schema/playback.ts'
 
-/**
- * Read side of the catalog (§6.3). Every query goes through `visible(scope)`: an item without a
- * ready source (transitively for seasons and series), or outside the profile's scope, does not
- * exist for the user API.
- */
-
-/**
- * §13.5 search tables, created by the custom migration `search` (not in the Drizzle schema:
- * FTS5 is not expressible there). `search_documents.id` is the FTS rowid of a movie or a series.
- */
 const searchDocuments = sqliteTable('search_documents', {
   id: integer().primaryKey(),
   itemId: text().notNull(),
 })
 const itemsFts = sqliteTable('items_fts', { rowid: integer().notNull(), rank: real().notNull() })
 
-/** `items.genres`: projo genre ids (§9.1), written by the TMDB enrichment and the admin edits. */
 const genresSchema = z.array(genreIdSchema)
 
 type ItemRow = typeof items.$inferSelect
@@ -82,7 +71,6 @@ export const toCatalogItem = (row: ItemRow): CatalogItem => {
     title,
     ...rest
   } = stripNulls(row)
-  // '' and the placeholders of older rows ("Episode 7", "Season 1") read as no title of its own.
   const own = ownTitle({ ...rest, title })
   return {
     ...rest,
@@ -98,10 +86,6 @@ const titleKey = sql`${items.sortTitle} COLLATE NOCASE`
 
 type SortKey = { expr: SQL; descending: boolean }
 
-/**
- * Keyset columns of a sort: the key(s) of `sortKeys` then the id. Year and rating put unknown
- * values last and break ties by title A→Z.
- */
 const sortColumns = (sort: CatalogSort, order: SortOrder): SortKey[] => {
   const descending = order === 'desc'
   const missing = missingSortValue(order)
@@ -129,7 +113,6 @@ const sortColumns = (sort: CatalogSort, order: SortOrder): SortKey[] => {
   }
 }
 
-/** Rows strictly after `position` in the order of `columns`. */
 const afterPosition = (columns: SortKey[], position: CatalogPosition): SQL => {
   const values = [...position.keys, position.id]
   const branches = columns.map((column, index) => {
@@ -145,7 +128,6 @@ const afterPosition = (columns: SortKey[], position: CatalogPosition): SQL => {
 const orderBy = (columns: SortKey[]): SQL[] =>
   columns.map((column) => sql`${column.expr} ${column.descending ? sql`DESC` : sql`ASC`}`)
 
-/** `unwatched` / `in_progress` / `watched` of the movie or episode `alias` for a profile (§13.1). */
 const watchState = (alias: SQL, profileId: string): SQL =>
   sql`coalesce((SELECT CASE
     WHEN p.duration_ms > 0 AND p.position_ms >= ${progressRules.resumeFromRatio} * p.duration_ms AND p.position_ms < ${progressRules.watchedAtRatio} * p.duration_ms THEN 'in_progress'
@@ -159,7 +141,6 @@ const watchFilter = (
   scope: VisibilityScope,
 ): SQL => {
   if (kind === 'movie') return sql`${watchState(sql`${items.id}`, profileId)} = ${watch}`
-  // A series from its visible episodes (§13.1, `aggregateWatchStatus`): `in_progress` = partly.
   const anyEpisode = (not: string) =>
     sql`EXISTS (SELECT 1 FROM ${visibleEpisodesOfSeries('items', scope)} AND ${watchState(sql`e.id`, profileId)} <> ${not})`
   switch (watch) {
@@ -220,10 +201,6 @@ const bestSourceOrder = [
 
 const unique = <T>(values: Iterable<T>): T[] => [...new Set(values)]
 
-/**
- * Adds `durationMs` to movies and episodes: the probed duration of their best ready source, in
- * one query per list (cards show it when TMDB has no runtime).
- */
 const withDurations =
   (db: Db, scope: VisibilityScope) =>
   (list: CatalogItem[]): CatalogItem[] => {
@@ -256,10 +233,6 @@ const withDurations =
     })
   }
 
-/**
- * §8.4: an episode whose best ready source (the `withDurations` order) also holds the next
- * episodes of its season gets `episodeNumberEnd` ("E01-E02").
- */
 const withEpisodeRanges =
   (db: Db, scope: VisibilityScope) =>
   (list: CatalogItem[]): CatalogItem[] => {
@@ -285,7 +258,6 @@ const withEpisodeRanges =
       for (const { itemId, sourceId } of rows)
         if (!bestSource.has(itemId)) bestSource.set(itemId, sourceId)
     }
-    // Episode numbers each of those files holds, per season.
     const covered = new Map<string, Set<number>>()
     for (const chunk of chunks(unique(bestSource.values()))) {
       const rows = db
@@ -338,7 +310,6 @@ export const createSqliteCatalogRepository = ({ db }: { db: Db }): CatalogReposi
       ),
     )
 
-  /** Visible episodes under seasons or series (ids), with the container they were found under. */
   const listVisibleEpisodeIds: CatalogRepository['listVisibleEpisodeIds'] = ({
     ancestorIds,
     scope,

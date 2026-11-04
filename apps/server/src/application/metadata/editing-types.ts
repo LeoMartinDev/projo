@@ -11,17 +11,10 @@ import type {
 import type { ItemKind } from '../../core/metadata/ports.ts'
 import type { TmdbError } from '../../core/metadata/tmdb.ts'
 
-/**
- * The use cases of metadata editing (§9.3) and refresh (§9.4), called by `admin-items` and
- * `admin-libraries` routes. Built by `entrypoints/modules/metadata.ts`.
- */
-
-/** The item as the editor shows it (overrides applied). Images: `images.id`. */
 export type ItemMetadataView = {
   id: string
   kind: ItemKind
   tmdbId?: number
-  /** Absent: a season or an episode without a name of its own (§6.3). */
   title?: string
   year?: number
   overview?: string
@@ -51,19 +44,15 @@ export type SetItemImageError =
 export type RefreshError = NotFound | AppError<'metadata/not_matched'>
 
 export type MetadataEditing = {
-  /** `GET /admin/items/:id` (any item, visible or not). */
   get: (input: { itemId: string }) => Result<ItemMetadataView, NotFound>
-  /** `PATCH /admin/items/:id`. */
   setOverrides: (input: {
     itemId: string
     overrides: TextOverrides
   }) => Result<ItemMetadataView, NotFound>
-  /** `DELETE /admin/items/:id/overrides/:field` ("Back to the TMDB value"). */
   removeOverride: (input: {
     itemId: string
     field: EditableField
   }) => Promise<Result<ItemMetadataView, NotFound>>
-  /** `GET /admin/items/:id/images/alternatives?kind=`; `current` flags the image in use. */
   alternatives: (input: {
     itemId: string
     kind: EditableImageKind
@@ -73,14 +62,11 @@ export type MetadataEditing = {
       NotFound | TmdbError | AppError<'metadata/not_matched'>
     >
   >
-  /** `POST /admin/items/:id/images` (TMDB alternative or upload); locks the slot. */
   setImage: (input: {
     itemId: string
     choice: ImageChoice
   }) => Promise<Result<ItemMetadataView, SetItemImageError>>
-  /** `POST /admin/items/:id/refresh`: enqueues `refresh_metadata` `{ itemId }`. */
   requestRefresh: (input: { itemId: string }) => Result<Job, RefreshError>
-  /** `POST /admin/libraries/:id/refresh-metadata`: one `refresh_metadata` `{ libraryId }`. */
   requestLibraryRefresh: (input: {
     libraryId: string
   }) => Result<Job, AppError<'library/not_found'>>

@@ -29,19 +29,11 @@ import { ProgressBar } from '../media/parts.tsx'
 import { DetailHead, HeadAction, ProgressLine } from './DetailHead.tsx'
 import { CastRow, Section } from './sections.tsx'
 
-/**
- * The season tab: the asked one (`season`, else the season of the episode to play), else the
- * first regular season, else the specials (the web's `selectedSeasonOf`).
- */
 const selectedSeasonOf = (seasons: readonly ItemSummaryDto[], wanted: number | undefined) =>
   seasons.find((item) => item.seasonNumber === wanted) ??
   seasons.find((item) => (item.seasonNumber ?? 0) > 0) ??
   seasons[0]
 
-/**
- * One episode (artboard `MobileSeries`): its still with the play ring and its progress, "4. Title",
- * its running time or "In progress · 18 min left", the overview, and the "Watched" toggle.
- */
 const EpisodeRow = ({
   episode,
   fallbackArt,
@@ -123,11 +115,6 @@ const EpisodeRow = ({
   )
 }
 
-/**
- * Series page (§13.5, artboards `MobileSeries`, `Series`): "Resume S2 · E4" (or "Play"), My list;
- * then the season tabs, "x of n watched", "12 / 22 episodes" when files are missing, "Mark all as
- * watched" and the bulk actions, the episodes; the cast last.
- */
 export const SeriesEpisodes = ({
   series,
   season,

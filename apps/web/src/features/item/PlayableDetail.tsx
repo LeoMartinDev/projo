@@ -15,10 +15,6 @@ import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
 import { TechSection } from './TechSection.tsx'
 
-/**
- * Movie or episode page (§13.5): "Play" or "Resume at 1:12:03", From the beginning, Ma liste
- * (movies), Marquer vu, then the casting, the tracks and the files.
- */
 export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: ReactNode }) => {
   const { t } = useTranslation()
   const locale = currentLocale()

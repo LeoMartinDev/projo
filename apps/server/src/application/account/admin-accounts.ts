@@ -25,7 +25,6 @@ type Deps = {
   logger: Logger
 }
 
-/** An account as the admin list shows it (§15 Comptes, artboard `AdminAccounts`). */
 export type AdminAccountView = {
   account: Account
   profiles: Profile[]
@@ -61,7 +60,6 @@ const lastAdmin = (accountId: string) =>
     ),
   )
 
-/** Builds an account and its first profile (§14): name = username unless given. */
 export const buildNewAccount = async (
   { passwordHasher, ids, clock }: Pick<Deps, 'passwordHasher' | 'ids' | 'clock'>,
   input: NewAccountInput,
@@ -85,7 +83,6 @@ export const buildNewAccount = async (
   return { account, profile }
 }
 
-/** Use cases of `/admin/accounts` (§15 Accounts). Every caller is an admin (`requireAdmin`). */
 export const adminAccountsFactory = (deps: Deps) => {
   const {
     accountRepository,
@@ -148,11 +145,6 @@ export const adminAccountsFactory = (deps: Deps) => {
       return get(created.account.id)
     },
 
-    /**
-     * Role and activation. Disabling revokes every session (the account cannot sign in any more,
-     * its data stays, §14). Synchronous from the last-admin check to the write: two admins
-     * demoting each other cannot both pass.
-     */
     update: ({
       accountId,
       role,
@@ -188,7 +180,6 @@ export const adminAccountsFactory = (deps: Deps) => {
       return get(accountId)
     },
 
-    /** Full cascade (§14), confirmed by typing the username. */
     delete: ({
       accountId,
       confirmUsername,
@@ -210,14 +201,12 @@ export const adminAccountsFactory = (deps: Deps) => {
       ) {
         return lastAdmin(accountId)
       }
-      // Its playback stops first (ffmpeg, players told): the cascade drops the session rows.
       playbackSessions.endWithin({ accountId })
       accountRepository.delete(accountId)
       logger.info('account deleted', { accountId })
       return ok()
     },
 
-    /** §14 "the admin resets it": new password, every session of the account revoked. */
     resetPassword: async ({
       accountId,
       password,

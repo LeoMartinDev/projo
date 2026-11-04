@@ -17,10 +17,6 @@ const idsOf = (targets: readonly JobTargetRef[], kinds: readonly JobTargetRef['k
   ...new Set(targets.filter((target) => kinds.includes(target.kind)).map((target) => target.id)),
 ]
 
-/**
- * Names of job targets (§15 "Jobs", "cible"), one query per kind of the page: library name, file
- * name, the version itself; an item by its parts (own title, series, numbers), worded by the web.
- */
 export const createSqliteJobTargetLabels = ({ db }: { db: Db }): JobTargetLabels => ({
   labelsOf: (targets) => {
     const names = new Map<string, JobTargetName>()
@@ -80,7 +76,6 @@ export const createSqliteJobTargetLabels = ({ db }: { db: Db }): JobTargetLabels
           ...(episodeNumber === undefined ? {} : { episodeNumber }),
         }
         names.set(jobTargetKey({ kind: kind === 'season' ? 'season' : 'item', id }), { item })
-        // A season id may come as an `item` target too (`refresh_metadata` of a season).
         if (kind === 'season') names.set(jobTargetKey({ kind: 'item', id }), { item })
       }
     }

@@ -19,13 +19,11 @@ import { ConnectDeviceDialog } from './ConnectDeviceDialog.tsx'
 import '../profiles/profiles.css'
 import './account.css'
 
-/** `GET /auth/sessions`: the account's browsers and devices, most recent first (§14). */
 const sessionsQuery = queryOptions({
   queryKey: ['sessions'],
   queryFn: () => request(() => api.auth.sessions.$get()),
 })
 
-/** `POST /auth/password`: the other sessions are revoked by the server. */
 const PasswordPanel = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -105,10 +103,6 @@ const PasswordPanel = () => {
   )
 }
 
-/**
- * The account's devices, revocable one by one, and "Connect a device" (pairing, §14). Fixed
- * height: the list scrolls.
- */
 const DevicesPanel = () => {
   const { t } = useTranslation()
   const ids = useId()
@@ -193,15 +187,12 @@ const DevicesPanel = () => {
   )
 }
 
-/** `/settings/account`: the account (§14), its password and its devices. */
-/** `GET /health` (outside `/api/v1`): the app version. */
 const healthQuery = queryOptions({
   queryKey: ['health'],
   queryFn: async () => healthResponseSchema.parse(await (await fetch('/health')).json()),
   staleTime: Number.POSITIVE_INFINITY,
 })
 
-/** "À propos": the version and the attributions the data sources require (§12.2). */
 const AboutPanel = () => {
   const { t } = useTranslation()
   const ids = useId()

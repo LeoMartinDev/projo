@@ -56,6 +56,7 @@ ignorePatterns = [
 ]
 "typescript/consistent-type-imports" = ["error", { fixStyle = "inline-type-imports" }]
 "eqeqeq" = ["error", "always"]
+"no-empty" = ["warn", { allowEmptyCatch = true }]
 "import/no-restricted-paths" = [
   "error",
   { zones = [

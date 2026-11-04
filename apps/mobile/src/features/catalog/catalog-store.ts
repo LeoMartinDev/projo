@@ -25,11 +25,6 @@ const load = async (key: string): Promise<CatalogQueryState> => {
   return json.ok ? parseCatalogState(json.value) : defaultCatalogState
 }
 
-/**
- * Sort and filters of Movies / Shows, kept per profile and per device (§13.4), in the Keychain
- * (the app's only store; a few bytes). `state` is undefined until read: the grid waits for it
- * rather than loading the default order first.
- */
 export const useCatalogState = (kind: CatalogKind) => {
   const queryClient = useQueryClient()
   const { gate } = useSession()
@@ -40,7 +35,6 @@ export const useCatalogState = (kind: CatalogKind) => {
     state: stored.data,
     change: (next: CatalogQueryState) => {
       queryClient.setQueryData(queryKey, next)
-      // Not kept (Keychain unavailable): the next launch shows the default order, nothing worse.
       void fromPromise(() => setItemAsync(key, JSON.stringify(next)), storageError)
     },
   }

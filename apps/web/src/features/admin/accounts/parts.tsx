@@ -6,7 +6,6 @@ import {
   contentRatingTiers,
 } from '@projo/shared/api/profiles'
 
-/** Order of the artboard `AdminAccounts`: Bleu, Terre cuite, Sauge, Violet, Ardoise, Miel. */
 export const avatarColors: readonly AvatarColor[] = [
   'blue',
   'terracotta',
@@ -16,7 +15,6 @@ export const avatarColors: readonly AvatarColor[] = [
   'honey',
 ]
 
-/** Profile avatar of the admin: the initial on a colored tile (§14), artboard sizes. */
 export const AdminAvatar = ({
   name,
   color,
@@ -31,7 +29,6 @@ export const AdminAvatar = ({
   </span>
 )
 
-/** Six swatches, radio group (artboard `AdminAccounts`, "Couleur"). */
 export const ColorPicker = ({
   value,
   labelId,
@@ -59,7 +56,6 @@ export const ColorPicker = ({
   )
 }
 
-/** Highest tier first, as in the artboard: Sans limite, 18, 16, 12, 10, Tous publics. */
 export const ratingOptions: readonly ContentRatingTier[] = contentRatingTiers.toReversed()
 
 export const useRatingLabel = () => {

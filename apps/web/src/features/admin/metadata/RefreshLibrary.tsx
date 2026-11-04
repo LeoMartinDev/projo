@@ -9,10 +9,8 @@ import { librariesQuery } from '../queries.ts'
 import { useOptimizeImages, useRefreshLibrary } from './queries.ts'
 import './editing.css'
 
-/** How long "Refresh started" stays before the button can be used again. */
 const queuedMs = 4000
 
-/** A button that queues a job: a spinner while asked, then "queued" for a few seconds. */
 const QueueJobButton = ({
   job,
   label,
@@ -59,10 +57,6 @@ const QueueJobButton = ({
   )
 }
 
-/**
- * "Refresh the whole library" (§9.4, §15): one low-priority job per identified movie or
- * series, locks respected. The jobs show in "Jobs"; the catalog follows `catalog.changed`.
- */
 export const RefreshLibraryButton = ({
   libraryId,
   name,
@@ -89,10 +83,6 @@ export const RefreshLibraryButton = ({
   )
 }
 
-/**
- * "Optimize the images" (§9.1): the WebP variants of the images stored without them (before
- * they existed). Followed in "Jobs".
- */
 export const OptimizeImagesSetting = () => {
   const { t } = useTranslation()
   const optimize = useOptimizeImages()
@@ -109,7 +99,6 @@ export const OptimizeImagesSetting = () => {
   )
 }
 
-/** Section of the "Metadata" page: a library, then the button. */
 export const RefreshLibrarySetting = () => {
   const { t } = useTranslation()
   const id = useId()

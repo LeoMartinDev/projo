@@ -11,11 +11,6 @@ import { PosterTile } from './PosterTile.tsx'
 
 const skeletonCount = 18
 
-/**
- * The poster grid of Movies, Shows, My list and the category pages (§13.4): virtualised, the next
- * page asked for near the end, scrolling under the large native title. `empty` replaces it when
- * the list came back empty.
- */
 export const PosterGrid = ({
   items,
   queryKey,
@@ -27,7 +22,6 @@ export const PosterGrid = ({
   empty,
 }: {
   items: readonly ItemSummaryDto[]
-  /** The query the items come from: the long-press sheet reads them there. */
   queryKey: readonly unknown[]
   pending: boolean
   hasMore: boolean

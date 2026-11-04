@@ -10,7 +10,6 @@ export type { CatalogQueryState }
 
 const pageSize = 60
 
-/** `GET /movies` and `GET /series`, cursor pagination (§17.1). */
 export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
   infiniteQueryOptions({
     queryKey: ['catalog', kind, state],
@@ -24,7 +23,6 @@ export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
     getNextPageParam: (page) => page.nextCursor,
   })
 
-/** `GET /genres?kind=`: genre ids of what the profile can see (sorted by label by the page). */
 export const genresQuery = (kind: CatalogKind) =>
   queryOptions({
     queryKey: ['catalog', 'genres', kind],
@@ -33,7 +31,6 @@ export const genresQuery = (kind: CatalogKind) =>
     staleTime: 5 * 60_000,
   })
 
-/** `GET /watchlist`: Ma liste, last added first. */
 export const watchlistQuery = infiniteQueryOptions({
   queryKey: ['catalog', 'watchlist'],
   initialPageParam: '',
@@ -58,16 +55,11 @@ export const childrenQuery = (id: string) =>
     queryFn: () => request(() => api.items[':id'].children.$get({ param: { id } })),
   })
 
-/** `GET /home` (§13.3). */
 export const homeQuery = queryOptions({
   queryKey: ['catalog', 'home'],
   queryFn: () => request(() => api.home.$get()),
 })
 
-/**
- * `GET /home/categories` (§13.3 item 6): the category rows, batch by batch (`nextCursor`). Under
- * `['catalog']`: `catalog.changed` reloads the batches already shown.
- */
 export const homeCategoriesQuery = infiniteQueryOptions({
   queryKey: ['catalog', 'home', 'categories'],
   initialPageParam: '',
@@ -78,7 +70,6 @@ export const homeCategoriesQuery = infiniteQueryOptions({
   getNextPageParam: (page) => page.nextCursor,
 })
 
-/** `GET /home/categories/:category`: the page behind a category row's "See all ›" (§13.3). */
 export const homeCategoryPageQuery = (category: HomeCategorySlug) =>
   infiniteQueryOptions({
     queryKey: ['catalog', 'home', 'category', category],
@@ -93,7 +84,6 @@ export const homeCategoryPageQuery = (category: HomeCategorySlug) =>
     getNextPageParam: (page) => page.nextCursor,
   })
 
-/** `GET /search?q=` (§13.5), from 2 characters. */
 export const searchQuery = (q: string) =>
   queryOptions({
     queryKey: ['catalog', 'search', q],

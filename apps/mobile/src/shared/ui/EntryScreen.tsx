@@ -6,14 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { colors, fonts, radii, sizes } from '../styles/tokens.ts'
 import { Backdrop, type BackdropImage } from './Backdrop.tsx'
 
-/** The wordmark of the web's header: "projo." */
 export const Logo = () => <Text style={styles.logo}>projo.</Text>
 
-/**
- * An entry screen (§26.5: server connection, sign-in, codes): the web sign-in's composition, an
- * illustration with its Ken Burns and a glass panel holding the title and the form. `pushed`: under
- * a native back button, no wordmark.
- */
 export const EntryScreen = ({
   image,
   title,

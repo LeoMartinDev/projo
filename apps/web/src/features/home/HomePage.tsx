@@ -26,13 +26,11 @@ const rowTitleKey = {
   watchlist: 'home.rows.watchlist',
 } as const
 
-/** "See all ›": My list; Recently added: Movies, or Shows when the row is mostly series. */
 const seeAllOf = (row: HomeRowDto): SeeAll | undefined => {
   if (row.kind === 'watchlist') return { to: '/watchlist' }
   return row.kind === 'recently_added' ? recentlyAddedSeeAll(row.items) : undefined
 }
 
-/** The home while its data loads (also the route's pending screen past `pendingMs`). */
 export const HomeSkeleton = () => (
   <div className="home" aria-busy="true">
     <HeroSkeleton />
@@ -43,10 +41,6 @@ export const HomeSkeleton = () => (
   </div>
 )
 
-/**
- * Accueil (§13.3, artboards `Home`, `MobileHome`): the hero, the fixed rows, then the category
- * rows, batch by batch.
- */
 export const HomePage = () => {
   const { t } = useTranslation()
   const home = useQuery(homeQuery)
@@ -65,7 +59,6 @@ export const HomePage = () => {
   if (home.isPending) return <HomeSkeleton />
 
   const { hero, rows } = home.data
-  // The sheet follows the fresh row data: a toggle in it shows its new state, "Remove" closes it.
   const sheetItem =
     sheet === undefined
       ? undefined

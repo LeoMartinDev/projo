@@ -19,7 +19,6 @@ type Deps = {
 export type CreateLibraryInput = LibrarySettings & { name: string; roots: string[] }
 export type CreateLibraryError = AppError<'library/name_taken'> | RootValidationError
 
-/** §7.1 "Add a library": validates name and roots, saves, then starts the first scan. */
 export const createLibraryFactory =
   ({ libraryRepository, validateRoots, requestScan, clock, ids, logger }: Deps) =>
   async (input: CreateLibraryInput): Promise<Result<Library, CreateLibraryError>> => {

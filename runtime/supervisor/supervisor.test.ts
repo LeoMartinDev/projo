@@ -27,9 +27,7 @@ const setup = (
   const { launch, children } = fakeLauncher(launcherOptions)
   const { logger, codes } = memoryLogger()
   const switches: string[] = []
-  /** What the switch handler was asked, in order. */
   const switchCalls: string[] = []
-  /** Resolves the pending `/health` wait (true: healthy). */
   let answerHealth: (healthy: boolean) => void = () => undefined
   const supervisor = supervisorFactory({
     prepareApp: async () => ok(app),
@@ -169,7 +167,6 @@ describe('supervisor', () => {
     answerHealth(true)
     await flush()
     expect(switchCalls).toEqual(['confirm 1.3.0'])
-    // Running normally afterwards: a crash goes through the usual backoff.
     await children[1]?.exit(crash)
     expect(pendingDelays()).toEqual([1_000])
   })
@@ -210,7 +207,6 @@ describe('supervisor', () => {
     const { supervisor, children, switchCalls, running } = setup({
       switchHandler: {
         begin: async (from) => {
-          // The database copy, during which the container is stopped.
           await new Promise<void>((resolve) => (finishBegin = resolve))
           return { from: from.version, to: '1.3.0' }
         },

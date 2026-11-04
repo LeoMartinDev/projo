@@ -8,7 +8,6 @@ import type { SegmentSettingsAdmin, SegmentSettingsView } from './types.ts'
 
 type Deps = {
   store: SegmentSettingsStore
-  /** `createSegmentProviders(...).validateTheintrodbKey`. */
   validateTheintrodbKey: (
     key: string,
   ) => Promise<Result<void, AppError<'segment/theintrodb_key_invalid'> | SegmentProviderError>>
@@ -16,11 +15,6 @@ type Deps = {
   logger: Logger
 }
 
-/**
- * §15 "Intros and credits": providers and their order, TheIntroDB key (never sent back: whether it is set
- * and its last 4 characters; a new one is checked against TheIntroDB before it is stored),
- * fingerprinting thresholds, contribution (`manual_only` needs the TheIntroDB key, §12.5).
- */
 export const segmentSettingsAdminFactory = ({
   store,
   validateTheintrodbKey,

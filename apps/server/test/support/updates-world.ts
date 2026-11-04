@@ -21,12 +21,6 @@ import type { startGithubReleasesServer } from './github-releases-server.ts'
 
 type ReleasesServer = ReturnType<typeof startGithubReleasesServer>
 
-/**
- * The updates module on a real data directory (temporary) and an in-memory database, against the
- * fake GitHub of `github-releases-server.ts`. Jobs run only when `runJobs` says so; `exits`
- * counts the `exitForSwitch` calls. `restart(version)` builds the module again as the app the
- * supervisor relaunched (same data, same database) and runs its startup reconciliation.
- */
 export const createUpdatesWorld = ({
   server,
   version = '1.3.0',
@@ -99,7 +93,6 @@ export const createUpdatesWorld = ({
     })
   }
 
-  /** Runs the due `check_updates` / `apply_update` jobs; resolves with the settled jobs. */
   const runJobs = async (): Promise<Job[]> => {
     const settled: Job[] = []
     for (;;) {

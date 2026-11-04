@@ -36,11 +36,8 @@ type Deps = {
   jobQueue: JobQueue
   segmenter: HlsSegmenter
   subtitleTrackRepository: SubtitleTrackRepository
-  /** `audioDownmix`, `hwAccel`: read when a session's plan is built. */
   playbackSettings: PlaybackSettingsReader
-  /** Pause between two looks at the keyframe index while `index_keyframes` runs. */
   delay: (ms: number) => Promise<void>
-  /** §10.3: a player waits this long for the index (then 503, it retries). */
   keyframeWaitMs?: number
   pollMs?: number
 }
@@ -58,13 +55,6 @@ export type HlsStreamError =
 
 type SubtitleError = AppError<'playback/subtitle_not_found' | 'playback/subtitle_unsupported'>
 
-/**
- * `GET /stream/:sessionId/:secret/index.m3u8` and `/:segment` for `hls_remux` and `hls_transcode`
- * sessions, run as the session row says (mode, quality, audio track and delivery, burnt-in
- * track): the mode is decided when the session is created. The plan (remux: keyframes →
- * segments; transcode: fixed 4 s segments from the duration) is computed once per session and
- * kept until the session ends.
- */
 export const hlsStreamFactory = ({
   authorize,
   catalogRepository,
@@ -100,7 +90,6 @@ export const hlsStreamFactory = ({
     }
   }
 
-  /** §10.4: the bitmap track of the session's source to burn in. */
   const burnInFor = (session: PlaybackSession): Result<BurnInSubtitle, SubtitleError> => {
     const track =
       session.subtitleTrackId === undefined
@@ -196,8 +185,6 @@ export const hlsStreamFactory = ({
     const common = {
       sessionId: session.id,
       sourcePath: source.path,
-      // The plan is built on the first request, before any heartbeat moves the position.
-      // shortcut: timeline position, not the part's (a later part starts too late and restarts once), subtract the part offset if multi-part resumes matter.
       startS: session.positionMs / 1000,
       video: { index: video.index, codec: video.codec },
       audioDownmix: settings.audioDownmix,
@@ -207,8 +194,6 @@ export const hlsStreamFactory = ({
 
     let job: HlsJob
     if (mode === 'hls_transcode') {
-      // Planned on the video stream's end when the probe has it: a segment past the last frame
-      // (audio or subtitles running longer) would never be produced.
       const durationS = (video.durationMs ?? media.value.durationMs ?? 0) / 1000
       if (!(durationS > 0)) {
         return err(
@@ -239,8 +224,6 @@ export const hlsStreamFactory = ({
         keyframes: index.value.keyframes,
       }
     }
-    // The session may have ended during a wait (keyframe index, probe): stop, timeout, deleted
-    // source. Keeping a plan or handing it to the segmenter would bring back a finished session.
     const stillAuthorized = authorize(access)
     if (!stillAuthorized.ok) return stillAuthorized
     jobs.set(session.id, job)
@@ -253,7 +236,6 @@ export const hlsStreamFactory = ({
     return session.ok ? jobFor(session.value, access) : session
   }
 
-  /** Text tracks of the session's source, the renditions of `master.m3u8` (§10.4). */
   const textTracks = (sourceId: string) =>
     subtitleTrackRepository.listForSource(sourceId).filter((track) => !isBitmapSubtitle(track))
 
@@ -263,10 +245,6 @@ export const hlsStreamFactory = ({
       return job.ok ? ok(renderPlaylist(job.value.segments)) : job
     },
 
-    /**
-     * `master.m3u8` (§10.4): the text tracks as WebVTT renditions, the resolved one by default,
-     * then `index.m3u8`.
-     */
     master: (
       input: StreamAccess & { subtitleOffsetMs: number },
     ): Result<string, HlsStreamError> => {
@@ -286,7 +264,6 @@ export const hlsStreamFactory = ({
       const durationS = (source.media?.durationMs ?? 0) / 1000
       return ok(
         renderMasterPlaylist({
-          // shortcut: the source's average bitrate, not the variant's peak; AVPlayer has one variant to pick.
           bandwidth: durationS > 0 ? (source.sizeBytes * 8) / durationS : 8_000_000,
           subtitles: tracks.map((track, index) => ({
             id: track.id,
@@ -301,7 +278,6 @@ export const hlsStreamFactory = ({
       )
     },
 
-    /** `subtitles/<trackId>.m3u8`: one segment over the video playlist's duration. */
     subtitlePlaylist: async (
       input: StreamAccess & { trackId: string; subtitleOffsetMs: number },
     ): Promise<Result<string, HlsStreamError>> => {
@@ -320,7 +296,6 @@ export const hlsStreamFactory = ({
           }),
         )
       }
-      // The video playlist's plan, so both end together.
       const job = await jobFor(session.value, access)
       if (!job.ok) return job
       return ok(
@@ -332,7 +307,6 @@ export const hlsStreamFactory = ({
       )
     },
 
-    /** Absolute path of `init.mp4` or `seg-NNNNN.m4s`, produced on demand. */
     segment: async (
       input: StreamAccess & { name: string; signal?: AbortSignal },
     ): Promise<Result<string, HlsStreamError>> => {
@@ -352,7 +326,6 @@ export const hlsStreamFactory = ({
       jobs.delete(sessionId)
     },
 
-    /** Sessions whose plan is kept (the sweep releases those of sessions gone). */
     sessionIds: (): string[] => [...jobs.keys()],
   }
 }

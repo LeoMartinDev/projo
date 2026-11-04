@@ -50,11 +50,6 @@ type Deps = {
   clock: Clock
 }
 
-/**
- * §17.2 Admin comptes: `/admin/accounts…` and `/admin/invitations…` (§15 Accounts).
- * Mounted at `/api/v1/admin` (behind `requireAdmin`). Middleware: per route or path-scoped,
- * never `.use('*')`.
- */
 export const adminAccountsRoutes = ({ accounts, invitations, clock }: Deps) =>
   new Hono<AppEnv>()
     .get('/accounts', (c) =>

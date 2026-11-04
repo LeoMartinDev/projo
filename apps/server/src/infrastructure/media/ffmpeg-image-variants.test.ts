@@ -15,7 +15,6 @@ beforeEach(() => {
 })
 afterEach(() => dir.cleanup())
 
-/** An original as `fetch_images` stores it: `posters/<name>` of `width` × `height`. */
 const original = (name: string, width: number, height: number, filter = 'testsrc') => {
   const run = Bun.spawnSync([
     'ffmpeg',
@@ -34,7 +33,6 @@ const original = (name: string, width: number, height: number, filter = 'testsrc
   return `posters/${name}`
 }
 
-/** Width from the `VP8 ` / `VP8L` / `VP8X` chunk of a WebP file. */
 const webpWidth = (path: string): number => {
   const bytes = readFileSync(path)
   const chunk = bytes.toString('ascii', 12, 16)
@@ -71,7 +69,6 @@ describe.skipIf(!hasFfmpegEncoder('libwebp'))(
       })
       const localPath = original('logo.png', 400, 100, 'color=c=red@0.5,format=rgba,scale')
       expect((await variants.ensure(localPath)).ok).toBe(true)
-      // VP8X with its alpha flag (bit 4).
       const bytes = readFileSync(join(dir.path, 'posters', 'logo.full.webp'))
       expect(bytes.toString('ascii', 12, 16)).toBe('VP8X')
       expect((bytes[20] ?? 0) & 0x10).toBe(0x10)

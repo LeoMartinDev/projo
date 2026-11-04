@@ -87,7 +87,6 @@ describe('PUT /admin/items/:id/segments/:type (§12.5)', () => {
         absent: [],
       },
     })
-    // Contribution off: nothing submitted.
     expect(jobs.enqueued).toEqual([])
   })
 
@@ -174,7 +173,6 @@ describe('POST /admin/items/:id/segments/apply-to-season', () => {
     const markers = build()
     markers.setManualSegment({ itemId: 'e1', type: 'intro', marker: intro })
     markers.setManualSegment({ itemId: 'e1', type: 'credits', marker: { absent: true } })
-    // e2 already has its own manual intro; e3 is shorter than the marker's end.
     markers.setManualSegment({
       itemId: 'e2',
       type: 'intro',
@@ -203,7 +201,6 @@ describe('POST /admin/items/:id/segments/apply-to-season', () => {
   test('credits keep their distance to the end of each episode', () => {
     sources['e2'] = [readySource('f2', 65 * minute)]
     const markers = build()
-    // e1 (45 min): credits from 43:30 to the end.
     markers.setManualSegment({
       itemId: 'e1',
       type: 'credits',

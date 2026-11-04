@@ -12,10 +12,6 @@ const defaultRandomBytes = (length: number): Uint8Array =>
 const hex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
-/**
- * RFC 9562 UUID v7, pure JS. Monotonic within the process: when the clock does not advance,
- * the 12-bit `rand_a` field is used as a counter (method 1 of §6.2 of the RFC).
- */
 export const createUuidV7Generator = ({
   clock,
   randomBytes = defaultRandomBytes,

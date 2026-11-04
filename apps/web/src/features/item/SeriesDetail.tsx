@@ -30,10 +30,6 @@ import { bySeason, selectedSeasonOf } from './seasons.ts'
 const byEpisode = (a: ItemSummaryDto, b: ItemSummaryDto) =>
   (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
 
-/**
- * One episode (artboards `Series`, `MobileSeries`): number, still, text, "Vu" toggle. A
- * multi-episode file is one row, numbered "1-2" (§8.4).
- */
 const EpisodeRow = ({
   episode,
   fallbackArt,
@@ -41,7 +37,6 @@ const EpisodeRow = ({
 }: {
   episode: ItemSummaryDto
   fallbackArt: string | undefined
-  /** Admins: the episode's "⋮" (§13.5), after "Vu". */
   admin?: ReactNode
 }) => {
   const { t } = useTranslation()
@@ -130,7 +125,6 @@ const EpisodeRow = ({
   )
 }
 
-/** "…" next to "Tout marquer comme vu": the season and the whole series, watched or not. */
 const BulkMenu = ({ series, season }: { series: ItemDetailDto; season: ItemSummaryDto }) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -193,11 +187,6 @@ const BulkMenu = ({ series, season }: { series: ItemDetailDto; season: ItemSumma
   )
 }
 
-/**
- * Series page (§13.5, artboards `Series`, `MobileSeries`): Resume S2 · E4 (or Play), My list,
- * From the beginning; then the season tabs, "x of n watched", "12 / 22 episodes" when files are
- * missing, "Tout marquer comme vu", the episodes; the casting last.
- */
 export const SeriesDetail = ({
   series,
   season,
@@ -206,9 +195,7 @@ export const SeriesDetail = ({
 }: {
   series: ItemDetailDto
   season?: number
-  /** Admins: the series "⋮", given the season shown (editable from the same menu). */
   admin?: (season: ItemSummaryDto | undefined) => ReactNode
-  /** Admins: the "⋮" of each episode row (Marqueurs, Corriger l'identification). */
   episodeAdmin?: (episode: ItemSummaryDto) => ReactNode
 }) => {
   const { t } = useTranslation()

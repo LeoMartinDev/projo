@@ -20,16 +20,8 @@ import {
 } from '../support/playback.ts'
 import { seriesTimeline } from '../support/playback-library.ts'
 
-/**
- * Journey 4 "Show" (§4, §12.4, §11, §23 M4): "Skip intro", the "Next episode"
- * countdown that starts the next episode, the tracks chosen on episode 1 kept on episode 2, "vu"
- * on entering the credits. "Brackenmoor" (`support/playback-library.ts`) is unknown to TMDB: its
- * segments come from the `Intro` and `Credits` chapters of its files only.
- */
-
 const { intro, credits, durationS } = seriesTimeline
 
-/** `GET /items/:id/segments` until the chapters of the file gave the intro and the credits. */
 const expectChapterSegments = async (api: APIRequestContext, itemId: string) => {
   const segments = async () => {
     const response = await api.get(`/api/v1/items/${itemId}/segments`)
@@ -83,7 +75,6 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
   await test.step('"Passer l’intro" shows during the intro and jumps past its end', async () => {
     const session = await openPlayer(page, first)
     expect(session.segments.map((segment) => segment.type).toSorted()).toEqual(['credits', 'intro'])
-    // French audio for a French profile: no subtitles (§11.2).
     expect(selectedAudio(session)?.language).toBe('fr')
     expect(selectedSubtitle(session)).toBeUndefined()
     await expect(skipIntroButton(page)).toBeVisible({ timeout: 20_000 })
@@ -113,9 +104,7 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
     expect((await audioSaved).ok()).toBe(true)
     expect(session.itemId).toBe(first)
     expect(selectedAudio(session)?.language).toBe('en')
-    // An audio change keeps the subtitles picked in this playback.
     expect(selectedSubtitle(session)).toMatchObject({ language: 'en', origin: 'embedded' })
-    // The new session closes the menu (Escape now would leave the player).
     await expect(menu).toBeHidden()
     await expect(captions(page)).toHaveText('Brackenmoor English line 1', { timeout: 20_000 })
   })
@@ -152,7 +141,6 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
     const { title, episodeNumber, series } = await detail()
     if (series === undefined) throw new Error('an episode belongs to a series')
     await page.goto(`/items/${series.id}`)
-    // Without a name of its own (§6.3), the episode is labelled from its number.
     const name = title ?? tr(fr.item.episodeNumber, { number: episodeNumber ?? 0 })
     await expect(
       page.getByRole('button', { name: tr(fr.item.markEpisodeUnwatched, { title: name }) }),

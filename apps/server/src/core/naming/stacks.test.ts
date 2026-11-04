@@ -52,7 +52,6 @@ describe('resolveStacks (§7.7 parties)', () => {
     expect(resolveStacks(candidates(['Heat/Heat-cd1.avi', 'Heat/Heat-cd1.mkv'])).stacks).toEqual([])
   })
 
-  // Ambiguity: a single file with `Part 1` is a title (`Deathly Hallows Part 1`), not a stack: the label is restored.
   test('partie seule : `Part N` rendu au titre, `CD N` reste retiré', () => {
     const { unstacked } = resolveStacks(
       candidates(['Harry Potter and the Deathly Hallows Part 1.mkv', 'Heat-cd1.avi']),

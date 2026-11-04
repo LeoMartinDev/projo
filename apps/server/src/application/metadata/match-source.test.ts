@@ -38,7 +38,6 @@ test('a match fixed by the admin while TMDB answers is left alone', async () => 
     settings: { tmdbApiKey: () => 'key', language: () => 'en' } as unknown as MetadataSettings,
     resolveMatch: {
       resolve: async () => {
-        // "To review": the admin assigns the file while the search runs.
         current = { ...source, matchState: 'manual' }
         return ok({ kind: 'review', reason: 'no_match' })
       },

@@ -1,11 +1,5 @@
 import type { SegmentProviderIdDto } from '@projo/shared/api/segments'
 
-/**
- * Segment providers of the "Intros and credits" settings (§12.2, §15): `providers` is the ordered list of
- * the enabled ones, a provider absent from it is disabled. The table shows the enabled ones in
- * their order, then the disabled ones. Pure: tests run in Bun.
- */
-
 export const allSegmentProviders = [
   'theintrodb',
   'introdb',
@@ -21,7 +15,6 @@ export const providerRows = (enabled: readonly SegmentProviderIdDto[]): Provider
     .map((id) => ({ id, enabled: false })),
 ]
 
-/** Turned on: asked last; turned off: out of the list. */
 export const setProviderEnabled = (
   enabled: readonly SegmentProviderIdDto[],
   id: SegmentProviderIdDto,
@@ -31,7 +24,6 @@ export const setProviderEnabled = (
   return on ? [...without, id] : without
 }
 
-/** One step earlier (`-1`) or later (`1`) among the enabled ones; unchanged at an end. */
 export const moveProvider = (
   enabled: readonly SegmentProviderIdDto[],
   id: SegmentProviderIdDto,

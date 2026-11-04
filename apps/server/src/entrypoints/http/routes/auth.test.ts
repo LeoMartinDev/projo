@@ -106,7 +106,6 @@ describe('login and session cookie', () => {
     })
     expect(ignored.status).toBe(200)
     expect(ignored.headers.get('set-cookie')).not.toContain('Secure')
-    // Without TRUST_PROXY the forwarded host is not the expected origin either.
     expect((await untrusted.login('leo', adminPassword, headers)).status).toBe(403)
   })
 
@@ -142,7 +141,6 @@ describe('login and session cookie', () => {
   test('without TRUST_PROXY, X-Forwarded-For is ignored: changing it does not dodge the IP limit', async () => {
     const t = createAuthTestApp()
     await t.completeSetup()
-    // A different username each time: only the per-IP counter can block.
     for (let i = 0; i < 10; i += 1) {
       const response = await t.login(`ghost${i}`, 'wrong password!', {
         'x-forwarded-for': `198.51.100.${i}`,
@@ -196,7 +194,6 @@ describe('login and session cookie', () => {
     expect(items).toContainEqual(
       expect.objectContaining({ kind: 'bearer', deviceName: 'iPhone 15 Pro' }),
     )
-    // The browser's cookie session is kept.
     expect((await t.as(cookie).get('/api/v1/auth/me')).status).toBe(200)
 
     const plain = await t.login('leo', adminPassword)
@@ -269,7 +266,6 @@ describe('authenticate middleware', () => {
     expect(foreign.status).toBe(403)
     expect(await errorCode(foreign)).toBe('auth/origin_mismatch')
     expect((await post({ 'sec-fetch-site': 'cross-site' })).status).toBe(403)
-    // A same-origin `navigator.sendBeacon` (text/plain body).
     expect(
       (
         await post({
@@ -279,8 +275,6 @@ describe('authenticate middleware', () => {
         })
       ).status,
     ).toBe(200)
-    // WebKit's `sendBeacon` sends `Origin: null`: accepted only when the browser itself says
-    // same-origin (`Sec-Fetch-Site` cannot be set by a page).
     const beacon = (headers: Record<string, string>) =>
       post({ origin: 'null', 'content-type': 'text/plain;charset=UTF-8', ...headers })
     expect((await beacon({ 'sec-fetch-site': 'same-origin' })).status).toBe(200)

@@ -1,5 +1,3 @@
-/* ── Folder explorer ────────────────────────────────────────────────────── */
-
 .browser__crumbs {
   display: flex;
   flex-wrap: nowrap;
@@ -37,8 +35,6 @@
   color: var(--color-text-strong);
 }
 
-/* Takes what the fixed-height dialog leaves: the list is the only thing that scrolls
-   (AGENTS.md, UI layout). */
 .browser__pane {
   flex: 1 1 auto;
   display: flex;

@@ -7,11 +7,6 @@ import type { MediaFiles } from '../../infrastructure/playback/media-files.ts'
 import type { AppEnv } from './context.ts'
 import { respondError } from './errors.ts'
 
-/**
- * A file served with `Range` (direct play §10.2, hero previews §13.3: Safari asks for byte ranges
- * of every `<video>`): 200 for the whole file, 206 for a range, 416 for one outside it. `headers`
- * are those of every answer (type, cache).
- */
 export const respondWithFile = (
   c: Context<AppEnv>,
   {

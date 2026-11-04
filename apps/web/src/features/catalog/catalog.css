@@ -1,5 +1,3 @@
-/* Movies, Shows, My list (§13.4): title, sort, filters, the poster grid. */
-
 @import '../../shared/styles/media.css';
 
 .catalog__header {
@@ -52,7 +50,6 @@
   gap: 10px;
 }
 
-/* Columns, gaps and reserved space come from `VirtualGrid` (style), the rest from here. */
 .poster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(168px, calc(50% - 8px)), 1fr));
@@ -66,7 +63,6 @@
   min-width: 0;
 }
 
-/* Phone: one compact sort control, the filters move into the sheet. */
 @media (--phone) {
   .catalog__header {
     flex-direction: column;
@@ -103,8 +99,6 @@
   opacity: 0.45;
 }
 
-/* Tablet: one row of light chips under the title (native menus), lighter than the navigation
-   above; a set filter turns white like the navigation's current tab. */
 @media (--tablet) {
   .chip,
   .catalog__filters .field {
@@ -123,8 +117,6 @@
     color: var(--color-text-soft);
   }
 
-  /* The select lies invisible over the whole chip, so a tap anywhere opens it; the chip shows its
-     value (`ChipValue`) and takes that width, not the one of the longest option. */
   .chip__select,
   .catalog__filters .field__input {
     position: absolute;
@@ -198,7 +190,6 @@
     padding: 0;
   }
 
-  /* A filter is set when its "all" option is not the chosen one. */
   .catalog__filters .field:not(:has(option[value='']:checked)) {
     background: var(--color-glass-strong);
     box-shadow: none;

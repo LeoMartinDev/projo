@@ -26,7 +26,6 @@ import { sourceErrorStatus } from './error-mapping/source.ts'
 import type { ErrorStatusCode } from './error-mapping/types.ts'
 import { updateErrorStatus } from './error-mapping/update.ts'
 
-/** The single code → status table (§5.3). Typed as total: a missing domain fails typecheck. */
 export const errorStatusByCode: Record<ErrorCode, ErrorStatusCode> = {
   ...accountErrorStatus,
   ...authErrorStatus,
@@ -54,6 +53,5 @@ export const errorStatusByCode: Record<ErrorCode, ErrorStatusCode> = {
   ...updateErrorStatus,
 }
 
-/** An unknown code is a bug: 500. */
 export const statusForError = (code: string): ErrorStatusCode =>
   isErrorCode(code) ? errorStatusByCode[code] : 500

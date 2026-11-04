@@ -1,9 +1,5 @@
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
-/**
- * Design tokens of the web (`apps/web/src/shared/styles/tokens.css`, §19) as React Native
- * constants. Dark theme only. Same values: change them in both places.
- */
 export const colors = {
   bg: '#0a0a0b',
   surface: '#111113',
@@ -23,9 +19,7 @@ export const colors = {
   glass: 'rgba(255, 255, 255, 0.06)',
   glassButton: 'rgba(255, 255, 255, 0.08)',
   glassBorder: 'rgba(255, 255, 255, 0.1)',
-  /** The kit's `.panel`: dark glass over the blur. */
   panel: 'rgba(18, 18, 21, 0.58)',
-  /** A sheet's rows (`.well`). */
   well: 'rgba(255, 255, 255, 0.04)',
   textSoft: '#c4c4cc',
   textMutedStrong: '#d4d4d8',
@@ -37,10 +31,8 @@ export const colors = {
   warning: '#e5b567',
 } as const
 
-/** The colour of a card without its picture (§13.5), the web's `.tone-<n>` (`toneOf`). */
 export const tones = ['#2b4560', '#6b4529', '#2f4a3a', '#3a2f5a', '#5a4422', '#3a3f47'] as const
 
-/** Avatar tiles (§13.6), the web's `--avatar-<color>`. */
 export const avatarColors = {
   slate: '#5f6670',
   blue: '#5b7fa6',
@@ -50,10 +42,6 @@ export const avatarColors = {
   violet: '#7d6aa6',
 } as const satisfies Record<AvatarColor, string>
 
-/**
- * Geist and Geist Mono (§19, §26.5), bundled and loaded at launch (`_layout.tsx`). One family per
- * weight: iOS does not derive weights of a font loaded at runtime from `fontWeight`.
- */
 export const fonts = {
   regular: 'Geist_400Regular',
   medium: 'Geist_500Medium',
@@ -84,5 +72,4 @@ export const sizes = {
   gutter: 16,
 } as const
 
-/** Letter spacing of titles: the web's `-0.03em`, at the title's font size. */
 export const titleTracking = (fontSize: number): number => fontSize * -0.03

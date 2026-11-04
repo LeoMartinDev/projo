@@ -1,24 +1,10 @@
-/**
- * The colour a hover preview's panel takes from its artwork (artboard `Home`, the `tint` of each
- * item): the artwork's average colour, leaning towards its colourful pixels, darkened and muted
- * enough for the panel's text. Pure colour math, sampled by `use-artwork-tint.ts`.
- */
-
-/** sRGB channels, 0–255. */
 export type Rgb = { r: number; g: number; b: number }
 
 type Oklab = { l: number; a: number; b: number }
 
-/**
- * Lightness range of a tint (OKLab, the design's tints sit at 0.22–0.29): `#F4F4F5` keeps
- * ≥ 13:1, `#A1A1AA` ≥ 6:1 and `#8B8B94` ≥ 4.5:1 on it.
- */
 const tintLightness = { min: 0.2, max: 0.26 }
-/** Most chroma a tint keeps (OKLab): coloured, never loud. */
 const maxTintChroma = 0.055
-/** Share of the artwork's chroma a tint keeps before the cap. */
 const tintChromaShare = 0.6
-/** Weight of a grey pixel next to a colourful one (weight = this + chroma). */
 const greyWeight = 0.02
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max))
@@ -33,7 +19,6 @@ const fromLinear = (value: number) => {
   return c * 255
 }
 
-/** Björn Ottosson's OKLab (https://bottosson.github.io/posts/oklab/). */
 export const rgbToOklab = ({ r, g, b }: Rgb): Oklab => {
   const lr = toLinear(r)
   const lg = toLinear(g)
@@ -48,7 +33,6 @@ export const rgbToOklab = ({ r, g, b }: Rgb): Oklab => {
   }
 }
 
-/** Linear sRGB, unclamped (out of gamut when a channel leaves 0–1). */
 const oklabToLinear = ({ l: lightness, a, b }: Oklab) => {
   const l = (lightness + 0.3963377774 * a + 0.2158037573 * b) ** 3
   const m = (lightness - 0.1055613458 * a - 0.0638541728 * b) ** 3
@@ -67,11 +51,6 @@ const oklabToRgb = (color: Oklab): Rgb => {
   return { r: r ?? 0, g: g ?? 0, b: b ?? 0 }
 }
 
-/**
- * The average colour of RGBA pixels (a canvas' `ImageData.data`), in OKLab: lightness is the plain
- * mean, the hue leans towards colourful pixels (a red sign in a dark street gives a dark red, not
- * a brown). `undefined` when no pixel is opaque enough to count.
- */
 export const averageColor = (pixels: ArrayLike<number>): Oklab | undefined => {
   let lightness = 0
   let opacity = 0
@@ -93,11 +72,6 @@ export const averageColor = (pixels: ArrayLike<number>): Oklab | undefined => {
   return { l: lightness / opacity, a: a / weight, b: b / weight }
 }
 
-/**
- * The panel colour for an artwork of average colour `color`: same hue, lightness squeezed into
- * `tintLightness` (a brighter artwork gives a slightly lighter tint), chroma cut down and reduced
- * further until the colour fits in sRGB.
- */
 export const darkTintOf = (color: Oklab): Rgb => {
   const l =
     tintLightness.min + (tintLightness.max - tintLightness.min) * clamp(color.l, 0, 1) ** 1.5
@@ -113,17 +87,14 @@ const hex = (channel: number) => channel.toString(16).padStart(2, '0')
 
 export const toHex = ({ r, g, b }: Rgb) => `#${hex(r)}${hex(g)}${hex(b)}`
 
-/** The tint (`#rrggbb`) of an artwork sampled as RGBA pixels, `undefined` for a blank sample. */
 export const artworkTint = (pixels: ArrayLike<number>): string | undefined => {
   const average = averageColor(pixels)
   return average === undefined ? undefined : toHex(darkTintOf(average))
 }
 
-/** WCAG 2 relative luminance. */
 export const relativeLuminance = ({ r, g, b }: Rgb) =>
   0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
 
-/** WCAG 2 contrast ratio, 1–21. */
 export const contrastRatio = (one: Rgb, other: Rgb) => {
   const [light, dark] = [relativeLuminance(one), relativeLuminance(other)].sort((x, y) => y - x)
   return ((light ?? 0) + 0.05) / ((dark ?? 0) + 0.05)

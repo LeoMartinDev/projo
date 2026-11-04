@@ -1,6 +1,3 @@
-/* Metadata editor (§9.3). Fixed-height dialog (`dialog--fill`): the tabs stay, each tab's content
-   scrolls inside its own region (AGENTS.md, UI layout). */
-
 @import '../../../shared/styles/media.css';
 
 .edit-item {
@@ -27,7 +24,6 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  /* Room for the focus ring of the fields. */
   padding: 6px;
   margin: -6px;
 }
@@ -38,7 +34,6 @@
   gap: 12px;
 }
 
-/* Genres (§9.3): the whole fixed list, a pressed toggle = picked. Same well as a field. */
 .edit-item__genres {
   display: flex;
   flex-direction: column;
@@ -109,8 +104,6 @@
   display: block;
   height: 100%;
 }
-
-/* ── Images ──────────────────────────────────────────────────────────────── */
 
 .edit-item__images {
   flex: 1 1 auto;
@@ -241,7 +234,6 @@ button.edit-item__tile:disabled {
   margin-right: auto;
 }
 
-/* "Metadata" page: library and button on one line. */
 .settings-block.refresh-library {
   flex-flow: row wrap;
   align-items: center;
@@ -270,7 +262,6 @@ button.edit-item__tile:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  /* Its own row: "Undo" and "Enregistrer" (or "Fermer") stay together below it. */
   .edit-item__refresh {
     flex: 1 0 100%;
     margin-right: 0;

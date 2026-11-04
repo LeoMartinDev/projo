@@ -23,7 +23,6 @@ const providerNames: Record<SegmentProviderIdDto, string> = {
   skipdb: 'SkipDB',
 }
 
-/** Providers asked in order (§12.2): a table, reorder with the arrows, a switch per provider. */
 const Providers = ({ enabled }: { enabled: readonly SegmentProviderIdDto[] }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -96,7 +95,6 @@ const thresholdLabelKeys = {
   similarity: 'admin.settings.segments.similarity',
 } as const
 
-/** Fingerprinting (§12.3): on/off saved at once, the thresholds with "Enregistrer". */
 const Fingerprint = ({ fingerprint }: { fingerprint: SegmentSettingsDto['fingerprint'] }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -174,7 +172,6 @@ const Fingerprint = ({ fingerprint }: { fingerprint: SegmentSettingsDto['fingerp
   )
 }
 
-/** Contribution (§12.5): manual markers sent to TheIntroDB and SkipDB, needs a TheIntroDB key. */
 const Contribution = ({
   contribution,
   keyConfigured,
@@ -214,7 +211,6 @@ const Contribution = ({
   )
 }
 
-/** `/admin/settings` "Intros and credits" (§15): providers and order, TheIntroDB key, fingerprinting, contribution. */
 export const SegmentSettings = ({ segments }: { segments: SegmentSettingsDto }) => {
   const { t } = useTranslation()
   const key = segments.theintrodbApiKey

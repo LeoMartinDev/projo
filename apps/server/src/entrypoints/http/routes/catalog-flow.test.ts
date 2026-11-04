@@ -17,11 +17,6 @@ import {
 } from '../../../../test/support/catalog-fixtures.ts'
 import { sourceItems } from '../../../infrastructure/sqlite/schema/libraries.ts'
 
-/**
- * The spectator API over HTTP (§13, §17.2): home, catalog sorts and filters, details, search,
- * progress actions, "My list", and the §14 scope of a restricted profile.
- */
-
 let app: ReturnType<typeof createCatalogTestApp>
 
 const json = async <T>(response: Response): Promise<T> => (await response.json()) as T
@@ -69,7 +64,6 @@ beforeEach(() => {
     contentRating: 'TP',
     episodeCountTmdb: 22,
     addedAt: '2026-01-15T00:00:00.000Z',
-    // S1E3 has no file.
     episodes: [
       [1, 1],
       [1, 2],
@@ -131,7 +125,6 @@ describe('GET /home', () => {
     const row = home.rows.find((entry) => entry.kind === 'continue_watching')
     const items = row?.kind === 'continue_watching' ? row.items : []
     expect(items.map((item) => item.id)).toEqual(['other', 'heat'])
-    // No sprites for "other": no frame, the card keeps its image.
     expect(items[0]).not.toHaveProperty('resumeFrame')
     expect(items[1]?.resumeFrame).toEqual({ url: '/api/v1/trickplay/f-heat/frames/1800.webp' })
     expect(asked).toContainEqual({
@@ -155,7 +148,6 @@ describe('GET /home', () => {
       'watchlist',
     ])
     const [resume, next, , listed] = home.rows
-    // The episode card's "My list" button acts on its series.
     await app.call('/watchlist/show', { method: 'POST' })
     const again = await get<HomeDto>('/home')
     const upNextRow = again.rows.find((row) => row.kind === 'up_next')
@@ -170,7 +162,6 @@ describe('GET /home', () => {
         progress: { state: 'in_progress', resumePositionMs: hour / 2 },
       },
     ])
-    // S1E3 is absent: after S1E2 comes S1E4.
     expect(next?.kind === 'up_next' && next.items).toMatchObject([
       {
         episode: { id: 'show-s1e4', seasonNumber: 1, episodeNumber: 4, series: { id: 'show' } },
@@ -178,7 +169,6 @@ describe('GET /home', () => {
       },
     ])
     expect(listed?.kind === 'watchlist' && listed.items.map((item) => item.id)).toEqual(['amelie'])
-    // The series was played last: the hero is "Play S1 · E4" on it.
     expect(home.hero).toMatchObject({
       item: { id: 'show', kind: 'series' },
       episode: { id: 'show-s1e4' },
@@ -235,14 +225,12 @@ describe('Films / Séries', () => {
     expect((await get<ItemPage>('/movies?genre=crime')).items.map((item) => item.id)).toEqual([
       'heat',
     ])
-    // A genre is an id (§9.1): a TMDB name is refused.
     expect((await app.call('/movies?genre=Crime')).status).toBe(400)
     expect((await get<ItemPage>('/movies?decade=2000')).items.map((item) => item.id)).toEqual([
       'amelie',
     ])
     expect((await app.call('/movies?decade=1995')).status).toBe(400)
     expect((await app.call('/movies?year=1995&decade=1990')).status).toBe(400)
-    // A cursor of another sort is refused.
     expect((await app.call(`/movies?sort=title&cursor=${byYear.nextCursor ?? ''}`)).status).toBe(
       400,
     )
@@ -260,8 +248,6 @@ describe('Films / Séries', () => {
     expect((await get<ItemPage>('/series?watch=in_progress')).items.map((item) => item.id)).toEqual(
       ['show'],
     )
-    // Ids in the order of `genreIds` (the web sorts by label), with the bounds of the year filter
-    // (§13.4); the series has no year.
     expect(await get<GenreList>('/genres')).toEqual({
       genres: ['comedy', 'crime', 'drama'],
       years: { min: 1995, max: 2001 },
@@ -322,7 +308,6 @@ describe('card and detail fields (§13.3–§13.5)', () => {
       country: 'FR',
       tier: '12',
     })
-    // The US fallback of a French library keeps its own scale.
     const fallback = { code: 'R', country: 'US', tier: '18' } as const
     expect(movies.find((item) => item.id === 'amelie')?.contentRating).toEqual(fallback)
     expect((await get<HomeDto>('/home')).hero?.item.contentRating).toEqual(fallback)
@@ -331,13 +316,11 @@ describe('card and detail fields (§13.3–§13.5)', () => {
       country: 'FR',
       tier: '0',
     })
-    // Not on its country's scale: no tier.
     app.db.$client.run(`UPDATE items SET content_rating = 'NR' WHERE id = 'amelie'`)
     expect((await get<ItemDetailDto>('/items/amelie')).contentRating).toEqual({
       code: 'NR',
       country: 'US',
     })
-    // Enriched before the country was stored: the code alone.
     app.db.$client.run(`UPDATE items SET content_rating_country = NULL WHERE id = 'heat'`)
     expect((await get<ItemDetailDto>('/items/heat')).contentRating).toEqual({ code: '12' })
   })
@@ -366,7 +349,6 @@ describe('GET /items/:id', () => {
       title: 'show-s2e1',
       positionMs: hour / 4,
     })
-    // The season page plays within its season.
     expect((await get<ItemDetailDto>('/items/show-s1')).play).toMatchObject({
       itemId: 'show-s1e1',
     })
@@ -400,7 +382,6 @@ describe('GET /items/:id/children', () => {
         episodeNumber: number,
       })
     for (const number of [1, 2, 3, 4, 5, 6]) episode(number)
-    // S03E01-E02 and S03E04-E06 are one file each; S03E05 also has its own, bigger, file.
     insertSource(db, { id: 'f-s3e1-e2', itemId: 'show-s3e1' })
     db.insert(sourceItems).values({ sourceId: 'f-s3e1-e2', itemId: 'show-s3e2' }).run()
     insertSource(db, { id: 'f-s3e3', itemId: 'show-s3e3' })
@@ -418,7 +399,6 @@ describe('GET /items/:id/children', () => {
       [5, undefined],
       [6, undefined],
     ])
-    // A single file per episode: no range.
     const first = await get<ItemChildren>('/items/show-s1/children')
     expect(first.items.every((item) => item.episodeNumberEnd === undefined)).toBe(true)
   })

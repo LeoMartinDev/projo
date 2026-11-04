@@ -7,14 +7,8 @@ import type { MeResponse } from '@projo/shared/api/auth'
 import { refreshLive } from '../shared/api/live-refresh.ts'
 import { eventHub } from '../shared/events/events.ts'
 
-/** Refetches after the last `catalog.changed` of a burst, never more than once per this delay. */
 const catalogRefreshMs = 1500
 
-/**
- * Signed-in area. `catalog.changed` (SSE, every profile: files ready, scans finished,
- * identification and images done) refreshes the catalog queries, so Movies, Shows and the home
- * fill with posters live (§4 parcours 1).
- */
 export const AuthedLayout = (_props: { me: MeResponse }) => {
   const queryClient = useQueryClient()
 

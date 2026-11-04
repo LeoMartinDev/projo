@@ -28,11 +28,6 @@ const keys = {
   similarity: settingKeys.fingerprintSimilarity,
 } as const satisfies Record<keyof FingerprintSettings, string>
 
-/**
- * The `segments.fingerprint_*` keys of the `settings` table, for the `fingerprint_season` job
- * (§12.3, defaults of §24 when unset or invalid; `minSeconds > maxSeconds` reads as both
- * defaults). Kept apart from the segments settings reader: can be merged into it.
- */
 export const createSqliteFingerprintSettings = ({ db }: { db: Db }): FingerprintSettingsReader => ({
   read: () => {
     const rows = db

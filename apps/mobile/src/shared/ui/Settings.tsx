@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-nat
 import { colors, fonts, radii, sizes } from '../styles/tokens.ts'
 import { textStyles } from './text.ts'
 
-/** A settings page under a native header: scrolls with the page, grouped rows (iOS settings). */
 export const SettingsPage = ({ children }: { children: ReactNode }) => (
   <ScrollView
     contentContainerStyle={styles.page}
@@ -18,7 +17,6 @@ export const SettingsPage = ({ children }: { children: ReactNode }) => (
   </ScrollView>
 )
 
-/** A group of rows on a well (`.well`), with its heading. */
 export const Section = ({
   title,
   footer,
@@ -39,7 +37,6 @@ export const Section = ({
   </View>
 )
 
-/** A row: label, value, and a chevron when it opens something (`onPress`). */
 export const Row = ({
   label,
   value,
@@ -51,7 +48,6 @@ export const Row = ({
   value?: string
   onPress?: () => void
   destructive?: boolean
-  /** Opens outside the app (the browser): an arrow instead of the chevron. */
   external?: boolean
 }) => (
   <Pressable
@@ -79,7 +75,6 @@ export const Row = ({
   </Pressable>
 )
 
-/** A row with a switch (kit `.setting`): white track when on. */
 export const SwitchRow = ({
   label,
   description,

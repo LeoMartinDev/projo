@@ -93,7 +93,6 @@ describe('probe_source failures that say nothing about the file', () => {
 test('a probe request merged into a queued one keeps the stronger mode', () => {
   const merged = (queued: ProbeMode, next: ProbeMode) =>
     probeJob('s1', next).mergePayload({ sourceId: 's1', mode: queued })
-  // "Recheck" during a full scan (which queued `verify`) still decodes.
   expect(merged('verify', 'recheck')).toEqual({ sourceId: 's1', mode: 'recheck' })
   expect(merged('recheck', 'verify')).toEqual({ sourceId: 's1', mode: 'recheck' })
   expect(merged('verify', 'quarantine')).toEqual({ sourceId: 's1', mode: 'quarantine' })

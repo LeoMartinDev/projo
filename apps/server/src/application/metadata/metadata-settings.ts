@@ -18,14 +18,12 @@ type Deps = {
   tmdb: Pick<TmdbApi, 'validateKey'>
   items: Pick<MetadataItemRepository, 'sourcesAwaitingMatch'>
   requestMatch: MatchRequester
-  /** §9.4: a new language refreshes the rows written in another one. */
   refresh: Pick<RefreshMetadata, 'queueStaleLanguage'>
   notifier: AdminNotifier
   clock: Clock
   logger: Logger
 }
 
-/** `rejected`: TMDB answered 401 to the stored key since it was validated (§15). */
 export type TmdbKeyState = 'missing' | 'valid' | 'rejected'
 
 export type MetadataSettingsView = {
@@ -37,12 +35,6 @@ export type UpdateMetadataSettingsError = AppError<
   'metadata/tmdb_key_invalid' | 'metadata/tmdb_unavailable' | 'metadata/tmdb_invalid_response'
 >
 
-/**
- * §15 "Metadata": server language and TMDB key. The key never leaves the server: only whether
- * it is set and its last 4 characters. A new key is checked against TMDB first, then the sources
- * waiting for an identification are matched again. A new language queues the refresh of what was
- * written in another one (§9.4).
- */
 export const metadataSettingsFactory = ({
   settings,
   tmdb,
@@ -68,7 +60,6 @@ export const metadataSettingsFactory = ({
     }
   }
 
-  /** Every ready source without identification, TMDB review reasons included (§7.4 full scan). */
   const relaunchMatching = (libraryId?: string): number => {
     const sourceIds = items.sourcesAwaitingMatch({
       ...(libraryId === undefined ? {} : { libraryId }),
@@ -81,7 +72,6 @@ export const metadataSettingsFactory = ({
   return {
     get: view,
     relaunchMatching,
-    /** Startup: files waiting while no key is set get their notification at once (§9.1). */
     notifyIfKeyMissing: (): void => {
       if (settings.tmdbApiKey() !== undefined) return
       if (items.sourcesAwaitingMatch({ reviewReasons: [] }).length === 0) return
@@ -113,7 +103,6 @@ export const metadataSettingsFactory = ({
       if (input.language !== undefined) {
         const previous = settings.language()
         settings.setLanguage({ language: input.language, at: now })
-        // Low priority, one movie or series at a time (§9.4, §18).
         if (input.language !== previous) refresh.queueStaleLanguage()
       }
       if (input.tmdbApiKey !== undefined) {

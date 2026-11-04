@@ -17,7 +17,6 @@ import { useOpenItem } from '../media/navigation.ts'
 
 const debounceMs = 180
 
-/** The query sent to the API, `debounceMs` after the last keystroke (§13.5 "instant"). */
 const useDebounced = (value: string): string => {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
@@ -50,10 +49,6 @@ const Result = ({ item }: { item: ItemSummaryDto }) => {
   )
 }
 
-/**
- * Search (§13.5): the native search field of the tab, instant results from 2 characters, movies
- * and shows apart; a result opens its title page in this tab.
- */
 export const SearchScreen = () => {
   const { t } = useTranslation()
   const [text, setText] = useState('')

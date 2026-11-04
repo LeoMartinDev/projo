@@ -13,7 +13,6 @@ const errorCode = async (response: Response) => ((await response.json()) as Erro
 
 type Pairing = { id: string; code: string; expiresAt: string }
 
-/** The app: no cookie, no `Origin` (a native client), behind `X-Forwarded-For` when trusted. */
 const claim = (
   t: ReturnType<typeof createAuthTestApp>,
   body: unknown,
@@ -100,7 +99,6 @@ describe('POST /auth/pairings/claim', () => {
     const device = items.find((item) => item.deviceName === 'iPhone 15 Pro')
     expect(device?.kind).toBe('bearer')
     const creator = items.find((item) => item.current)
-    // The dialog of the creating session hears of it.
     expect(t.events).toContainEqual({
       type: 'pairing.claimed',
       payload: {
@@ -133,7 +131,6 @@ describe('POST /auth/pairings/claim', () => {
   test('revoking the session that created the code voids it', async () => {
     const { t, newCode, cookie } = await signedIn()
     const pairing = await newCode()
-    // Another browser revokes the one showing the code.
     const other = t.as(sessionCookieOf(await t.login('leo', adminPassword)))
     const { items } = (await (await t.as(cookie).get('/api/v1/auth/sessions')).json()) as {
       items: { id: string; current: boolean }[]

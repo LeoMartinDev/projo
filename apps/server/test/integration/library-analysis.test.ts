@@ -11,7 +11,6 @@ import {
 } from '../support/media-fixtures.ts'
 import { createScannerWorld, type ScannerWorld } from '../support/scanner-world.ts'
 
-// Real ffprobe and ffmpeg on generated 3 s videos (§22).
 setDefaultTimeout(60_000)
 
 let world: ScannerWorld
@@ -58,7 +57,6 @@ describe('library analysis (§7.2–7.3, §15): quiet period, verification, fail
     const t0 = world.clock.now()
     await world.runJobs(['scan_library'])
 
-    // Discovery over in no time: every file waits for its quiet period, nothing is "up to date".
     expect(await analysisOf(id)).toEqual({
       ready: 0,
       waiting: 5,
@@ -67,7 +65,6 @@ describe('library analysis (§7.2–7.3, §15): quiet period, verification, fail
       nextReadyAt: at(t0, 120),
     })
 
-    // 60 s later, one file is still being written: its counter restarts, the others' does not.
     world.clock.advance(60 * SECOND)
     growFile(downloading)
     await watchPending()
@@ -77,7 +74,6 @@ describe('library analysis (§7.2–7.3, §15): quiet period, verification, fail
       nextReadyAt: at(t0, 120),
     })
 
-    // Quiet period over for four files: they are being verified, the fifth still waits.
     world.clock.advance(61 * SECOND)
     await watchPending()
     expect(await analysisOf(id)).toEqual({
@@ -88,7 +84,6 @@ describe('library analysis (§7.2–7.3, §15): quiet period, verification, fail
       nextReadyAt: at(t0, 180),
     })
 
-    // Probe and sample decodes: two ready, two unreadable (counted apart, they stay pending).
     await world.runJobs(['probe_source'])
     expect(await analysisOf(id)).toEqual({
       ready: 2,
@@ -98,14 +93,12 @@ describe('library analysis (§7.2–7.3, §15): quiet period, verification, fail
       nextReadyAt: at(t0, 180),
     })
 
-    // The last one settles, then fails its probe: nothing is in progress any more.
     world.clock.advance(60 * SECOND)
     await watchPending()
     expect(await analysisOf(id)).toEqual({ ready: 2, waiting: 0, verifying: 1, failed: 2 })
     await world.runJobs(['probe_source'])
     expect(await analysisOf(id)).toEqual({ ready: 2, waiting: 0, verifying: 0, failed: 3 })
 
-    // Failures are re-tested by each scan without counting as in progress.
     await world.request(`/libraries/${id}/scan`, { method: 'POST', json: { mode: 'quick' } })
     await world.runJobs(['scan_library'])
     expect(await analysisOf(id)).toEqual({ ready: 2, waiting: 0, verifying: 0, failed: 3 })

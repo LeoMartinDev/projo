@@ -47,13 +47,8 @@ const rowTitleKey = {
   watchlist: 'home.rows.watchlist',
 } as const
 
-/** The next category batch is asked for this far before the end of the page. */
 const aheadPx = 800
 
-/**
- * The status bar alone: the screen's top inset also counts the iPad tab bar, and the logo and
- * avatar sit on the tab bar's line, as in the Apple TV app.
- */
 const windowTop = initialWindowMetrics?.insets.top ?? 0
 
 type Card = { item: ItemSummaryDto; isNew: boolean; resumeFrame?: ResumeFrameDto }
@@ -69,11 +64,6 @@ const cardsOf = (row: HomeRowDto): Card[] =>
         }))
       : row.items.map((item) => ({ item, isNew: false }))
 
-/**
- * Home (§13.3, artboards `MobileHome` on an iPhone, `Home` on an iPad): the avatar at the top
- * (settings, §26.5), the hero, the fixed rows, then the category rows, batch by batch as the page
- * nears its end.
- */
 export const HomeScreen = () => {
   const { t } = useTranslation()
   const router = useRouter()
@@ -229,8 +219,6 @@ export const HomeScreen = () => {
 
   return (
     <View onLayout={layout.onLayout} style={styles.root}>
-      {/* On an iPad the hero runs under the status and tab bars, as on the web: react-native-screens
-          gives the first scroll view of a tab automatic insets, so this one is not the first. */}
       {regular ? <View collapsable={false} /> : undefined}
       <ScrollView
         contentContainerStyle={styles.content}

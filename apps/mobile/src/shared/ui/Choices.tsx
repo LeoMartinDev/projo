@@ -4,10 +4,6 @@ import { colors, fonts, radii } from '../styles/tokens.ts'
 
 export type Choice<Value> = { value: Value; label: string }
 
-/**
- * A segmented control (artboard `MobileSeries` season tabs, the catalogue sort): pills in a dark
- * track, the chosen one white. Scrolls sideways when its options do not fit.
- */
 export const Segmented = <Value,>({
   label,
   choices,
@@ -19,7 +15,6 @@ export const Segmented = <Value,>({
   choices: readonly Choice<Value>[]
   value: Value | undefined
   onChange: (value: Value) => void
-  /** `tab`: season tabs. */
   role?: 'radio' | 'tab'
 }) => (
   <ScrollView
@@ -47,7 +42,6 @@ export const Segmented = <Value,>({
   </ScrollView>
 )
 
-/** Filter chips (kit v2 chips): wrap on several lines, the chosen one white. */
 export const Chips = <Value,>({
   label,
   choices,

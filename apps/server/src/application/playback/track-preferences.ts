@@ -15,20 +15,12 @@ import type {
   TrackPreferences,
 } from '../../core/playback/track-preferences.ts'
 
-/**
- * Where the §11.3 memory of a movie or an episode lives, and what the §11.1 anime rule needs of
- * the work (original language, genres).
- */
 export type MemoryTarget = {
-  /** The movie itself, or the series of the episode (the episode when it has none). */
   ownerId: string
-  /** TMDB `original_language` of the movie, or of the episode (else its series). */
   originalLanguage?: string
-  /** Genres of the movie, or of the episode's series (the episode's own when it has none). */
   genres: readonly GenreId[]
 }
 
-/** Up from an episode (season, then series) through visible items only. */
 export const memoryTargetOf = (
   catalogRepository: CatalogRepository,
   item: CatalogItem,
@@ -81,10 +73,6 @@ type Deps = {
   logger: Logger
 }
 
-/**
- * `PUT /items/:id/track-preferences` (§11.3): `:id` is the movie or episode played, the memory
- * is stored on the movie or on the episode's series. Only items the profile sees (§14).
- */
 export const setTrackPreferencesFactory =
   ({ catalogRepository, trackPreferenceRepository, clock, logger }: Deps) =>
   async (
@@ -112,7 +100,6 @@ export const setTrackPreferencesFactory =
     return ok(preferences)
   }
 
-/** `DELETE /items/:id/track-preferences`: forgets the memory ("Undo"); idempotent. */
 export const clearTrackPreferencesFactory =
   ({ catalogRepository, trackPreferenceRepository }: Omit<Deps, 'clock' | 'logger'>) =>
   async (target: Target): Promise<Result<void, TrackPreferencesError>> => {

@@ -15,7 +15,6 @@ const initials = (name: string) =>
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('')
 
-/** Casting with photos (§13.5, §9.1: 20 first actors), then the creators or directors. */
 export const CastSection = ({
   cast,
   crew,
@@ -31,7 +30,6 @@ export const CastSection = ({
   const people = [...cast, ...crew]
   const count = people.length
 
-  /** Which arrows can still move: follows the scroll position and the width of the row. */
   useEffect(() => {
     if (list === undefined) return
     const update = () =>

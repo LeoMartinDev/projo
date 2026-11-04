@@ -2,10 +2,6 @@ import type { LibraryAccess } from '@projo/shared/api/profiles'
 
 type Access = { libraryAccess: LibraryAccess; libraryIds: readonly string[] }
 
-/**
- * Ticks or unticks one library of a profile. Never promotes to `all`, even when every current
- * library is ticked: `all` also covers future libraries, so only "All libraries" sets it.
- */
 export const toggleLibrary = (
   access: Access,
   libraryIds: readonly string[],

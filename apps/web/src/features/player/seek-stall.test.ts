@@ -8,7 +8,6 @@ const ranges = (...spans: [number, number][]): TimeRanges => ({
   end: (index) => spans[index]?.[1] ?? 0,
 })
 
-/** A `<video>` whose seeks end only when the test says so, and timers run by hand. */
 const world = (buffered: TimeRanges) => {
   const target = new EventTarget()
   const seeks: number[] = []
@@ -55,7 +54,6 @@ describe('seek stall watchdog', () => {
     expect(timers.map(({ ms }) => ms)).toEqual([SEEK_STALL_MS])
     elapse()
     expect(seeks).toEqual([0.7, 0.7])
-    // Still stuck: tried again.
     elapse()
     expect(seeks).toEqual([0.7, 0.7, 0.7])
   })

@@ -16,7 +16,6 @@ describe('catalog state', () => {
     expect(
       parseCatalogState({ sort: 'rating', genre: 'drama', decade: 1990, watch: 'unwatched' }),
     ).toEqual({ sort: 'rating', genre: 'drama', decade: 1990, watch: 'unwatched' })
-    // A genre name saved before genre ids (§9.1) is dropped, the rest is kept.
     expect(parseCatalogState({ sort: 'year', genre: 'Drame', watch: 'watched' })).toEqual({
       sort: 'year',
       watch: 'watched',
@@ -51,7 +50,6 @@ describe('catalog state', () => {
   })
 
   test('decades and years offered', () => {
-    // Bounded by the catalogue's years (`GET /genres` → `years`).
     const range = { min: 1995, max: 2023 }
     expect(decadesWithin(range)).toEqual([2020, 2010, 2000, 1990])
     expect(decadesWithin(undefined)).toEqual([])

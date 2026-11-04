@@ -8,10 +8,6 @@ import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqli
 import { adminPlaybackRoutes } from '../http/routes/admin-playback.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * "Active sessions" of the admin (§10.6, §15): who watches what, and "Stop". `endSession`
- * comes from the playback module (ffmpeg stopped, `playback.session_terminated` to the player).
- */
 export const buildAdminPlaybackModule = (
   { db, clock, logger }: Platform,
   {

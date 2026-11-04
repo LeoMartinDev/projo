@@ -17,9 +17,7 @@ export type HomeCategoryRow = { category: HomeCategory; entries: CatalogEntry[] 
 
 export type HomeCategoriesView = {
   rows: HomeCategoryRow[]
-  /** Rows of the whole list. */
   total: number
-  /** Offset of the next batch; absent after the last one. */
   nextOffset?: number
 }
 
@@ -30,10 +28,6 @@ export type HomeCategoryDeps = {
   catalogEntries: CatalogEntries
 }
 
-/**
- * The titles a category row puts last (§13.1): movies watched, series whose every visible episode
- * is.
- */
 export const watchedTitlesFor =
   ({
     catalogRepository,
@@ -49,12 +43,6 @@ export const watchedTitlesFor =
     })
   }
 
-/**
- * `GET /home/categories` (§13.3 item 6): the batch of category rows at `offset`, for the active
- * profile and its scope. Fixed number of queries per batch: the visible titles with their genres
- * (the category list and the rows), the watched titles, then the cards of the batch. Each batch
- * recomputes the list: a cursor is an offset in it.
- */
 export const getHomeCategoriesFactory =
   ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: HomeCategoryDeps) =>
   async ({

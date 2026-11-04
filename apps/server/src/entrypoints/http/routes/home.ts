@@ -28,13 +28,11 @@ const toResumeFrameDto = ({ sourceId, second }: ResumeFrame): ResumeFrameDto => 
   url: `/api/v1/trickplay/${encodeURIComponent(sourceId)}/frames/${second}.webp`,
 })
 
-/** §13.3 hero video preview (`preview_clip`): the clip URL when ready; missing clips requested. */
 export type HomePreviewPort = {
   previewUrl: (input: { itemId: string; profileId: string }) => string | undefined
   prepare: (input: { itemIds: readonly string[]; profileId: string }) => void
 }
 
-/** §13.3: the timeline thumbnail at a resume position, when the file has sprites. */
 export type HomeResumeFramePort = (input: {
   itemId: string
   positionMs: number
@@ -50,11 +48,6 @@ type Deps = {
   resumeFrames?: HomeResumeFramePort
 }
 
-/**
- * §13.3 `GET /home`: the hero and the fixed rows in one request; `GET /home/categories`: the
- * category rows under them, batch by batch; `GET /home/categories/:category`: the page of a
- * category behind its row's "See all ›". Mounted at `/api/v1`.
- */
 export const homeRoutes = ({
   getHome,
   getHomeCategories,
@@ -68,7 +61,6 @@ export const homeRoutes = ({
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
       const home = await getHome({ profileId: profileId.value, scope: scopeFor(profileId.value) })
-      // §13.3/§18: a clip is cut for what enters "Continue watching" / "Up next" without one.
       previews?.prepare({
         itemIds: [
           ...home.continueWatching.map((entry) => entry.item.id),
@@ -131,7 +123,6 @@ export const homeRoutes = ({
                   ...(previewUrl === undefined ? {} : { previewUrl }),
                 },
               }),
-          // §13.3: an empty row is left out.
           rows: rows.filter((row) => row.items.length > 0),
         } satisfies HomeDto,
         200,

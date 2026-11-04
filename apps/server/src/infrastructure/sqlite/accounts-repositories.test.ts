@@ -143,7 +143,6 @@ describe('SQLite account repository', () => {
     expect(db.select().from(watchlist).all()).toEqual([])
     expect(db.select().from(trackPreferences).all()).toEqual([])
     expect(db.select().from(playbackSessions).all()).toEqual([])
-    // The invitation history stays, without its account.
     expect(db.select().from(invitations).get()?.usedByAccountId).toBeNull()
   })
 })
@@ -159,7 +158,6 @@ describe('SQLite profile repository', () => {
     })
     expect(profileRepo.create(kid, { maxPerAccount: 5 })).toBe(true)
     expect(profileRepo.findById('kid')).toEqual({ ...kid, libraryIds: ['anime', 'films'] })
-    // Same creation date: ordered by id.
     expect(profileRepo.listByAccount('account-1').map((p) => p.libraryIds)).toEqual([
       ['anime', 'films'],
       [],
@@ -309,7 +307,6 @@ describe('SQLite account activity', () => {
       activeSessions: 1,
       playingProfileIds: ['profile-1'],
     })
-    // A stale heartbeat is not "en lecture".
     const later = createSqliteAccountActivity({ db })({ now: new Date(now.getTime() + 3_600_000) })
     expect(later.get('account-1')?.playingProfileIds).toEqual([])
   })

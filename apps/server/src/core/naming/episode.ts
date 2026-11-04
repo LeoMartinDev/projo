@@ -1,9 +1,7 @@
-/** Garde-fou §8.2: seasons 200..1927 and > 2500 are invalid (`1920x1080` must not read as S1920E1080). */
 export const isValidSeason = (season: number): boolean =>
   season >= 0 && !(season >= 200 && season <= 1927) && season <= 2500
 
 export type EpisodeHit = {
-  /** Where the pattern starts and ends in the analysed name. */
   readonly index: number
   readonly end: number
   readonly season?: number
@@ -24,32 +22,23 @@ export type DateHit = { readonly index: number; readonly end: number; readonly a
 const NOT_WORD_BEFORE = String.raw`(?<![\p{L}\d])`
 const SEP = String.raw`[\s._-]*`
 
-/** Video codec numbers (`x264`, `x265`, `H.264`, `H.266`). */
 const CODEC_NUMBER = /^26[4-6]$/u
-/** An audio channel layout (`5.1`, `7.1`, `2.0`, `7.1.4`) ends right before the match. */
 const CHANNEL_LAYOUT_BEFORE = /(?<!\d)\d\.$/u
-/** `H.265`, `x.264`: a lone codec letter, then delimiters, right before the match (not `Bleach 265`). */
 const CODEC_LETTER_BEFORE = /(?<![\p{L}\d])[hx][\s._]*$/iu
 
-/** `DDP5.1x265`, `AAC2.0x264`: a channel layout glued to the codec, not season 1 episode 265 (§8.2). */
 const isChannelLayoutThenCodec = (value: string, index: number, episodeDigits: string): boolean =>
   CODEC_NUMBER.test(episodeDigits) && CHANNEL_LAYOUT_BEFORE.test(value.slice(0, index))
 
 const EXPLICIT_PATTERNS: readonly RegExp[] = [
-  // S01E02, S01.E02, S01xE02, S01 E02, s1e2
   new RegExp(String.raw`${NOT_WORD_BEFORE}s(\d{1,4})${SEP}x?${SEP}e(\d{1,4})(?!\d)`, 'giu'),
-  // 1x02
   new RegExp(String.raw`${NOT_WORD_BEFORE}(\d{1,2})x(\d{2,3})(?!\d)`, 'giu'),
-  // se1.ep2
   new RegExp(String.raw`${NOT_WORD_BEFORE}se(\d{1,4})${SEP}ep(\d{1,4})(?!\d)`, 'giu'),
-  // season1.episode2, Season 1 Episode 2
   new RegExp(
     String.raw`${NOT_WORD_BEFORE}(?:season|saison)${SEP}(\d{1,4})${SEP}(?:episode|épisode)${SEP}(\d{1,4})(?!\d)`,
     'giu',
   ),
 ]
 
-// End number is rejected when followed by digits, `p` or `i` (`S09E14-1080p`).
 const MULTI_AFTER_S = /^(?:[\s._]*-[\s._]*s\d{1,4}e|-?e|-)(\d{1,4})(?![\dpi])/iu
 const MULTI_AFTER_X = /^-(?:\d{1,2}x)?(\d{2,3})(?![\dpi])/iu
 const MULTI_AFTER_KEYWORD =
@@ -91,7 +80,6 @@ const toHit = (
   ...(episodeEnd === undefined ? {} : { episodeEnd }),
 })
 
-/** Patterns that identify an episode from the file name alone (§8.2 "Motifs", without folder context). */
 export const findExplicitEpisode = (value: string): EpisodeHit | undefined => {
   const hits = EXPLICIT_PATTERNS.flatMap((pattern, patternIndex) =>
     [...value.matchAll(pattern)].flatMap((match) => {
@@ -122,7 +110,6 @@ const EPISODE_KEYWORD = new RegExp(
   'iu',
 )
 
-/** `Episode 02`, `Ep 02`, `E02`, `Episode 16-17` (needs a show context). */
 export const findEpisodeKeyword = (value: string): EpisodeHit | undefined => {
   const match = EPISODE_KEYWORD.exec(value) ?? undefined
   if (match === undefined) return undefined
@@ -139,7 +126,6 @@ export const findEpisodeKeyword = (value: string): EpisodeHit | undefined => {
 
 const LEADING_NUMBER = /^(\d{1,3})(?=$|[\s._]*-|\.|[\s_]+\D)/u
 
-/** `02 - Titre`, `02.Titre`, `02` (needs a show context). */
 export const findLeadingNumber = (value: string): EpisodeHit | undefined => {
   const match = LEADING_NUMBER.exec(value.trimStart()) ?? undefined
   if (match === undefined) return undefined
@@ -149,7 +135,6 @@ export const findLeadingNumber = (value: string): EpisodeHit | undefined => {
 
 const SEASON_DOT_EPISODE = /^(\d{1,2})\.(\d{2,3})(?=[\s_-]|$)/u
 
-/** `01.02 Titre` = season 1 episode 2 (needs a series folder). */
 export const findSeasonDotEpisode = (value: string): EpisodeHit | undefined => {
   const match = SEASON_DOT_EPISODE.exec(value) ?? undefined
   if (match === undefined) return undefined
@@ -163,7 +148,6 @@ const DASH_NUMBER = new RegExp(String.raw`[\s._]+-[\s._]+(\d{1,4})${NUMBER_AFTER
 const BARE_NUMBER = new RegExp(String.raw`[\s._]+(\d{1,4})${NUMBER_AFTER}`, 'gu')
 const RESOLUTION_NUMBERS = new Set(['480', '576', '720', '1080', '2160'])
 const YEAR_LIKE = /^(?:19|20)\d{2}$/u
-/** Audio channel layouts (`5.1`, `7.1.4`, `2.0`): their digits are not episode numbers. */
 const CHANNEL_LAYOUT = /(?<!\d)\d\.\d(?:\.\d)?(?!\d)/gu
 
 const overlapsChannelLayout = (value: string, start: number, end: number): boolean =>
@@ -171,7 +155,6 @@ const overlapsChannelLayout = (value: string, start: number, end: number): boole
     (layout) => layout.index < end && start < layout.index + layout[0].length,
   )
 
-/** Numbers after a name that may be episode numbers: never a year, a resolution, a codec or a channel layout. */
 const numbersAfterName = (
   value: string,
   pattern: RegExp,
@@ -188,18 +171,12 @@ const numbersAfterName = (
     return [{ index: match.index, end, number: Number(digits), digits, form }]
   })
 
-/** `Name - 12`, `[Group] Name - 12 [1080p]` (group already stripped): every one, in order. */
 export const findDashNumbers = (value: string): AbsoluteHit[] =>
   numbersAfterName(value, DASH_NUMBER, 'dash')
 
-/** Standalone numbers after a name (`Name 64`, `Mob Psycho 100 05`), in order. */
 export const findBareNumbers = (value: string): AbsoluteHit[] =>
   numbersAfterName(value, BARE_NUMBER, 'bare')
 
-/**
- * Absolute numbering outside a show context (§8.2): `Name - 101`, or `Name 101` with 3-4 digits
- * so that sequels (`Toy Story 3`, `Apollo 13`) stay titles.
- */
 export const findAbsoluteNumber = (value: string): AbsoluteHit | undefined =>
   findDashNumbers(value)[0] ?? findBareNumbers(value).find((hit) => hit.digits.length >= 3)
 
@@ -213,7 +190,6 @@ const isoDate = (year: string, month: string, day: string): string | undefined =
   return `${year}-${month}-${day}`
 }
 
-/** `2017.04.20`, `2017-04-20`, `20.04.2017`. */
 export const findAirDate = (value: string): DateHit | undefined => {
   const ymd = DATE_YMD.exec(value) ?? undefined
   if (ymd !== undefined) {
@@ -268,10 +244,6 @@ const SEASON_MARKER_BEFORE = new RegExp(
   'iu',
 )
 
-/**
- * `S2 - 05`, `Saison 2 - 05`, `Season 2 05`: a season marker ending the text before an episode
- * number (§8.2 "Season"). `index`: where the marker starts (the show name ends before it).
- */
 export const findSeasonMarker = (
   before: string,
 ): { readonly index: number; readonly season: number } | undefined => {
@@ -283,7 +255,6 @@ export const findSeasonMarker = (
 
 export type SeasonFolder = { readonly season: number; readonly title?: string }
 
-/** `Season 01`, `Saison 2 - La fuite`, `S01`, `Staffel 1`, `01`, `Specials`… (§8.2 "Dossier saison"). */
 export const parseSeasonFolder = (rawName: string): SeasonFolder | undefined => {
   const name = rawName.normalize('NFC').trim()
   if (SPECIALS.test(name)) return { season: 0 }

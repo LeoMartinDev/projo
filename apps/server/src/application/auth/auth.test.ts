@@ -130,7 +130,6 @@ describe('login', () => {
     await t.login(loginInput)
     const keys = loginRateLimitKeys({ ip: loginInput.ip, username: 'LEO' })
     expect(t.rate.hits.get(keys.username)).toBeUndefined()
-    // §20 counts attempts per IP, successes included.
     expect(t.rate.hits.get(keys.ip)).toBe(2)
   })
 
@@ -310,7 +309,6 @@ describe('resolveProfile with a PIN (§13.6)', () => {
       error: { code: 'profile/pin_required' },
     })
     expect(t.sessions.get(session.id)?.lastProfileId).toBe('profile-1')
-    // Unlocked (POST /profiles/:id/select made it the last profile).
     expect(
       t.resolveProfile({
         session: { ...session, lastProfileId: 'profile-2' },

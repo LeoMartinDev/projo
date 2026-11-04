@@ -6,15 +6,9 @@ import { nothingVisible, visibilityScopeOf } from '../../core/profile/visibility
 type Deps = {
   profileRepository: ProfileRepository
   clock: Clock
-  /** How long a resolved scope is reused (profile edits invalidate it at once). */
   ttlMs?: number
 }
 
-/**
- * `VisibilityScopeResolver` of the catalogue (§14): what a profile sees, from its library access
- * and maximum rating. Called on every catalogue request, so scopes are cached briefly;
- * `invalidate` is called by every profile change. An unknown profile sees nothing.
- */
 export const visibilityScopeFactory = ({ profileRepository, clock, ttlMs = 10_000 }: Deps) => {
   const cache = new Map<string, { scope: VisibilityScope; until: number }>()
 

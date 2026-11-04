@@ -1,14 +1,12 @@
 import { Link, useCanGoBack, useRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
-/** "Retour": the previous page when there is one, the home otherwise. */
 export const BackLink = ({
   className,
   label,
   children,
 }: {
   className: string
-  /** Accessible name when `children` is only an icon. */
   label?: string
   children: ReactNode
 }) => {

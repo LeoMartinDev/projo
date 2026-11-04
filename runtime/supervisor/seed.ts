@@ -25,10 +25,6 @@ const removeStaleTmpDirs = async (versionsDir: string): Promise<void> => {
   )
 }
 
-/**
- * Installs the app bundle embedded in the image into `versions/<v>` and points `current` to it.
- * Reuses an existing `versions/<v>` when it matches the seed manifest.
- */
 export const installSeedFactory =
   ({ layout, seedDir, logger }: InstallSeedDeps) =>
   async (): Promise<Result<InstalledVersion, SupervisorError>> => {

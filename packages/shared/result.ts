@@ -40,7 +40,6 @@ type OkValues<R extends readonly Result<unknown, unknown>[]> = {
 type ErrValue<R extends readonly Result<unknown, unknown>[]> =
   R[number] extends Result<unknown, infer E> ? E : never
 
-/** First error wins; otherwise the values in input order. */
 export const all = <const R extends readonly Result<unknown, unknown>[]>(
   results: R,
 ): Result<OkValues<R>, ErrValue<R>> => {
@@ -52,7 +51,6 @@ export const all = <const R extends readonly Result<unknown, unknown>[]>(
   return ok(values as OkValues<R>)
 }
 
-/** Converts a rejection (or a synchronous throw inside `run`) into an `Err`. */
 export const fromPromise = async <T, E>(
   run: Promise<T> | (() => Promise<T>),
   onRejected: (cause: unknown) => E,

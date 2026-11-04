@@ -30,12 +30,6 @@ const toggles: readonly Toggle[] = [
   'preExtractSubtitles',
 ]
 
-/**
- * Library creation and edition (§15, artboard `AdminAddLibrary`, kit v2 controls): content type,
- * name, folders picked with the explorer, metadata language and rating country, scan options,
- * profiles with access (§14).
- * The first launch has its own step, folders and name only (`features/setup/LibraryStep`).
- */
 export const LibraryForm = ({
   library,
   submitLabel,
@@ -65,13 +59,11 @@ export const LibraryForm = ({
   const [scanIntervalMinutes, setScanIntervalMinutes] = useState(library?.scanIntervalMinutes ?? 15)
   const [quietPeriodSeconds, setQuietPeriodSeconds] = useState(library?.quietPeriodSeconds ?? 120)
   const access = useLibraryProfiles(library?.id)
-  /** Set once the admin touches a switch; until then, what the server says. */
   const [profileChoice, setProfileChoice] = useState<ReadonlySet<string>>()
   const selectedProfiles = profileChoice ?? access.initial ?? new Set<string>()
   const [browserOpen, setBrowserOpen] = useState(false)
   const [confirmingRemoval, setConfirmingRemoval] = useState(false)
   const [touched, setTouched] = useState(false)
-  /** Created by a save whose access update failed: a retry updates it instead of creating another. */
   const [created, setCreated] = useState<LibraryDto>()
   const existing = library ?? created
 
@@ -112,7 +104,6 @@ export const LibraryForm = ({
         )
   }
 
-  /** Saving without these deletes their sources and stops their playbacks: confirmed first (§15). */
   const removedRoots = library?.roots.filter((root) => !roots.includes(root.path)) ?? []
 
   const save = useMutation({

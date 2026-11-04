@@ -18,20 +18,10 @@ import { type HomePreviewPort, type HomeResumeFramePort, homeRoutes } from '../h
 import { searchRoutes } from '../http/routes/search.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * What a profile may see beyond §6.3 visibility (§14: library access, maximum rating). Injected
- * by `main.ts` from the profiles module; required, so a module left without it does not compile.
- */
 export type ScopeDeps = { visibilityScope: VisibilityScopeResolver }
 
-/** Every profile sees everything: tests without profiles. */
 export const allVisible: VisibilityScopeResolver = () => everything
 
-/**
- * Wiring of the catalog read side (§13.3–§13.5): home and its category rows, movies, series,
- * genres, items, children, search. `imageAccess` is for the images route (§14: an image exists for a profile only through
- * a visible item or a person credited on one).
- */
 export const buildCatalogModule = (
   { db }: Platform,
   {
@@ -76,9 +66,7 @@ export const buildCatalogModule = (
       getHomeCategories: getHomeCategoriesFactory(homeCategoryDeps),
       getHomeCategoryPage: getHomeCategoryPageFactory(homeCategoryDeps),
       scopeFor: visibilityScope,
-      // §13.3 hero preview, from the media assets module.
       ...(homePreviews === undefined ? {} : { previews: homePreviews }),
-      // §13.3 "Continue watching" frames, from the media assets module.
       ...(homeResumeFrames === undefined ? {} : { resumeFrames: homeResumeFrames }),
     }),
     searchRoutes: searchRoutes({
@@ -86,7 +74,6 @@ export const buildCatalogModule = (
       scopeFor: visibilityScope,
     }),
     imageAccess: {
-      /** True when the profile may load this image (`GET /images/:id` answers 404 otherwise). */
       canView: ({ imageId, profileId }: { imageId: string; profileId: string }): boolean =>
         catalogRepository.isImageVisible({ imageId, scope: visibilityScope(profileId) }),
     },

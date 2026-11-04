@@ -9,13 +9,11 @@ import {
   type TranscodeArgsInput,
 } from './ffmpeg-args.ts'
 
-/** The value following `flag` (first occurrence). */
 const valueOf = (args: string[], flag: string): string | undefined => {
   const index = args.indexOf(flag)
   return index === -1 ? undefined : args[index + 1]
 }
 
-/** Every value following `flag`. */
 const valuesOf = (args: string[], flag: string): string[] =>
   args.flatMap((arg, i) => (arg === flag ? [args[i + 1] ?? ''] : []))
 
@@ -137,7 +135,6 @@ describe('transcodeArgs (§10.2, §10.3)', () => {
     expect(valueOf(args, '-filter_complex')).toBe(
       '[0:0]trim=start=0.500000,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v]',
     )
-    // Output timestamps = source timestamps + 10 s.
     expect(valueOf(args, '-output_ts_offset')).toBe('21.500000')
   })
 
@@ -266,7 +263,6 @@ describe('VAAPI (§10.3)', () => {
     )
     expect(args.join(' ')).not.toContain('tonemap_vaapi')
     expect(valueOf(args, '-color_trc')).toBe('bt709')
-    // Without zscale: like software, only the 8-bit conversion (on the GPU).
     const plain = transcodeArgs({
       ...vaapi,
       video: { index: 0, codec: 'hevc', dynamicRange: 'hdr' },

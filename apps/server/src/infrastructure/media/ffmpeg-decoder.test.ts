@@ -8,7 +8,6 @@ import { createFfmpegDecoder } from './ffmpeg-decoder.ts'
 const dir = createTempDir('projo-decoder-')
 afterAll(dir.cleanup)
 
-/** A stand-in for ffmpeg that reports decoded frames on stdout and the given lines on stderr. */
 const fakeFfmpeg = (name: string, { frames, stderr }: { frames: number; stderr: string[] }) => {
   const path = join(dir.path, name)
   const errors = stderr.map((line) => `echo '${line}' >&2`).join('\n')

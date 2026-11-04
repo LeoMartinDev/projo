@@ -5,10 +5,6 @@ import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 import { childrenQuery } from '../catalog/queries.ts'
 import { type NextEpisode, nextEpisodeOf, nextInSeason, nextSeason } from './next-episode.ts'
 
-/**
- * The episode after `item` (§10.7), read like the series page reads its seasons: the season's
- * episodes first, the seasons and the next season's episodes only when the season ends.
- */
 export const useNextEpisode = (item: ItemDetailDto | undefined): NextEpisode<ItemSummaryDto> => {
   const episode = item?.kind === 'episode' ? item : undefined
   const seasonId = episode?.season?.id ?? episode?.parentId

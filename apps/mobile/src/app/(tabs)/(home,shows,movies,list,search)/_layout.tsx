@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 
 import { colors, fonts } from '../../../shared/styles/tokens.ts'
 
-/** The first screen of each tab (§26.5); title pages, category pages and the card sheet are pushed over it. */
 export const unstable_settings = {
   home: { anchor: 'index' },
   shows: { anchor: 'shows' },
@@ -22,10 +21,6 @@ const roots = {
 
 const isTab = (segment: string): segment is keyof typeof roots => segment in roots
 
-/**
- * The stack of a tab (`segment`: which one): native transitions and back swipe, large titles
- * (§26.5).
- */
 const TabStack = ({ segment }: { segment: string }) => {
   const { t } = useTranslation()
   const root = roots[isTab(segment) ? segment : '(home)']

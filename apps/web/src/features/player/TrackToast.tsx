@@ -2,11 +2,6 @@ import { useTranslation } from 'react-i18next'
 
 import type { TrackToast as TrackToastState } from './track-memory.ts'
 
-/**
- * Toast of a manual track change (§11.3), bottom left like "Intro skipped · Undo" in the
- * artboard `Player`: "Applied to the whole show" (or "to the movie"), "Set as default for my
- * profil", "Undo". Then a short confirmation.
- */
 export const TrackToast = ({
   toast,
   canSetDefault,

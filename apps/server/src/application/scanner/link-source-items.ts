@@ -17,31 +17,20 @@ import type { LinkableSource } from '../../core/scanner/item-linking.ts'
 
 type Deps = {
   localItems: LocalItemRepository
-  /** Sessions on a pruned item are ended before it goes (§10.6). */
   playbackSessions: PlaybackSessionTerminator
   ids: IdGenerator
   clock: Clock
 }
 
 export type LinkOutcome =
-  | { kind: 'linked'; itemIds: string[]; changed: boolean }
-  /** Matched by TMDB or by hand (M2): never touched by the local grouping. */
-  | { kind: 'kept' }
-  /** Nothing to link (`unknown`, date-based…): waits in "To review" (§7.8). */
-  | { kind: 'none' }
+  { kind: 'linked'; itemIds: string[]; changed: boolean } | { kind: 'kept' } | { kind: 'none' }
 
 export type LinkSourceInput = LinkableSource & {
   id: string
   matchState: MatchState
-  /** `added_at` of new items (§6.3: first ready source). */
   readyAt?: Date
 }
 
-/**
- * M1 "matching": links a ready source to local items built from its parse (see
- * `core/scanner/item-linking.ts`). Idempotent; a source already linked to the same items keeps
- * them (§7.3: a replaced file comes back to its place without re-matching).
- */
 export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, clock }: Deps) => {
   const create = (item: Parameters<LocalItemRepository['create']>[0]): string => {
     localItems.create(item)
@@ -65,7 +54,6 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
     })
   }
 
-  /** A linked item, with its season and series for an episode. */
   type Linked = { id: string; episodeNumber?: number; ancestors: string[] }
 
   const episodeItem = (target: EpisodeTarget): Linked => {
@@ -101,10 +89,6 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
       ? { id: rootItem('movie', target.title, target.year), ancestors: [] }
       : episodeItem(target)
 
-  /**
-   * §7.6: each item the source leaves, and its season and series, → the item replacing it, so
-   * that progress, My list… follow a renamed file instead of going with the pruned item.
-   */
   const replacementsOf = (current: LinkedItem[], linked: Linked[]): Map<string, string> => {
     const replacements = new Map<string, string>()
     const previous = current.map(({ itemId, kind, tmdbId, episodeNumber }) => ({
@@ -133,8 +117,6 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
     localItems.transaction(() => {
       if (source.matchState === 'matched' || source.matchState === 'manual') return { kind: 'kept' }
       const current = localItems.linksOf(source.id)
-      // TMDB links of the source's kind wait for the matcher; a source re-read as the other kind
-      // (§7.4) goes back to local items of its new reading.
       const sameKind = current.every(
         (link) => (link.kind === 'movie') === (source.classification === 'movie'),
       )
@@ -152,9 +134,7 @@ export const linkSourceItemsFactory = ({ localItems, playbackSessions, ids, cloc
         localItems.pruneOrphans(
           currentIds.filter((id) => !itemIds.includes(id)),
           (pruned) => {
-            // Their sessions end first (§10.6), while they still point at the pruned items.
             playbackSessions.endWithin({ itemIds: pruned })
-            // Only the items that go hand their rows over: one that keeps a file keeps them.
             for (const from of pruned) {
               const into = replacements.get(from)
               if (into !== undefined) localItems.moveItemRows({ from, into })

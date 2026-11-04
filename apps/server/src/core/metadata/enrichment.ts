@@ -13,15 +13,10 @@ import type {
   TmdbSeries,
 } from './tmdb.ts'
 
-/** §9.1–9.3: what TMDB writes on an item. Pure mapping, no I/O. */
-
-/** Fields an admin edit locks (`item_overrides.field`, §9.3). */
 export type LockableField =
   'title' | 'year' | 'overview' | 'genres' | 'poster_image_id' | 'backdrop_image_id'
 
-/** Item columns written by TMDB. `undefined` clears the column (TMDB no longer has the value). */
 export type ItemMetadata = {
-  /** Absent: a season or an episode whose TMDB name is the generic one (§6.3, `ownTitle`). */
   title?: string
   originalTitle?: string
   year?: number
@@ -32,18 +27,15 @@ export type ItemMetadata = {
   originalLanguage?: string
   voteAverage?: number
   contentRating?: string
-  /** Country of `contentRating` (the library's, or the US fallback, §9.1). */
   contentRatingCountry?: string
   seriesStatus?: SeriesStatus
   airDate?: string
-  /** Series: TMDB `last_air_date` (§13.5 "2023 – 2025"). */
   lastAirDate?: string
   episodeCountTmdb?: number
   imdbId?: string
   tvdbId?: number
 }
 
-/** What is actually written: locked fields are absent (never overwritten, §9.3). */
 export type MetadataPatch = { [K in keyof ItemMetadata]?: ItemMetadata[K] | undefined }
 
 const lockedColumns: Record<LockableField, readonly (keyof ItemMetadata)[]> = {
@@ -84,7 +76,6 @@ export const withoutLocked = (
   for (const key of Object.keys(metadata) as (keyof ItemMetadata)[]) {
     if (!skipped.has(key)) patch[key] = metadata[key]
   }
-  // Keys whose value is undefined are absent from `metadata`: they must still clear the column.
   for (const key of allMetadataKeys) {
     if (!skipped.has(key) && !(key in patch)) patch[key] = undefined
   }
@@ -102,13 +93,9 @@ export const yearOf = (date: string | undefined): number | undefined => {
 const nonEmpty = (value: string | undefined): string | undefined =>
   value === undefined || value.trim() === '' ? undefined : value.trim()
 
-/** `fr-FR` → `fr`. */
 export const languagePrefix = (language: string): string =>
   (language.split('-')[0] ?? language).toLowerCase()
 
-// ── en-US fallback, field by field (§9.1) ───────────────────────────────────
-
-/** Fallback language of §9.1. */
 export const FALLBACK_LANGUAGE = 'en-US'
 
 type Translatable = {
@@ -118,11 +105,6 @@ type Translatable = {
   overview?: string
 }
 
-/**
- * True when the title or the overview is missing in `language`: TMDB then sends an empty
- * overview, and a title equal to the original one in another language (a Japanese title for a
- * French library). Nothing to do when `language` is already English.
- */
 export const needsFallback = (work: Translatable, language: string): boolean => {
   if (languagePrefix(language) === 'en') return false
   if (nonEmpty(work.overview) === undefined) return true
@@ -136,7 +118,6 @@ const untranslatedTitle = (work: Translatable, language: string): boolean =>
   work.originalLanguage !== languagePrefix(language) &&
   work.originalLanguage !== 'en'
 
-/** Fills the missing title and overview from the en-US version. */
 export const mergeFallback = <T extends Translatable>(
   primary: T,
   fallback: Translatable | undefined,
@@ -151,7 +132,6 @@ export const mergeFallback = <T extends Translatable>(
   return { ...primary, title, ...opt('overview', overview) }
 }
 
-/** "Episode 7": no name in this language (any number: the en-US one may have a real name). */
 const genericEpisodeName = (name: string | undefined): boolean =>
   name !== undefined && genericTitleNumber('episode', name) !== undefined
 
@@ -174,9 +154,6 @@ export const mergeEpisodeFallback = (
   return { ...primary, ...opt('name', name), ...opt('overview', overview) }
 }
 
-// ── Item metadata ───────────────────────────────────────────────────────────
-
-/** `in_production` drives the weekly refresh (§9.4). */
 export const seriesStatusOf = (series: TmdbSeries): SeriesStatus | undefined => {
   if (series.inProduction === true) return 'in_production'
   switch (series.status) {
@@ -235,14 +212,9 @@ export const seriesMetadata = (series: TmdbSeries, ratingCountry: string): ItemM
   ...opt('tvdbId', series.tvdbId),
 })
 
-/** A season's own title: TMDB's name unless generic ("Saison 2", "Specials"). */
 export const seasonTitleOf = (seasonNumber: number, name: string | undefined): string | undefined =>
   ownTitle({ kind: 'season', title: nonEmpty(name), seasonNumber })
 
-/**
- * Seasons and episodes carry the series' rating too: a per-item filter on the maximum rating
- * (§14) then works at every level.
- */
 export const seasonMetadata = (
   season: TmdbSeason,
   series: {
@@ -291,8 +263,6 @@ export const episodeMetadata = (
   ...opt('contentRatingCountry', series.contentRatingCountry),
 })
 
-// ── Cast and crew (§9.1) ────────────────────────────────────────────────────
-
 export const MAX_CAST = 20
 
 export type PersonCredit = {
@@ -306,10 +276,6 @@ export type PersonCredit = {
 
 const WRITER_JOBS = new Set(['Screenplay', 'Writer', 'Teleplay', 'Story', 'Novel', 'Author'])
 
-/**
- * 20 first actors, then directors and writers (series: creators count as writers). One row per
- * (person, role).
- */
 export const selectPeople = (
   credits: TmdbCredits,
   creators: readonly { tmdbId: number; name: string; profilePath?: string }[] = [],
@@ -353,7 +319,6 @@ export const selectPeople = (
     seen.add(key)
     return true
   })
-  // Orders are per role, contiguous.
   const counters = new Map<string, number>()
   return unique.map((person) => {
     const order = counters.get(person.role) ?? 0
@@ -361,8 +326,6 @@ export const selectPeople = (
     return { ...person, order }
   })
 }
-
-// ── Images (§9.1) ───────────────────────────────────────────────────────────
 
 export type ImageSlot = 'poster' | 'backdrop' | 'logo' | 'still'
 
@@ -376,7 +339,6 @@ export type ImageChoice = {
 }
 
 const SIZE_WIDTH = { w185: 185, w300: 300, w500: 500, w1280: 1280 } as const
-/** Width / height when TMDB gives no dimension (posters 2:3, backdrops and stills 16:9). */
 const DEFAULT_RATIO: Record<ImageSlot | 'profile', number> = {
   poster: 2 / 3,
   backdrop: 16 / 9,
@@ -433,11 +395,6 @@ const choice = (
   return { slot, path: fallbackPath, size, ...sizedDimensions(size, slot) }
 }
 
-/**
- * Poster in the metadata language, else English, else textless; backdrop textless first (the
- * hero puts the logo over it); logo PNG only (SVG logos are skipped), same language order as
- * posters.
- */
 export const chooseImages = (
   images: TmdbImages,
   language: string,

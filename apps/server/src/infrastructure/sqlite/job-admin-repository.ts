@@ -7,7 +7,6 @@ import { toJob } from './job-repository.ts'
 import { toIso } from './rows.ts'
 import { jobs } from './schema/ops.ts'
 
-/** The admin's view of `jobs` (§15 "Jobs"): list, retry, the dashboard's failure count. */
 export const createSqliteJobAdminRepository = ({ db }: { db: Db }): JobAdminRepository => ({
   list: ({ state, type, cursor, limit }) => {
     const rows = db
@@ -26,7 +25,6 @@ export const createSqliteJobAdminRepository = ({ db }: { db: Db }): JobAdminRepo
     const pageRows = rows.slice(0, limit)
     const last = pageRows.at(-1)
     return {
-      // A type another version enqueued (and this one does not run) is left out.
       items: pageRows.filter((row) => isJobType(row.type)).map(toJob),
       ...(rows.length > limit && last !== undefined ? { nextCursor: last.id } : {}),
     }

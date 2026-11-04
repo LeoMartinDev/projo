@@ -35,7 +35,6 @@ const Breadcrumb = ({ current }: { current: string }) => {
   )
 }
 
-/** `/admin/libraries/new`, artboard `AdminAddLibrary`. */
 export const NewLibraryPage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -92,10 +91,6 @@ const ScanHistory = ({ libraryId }: { libraryId: string }) => {
   )
 }
 
-/**
- * `/admin/libraries/$libraryId`: edit, scan (quick / full), refresh its metadata (§9.4), scan
- * history, delete (§15).
- */
 export const EditLibraryPage = ({ libraryId }: { libraryId: string }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()

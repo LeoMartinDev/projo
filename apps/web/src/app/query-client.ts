@@ -3,12 +3,6 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { isProfileLost, isSessionLost, toApiFailure } from '../shared/api/failure.ts'
 import { getActiveProfileId } from '../shared/session/active-profile.ts'
 
-/**
- * Query client of the app. Any call answered "session lost" (expired, revoked, disabled) sends
- * the user back to the login screen through `onSessionLost`; one refusing the active profile
- * (PIN unlocked for another tab's profile, profile deleted) back to "Who's watching?" through
- * `onProfileLost`. Only network and 5xx failures are retried.
- */
 export const createAppQueryClient = ({
   onSessionLost,
   onProfileLost,

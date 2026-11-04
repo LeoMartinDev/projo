@@ -3,7 +3,6 @@ import type { TranscodeCacheInventory } from '../../core/playback/ports.ts'
 import type { PlaybackSessionRepository } from '../../core/playback/session.ts'
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
 
-/** `settings.transcode_cache_max_gb` is in GiB. */
 const bytesPerGb = 1024 ** 3
 
 type Deps = {
@@ -15,13 +14,6 @@ type Deps = {
 
 export type CleanupCacheReport = { removed: string[]; freedBytes: number; totalBytes: number }
 
-/**
- * `cleanup_cache` (§10.3, §18, hourly): caps `/data/cache/transcode` at
- * `settings.transcode_cache_max_gb` by deleting the folders of ended sessions, oldest end first
- * (folders of sessions gone from the database before them), even within the 5 min grace the
- * periodic sweep gives them. The folder of a session not ended is never deleted, even if the
- * cache stays over the cap.
- */
 export const cleanupCacheFactory =
   ({ sessionRepository, transcodeCache, playbackSettings, logger }: Deps) =>
   (): CleanupCacheReport => {

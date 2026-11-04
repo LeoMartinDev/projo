@@ -17,7 +17,6 @@ import { accountsQueryKey } from './queries.ts'
 
 const roles: readonly AccountRole[] = ['user', 'admin']
 
-/** `POST /admin/accounts`: an account created directly, with its first profile (§14). */
 export const CreateAccountDialog = ({
   onClose,
   onCreated,

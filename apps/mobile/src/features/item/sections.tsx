@@ -10,7 +10,6 @@ import { colors, fonts } from '../../shared/styles/tokens.ts'
 import { Artwork } from '../media/Artwork.tsx'
 import { useLocale } from '../media/card-text.ts'
 
-/** A section of a title page under its heading (Episodes, Cast, Tracks). */
 export const Section = ({
   title,
   gutter,
@@ -36,7 +35,6 @@ const initials = (name: string) =>
     .map((part) => part[0]?.toLocaleUpperCase())
     .join('')
 
-/** Cast with photos (§13.5, §9.1: the first 20 actors), then the creators or directors. */
 export const CastRow = ({ item, gutter }: { item: ItemDetailDto; gutter: number }) => {
   const { t } = useTranslation()
   const people: PersonDto[] = [...item.cast, ...item.crew]
@@ -86,10 +84,6 @@ export const CastRow = ({ item, gutter }: { item: ItemDetailDto; gutter: number 
   )
 }
 
-/**
- * Available tracks (§13.5): audio and subtitle languages, and the versions when the item has
- * several files (§7.7).
- */
 export const Tracks = ({ item, gutter }: { item: ItemDetailDto; gutter: number }) => {
   const { t } = useTranslation()
   const locale = useLocale()

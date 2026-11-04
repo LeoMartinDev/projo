@@ -20,7 +20,6 @@ import { useSession } from '../session/Session.tsx'
 import { IdentityFields, useIdentityDraft } from './IdentityFields.tsx'
 import { useUpdateProfile } from './queries.ts'
 
-/** Languages offered for audio and subtitles (§11.1), ISO 639-1: the web's list. */
 const trackLanguages = [
   'fr',
   'en',
@@ -53,10 +52,6 @@ const trackLanguages = [
 type Editable = Omit<UpdateProfileBody, 'currentPin' | 'pin' | 'libraryIds' | 'libraryAccess'>
 type Picker = 'uiLocale' | 'audioLanguage' | 'subtitleLanguage' | 'subtitleMode'
 
-/**
- * Name, colour and PIN (§13.6), saved with one button; a restricted profile does not set or
- * remove a PIN (§14).
- */
 const IdentitySection = ({ profile }: { profile: ProfileDto }) => {
   const { t } = useTranslation()
   const update = useUpdateProfile()
@@ -84,27 +79,19 @@ const IdentitySection = ({ profile }: { profile: ProfileDto }) => {
   )
 }
 
-/**
- * Settings of the active profile, as on the web (§11.1, §12.4, §14): identity, interface language,
- * audio and subtitles, playback; every setting is saved at once. Library access and maximum rating
- * are the admin's: shown, not editable.
- */
 const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   const { t, i18n } = useTranslation()
   const locale = i18n.language
   const update = useUpdateProfile()
-  // The last picker stays filled while its sheet slides away.
   const [picking, setPicking] = useState<Picker>('uiLocale')
   const [pickerOpen, setPickerOpen] = useState(false)
   const pick = (picker: Picker) => {
     setPicking(picker)
     setPickerOpen(true)
   }
-  // While a change is saved, it already shows.
   const pending: Editable = update.isPending ? update.variables.body : {}
   const value = <K extends keyof Editable>(key: K): ProfileDto[K] =>
     (key in pending ? pending[key] : profile[key]) as ProfileDto[K]
-  // Saved at once, like the web: a refused change says so, and the setting shows its saved value.
   const save = (body: Editable) =>
     update.mutate(
       { id: profile.id, body },
@@ -233,7 +220,6 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   )
 }
 
-/** `/settings/profile`: the active profile's settings. */
 export const ProfileSettingsScreen = () => {
   const { gate } = useSession()
   if (gate.kind !== 'ready') return undefined

@@ -9,13 +9,6 @@ import type {
 } from '../../core/playback/media-info.ts'
 import { parseDurationTag, rawDynamicRange } from '../media/ffprobe.ts'
 
-/**
- * Tolerant reader of `sources.probe` (written by the scanner). Accepts the raw ffprobe JSON
- * (`-show_format -show_streams`: `{ format, streams }`) and a normalized camelCase shape
- * (`{ durationMs | duration, formatName | container, streams | video/audio/subtitles }`).
- * Unknown fields are ignored; a value that does not fit is dropped rather than failing.
- */
-
 const looseNumber = z
   .union([
     z.number(),
@@ -82,7 +75,6 @@ type RawStream = z.infer<typeof streamSchema>
 
 const streamList = z.array(z.unknown()).optional().catch(undefined)
 
-/** Normalized (`startMs`, `endMs`, `title`) or raw ffprobe (`start_time`, `end_time`, `tags`). */
 const chapterSchema = z.looseObject({
   startMs: looseNumber,
   endMs: looseNumber,
@@ -134,11 +126,9 @@ const common = (stream: RawStream) => {
 const optional = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }
 
-/** Normalized probes carry `dynamicRange`; raw ffprobe JSON is read like the scanner does. */
 const dynamicRangeOf = (stream: RawStream): VideoStreamInfo['dynamicRange'] =>
   stream.dynamicRange ?? rawDynamicRange(stream)
 
-/** Normalized `codecTag`, or a real fourcc of raw ffprobe (Matroska says `[0][0][0][0]`). */
 const codecTagOf = (stream: RawStream): string | undefined => {
   const value = stream.codecTag ?? stream.codec_tag_string
   return value !== undefined && /^[A-Za-z0-9]{4}$/.test(value) ? value.toLowerCase() : undefined
@@ -215,7 +205,6 @@ const toChapter = (value: unknown): ChapterInfo | undefined => {
   }
 }
 
-/** `undefined` when the value has no stream at all (absent or unreadable probe). */
 export const readMediaInfo = (value: unknown): MediaInfo | undefined => {
   const parsed = probeSchema.safeParse(value)
   if (!parsed.success) return undefined
@@ -239,7 +228,6 @@ export const readMediaInfo = (value: unknown): MediaInfo | undefined => {
     subtitles: defined(
       streams.filter((s) => kindOf(s) === 'subtitle' || kindOf(s) === 'subtitles').map(toSubtitle),
     ).sort(byIndex),
-    // Absent from the probes stored before chapters were read: left absent, not empty.
     ...(probe.chapters === undefined
       ? {}
       : { chapters: defined(probe.chapters.map(toChapter)).sort((a, b) => a.startMs - b.startMs) }),

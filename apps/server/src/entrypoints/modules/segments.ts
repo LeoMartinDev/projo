@@ -42,13 +42,10 @@ const submitPayload = z.object({ itemId: z.string().min(1), type: z.enum(segment
 const hour = 60 * 60_000
 
 type ProviderOptions = {
-  /** Tests: local servers replaying recorded provider responses. */
   providerBaseUrls?: { theintrodb?: string; introdb?: string; skipdb?: string }
-  /** Tests: in-memory providers instead of the HTTP adapters. */
   segmentProviders?: SegmentProviders
 }
 
-/** The `segments.*` settings and the TheIntroDB / IntroDB / SkipDB adapters reading them. */
 const segmentInfrastructure = (
   { db, clock, logger }: Platform,
   { providerBaseUrls, segmentProviders }: ProviderOptions,
@@ -77,10 +74,6 @@ const settingsAdmin = (
     logger: platform.logger.child({ module: 'segments' }),
   })
 
-/**
- * §15 "Intros and credits" settings (`settings` table, `segments.*` keys): the section of
- * `GET/PATCH /admin/settings`, built here and passed to the metadata module that serves the route.
- */
 export const buildSegmentSettingsAdmin = (
   platform: Platform,
   options: ProviderOptions = {},
@@ -88,12 +81,6 @@ export const buildSegmentSettingsAdmin = (
 
 export type SegmentsModuleOptions = ScopeDeps & ProviderOptions
 
-/**
- * Wiring of §12 (except fingerprinting, `modules/fingerprint.ts`): the resolution chain
- * (`fetch_segments` after the enrichment of a movie or an episode, and a daily backfill),
- * chapters, providers and their cache, manual markers and their contribution (`submit_segment`),
- * `GET /items/:id/segments`.
- */
 export const buildSegmentsModule = (
   platform: Platform,
   { visibilityScope, ...providerOptions }: SegmentsModuleOptions,
@@ -150,9 +137,6 @@ export const buildSegmentsModule = (
     jobQueue,
   })
 
-  // §12.2 / §18: after the enrichment of a movie or an episode. Every enriched episode gets its
-  // own `fetch_images` (`requestImages`); a failed one still leaves the chapters to read. A file
-  // `match_source` left unidentified gets no enrichment: its chapters are read right away.
   const unsubscribe = eventBus.subscribe((event) => {
     if (event.type !== 'job.updated') return
     if (event.payload.state !== 'done' && event.payload.state !== 'failed') return
@@ -184,7 +168,6 @@ export const buildSegmentsModule = (
     jobHandlers: {
       fetch_segments: defineJobHandler({
         payload: itemPayload,
-        // §18: one at a time (the databases are asked episode by episode, never in bulk).
         concurrency: 1,
         run: async ({ itemId }, { signal }) => {
           await fetchSegments({ itemId, signal })
@@ -202,7 +185,6 @@ export const buildSegmentsModule = (
     },
     scheduledTasks: [
       {
-        // Movies and episodes identified before M4, or whose enrichment never ended.
         name: 'segments-backfill',
         initialDelayMs: 3 * 60_000,
         intervalMs: 24 * hour,

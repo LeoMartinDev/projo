@@ -30,7 +30,6 @@ describe('invitation journey (§4 parcours 2)', () => {
     expect(invitation).toMatchObject({ state: 'pending', createdBy: { username: 'leo' } })
     expect(new Date(invitation.expiresAt).getTime() - t.clock.now().getTime()).toBe(7 * day)
 
-    // Public: no cookie.
     const check = await t.request(`/api/v1/invitations/${token}`)
     expect(check.status).toBe(200)
     expect(await check.json()).toEqual({ expiresAt: invitation.expiresAt, serverName: 'Maison' })
@@ -58,7 +57,6 @@ describe('invitation journey (§4 parcours 2)', () => {
     const zoe = t.as(sessionCookieOf(accepted))
     expect((await zoe.get('/api/v1/auth/me')).status).toBe(200)
     expect((await t.login('zoe', password)).status).toBe(200)
-    // A user is not an admin.
     expect((await zoe.send('POST', '/api/v1/admin/invitations')).status).toBe(403)
 
     const listed = (await (await admin.get('/api/v1/admin/invitations')).json()) as {

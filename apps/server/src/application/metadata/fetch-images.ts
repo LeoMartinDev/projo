@@ -25,21 +25,18 @@ type Deps = {
   items: Pick<MetadataItemRepository, 'imageContext' | 'lockedFields' | 'peopleOf'>
   images: ImageRepository
   files: ImageFiles
-  /** WebP variants of a written image (§9.1). */
   encodeVariants: (localPath: string) => Promise<void>
   settings: Pick<MetadataSettings, 'language'>
   ids: IdGenerator
   logger: Logger
 }
 
-/** Responses of the matching are reused (§9.2 database cache): no second request in general. */
 const CACHED_DETAILS_MAX_AGE_MS = 30 * 24 * 60 * 60_000
 
 export type FetchImagesError = AppError<
   'metadata/tmdb_unavailable' | 'metadata/tmdb_invalid_response' | 'metadata/image_failed'
 >
 
-/** Folder per kind under `/data/images` (§5.4). */
 const folderOf: Record<ImageSlot | 'profile', string> = {
   poster: 'posters',
   backdrop: 'backdrops',
@@ -63,13 +60,6 @@ const slotLock: Partial<Record<ImageSlot, LockableField>> = {
 
 type Wanted = { choices: ImageChoice[]; people: Map<number, string> }
 
-/**
- * Job `fetch_images` (§9.1, §18, by item): downloads the chosen TMDB images (poster w500,
- * backdrop w1280, logo w500 PNG, still w300) and the cast photos (w185) into
- * `/data/images/<kind>/<id>.<ext>` with their WebP variants; never hotlinked. Idempotent: an image
- * already stored for the same TMDB path is kept; a locked poster or backdrop (§9.3) is never
- * replaced.
- */
 export const fetchImagesFactory = ({
   tmdb,
   items,
@@ -140,7 +130,6 @@ export const fetchImagesFactory = ({
   ): Promise<Result<{ id: string; localPath: string } | undefined, FetchImagesError>> => {
     const fetched = await tmdb.downloadImage({ path, size })
     if (!fetched.ok) {
-      // Gone from TMDB: nothing to show, not worth a retry.
       if (fetched.error.code === 'metadata/tmdb_not_found') return ok(undefined)
       if (
         fetched.error.code === 'metadata/tmdb_unavailable' ||
@@ -175,7 +164,6 @@ export const fetchImagesFactory = ({
       ) {
         return err({ ...error, code: error.code })
       }
-      // No key, refused key, unknown id: nothing to fetch now.
       logger.info('images skipped', { itemId, code: error.code })
       return ok({ downloaded: 0 })
     }
@@ -187,7 +175,6 @@ export const fetchImagesFactory = ({
       const lock = slotLock[choice.slot]
       if (lock !== undefined && locked.has(lock)) continue
       const current = images.itemImage({ itemId, slot: choice.slot })
-      // A custom image is locked (§9.3); once unlocked ("Back to the TMDB value") TMDB's choice replaces it.
       if (current?.tmdbPath === choice.path) continue
       const stored = await download(choice.path, choice.size, choice.slot)
       if (!stored.ok) return stored

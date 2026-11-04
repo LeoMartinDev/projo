@@ -1,39 +1,22 @@
 import type { EpisodeRef, VisibilityScope } from '../catalog/catalog.ts'
 import { isResumable, type ItemProgress } from './progress.ts'
 
-/**
- * §13.1 / §13.3 rows of the home screen, computed from the progress of a profile: "Continue
- * watching", "Up next", the hero, and the "Resume S2 · E4" of a series.
- */
-
 export const homeRules = { rowLimit: 20 } as const
 
-/** A visible movie or episode the profile has a progress row on (or an `absent` episode). */
 export type PlayedItem = {
   itemId: string
   kind: 'movie' | 'episode'
-  /** Episodes: their series. */
   seriesId?: string
-  /** Episodes: their numbers, which place them in broadcast order once their files are gone. */
   seasonNumber?: number
   episodeNumber?: number
-  /**
-   * An episode whose files are gone, of a series still visible: it keeps the show started
-   * (§13.1, "Up next" goes on after it) but is never offered itself.
-   */
   absent?: true
   progress: ItemProgress
 }
 
-/** Reads behind the home rows. */
 export type ProgressQueries = {
   listPlayed: (input: { profileId: string; scope: VisibilityScope }) => PlayedItem[]
 }
 
-/**
- * "Continue watching": movies and episodes in progress (2 % to 93 %), not removed by the
- * profile (on the item, or on its series), most recently played first.
- */
 export const continueWatching = ({
   played,
   hiddenSeries,
@@ -54,10 +37,6 @@ export const continueWatching = ({
     .sort((a, b) => b.progress.lastPlayedAt.getTime() - a.progress.lastPlayedAt.getTime())
     .slice(0, limit)
 
-/**
- * Specials (season 0) are left out of "Up next", "Resume" and the series counts when a series has
- * others (§13.1).
- */
 export const regularEpisodes = (episodes: readonly EpisodeRef[]): readonly EpisodeRef[] => {
   const regular = episodes.filter((episode) => episode.seasonNumber !== 0)
   return regular.length > 0 ? regular : episodes
@@ -65,7 +44,6 @@ export const regularEpisodes = (episodes: readonly EpisodeRef[]): readonly Episo
 
 type Numbered = { seasonNumber?: number; episodeNumber?: number }
 
-/** Broadcast order of `listSeriesEpisodes`: unnumbered last. */
 const comesAfter = (episode: Numbered, other: Numbered): boolean => {
   const season = episode.seasonNumber ?? 1_000_000
   const otherSeason = other.seasonNumber ?? 1_000_000
@@ -76,13 +54,6 @@ const comesAfter = (episode: Numbered, other: Numbered): boolean => {
   )
 }
 
-/**
- * §13.1 "Up next": the first episode not watched after the one watched last, in broadcast order
- * (`episodes` holds only present episodes: absent ones are skipped by construction), else the
- * first episode not watched of the series; never an episode already watched. Every episode
- * watched: `undefined`. The episode watched last may be one whose files are gone (`absentWatched`,
- * placed by its numbers): a deleted season 1 still leads to season 2.
- */
 export const nextEpisode = (
   episodes: readonly EpisodeRef[],
   progress: ReadonlyMap<string, ItemProgress>,
@@ -91,10 +62,8 @@ export const nextEpisode = (
   const isWatched = (episode: EpisodeRef) => progress.get(episode.id)?.watched === true
   const firstUnwatched = episodes.find((episode) => !isWatched(episode))
   if (firstUnwatched === undefined) return undefined
-  // `from`: where the search starts, just after the episode watched last.
   let reference: { from: number; at: number } | undefined
   const consider = (from: number, at: number) => {
-    // Ties (a whole season marked at once): the latest in broadcast order.
     if (
       reference === undefined ||
       at > reference.at ||
@@ -129,7 +98,6 @@ export const nextEpisode = (
 export type UpNextEntry = {
   seriesId: string
   episode: EpisodeRef
-  /** "New episode": its file arrived after the last play on the series. */
   isNew: boolean
   lastActivityAt: Date
 }
@@ -145,11 +113,6 @@ const groupBySeries = <T extends { seriesId?: string }>(values: readonly T[]) =>
   return groups
 }
 
-/**
- * "Up next" candidates, in order of first appearance in `played`: series with a watched episode
- * (present or not), none in progress among the present ones, not removed by the profile, with
- * their played episodes. Linear in `played`.
- */
 export const upNextCandidates = (
   played: readonly PlayedItem[],
   hiddenSeries: ReadonlySet<string>,
@@ -166,11 +129,6 @@ export const upNextCandidates = (
   return groups
 }
 
-/**
- * "Up next": for each series with a watched episode and none in progress, the next episode
- * (`nextEpisode`); a series whose present episodes are all watched, or removed by the profile,
- * leaves the row. Most recent activity on the series first.
- */
 export const upNext = ({
   played,
   episodes,
@@ -178,7 +136,6 @@ export const upNext = ({
   limit = homeRules.rowLimit,
 }: {
   played: readonly PlayedItem[]
-  /** Visible episodes of the played series, in broadcast order. */
   episodes: readonly EpisodeRef[]
   hiddenSeries: ReadonlySet<string>
   limit?: number
@@ -188,7 +145,6 @@ export const upNext = ({
   for (const [seriesId, seriesPlayed] of upNextCandidates(played, hiddenSeries)) {
     const progress = new Map(seriesPlayed.map((entry) => [entry.itemId, entry.progress]))
     const present = regularEpisodes(episodesBySeries.get(seriesId) ?? [])
-    // Specials left out of the present episodes are left out of the absent ones too.
     const withSpecials = present.every((episode) => episode.seasonNumber === 0)
     const next = nextEpisode(
       present,
@@ -214,16 +170,11 @@ export const upNext = ({
 }
 
 export type SeriesPlayTarget = {
-  /** `resume`: "Resume S2 · E4"; `play`: "Play" (from the start of the episode). */
   action: 'resume' | 'play'
   episode: EpisodeRef
   positionMs: number
 }
 
-/**
- * The main button of a series (§13.5) or of its hero: the episode in progress played last, else
- * the next one (same rule as "Up next"), else — everything watched — the first episode.
- */
 export const seriesPlayTarget = (
   episodes: readonly EpisodeRef[],
   progress: ReadonlyMap<string, ItemProgress>,
@@ -251,7 +202,6 @@ export type HeroPick =
   | { kind: 'up_next'; entry: UpNextEntry }
   | { kind: 'recent'; itemId: string }
 
-/** §13.3 hero: the most recent of "Continuer" and "Up next", else the latest addition. */
 export const pickHero = ({
   continueRow,
   upNextRow,
@@ -274,10 +224,6 @@ export const pickHero = ({
   return recent === undefined ? undefined : { kind: 'recent', itemId: recent }
 }
 
-/**
- * "Remove" (§13.1): `hidden_from_continue` on a movie, or on a series for its episodes in both
- * rows. The flag goes at the next play (`applyPosition`, `showAncestorsAgain`).
- */
 export const hideFromContinue = (
   previous: ItemProgress | undefined,
   { profileId, itemId, at }: { profileId: string; itemId: string; at: Date },

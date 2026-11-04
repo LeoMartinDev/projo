@@ -57,7 +57,6 @@ const vo = audio(2, { language: 'en', isDefault: true })
 const frSub = sub('fr', { language: 'fr' })
 const frForced = sub('fr-forced', { language: 'fr', forced: true })
 const enSub = sub('en', { language: 'en' })
-/** A Japanese animated work (§11.1). */
 const anime = { originalLanguage: 'ja', genres: ['animation', 'adventure'] }
 
 describe('languageBase', () => {
@@ -156,7 +155,6 @@ describe('resolveTracks: subtitles (§11.2)', () => {
       'fr-forced',
     )
     expect(resolve({ profile, audio: [vo], subtitles: [frSub] }).subtitle).toBeUndefined()
-    // A forced track of another language does not count.
     const enForced = sub('en-forced', { language: 'en', forced: true })
     expect(resolve({ profile, audio: [vo], subtitles: [enForced] }).subtitle).toBeUndefined()
   })
@@ -176,7 +174,6 @@ describe('resolveTracks: subtitles (§11.2)', () => {
     expect(pick([embedded, externalForced])).toBe('embedded')
     expect(pick([externalForced])).toBe('external-forced')
     expect(pick([embedded, sub('embedded-sdh', { language: 'fr', sdh: true })])).toBe('embedded')
-    // Among forced tracks too: external first, then non-SDH.
     const forcedSdh = sub('forced-sdh', { language: 'fr', forced: true, sdh: true })
     expect(resolve({ audio: [vf], subtitles: [forcedSdh, frForced] }).subtitle).toBe('fr-forced')
   })
@@ -188,7 +185,6 @@ describe('resolveTracks: subtitles (§11.2)', () => {
     expect(
       resolve({ audio: [vo], subtitles: [sub('und', { language: 'und' }), enSub] }).subtitle,
     ).toBeUndefined()
-    // Not when only forced subtitles are wanted.
     expect(resolve({ audio: [vf], subtitles: [untagged] }).subtitle).toBeUndefined()
   })
 
@@ -211,7 +207,6 @@ describe('resolveTracks: bitmap tracks (§10.4)', () => {
       subtitle: 'pgs',
       burnIn: true,
     })
-    // A text track of the same language is preferred only by the usual order.
     expect(resolve({ audio: [vo], subtitles: [pgs, frSub] })).toMatchObject({
       subtitle: 'pgs',
       burnIn: true,
@@ -280,11 +275,9 @@ describe('resolveTracks: the anime rule (§11.1)', () => {
     expect(
       resolve({ audio: [dub, ja], subtitles: [frSub], ...anime, originalLanguage: 'ko' }),
     ).toMatchObject({ audio: 2, origin: 'profile' })
-    // A Japanese live-action film.
     expect(
       resolve({ audio: [dub, ja], subtitles: [frSub], originalLanguage: 'ja', genres: ['drama'] }),
     ).toMatchObject({ audio: 2, subtitle: undefined, origin: 'profile' })
-    // Genres unknown.
     expect(resolve({ audio: [dub, ja], subtitles: [frSub], originalLanguage: 'ja' })).toMatchObject(
       { audio: 2, origin: 'profile' },
     )
@@ -330,7 +323,6 @@ describe('resolveTracks: the series memory (§11.2 step 1)', () => {
         memory: { subtitlesEnabled: true },
       }),
     ).toMatchObject({ audio: 1, subtitle: 'fr', origin: 'memory' })
-    // Audio from the anime rule when the memory only says "subtitles off".
     expect(
       resolve({
         audio: [vf, audio(3, { language: 'ja' })],

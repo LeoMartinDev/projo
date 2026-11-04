@@ -13,11 +13,6 @@ import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { NewPasswordFields, usePasswordPair } from './NewPasswordFields.tsx'
 import { StepScreen } from './SetupLayout.tsx'
 
-/**
- * Step 1, artboard `OnbAccount`: first name, username, password with its strength, confirmation.
- * `POST /setup` creates the admin and its profile and signs it in. Server name and metadata
- * language keep their defaults (§15 "Premier lancement"): the latter follows the interface.
- */
 export const AccountStep = ({
   onBack,
   onDone,

@@ -18,7 +18,6 @@ const fileSchema = z.object({
 const safeName = (sourceId: string): string | undefined =>
   /^[A-Za-z0-9-]+$/.test(sourceId) ? `${sourceId}.json` : undefined
 
-/** `/data/cache/keyframes/<source>.json` (§5.4). A corrupted file reads as absent (re-indexed). */
 export const createFileKeyframeStore = ({
   keyframesDir,
 }: {
@@ -75,8 +74,6 @@ export const createFileKeyframeStore = ({
     if (name === undefined) return
     try {
       rmSync(join(keyframesDir, name), { force: true })
-    } catch {
-      // Best effort: the next cleanup pass tries again.
-    }
+    } catch {}
   },
 })

@@ -1,5 +1,3 @@
-// Builds what the e2e servers run, like production: the web app, then the release bundle
-// (server.js + public/ + drizzle/, runtime/README.md) into `<e2e root>/app`.
 import { resolve } from 'node:path'
 
 import { appDir } from '../support/paths.ts'

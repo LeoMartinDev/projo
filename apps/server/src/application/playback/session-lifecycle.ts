@@ -35,10 +35,6 @@ const notFound = (sessionId: string) =>
 const expired = (sessionId: string) =>
   err(appError('playback/session_expired', 'playback session ended', { context: { sessionId } }))
 
-/**
- * Ends a session once: `ended_at`, ffmpeg killed, `playback.session_terminated` published to the
- * auth session that owns it (§10.6). The cache folder is purged later (§10.3, 5 min of grace).
- */
 export const endPlaybackSessionFactory =
   ({
     sessionRepository,
@@ -53,7 +49,6 @@ export const endPlaybackSessionFactory =
     eventBus: EventBus
     clock: Clock
     logger: Logger
-    /** Lets the HLS stream forget its per-session state. */
     onEnded?: (sessionId: string) => void
   }) =>
   ({ session, reason }: { session: PlaybackSession; reason: TerminationReason }): EndedSession => {
@@ -73,11 +68,6 @@ export const endPlaybackSessionFactory =
 
 export type EndPlaybackSession = ReturnType<typeof endPlaybackSessionFactory>
 
-/**
- * `PlaybackSessionTerminator.endWithin`: ends the active sessions on sources or items about to be
- * deleted (library deleted, root removed, local item pruned), before the cascade drops their rows.
- * The player is told the administrator stopped it.
- */
 export const endPlaybackSessionsWithinFactory =
   ({
     sessionRepository,
@@ -92,18 +82,14 @@ export const endPlaybackSessionsWithinFactory =
     }
   }
 
-/** Who uses a playback session: the account, and the request's active profile (resolved). */
 export type PlaybackAccess = {
   sessionId: string
   accountId: string
-  /** `X-Profile-Id`, else the auth session's last profile (`<video>`, HLS, `sendBeacon`). */
   profileId: string | undefined
 }
 
-/** The item exists for the profile (library access, maximum rating). */
 export type ItemVisibility = (input: { itemId: string; profileId: string }) => boolean
 
-/** The account's, and the active profile is the session's or sees its item (§14). */
 const usableBy = (
   session: PlaybackSession,
   { accountId, profileId }: Omit<PlaybackAccess, 'sessionId'>,
@@ -113,12 +99,6 @@ const usableBy = (
   profileId !== undefined &&
   (session.profileId === profileId || isItemVisible({ itemId: session.itemId, profileId }))
 
-/**
- * A playback session usable by this request: it exists, belongs to the account, the active
- * profile is the session's or sees its item (§14: another profile of the account, a child's,
- * cannot borrow a session on a title it does not see), and it is not over (a session past 60 s
- * without heartbeat is ended on the spot).
- */
 export const authorizePlaybackFactory =
   ({
     sessionRepository,
@@ -146,14 +126,8 @@ export const authorizePlaybackFactory =
 
 export type AuthorizePlayback = ReturnType<typeof authorizePlaybackFactory>
 
-/** A stream URL (§20): the session it names and the secret it carries, nothing else. */
 export type StreamAccess = { sessionId: string; secret: string }
 
-/**
- * The session a capability URL names, when its secret is the session's (no cookie, no profile:
- * AirPlay receivers and AVPlayer sub-requests carry none) and the session is not over (past 60 s
- * without heartbeat it is ended on the spot). A wrong secret is the same as no session.
- */
 export const authorizeStreamFactory =
   ({
     sessionRepository,
@@ -163,7 +137,6 @@ export const authorizeStreamFactory =
   }: {
     sessionRepository: PlaybackSessionRepository
     endSession: EndPlaybackSession
-    /** The hash stored by `create-session` (`SessionTokens.hash`). */
     hashSecret: (secret: string) => string
     clock: Clock
   }) =>
@@ -185,10 +158,6 @@ export const authorizeStreamFactory =
 
 export type AuthorizeStream = ReturnType<typeof authorizeStreamFactory>
 
-/**
- * Item duration of the version a session plays (§8.4): the source's, or the parts of its stack
- * added up. Undefined when a part has no stored duration.
- */
 const versionDurationMs = (
   catalogRepository: CatalogRepository,
   session: PlaybackSession,
@@ -207,12 +176,6 @@ const versionDurationMs = (
   return durations.reduce<number>((total, duration) => total + (duration ?? 0), 0)
 }
 
-/**
- * `PUT /playback/sessions/:id/heartbeat` (§10.6): keeps the session alive and writes the
- * progress of the session's profile (§13.1). `positionMs` is on the item timeline (cumulative
- * over the parts of a stack), measured against the version's duration. A multi-episode file
- * (§8.4) writes the same position, and "vu", on every episode it holds.
- */
 export const heartbeatFactory =
   ({
     authorize,
@@ -261,7 +224,6 @@ export const heartbeatFactory =
           positionMs,
           durationMs,
           at,
-          // §12.4: entering the credits marks it watched, like 93 %.
           ...creditsStartOf(
             segmentsForVersion(catalogRepository.listMediaSegments(itemId), {
               referenceMs: itemTimeline(
@@ -280,11 +242,6 @@ export const heartbeatFactory =
 
 export type Heartbeat = ReturnType<typeof heartbeatFactory>
 
-/**
- * `DELETE /playback/sessions/:id`: same access rule as the other session routes (a restricted
- * profile of the account cannot stop a session on a title it does not see), idempotent for an
- * already ended session.
- */
 export const stopPlaybackSessionFactory =
   ({
     sessionRepository,
@@ -308,19 +265,11 @@ export const stopPlaybackSessionFactory =
 
 export type StopPlaybackSession = ReturnType<typeof stopPlaybackSessionFactory>
 
-/** Per-session streaming state (segmenter ffmpeg, HLS plan), as seen by the sweep. */
 export type LiveStreams = {
   sessionIds: () => string[]
-  /** Kills the session's ffmpeg and forgets its state. */
   release: (sessionId: string) => void
 }
 
-/**
- * Periodic (§10.3, §24): ends sessions silent for 60 s, then deletes the cache folders of
- * sessions ended more than 5 min ago (and orphan folders). Safety net: streaming state of a
- * session gone from the database (SQL cascade) or already ended is released; its folder waits for
- * the next pass, the time for the killed ffmpeg to exit.
- */
 export const sweepPlaybackSessionsFactory =
   ({
     sessionRepository,

@@ -16,7 +16,6 @@ import { useElement } from '../../../shared/ui/use-element.ts'
 import { CopyIcon, LinkIcon } from '../admin-icons.tsx'
 import { invitationLink, invitationsQuery, invitationsQueryKey } from './queries.ts'
 
-/** The link of a new invitation, shown this once (§14: only its hash is stored). */
 export const InvitationCreatedDialog = ({
   token,
   onClose,
@@ -72,7 +71,6 @@ export const InvitationCreatedDialog = ({
   )
 }
 
-/** `POST /admin/invitations`: the caller shows the returned token once. */
 export const useCreateInvitation = (onCreated: (token: string) => void) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -122,7 +120,6 @@ const InvitationRow = ({ invitation }: { invitation: InvitationDto }) => {
   )
 }
 
-/** Pending invitations (§15 Comptes: "invitations en cours"), withdrawable. */
 export const Invitations = () => {
   const { t } = useTranslation()
   const invitations = useQuery(invitationsQuery)

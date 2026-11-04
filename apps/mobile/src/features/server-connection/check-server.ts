@@ -4,7 +4,6 @@ import { err, fromPromise, ok, type Result } from '@projo/shared/result'
 import { compareSemVer, parseSemVer } from '../../shared/version/semver.ts'
 import { type ConnectionError, connectionError } from './connection-error.ts'
 
-/** The slice of `fetch` the check needs (injected: tests pass a fake). */
 export type HealthFetch = (
   url: string,
   init: { signal: AbortSignal; headers: Record<string, string> },
@@ -20,10 +19,6 @@ type Deps = { fetch: HealthFetch; minimumServerVersion: string; timeoutMs: numbe
 
 const unreadable = Symbol('unreadable body')
 
-/**
- * `GET <server>/health` (outside `/api/v1`, no auth, §17.2) → is this a projo server, and recent
- * enough for the app (§26.4)? Unknown fields of the response are ignored (§17.1).
- */
 export const checkServerFactory = ({ fetch, minimumServerVersion, timeoutMs }: Deps) => {
   const minimum = parseSemVer(minimumServerVersion)
   if (minimum === undefined)
@@ -47,7 +42,6 @@ export const checkServerFactory = ({ fetch, minimumServerVersion, timeoutMs }: D
     if (!response.ok) return response
     const { status, body } = response.value
 
-    // A reverse proxy answers 502–504 while projo is down: that is "not responding", not "not projo".
     if (status >= 500)
       return err(connectionError('network', 'server error', { context: { ...context, status } }))
     const health = healthResponseSchema.safeParse(body)

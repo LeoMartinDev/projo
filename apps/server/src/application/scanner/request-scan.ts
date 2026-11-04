@@ -23,11 +23,6 @@ const queuedIsFull = (payload: unknown): boolean => {
   return parsed.success && isFullScan(parsed.data)
 }
 
-/**
- * §7.4: one scan per library at a time; requests while one is queued coalesce into it (its run
- * time moves earlier if needed). A full scan is never absorbed by a queued incremental one: the
- * latter is cancelled and replaced.
- */
 export const requestScanFactory =
   ({ jobQueue, jobRepository, clock, eventBus }: Deps): ScanRequester =>
   ({ libraryId, kind, delayMs = 0 }) => {

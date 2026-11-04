@@ -15,20 +15,9 @@ import { validate } from '../validation.ts'
 const vttHeaders = (size: number) => ({
   'Content-Type': 'text/vtt; charset=utf-8',
   'Content-Length': String(size),
-  // Rebuilt when the subtitle file changes: always revalidated.
   'Cache-Control': 'private, no-cache',
 })
 
-/**
- * WebVTT of a text track (§10.4, §17.2 Lecture), converted on the first request then cached:
- * - `GET /subtitles/:sourceId/:trackId.vtt`: a `<track>` of the web player, sent with the session
- *   cookie and no `X-Profile-Id`: the profile is the auth session's last one, and must see the
- *   source (§20);
- * - `GET /stream/:sessionId/:secret/subtitles/:trackId.vtt?subtitleOffsetMs=`: a rendition segment
- *   of `master.m3u8`, under the session's capability prefix (no cookie: AVPlayer, AirPlay), for
- *   the session's profile, mapped on the HLS timeline with the delay.
- * Mounted at `/api/v1`.
- */
 export const subtitlesRoutes = ({
   getSubtitleVtt,
   authorizeStream,

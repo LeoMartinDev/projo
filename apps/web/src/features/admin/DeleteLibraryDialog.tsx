@@ -8,7 +8,6 @@ import { Dialog } from '../../shared/ui/Dialog.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { librariesQueryKey } from './queries.ts'
 
-/** Deletion with confirmation (§15): sources and orphan items go, files on disk never do. */
 export const DeleteLibraryDialog = ({
   library,
   onClose,

@@ -5,16 +5,9 @@ import { type HomeCategoryDeps, watchedTitlesFor } from './get-home-categories.t
 
 export type HomeCategoryPageView = {
   entries: CatalogEntry[]
-  /** Offset of the next page; absent after the last one. */
   nextOffset?: number
 }
 
-/**
- * `GET /home/categories/:category` (§13.3 category page): the page at `offset` of every title of
- * the category visible to the profile, in the order of its row (newest first, the watched ones
- * last), without the row's limit. Like the batches of rows, each page recomputes the list: a
- * cursor is an offset in it.
- */
 export const getHomeCategoryPageFactory =
   ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: HomeCategoryDeps) =>
   async ({

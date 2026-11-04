@@ -13,10 +13,8 @@ import {
 import type { FoundFile } from '../../core/scanner/scan-plan.ts'
 import type { CachedDirectory, DirectoryCache } from '../../core/scanner/ports.ts'
 
-/** A cached listing older than this is read again even if the directory mtime did not move (network shares). */
 export const DIRECTORY_CACHE_MAX_AGE_MS = 60 * 60 * 1000
 
-/** Extensions worth a look: videos, subtitles, and the disc images reported as unsupported (§8.1). */
 const CANDIDATE_EXTENSIONS: ReadonlySet<string> = new Set([
   ...VIDEO_EXTENSIONS,
   ...SUBTITLE_EXTENSIONS,
@@ -29,17 +27,11 @@ const join = (directory: string, name: string): string =>
 
 export type WalkResult = {
   videos: FoundFile[]
-  /** Subtitle files, relative to the root. */
   subtitles: string[]
-  /** Directories walked, relative (`''` = root). */
   directories: Set<string>
-  /** Directories that could not be read: what they hold must not be marked missing. */
   failedDirectories: string[]
-  /** Files that could not be stat'ed for another reason than "gone". */
   failedFiles: string[]
-  /** Folders holding an unsupported layout (§8.1: VIDEO_TS, BDMV, .iso, 3D). */
   unsupportedLayouts: string[]
-  /** Entries directly under the root (§7.5 empty-root guard). */
   rootEntryCount: number
   errors: number
   aborted: boolean
@@ -50,17 +42,11 @@ type Deps = { fileSystem: FileSystem; directoryCache: DirectoryCache; clock: Clo
 type WalkInput = {
   rootId: string
   rootPath: string
-  /** Reuse listings of directories whose mtime did not change (§7.4 incremental scan). */
   incremental: boolean
   signal?: AbortSignal
   onProgress?: (seen: number) => void
 }
 
-/**
- * Recursive walk of one root (§7.2 "Discovery" + "Filter"). Applies `filterDirectory` to every
- * folder (`.ignore`, `.nomedia`, bonus and excluded folders) and `filterFile` to every file; stats
- * video files only. Symbolic links are followed once, never back into the root (loops).
- */
 export const walkRootFactory =
   ({ fileSystem, directoryCache, clock }: Deps) =>
   async ({ rootId, rootPath, incremental, signal, onProgress }: WalkInput): Promise<WalkResult> => {
@@ -117,7 +103,6 @@ export const walkRootFactory =
         else if (kind === 'file' && CANDIDATE_EXTENSIONS.has(extensionOf(entry.name)))
           files.push(entry.name)
         else if (kind === 'unreachable') {
-          // A link to an unmounted share: what it holds is not gone (§7.5), like an unreadable folder.
           result.failedDirectories.push(join(relative, entry.name))
           result.errors += 1
         }
@@ -129,7 +114,6 @@ export const walkRootFactory =
         files,
         entryCount: entries.value.length,
       }
-      // A listing with links depends on their targets: never reused.
       if (!hasSymlink) directoryCache.set(rootId, relative, fresh)
       return fresh
     }
@@ -145,7 +129,6 @@ export const walkRootFactory =
       if (stat.value.kind !== 'directory') return stat.value.kind
       const real = await fileSystem.realPath(target)
       if (!real.ok) return 'unreachable'
-      // Back into the root (or a loop): the content is already walked through its real path.
       if (realRoot.ok && relativeTo(realRoot.value, real.value) !== undefined) return 'other'
       if (followedTargets.has(real.value)) return 'other'
       followedTargets.add(real.value)
@@ -168,7 +151,6 @@ export const walkRootFactory =
       if (relative === '') result.rootEntryCount = entry.entryCount
       for (const name of entry.directories) {
         const child = join(relative, name)
-        // Name-only rules first (`@eaDir`, `.trickplay`, `Extras`…): such folders are never stat'ed nor read.
         const byName = filterDirectory({ relativePath: child, entryNames: [] })
         if (byName.kind === 'descend') stack.push(child)
         else if (byName.reason === 'unsupported_layout') result.unsupportedLayouts.push(child)
@@ -177,7 +159,6 @@ export const walkRootFactory =
       const videos: string[] = []
       for (const name of entry.files) {
         const relativePath = join(relative, name)
-        // Size is checked by the planner: a known source that shrank must be seen (`too_small`).
         const filtered = filterFile({ relativePath, sizeBytes: MIN_VIDEO_SIZE_BYTES })
         if (filtered.kind === 'subtitle') result.subtitles.push(relativePath)
         else if (filtered.kind === 'video') videos.push(relativePath)

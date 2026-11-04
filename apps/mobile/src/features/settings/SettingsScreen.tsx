@@ -11,11 +11,6 @@ import { Avatar } from '../profiles/Avatar.tsx'
 import { useServerConnection } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 
-/**
- * Behind the avatar: the active profile (its settings, switching), the account (§14, hidden from a
- * restricted profile), the administration in the browser for an admin (§26.1), and this device's
- * settings: server, about, sign out (§26.5).
- */
 export const SettingsScreen = () => {
   const { t } = useTranslation()
   const router = useRouter()

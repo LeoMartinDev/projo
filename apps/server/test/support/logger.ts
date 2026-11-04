@@ -10,7 +10,6 @@ export const silentLogger: Logger = {
 
 export type CapturedLine = { level: LogLevel; message: string; fields: LogFields }
 
-/** Logger keeping every line in `lines` (bindings of `child` merged into `fields`). */
 export const createCapturingLogger = (bindings: LogFields = {}, lines: CapturedLine[] = []) => {
   const log =
     (level: LogLevel) =>

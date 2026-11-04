@@ -7,7 +7,6 @@ import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { textStyles } from '../../shared/ui/text.ts'
 import { useSession } from './Session.tsx'
 
-/** The account could not be read (§19 error state): try again, or sign out. */
 export const SessionErrorScreen = () => {
   const { t } = useTranslation()
   const { gate, retry, retrying, signOut, signingOut } = useSession()

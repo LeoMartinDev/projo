@@ -14,7 +14,6 @@ const now = new Date('2026-03-01T12:00:00.000Z')
 const earlier = new Date('2026-02-01T12:00:00.000Z')
 const MB = 1_000_000
 
-/** `undefined` in `overrides` removes the default. */
 const snapshot = (
   overrides: { [K in keyof SourceSnapshot]?: SourceSnapshot[K] | undefined } & {
     id: string
@@ -170,7 +169,6 @@ describe('planScan: states (§7.3–7.5)', () => {
       state: 'pending',
       pendingReason: 'growing',
     })
-    // Was still in quarantine when it went missing: never straight to ready.
     const missingPending = { ...missing, pendingReason: 'growing' as const }
     expect(
       patchOf(

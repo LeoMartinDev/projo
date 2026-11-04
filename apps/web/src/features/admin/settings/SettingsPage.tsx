@@ -63,10 +63,6 @@ const SettingsSkeleton = () => (
   </>
 )
 
-/**
- * `/admin/settings/metadata` (§15 "Metadata"): TMDB key, metadata language, "Refresh the whole
- * library".
- */
 export const MetadataSettingsPage = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)
@@ -108,10 +104,6 @@ export const MetadataSettingsPage = () => {
   )
 }
 
-/**
- * `/admin/settings/segments` (§15 "Intros and credits"): segment providers and their order, TheIntroDB
- * key, fingerprinting and its thresholds, contribution.
- */
 export const SegmentsSettingsPage = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)

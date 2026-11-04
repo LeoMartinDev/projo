@@ -9,7 +9,6 @@ import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import '../catalog/catalog.css'
 
-/** My list (§13.4): the same grid as Movies and Shows, last added first. */
 export const WatchlistPage = () => {
   const { t } = useTranslation()
   const watchlist = useInfiniteQuery(watchlistQuery)

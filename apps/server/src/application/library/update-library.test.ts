@@ -68,7 +68,6 @@ describe('metadata language and rating country of a library (§9.4)', () => {
     const world = setup()
     await world.update({ id: 'lib', changes: { metadataLanguage: 'en-US' } })
     await world.update({ id: 'lib', changes: { ratingCountry: 'US' } })
-    // Back to the server setting.
     await world.update({ id: 'lib', changes: { metadataLanguage: undefined, ratingCountry: 'DE' } })
     expect(world.changed).toEqual([
       { libraryId: 'lib', language: true, ratingCountry: false },

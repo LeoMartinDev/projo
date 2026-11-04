@@ -18,14 +18,12 @@ export const statsQueryKey = ['admin', 'stats'] as const
 export const jobsQueryKey = ['admin', 'jobs'] as const
 export const sourcesByStateQueryKey = ['admin', 'sources-by-state'] as const
 
-/** `GET /admin/stats` (§15 "Dashboard"). Polled while shown, events refresh it. */
 export const statsQuery = queryOptions({
   queryKey: statsQueryKey,
   queryFn: () => request(() => api.admin.stats.$get()),
   refetchInterval: 30_000,
 })
 
-/** `GET /admin/storage` (§15 "Server"): a walk of `/data`, measured at most every 5 minutes. */
 export const storageQuery = queryOptions({
   queryKey: ['admin', 'storage'] as const,
   queryFn: () => request(() => api.admin.storage.$get()),
@@ -33,7 +31,6 @@ export const storageQuery = queryOptions({
 
 export type JobsFilter = { state?: JobStateDto; type?: JobTypeDto }
 
-/** `GET /admin/jobs` (§15 "Jobs"), newest first, by pages. */
 export const jobsQuery = ({ state, type }: JobsFilter) =>
   infiniteQueryOptions({
     queryKey: [...jobsQueryKey, state ?? 'all', type ?? 'all'],
@@ -52,7 +49,6 @@ export const jobsQuery = ({ state, type }: JobsFilter) =>
     getNextPageParam: (page) => page.nextCursor,
   })
 
-/** `GET /admin/notifications` (§15 "Notifications"), newest first, by pages. */
 export const notificationsQuery = (status: NotificationStatus | undefined) =>
   infiniteQueryOptions({
     queryKey: [...notificationsQueryKey, 'list', status ?? 'all'],
@@ -70,7 +66,6 @@ export const notificationsQuery = (status: NotificationStatus | undefined) =>
     getNextPageParam: (page) => page.nextCursor,
   })
 
-/** Sources of one state, all libraries ("Fichiers en attente", "Manquants", "Masqués"), by pages. */
 export const sourcesByStateQuery = (state: 'pending' | 'missing' | 'rejected') =>
   infiniteQueryOptions({
     queryKey: [...sourcesByStateQueryKey, state],
@@ -90,7 +85,6 @@ export const sourcesByStateQuery = (state: 'pending' | 'missing' | 'rejected') =
 
 const refreshIntervalMs = 2000
 
-/** Invalidates `queryKey` on the given events, at most every 2 s (job events come in bursts). */
 const useThrottledInvalidation = (queryKey: readonly string[]) => {
   const queryClient = useQueryClient()
   const [throttle] = useState(() =>
@@ -100,13 +94,11 @@ const useThrottledInvalidation = (queryKey: readonly string[]) => {
   return throttle.trigger
 }
 
-/** The jobs list follows `job.updated` (§17.1). */
 export const useLiveJobs = () => {
   const refresh = useThrottledInvalidation(jobsQueryKey)
   useServerEvent('job.updated', refresh)
 }
 
-/** Pending and missing files move with the pipeline: probes, quiet periods, scans. */
 export const useLiveSources = () => {
   const refresh = useThrottledInvalidation(sourcesByStateQueryKey)
   useServerEvent('source.ready', refresh)
@@ -120,7 +112,6 @@ export const useLiveSources = () => {
   })
 }
 
-/** Notifications (list and badge) follow `notification.created`. */
 export const useLiveNotifications = () => {
   const queryClient = useQueryClient()
   useServerEvent('notification.created', () => {
@@ -129,7 +120,6 @@ export const useLiveNotifications = () => {
   })
 }
 
-/** The dashboard follows scans, failures and notifications. */
 export const useLiveStats = () => {
   const refresh = useThrottledInvalidation(statsQueryKey)
   useServerEvent('scan.finished', refresh)

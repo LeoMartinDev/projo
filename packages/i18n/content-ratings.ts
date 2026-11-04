@@ -2,36 +2,19 @@ import type { TFunction } from 'i18next'
 
 import type { ContentRatingDto } from '@projo/shared/api/content-ratings'
 
-/**
- * §13.5 classification badge, composed from the codes of the API (§9.1) in the interface
- * language: `text` in the badge, `label` its accessible name (and tooltip).
- *
- * - "All ages" ratings (tier `0`: `TP`, `U`, `G`, `TV-Y`…): `TP` / `ALL`, "All audiences";
- * - age codes (`10`, `12`, `16`): the code, "Not recommended under 12";
- * - other codes: the code, followed by its country when it is not the interface's (`R (US)` in
- *   French), "Rated R (United States) · 18 and over";
- * - "not rated" (`NR`): no badge.
- */
 export type RatingBadge = { text: string; label: string }
 
-/** Certifications that say the title was not rated (MPA `NR`…). */
 const unratedCodes = new Set(['NR', 'UR', 'UNRATED', 'NOT RATED'])
 
 const ageCode = /^\d{1,2}$/
 
-/** Countries of the shipped languages, where `Intl.Locale` is missing (the mobile app's Hermes). */
 const countryOfLanguage: Record<string, string> = { fr: 'FR', en: 'US' }
 
-/** The country of the interface language (`fr` → FR, `en` → US): its codes need no country. */
 export const interfaceCountry = (locale: string): string | undefined =>
   typeof Intl.Locale === 'function'
     ? new Intl.Locale(locale).maximize().region
     : countryOfLanguage[locale.split('-')[0] ?? '']
 
-/**
- * `US` → "United States" in the interface language; anything but an ISO 3166 code as written, and
- * the code itself where `Intl.DisplayNames` is missing (the mobile app's Hermes).
- */
 const countryName = (country: string, locale: string): string =>
   /^[A-Z]{2}$/.test(country) && typeof Intl.DisplayNames === 'function'
     ? (new Intl.DisplayNames([locale], { type: 'region' }).of(country) ?? country)

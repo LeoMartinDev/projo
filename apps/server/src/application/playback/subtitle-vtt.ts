@@ -12,7 +12,6 @@ import {
 } from '../../core/playback/media-assets.ts'
 import { isBitmapSubtitle, type SubtitleTrackRepository } from '../../core/playback/subtitles.ts'
 
-/** §14 / §20: the source plays an item the profile sees (library access, maximum rating). */
 export type SourceAccess = (input: { sourceId: string; profileId: string }) => boolean
 
 export type GetSubtitleVttError =
@@ -23,12 +22,6 @@ export type GetSubtitleVttError =
     >
   | MediaError
 
-/**
- * `GET /subtitles/:sourceId/:trackId.vtt` (§10.4): a text track of a source the profile may play,
- * as WebVTT, converted (external `srt ass ssa vtt`) or extracted (embedded `srt ass ssa vtt
- * mov_text`) on the first request, then served from the cache. A bitmap track is burnt in, never
- * sent: `playback/subtitle_unsupported`.
- */
 export const getSubtitleVttFactory =
   ({
     subtitleTracks,
@@ -53,7 +46,6 @@ export const getSubtitleVttFactory =
     signal?: AbortSignal
   }): Promise<Result<string, GetSubtitleVttError>> => {
     const track = subtitleTracks.findById(trackId)
-    // A track of another source, or of a source this profile does not see, does not exist.
     if (
       track === undefined ||
       track.sourceId !== sourceId ||
@@ -105,7 +97,6 @@ export type GetSubtitleVtt = ReturnType<typeof getSubtitleVttFactory>
 
 export const extractSubtitlesDedupeKey = (sourceId: string) => `subtitles:${sourceId}`
 
-/** §7.1 `pre_extract_subtitles`: queued after the probe of a source of such a library. */
 export const requestSubtitleExtraction = (jobQueue: JobQueue, sourceId: string): void => {
   jobQueue.enqueue({
     type: 'extract_subtitles',
@@ -114,11 +105,6 @@ export const requestSubtitleExtraction = (jobQueue: JobQueue, sourceId: string):
   })
 }
 
-/**
- * Job `extract_subtitles`: every embedded text track of the source to WebVTT, in one ffmpeg pass,
- * so the first playback finds them ready. Nothing to do when the library stopped asking for it, or
- * when the source is gone or no longer ready.
- */
 export const preExtractSubtitlesFactory =
   ({
     subtitleTracks,

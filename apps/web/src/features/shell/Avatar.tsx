@@ -2,7 +2,6 @@ import type { AvatarColor } from '@projo/shared/api/auth'
 
 import './shell.css'
 
-/** Profile avatar: the initial on a colored tile (§14, no image). */
 export const Avatar = ({
   name,
   color,

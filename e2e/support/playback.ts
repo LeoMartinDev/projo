@@ -32,11 +32,6 @@ const libraries = async (api: APIRequestContext): Promise<LibraryDto[]> => {
 const libraryOf = async (api: APIRequestContext, root: string) =>
   (await libraries(api)).find((library) => library.roots.some(({ path }) => path === root))
 
-/**
- * The "Playback" library (`playback-library.ts`), added by the first M3 journey of a server
- * (no quiet period: the files are complete), then reused. Waits for every source to be ready
- * and linked to its item. `api` is signed in as the admin.
- */
 export const ensurePlaybackLibrary = async (
   api: APIRequestContext,
   root: string,
@@ -74,13 +69,6 @@ export const ensurePlaybackLibrary = async (
   return Object.fromEntries(entries) as PlaybackLibrary
 }
 
-/**
- * A member of the household with a single profile `profileName` (French interface, so French
- * audio and subtitles, `when_audio_differs`: the defaults of §11.1), signed in on `page`. Through
- * an invitation, which signs the new account in: logins are limited to 10 per 15 min per IP
- * (§20), invitations to 20 per hour. One per journey and project: every project runs on the
- * same server. `adminApi` is signed in as the admin.
- */
 export const signInMember = async (
   page: Page,
   adminApi: APIRequestContext,
@@ -104,17 +92,12 @@ const isSessionCreation = (response: Response) =>
   response.request().method() === 'POST' &&
   new URL(response.url()).pathname === '/api/v1/playback/sessions'
 
-/** The next `POST /playback/sessions` of `page`; call it before the action that sends it. */
 export const nextSession = (page: Page): Promise<PlaybackSessionDto> =>
   page.waitForResponse(isSessionCreation, { timeout: 30_000 }).then(async (response) => {
     expect(response.status(), `session: ${await response.text()}`).toBe(201)
     return (await response.json()) as PlaybackSessionDto
   })
 
-/**
- * The next `POST /playback/sessions` of `page` for `itemId` (other sessions, a track switch on
- * the current item, are let through); call it before the action that sends it.
- */
 export const nextSessionFor = (
   page: Page,
   itemId: string,
@@ -132,7 +115,6 @@ export const nextSessionFor = (
       return (await response.json()) as PlaybackSessionDto
     })
 
-/** Opens the player on `itemId` from the start; resolves with the session it created. */
 export const openPlayer = async (page: Page, itemId: string): Promise<PlaybackSessionDto> => {
   const session = nextSession(page)
   await page.goto(`/watch/${itemId}?from=start`)
@@ -141,7 +123,6 @@ export const openPlayer = async (page: Page, itemId: string): Promise<PlaybackSe
 
 export const playerVideo = (page: Page) => page.locator('video')
 
-/** `currentTime` of the stream (seconds), polled until it passes `seconds`. */
 export const expectPlayingPast = async (video: Locator, seconds: number, timeout = 30_000) =>
   expect
     .poll(() => video.evaluate((element: HTMLVideoElement) => element.currentTime), {
@@ -150,13 +131,11 @@ export const expectPlayingPast = async (video: Locator, seconds: number, timeout
     })
     .toBeGreaterThan(seconds)
 
-/** The playback bar (`role=slider`), its values in seconds on the item timeline. */
 export const seekBar = (page: Page) => page.getByRole('slider', { name: fr.player.seek })
 
 export const barSeconds = async (bar: Locator, attribute: 'aria-valuenow' | 'aria-valuemax') =>
   Number(await bar.getAttribute(attribute))
 
-/** Clicks the bar at `ratio` of its width (a seek on the item timeline). */
 export const clickBarAt = async (page: Page, ratio: number) => {
   await wakePlayer(page)
   const bar = seekBar(page)
@@ -167,10 +146,6 @@ export const clickBarAt = async (page: Page, ratio: number) => {
 
 type LanguagesTab = 'audio' | 'subtitles'
 
-/**
- * The list of radios of `tab` in the open "Subtitles and audio" menu: a column on wide screens, a
- * tab of its own (shown first) else.
- */
 export const showLanguagesTab = async (menu: Locator, tab: LanguagesTab) => {
   await expect(menu).toBeVisible()
   const own = menu.getByRole('tab', { name: fr.player.menu[tab], exact: true })
@@ -178,14 +153,12 @@ export const showLanguagesTab = async (menu: Locator, tab: LanguagesTab) => {
   return menu.getByRole('radiogroup', { name: fr.player.menu[tab], exact: true })
 }
 
-/** Opens the "Subtitles and audio" menu on `tab` (see `showLanguagesTab`). */
 export const openLanguagesMenu = async (page: Page, tab: LanguagesTab) => {
   await wakePlayer(page)
   await page.getByRole('button', { name: fr.player.menu.title, exact: true }).click()
   return showLanguagesTab(page.getByRole('dialog', { name: fr.player.menu.title }), tab)
 }
 
-/** Opens the quality menu (shown when the item has several qualities or versions). */
 export const openQualityMenu = async (page: Page) => {
   await wakePlayer(page)
   await page.getByRole('button', { name: fr.player.menu.quality, exact: true }).click()
@@ -194,10 +167,8 @@ export const openQualityMenu = async (page: Page) => {
   return menu
 }
 
-/** The subtitles drawn over the video by the player (`SubtitleOverlay`, hidden from ARIA). */
 export const captions = (page: Page) => page.locator('.captions')
 
-/** `GET /admin/playback/sessions`, `api` signed in as the admin. */
 export const adminSessions = async (api: APIRequestContext) => {
   const response = await api.get('/api/v1/admin/playback/sessions')
   expect(response.ok(), `admin sessions: ${response.status()}`).toBe(true)

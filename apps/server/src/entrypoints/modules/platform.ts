@@ -16,7 +16,6 @@ import type { AppPaths } from '../app-paths.ts'
 import type { Config } from '../config.ts'
 import { createJobQueue } from '../jobs/job-queue.ts'
 
-/** Cross-cutting dependencies handed to every `build<Domain>Module`. */
 export type Platform = {
   config: Config
   paths: DataPaths
@@ -30,7 +29,6 @@ export type Platform = {
   db: Db
   jobQueue: JobQueue
   jobRepository: JobRepository
-  /** Lets the job runner (built after the modules) be woken by `jobQueue.enqueue`. */
   connectJobRunner: (wake: () => void) => void
 }
 
@@ -46,7 +44,6 @@ export type BuildPlatformError = AppError<
   'data/layout_failed' | 'db/open_failed' | 'db/migration_failed' | 'db/backup_failed'
 >
 
-/** Data layout (§5.4) → SQLite + migrations → ids, events, job queue. */
 export const buildPlatform = ({
   config,
   appPaths,

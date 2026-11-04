@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { moveInGrid } from './result-grid.ts'
 
-// Movies: 5 in 3 columns (rows 0 1 2 / 3 4), shows: 2 (5 6).
 const sizes = [5, 2]
 const move = (current: number, direction: 'up' | 'down', columns = 3) =>
   moveInGrid({ sizes, columns, current, direction })

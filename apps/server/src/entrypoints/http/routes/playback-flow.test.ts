@@ -37,11 +37,6 @@ import { buildProgressModule } from '../../modules/progress.ts'
 import { type ApiRoutes, createApi } from '../api.ts'
 import type { AppEnv } from '../context.ts'
 
-/**
- * End to end over HTTP with real ffprobe / ffmpeg: catalog → session → stream → heartbeat →
- * resume → end. Authentication is stubbed: `x-account` selects the account (its only profile).
- */
-
 const media = createTempDir('projo-flow-media-')
 let mkvPath = ''
 let mp4Path = ''
@@ -96,13 +91,11 @@ beforeEach(() => {
   } as unknown as Platform
 
   for (const accountId of ['leo', 'intruder']) seedViewer(db, accountId)
-  // A child's profile on Léo's account: unrated titles do not exist for it (§14).
   insertProfile(db, 'leo', 'profile-kid')
   insertLibrary(db, { rootPath: dirname(mkvPath || media.path) })
   insertItem(db, { id: 'mkv-movie', kind: 'movie', title: 'Big Buck', sortTitle: 'big buck' })
   insertItem(db, { id: 'mp4-movie', kind: 'movie', title: 'Small', sortTitle: 'small' })
   const size = (path: string) => (path === '' ? 1 : statSync(path).size)
-  // No stored probe for the MKV: playback probes the file itself.
   insertSource(db, {
     id: 'mkv-source',
     itemId: 'mkv-movie',
@@ -229,7 +222,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
       audioTracks: [{ index: 1, codec: 'ac3', delivery: 'aac' }],
       subtitleTracks: [],
     })
-    // §18: the keyframe index is requested at once, interactive priority.
     expect(jobs.enqueued).toEqual([
       {
         type: 'index_keyframes',
@@ -241,7 +233,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     await runQueuedKeyframeJobs()
     expect(existsSync(`${data.path}/cache/keyframes/mkv-source.json`)).toBe(true)
 
-    // §20: under the session's capability prefix, a 256-bit secret in base64url.
     expect(session.stream.url).toMatch(
       new RegExp(`^/api/v1/stream/${session.id}/[\\w-]{43}/index\\.m3u8$`),
     )
@@ -261,7 +252,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect((await segment.arrayBuffer()).byteLength).toBeGreaterThan(1000)
     expect((await call(`${base}seg-00099.m4s`)).status).toBe(404)
     expect((await call(`${base}../../etc`)).status).toBe(404)
-    // §20: the secret is the credential, whoever asks; a wrong one names no session.
     expect((await call(playlistPath, { as: 'intruder' })).status).toBe(200)
     expect((await call(playlistPath.replace(/\/[^/]+\/index/, '/wrong/index'))).status).toBe(404)
 
@@ -290,7 +280,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect(late.status).toBe(410)
     expect((await call(playlistPath)).status).toBe(410)
 
-    // Reopening resumes where the profile was.
     const resumed = await body(
       await call('/playback/sessions', {
         method: 'POST',
@@ -354,7 +343,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
       payload: { playbackSessionId: created.id, sessionId: 'session-of-leo', reason: 'admin' },
     })
     expect((await call(created.stream.url.replace('/api/v1', ''))).status).toBe(410)
-    // The other account plays on, until its own account goes.
     const beat = await call(`/playback/sessions/${theirs.id}/heartbeat`, {
       method: 'PUT',
       as: 'intruder',
@@ -407,7 +395,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect((await call(url.replace(/\/[^/]+\/direct$/, '/wrong/direct'))).status).toBe(404)
     expect((await call(url.replace('/direct', '/index.m3u8'))).status).toBe(422)
 
-    // `navigator.sendBeacon(url, JSON.stringify(body))` on page close: POST in text/plain.
     const beacon = (text: string) =>
       call(`/playback/sessions/${session.id}/heartbeat`, {
         method: 'POST',
@@ -423,7 +410,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
       expect(await body(rejected)).toMatchObject({ error: { code: 'common/validation_failed' } })
     }
 
-    // 60 s without heartbeat: the URL stops working.
     clock.advance(60_000)
     expect((await call(url)).status).toBe(410)
   })
@@ -465,7 +451,6 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
   })
 })
 
-/** A stored probe (normalized shape) of an MP4 with H.264 video. */
 const storedProbe = ({
   durationMs,
   audio = [{ index: 1, codec_type: 'audio', codec_name: 'aac', disposition: { default: 1 } }],
@@ -502,12 +487,10 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
   }
 
   const seedAnime = () => {
-    // §11.1 defaults of a new profile (the fixture row has the column defaults).
     db.update(profiles)
       .set({ animeOriginalAudio: true })
       .where(eq(profiles.id, 'profile-of-leo'))
       .run()
-    // An anime (§11.1): genre animation and Japanese, on the series only.
     insertItem(db, {
       id: 'anime',
       kind: 'series',
@@ -568,7 +551,6 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
   test('subtitles inside the stream for an iOS client: remux and master.m3u8 (§10.4, §20)', async () => {
     seedAnime()
     const tracks = { itemId: 'a1', audioStreamIndex: 1, subtitleTrackId: 'a1-fr' }
-    // A browser drawing the subtitles itself plays the MP4 as is.
     expect((await play(tracks)).session).toMatchObject({ mode: 'direct' })
 
     const ios = { ...chrome, hls: 'native', subtitleDelivery: 'hls' }
@@ -576,7 +558,6 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     expect(session).toMatchObject({ mode: 'hls_remux', selectedSubtitleTrackId: 'a1-fr' })
     const url = (session.stream as { url: string }).url.replace('/api/v1', '')
     expect(url).toMatch(/\/master\.m3u8$/)
-    // The secret is enough: AVPlayer and AirPlay receivers send no cookie.
     const master = await call(url, { as: 'airplay' })
     expect(master.headers.get('content-type')).toBe('application/vnd.apple.mpegurl')
     const text = await master.text()
@@ -620,7 +601,6 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     })
     expect(first.session).not.toHaveProperty('trickplayUrl')
 
-    // "Applied to the whole show": stored on the series.
     const saved = await call('/items/a1/track-preferences', {
       method: 'PUT',
       json: { audioLanguage: 'fr', subtitlesEnabled: false },
@@ -639,7 +619,6 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     })
     expect(next.session).not.toHaveProperty('selectedSubtitleTrackId')
 
-    // An explicit choice wins, a burnt-in bitmap track forces a transcode.
     expect(
       (await play({ itemId: 'a2', audioStreamIndex: 2, subtitleTrackId: 'a2-pgs' })).session,
     ).toMatchObject({
@@ -649,13 +628,11 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
       burnIn: true,
     })
 
-    // "Undo": the memory is gone, the anime rule is back.
     const cleared = await call('/items/a2/track-preferences', { method: 'DELETE' })
     expect(cleared.status).toBe(204)
     expect((await call('/items/a2/track-preferences', { method: 'DELETE' })).status).toBe(204)
     expect((await play({ itemId: 'a2' })).session).toMatchObject({ trackSelection: 'anime' })
 
-    // Burn-in turned off (§10.4): bitmap tracks are listed as unsupported, refused if asked.
     db.insert(settings)
       .values({
         key: 'playback.burn_in_enabled',
@@ -683,7 +660,6 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
       })
     expect((await put('anime')).status).toBe(400)
     expect((await put('unknown')).status).toBe(404)
-    // Unrated: does not exist for the child's profile (§14).
     expect((await put('a1', { 'x-profile': 'profile-kid' })).status).toBe(404)
     expect(
       (
@@ -844,7 +820,6 @@ describe('catalog and progress over HTTP', () => {
     expect(await body(await call('/items/show/children'))).toMatchObject({
       items: [{ id: 'show-s1', watchStatus: { state: 'unwatched', totalCount: 2 } }],
     })
-    // No TMDB runtime: the probed duration of the best ready source.
     const episodes = await body<{ items: { id: string; durationMs?: number }[] }>(
       await call('/items/show-s1/children'),
     )

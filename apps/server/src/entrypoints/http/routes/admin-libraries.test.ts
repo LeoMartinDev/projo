@@ -286,7 +286,6 @@ describe('admin libraries routes (§17.2)', () => {
     ).toEqual([{ id: 'n-kept' }])
   })
 
-  /** Claims the queued scan and runs it until its first await (the first root's stat). */
   const startScan = () => {
     const job = world.jobRepository.claimNext({ types: ['scan_library'], now: world.clock.now() })
     const handler = world.scanner.jobHandlers?.scan_library
@@ -298,7 +297,6 @@ describe('admin libraries routes (§17.2)', () => {
       logger: silentLogger,
     })
   }
-  /** Above the minimum video size, without writing it (sparse). */
   const video = (relativePath: string) => {
     writeFileSync(join(tmp.path, relativePath), '')
     truncateSync(join(tmp.path, relativePath), 1_500_000)

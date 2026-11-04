@@ -25,7 +25,6 @@ const baseName = (relativePath: string): string => relativePath.split('/').at(-1
 const iso = <K extends string>(key: K, value: Date | undefined) =>
   (value === undefined ? {} : { [key]: value.toISOString() }) as { [P in K]?: string }
 
-/** The §17.2 body of an assignment or a rematch (the plan of §27.5 stays with the MCP server). */
 export const toAssignResponse = ({
   sourceIds,
   itemIds,
@@ -60,7 +59,6 @@ export const toSourceDto = (source: SourceListItem): SourceDto => ({
   items: source.items,
   ...(source.pendingReason === undefined ? {} : { pendingReason: source.pendingReason }),
   ...iso('pendingSince', source.pendingSince),
-  // The quiet-period counter only means something while the file waits (§7.3).
   ...(source.state === 'pending' ? iso('unchangedSince', source.unchangedSince) : {}),
   ...iso('stableSince', source.stableSince),
   ...iso('readyAt', source.readyAt),
@@ -70,13 +68,6 @@ export const toSourceDto = (source: SourceListItem): SourceDto => ({
   ...(source.probe === undefined ? {} : { durationMs: Math.round(source.probe.durationMs) }),
 })
 
-/**
- * §17.2 Admin sources: `/sources?libraryId=&state=&matchState=` and `/sources/:id/recheck`.
- * Assignment and rejection: `adminSourceReviewRoutes` below (built by the metadata module);
- * purge: `adminMissingSourcesRoutes` (operations module).
- * Mounted at `/api/v1/admin`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is
- * mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const adminSourcesRoutes = ({ sourceAdmin }: { sourceAdmin: SourceAdmin }) =>
   new Hono<AppEnv>()
     .get('/sources', validate('query', sourcesQuerySchema), (c) => {
@@ -104,15 +95,6 @@ export const adminSourcesRoutes = ({ sourceAdmin }: { sourceAdmin: SourceAdmin }
 
 export type AdminSourcesRoutes = ReturnType<typeof adminSourcesRoutes>
 
-/**
- * "To review" actions (§7.8, journey 5), built by the metadata module and mounted at
- * `/api/v1/admin` next to `adminSourcesRoutes`:
- * - `POST /sources/:id/assign`: "it's a movie" (`{ kind: 'movie', tmdbId }`) or "it's an episode
- *   of…" (`{ kind: 'episode', seriesTmdbId, seasonNumber?, episodeNumber? }`, the other files to
- *   review of its series and show folder along when the numbers are the file name's), remembered in `manual_matches`;
- * - `POST /sources/:id/reject`: hides it (`state = rejected`), scans included;
- * - `POST /sources/:id/restore`: shows a hidden source again (204; 409 `source/not_rejected`).
- */
 export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
   new Hono<AppEnv>()
     .post('/sources/:id/assign', validate('json', assignBodySchema), async (c) => {
@@ -136,11 +118,6 @@ export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
 
 export type AdminSourceReviewRoutes = ReturnType<typeof adminSourceReviewRoutes>
 
-/**
- * "Manquants" (§7.5, §15), built by the operations module and mounted at `/api/v1/admin`:
- * - `DELETE /sources/:id`: purges one `missing` source (204; 409 `source/not_missing`);
- * - `POST /sources/purge-missing`: every `missing` source, of one library or of all.
- */
 export const adminMissingSourcesRoutes = ({ missing }: { missing: MissingSourcesAdmin }) =>
   new Hono<AppEnv>()
     .post('/sources/purge-missing', validate('json', purgeMissingBodySchema), (c) => {

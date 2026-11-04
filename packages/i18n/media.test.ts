@@ -149,7 +149,6 @@ describe('playLabelOf (§13.5, hero and title page of a series)', () => {
     expect(
       playLabelOf(t, { kind: 'series', watchStatus: status(0) }, { ...resume, action: 'play' }),
     ).toBe(t('item.play'))
-    // No number to show: "Resume" rather than "Resume " (the title page's own copy did that).
     expect(
       playLabelOf(t, { kind: 'series' }, { action: 'resume', itemId: 'e', positionMs: 1 }),
     ).toBe(t('card.resume'))

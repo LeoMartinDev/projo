@@ -8,17 +8,10 @@ import type { Logger } from '../../core/logger.ts'
 import { toHostPath } from '../fs/host-paths.ts'
 import { toFsError } from '../fs/node-file-system.ts'
 
-/** Above this, the per-directory fallback gives up: the periodic scan remains (§7.4). */
 const MAX_FALLBACK_DIRECTORIES = 4_000
 
 const toPosix = (value: string): string => value.split('\\').join('/')
 
-/**
- * `DirectoryWatcher` over `node:fs.watch`. Bun implements `recursive: true` on macOS (FSEvents)
- * and on Linux (inotify, one watch per directory, new sub-directories included); when a platform
- * refuses it, one non-recursive watcher per known directory is used instead (new directories are
- * then picked up at the next sync, after a scan).
- */
 export const createNodeDirectoryWatcher = ({ logger }: { logger: Logger }): DirectoryWatcher => ({
   watch: ({ path, fallbackDirectories, onChange, onError }) => {
     const watchers: FSWatcher[] = []

@@ -24,13 +24,6 @@ type Deps = {
   logger: Logger
 }
 
-/**
- * Startup (§16.3): settles what the last switch left. The supervisor's `switch-result.json`
- * closes the pending run (`succeeded`, or `rolled_back` with the `update/rolled_back`
- * notification and the refused version `failed`); a pending run without report means the switch
- * never happened. Then `app_versions` follows the disk and the running version, and the
- * notifications about the version now running are resolved.
- */
 export const reconcileAfterSwitchFactory =
   ({
     installer,
@@ -43,7 +36,6 @@ export const reconcileAfterSwitchFactory =
     logger,
   }: Deps): ReconcileAfterSwitch =>
   async () => {
-    // Read before any await: the job runner starts meanwhile and may open a new run.
     const now = clock.now()
     const pending = repository.pendingRun()
     const { appVersion } = processControl
@@ -53,7 +45,6 @@ export const reconcileAfterSwitchFactory =
       installed.find((entry) => entry.version === version)?.manifest.runtimeMin ??
       repository.versions().find((row) => row.version === version)?.runtimeMin
 
-    // The pending run the report settles, if any.
     let run: UpdateRun | undefined
     if (report !== undefined) {
       run = pending?.toVersion === report.toVersion ? pending : undefined
@@ -95,7 +86,6 @@ export const reconcileAfterSwitchFactory =
       }
     }
 
-    // A run still pending: the process restarted without the supervisor switching.
     const stale = run === undefined ? pending : undefined
     if (stale !== undefined) {
       const reached = stale.toVersion === appVersion
@@ -114,8 +104,6 @@ export const reconcileAfterSwitchFactory =
       })
     }
 
-    // `app_versions`: the running version is current, the one it replaced previous; versions
-    // found on the disk (the image's seed, an older install) are recorded.
     const rows = new Map(repository.versions().map((row) => [row.version, row] as const))
     for (const row of rows.values()) {
       if (row.state === 'current' && row.version !== appVersion)
@@ -143,7 +131,6 @@ export const reconcileAfterSwitchFactory =
     notifier.resolve({ kind: 'update/available', key: appVersion })
     notifier.resolve({ kind: 'update/runtime_too_old', key: appVersion })
 
-    // Unless a job already moved it on (a check or an update resumed by the runner).
     if (state.current().state !== 'idle') return
     const latest = checkStore.read()?.latest
     state.set(

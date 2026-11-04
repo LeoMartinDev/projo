@@ -6,7 +6,6 @@ import { EntryScreen } from '../../shared/ui/EntryScreen.tsx'
 import { textStyles } from '../../shared/ui/text.ts'
 import { useServerConnection } from './ServerConnection.tsx'
 
-/** Blocking (§26.4): the server is older than this app needs. Re-checked on foreground too. */
 export const OutdatedServerScreen = () => {
   const { t } = useTranslation()
   const { gate, recheck, rechecking, forget } = useServerConnection()

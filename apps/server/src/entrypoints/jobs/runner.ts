@@ -20,32 +20,18 @@ type Deps = {
   clock: Clock
   logger: Logger
   eventBus: EventBus
-  /** Safety net polling, for jobs whose `runAfter` comes due. Enqueue and completion wake the runner directly. */
   pollIntervalMs?: number
   retryDelay?: (attempt: number) => number
-  /** Called once a job has exhausted its attempts (§18: the caller creates the notification). */
   onFinalFailure?: (job: Job) => void
 }
 
 type RunningJob = { job: Job; controller: AbortController; done: Promise<void> }
 
 export type JobRunner = {
-  /** Requeues the jobs left `running` by a previous process, then starts claiming. */
   start: () => void
-  /**
-   * Clean stop (SIGTERM, switch exit 75): stops claiming, aborts running jobs and waits for them.
-   * A job that still succeeds is completed; an interrupted one is released (`queued`, its attempt
-   * not counted). Only a crash leaves jobs `running` for `start` to settle (§18).
-   */
   stop: () => Promise<void>
-  /** Claims runnable jobs now (called by the queue on enqueue). */
   wake: () => void
-  /**
-   * A queued job is `cancelled` at once. A running one is aborted and stays `running` (its dedupe
-   * key held) until its handler returns, then becomes `cancelled` whatever it returned.
-   */
   cancel: (jobId: string) => Job | undefined
-  /** Resolves when no job is running (tests). */
   idle: () => Promise<void>
 }
 
@@ -98,8 +84,6 @@ export const createJobRunner = ({
     return count
   }
 
-  // `execute` adds the claimed job to `running` synchronously: the next turn of `pump`'s loop
-  // already sees it, so a type or a group at its limit is not claimed twice in one pass.
   const availableTypes = (): JobType[] =>
     registeredTypes.filter((type) => {
       const handler = handlers[type]
@@ -125,8 +109,6 @@ export const createJobRunner = ({
     }
 
     if (controller.signal.aborted && stopping) {
-      // Clean stop (§18): a job that finished anyway is done (`apply_update` before the exit 75);
-      // an interrupted one goes back to `queued` without consuming its attempt.
       if (jobRepository.findById(job.id)?.state !== 'running') return
       if (result.ok) {
         publish(jobRepository.complete({ id: job.id, finishedAt: now }))
@@ -213,11 +195,6 @@ export const createJobRunner = ({
     }
   }
 
-  /**
-   * The next claim after a job settles waits for a macrotask: jobs that finish without awaiting
-   * any I/O (thousands of `probe_source` skipped once their library is deleted) would otherwise
-   * chain in microtasks and starve HTTP, SSE and timers until the queue is empty.
-   */
   const schedulePump = (): void => {
     if (pumpScheduled !== undefined) return
     pumpScheduled = new Promise((resolve) => {
@@ -257,7 +234,6 @@ export const createJobRunner = ({
       await Promise.all([...running.values()].map((entry) => entry.done))
       started = false
     },
-    // Each claim reads and sorts the queue: a burst of enqueues (a scan) must cost one pump.
     wake: schedulePump,
     cancel: (jobId) => {
       const entry = running.get(jobId)

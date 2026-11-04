@@ -23,13 +23,8 @@ type Deps = {
   playbackSessions: PlaybackSessionTerminator
   validateRoots: ValidateRoots
   requestScan: ScanRequester
-  /**
-   * §9.4: a new language or rating country refreshes the metadata written with the old one, and
-   * so does a removed root changing the library deciding a movie or series (§9.1).
-   */
   metadataContext: LibraryMetadataContextObserver
   leftovers: LibraryLeftovers
-  /** Aborts the running jobs on the removed roots' files (a probe, a subtitle extraction). */
   jobControl: Pick<JobControl, 'cancel'>
   ids: IdGenerator
   logger: Logger
@@ -38,20 +33,12 @@ type Deps = {
 export type UpdateLibraryInput = {
   id: string
   changes: LibraryChanges
-  /** Replaces the whole set of roots. */
   roots?: string[]
 }
 
 export type UpdateLibraryError =
   AppError<'library/not_found' | 'library/name_taken'> | RootValidationError
 
-/**
- * Edits settings and roots. A kept path keeps its root (and sources); a removed root takes its
- * sources with it, and local items left without source are pruned (§7.5 purge rule). Playback
- * sessions on what goes are ended first (§10.6), the queued jobs on its files dropped, the running
- * ones cancelled, its notifications resolved. A new metadata language or rating country queues
- * the refresh of the metadata written with the old one (§9.4).
- */
 export const updateLibraryFactory =
   ({
     libraryRepository,
@@ -115,7 +102,6 @@ export const updateLibraryFactory =
         ? metadataContext.filesLeaving({ rootIds: rootChanges.remove })
         : undefined
     if (rootChanges !== undefined && removing) {
-      // Before the cascade: the jobs on their sources are found through the `sources` rows.
       const { runningJobIds } = leftovers.clear({ rootIds: rootChanges.remove })
       for (const jobId of runningJobIds) jobControl.cancel(jobId)
       playbackSessions.endWithin({ rootIds: rootChanges.remove })
@@ -134,7 +120,6 @@ export const updateLibraryFactory =
       if (rootChanges.add.length > 0) requestScan({ libraryId: id, kind: 'manual_quick' })
     }
     settle?.()
-    // The hint drives classification (§7.1): every name is read again.
     if (changes.hint !== undefined && changes.hint !== library.hint) {
       requestScan({ libraryId: id, kind: 'manual_full' })
     }

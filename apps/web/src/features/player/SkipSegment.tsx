@@ -19,10 +19,6 @@ const SkipIcon = ({ size }: { size: number }) => (
   </svg>
 )
 
-/**
- * "Skip intro" / "Skip recap" (§12.4, artboard `Player`), bottom right: the label and
- * its 8 s bar, then only the icon (the label stays its accessible name).
- */
 export const SkipSegmentButton = ({
   segment,
   phase,
@@ -54,7 +50,6 @@ export const SkipSegmentButton = ({
   )
 }
 
-/** "Intro skipped · Undo" (§10.7), bottom left where the track toast goes. */
 export const SkippedToast = ({
   segment,
   onUndo,

@@ -42,7 +42,6 @@ const episode = (
   options: Parameters<typeof progress>[1] = {},
 ): PlayedItem => ({ itemId, kind: 'episode', seriesId, progress: progress(itemId, options) })
 
-/** Present episodes of a series, in broadcast order: `s1e1`, `s1e2`… */
 const episodes = (seriesId: string, list: [number, number, Date?][]): EpisodeRef[] =>
   list.map(([season, number, addedAt]) => ({
     id: `${seriesId}-s${season}e${number}`,
@@ -108,7 +107,6 @@ describe('§13.1 À suivre', () => {
   const show = episodes('show', [
     [1, 1],
     [1, 2],
-    // s1e3 has no file: absent from the list, skipped.
     [1, 4],
     [2, 1],
   ])
@@ -153,7 +151,6 @@ describe('§13.1 À suivre', () => {
     expect(upNext({ played: all, episodes: show, hiddenSeries: none })).toEqual([])
     const watched = [episode('show-s1e1', 'show', { watched: true })]
     expect(upNext({ played: watched, episodes: show, hiddenSeries: new Set(['show']) })).toEqual([])
-    // Started under 2 % then left: not "started".
     const barely = [episode('show-s1e1', 'show', { ratio: 0.01 })]
     expect(upNext({ played: barely, episodes: show, hiddenSeries: none })).toEqual([])
   })
@@ -189,7 +186,6 @@ describe('§13.1 À suivre', () => {
     expect(upNext({ played, episodes: season2, hiddenSeries: none })).toEqual([
       { seriesId: 'kept', episode: season2[0] as EpisodeRef, isNew: true, lastActivityAt: day(2) },
     ])
-    // An episode left in progress before its file went: neither resumable nor blocking.
     const halfway = [...played, gone(3, { ratio: 0.5, at: day(3) })]
     expect(continueWatching({ played: halfway, hiddenSeries: none })).toEqual([])
     expect(upNext({ played: halfway, episodes: season2, hiddenSeries: none })).toHaveLength(1)
@@ -236,7 +232,6 @@ describe('§13.1 À suivre', () => {
       [1, 2],
     ])
     const played = [episode('sp-s1e2', 'sp', { watched: true })]
-    // Every regular episode is not watched: s1e1 is next, not the special.
     expect(upNext({ played, episodes: withSpecials, hiddenSeries: none })[0]?.episode.id).toBe(
       'sp-s1e1',
     )
@@ -276,7 +271,6 @@ describe('nextEpisode', () => {
 })
 
 describe('nextEpisode: never an episode already watched (§13.1)', () => {
-  // E1–E3 watched, E4 absent (not in the list), E5–E6 not watched.
   const list = episodes('y', [
     [1, 1],
     [1, 2],

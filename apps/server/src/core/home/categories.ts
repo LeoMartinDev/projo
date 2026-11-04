@@ -5,45 +5,26 @@ import type { EpisodeRef, VisibilityScope } from '../catalog/catalog.ts'
 import { isAnime } from '../metadata/anime.ts'
 import type { PlayedItem } from '../progress/rows.ts'
 
-/**
- * §13.3 item 6, the category rows under the fixed rows of the home: "Anime", then one per genre.
- * Data-driven and deterministic: they depend only on what the profile can see (§14), no rotation,
- * no recommendation. Another row source (recommendations, later) would be another `kind` here,
- * selected and filled by the same use case.
- */
-
-/** "Anime": genre `animation` and Japanese original language (`isAnime`, §11.1). */
 export type HomeCategory = { kind: 'anime' } | { kind: 'genre'; genre: GenreId }
 
 export const categoryRules = {
-  /** A category shows with at least this many visible titles. */
   minTitles: 6,
-  /** At most this many category rows. */
   maxRows: 12,
-  /** Titles per row. */
   rowLimit: 20,
-  /** Rows per `GET /home/categories` batch. */
   batchSize: 4,
 } as const
 
 export type CategoryRules = { [K in keyof typeof categoryRules]: number }
 
-/** `anime`, `genre-action`…: unique among the rows (React keys, row ids). */
 export const categoryKey = (category: HomeCategory): string => homeCategoryKey(category)
 
-/** A visible movie or series, as the category rows read it. */
 export type CategoryTitle = {
   id: string
   genres: readonly GenreId[]
   originalLanguage?: string
-  /** `added_at` (else `created_at`): rows are newest first. */
   addedAt: Date
 }
 
-/**
- * The categories a title falls in: each of its genres, an anime's `animation` being "Anime"
- * instead (the "Animation" row leaves the anime out, they have their own).
- */
 export const categoriesOf = (title: CategoryTitle): HomeCategory[] => {
   const anime = isAnime(title)
   return title.genres.map((genre): HomeCategory =>
@@ -53,7 +34,6 @@ export const categoriesOf = (title: CategoryTitle): HomeCategory[] => {
 
 export type CategoryCount = { category: HomeCategory; titles: number }
 
-/** Visible titles per category (categories without any are absent). */
 export const countCategories = (titles: readonly CategoryTitle[]): CategoryCount[] => {
   const counts = new Map<string, CategoryCount>()
   for (const title of titles) {
@@ -68,10 +48,6 @@ export const countCategories = (titles: readonly CategoryTitle[]): CategoryCount
 const rankOf = (category: HomeCategory): number =>
   category.kind === 'anime' ? -1 : genreIds.indexOf(category.genre)
 
-/**
- * The category list: "Anime" first, then the genres by visible titles (most first, §9.1 id order
- * on ties); under `minTitles` a category is left out; `maxRows` at most.
- */
 export const selectCategories = (
   counts: readonly CategoryCount[],
   rules: CategoryRules = categoryRules,
@@ -85,7 +61,6 @@ export const selectCategories = (
     .slice(0, rules.maxRows)
     .map(({ category }) => category)
 
-/** The batch of rows at `offset`, and the offset of the next one (none after the last). */
 export const categoryBatch = (
   categories: readonly HomeCategory[],
   offset: number,
@@ -96,10 +71,6 @@ export const categoryBatch = (
   return next < categories.length && batch.length > 0 ? { batch, nextOffset: next } : { batch }
 }
 
-/**
- * The titles of each of `categories` (by key): newest first, the watched ones after all the
- * others, `limit` at most.
- */
 export const categoryRows = ({
   titles,
   categories,
@@ -127,7 +98,6 @@ export const categoryRows = ({
   return rows
 }
 
-/** Series to check for "every present episode watched": those with a watched episode. */
 export const seriesWithWatchedEpisodes = (played: readonly PlayedItem[]): string[] => [
   ...new Set(
     played.flatMap((entry) =>
@@ -136,10 +106,6 @@ export const seriesWithWatchedEpisodes = (played: readonly PlayedItem[]): string
   ),
 ]
 
-/**
- * Watched titles of a profile (§13.1): a movie watched, a series whose every visible episode is
- * (`episodes`: the visible episodes of `seriesWithWatchedEpisodes`).
- */
 export const watchedTitles = ({
   played,
   episodes,
@@ -164,8 +130,6 @@ export const watchedTitles = ({
   return result
 }
 
-/** Reads behind the category rows (SQL in infrastructure). */
 export type HomeCategoryQueries = {
-  /** Visible movies and series (§6.3, §14 scope) that have at least one genre. */
   listTitles: (input: { scope: VisibilityScope }) => CategoryTitle[]
 }

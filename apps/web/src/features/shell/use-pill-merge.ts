@@ -4,12 +4,9 @@ import { media, reducedMotion } from '../../shared/styles/media.ts'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { pillMerge, type SideMotion } from './pill-merge.ts'
 
-// A slightly bouncy spring (damping ratio ≈ 0.65): about 6 % overshoot, settled in ~0.4 s.
 const stiffness = 380
 const damping = 25
-// The actions set off this long after the wordmark (ms): the two sides never move as one block.
 const lag = 45
-// The merge is a wide-screen effect: on a phone the navigation sits at the bottom.
 const instant = `${media.phone}, ${reducedMotion}`
 
 const box = (element: HTMLElement) => ({ left: element.offsetLeft, width: element.offsetWidth })
@@ -24,11 +21,6 @@ const advance = (spring: SideMotion, target: number, dt: number): SideMotion => 
   return resting ? atRest(target) : next
 }
 
-/**
- * Animates the header between its pieces and one pill (`pillMerge`) as `merged` flips: draws the
- * outline into `#pill-merge-shape` and the glass clip, moves the pieces through `--logo-x` and
- * `--actions-x` and blurs them along their glide. Returns the header's ref.
- */
 export const usePillMerge = (merged: boolean) => {
   const [header, headerRef] = useElement<HTMLElement>()
   const springs = useRef({ logo: atRest(0), actions: atRest(0) })
@@ -74,7 +66,6 @@ export const usePillMerge = (merged: boolean) => {
     let last = start
     let frame = 0
     const step = (now: number) => {
-      // Capped so a frame after a hidden tab does not fling the springs.
       const dt = Math.min(now - last, 32) / 1000
       last = now
       const skip = window.matchMedia(instant).matches

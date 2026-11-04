@@ -17,20 +17,15 @@ import type { MissingSourceRepository } from '../../core/source/source.ts'
 import { type DatabaseExporter, type DiskUsage, exportFileName } from '../../core/stats/stats.ts'
 import type { ExportDatabase, MissingSourcesAdmin } from './types.ts'
 
-/** §24 "Purge of missing files": a source `missing` for longer than this is purged daily. */
 export const MISSING_PURGE_AFTER_MS = 30 * 24 * 60 * 60_000
-
-// ── Missing sources (§7.5, §15 "Manquants") ──────────────────────────────────
 
 type MissingDeps = {
   missingSources: MissingSourceRepository
   playbackSessions: PlaybackSessionTerminator
-  /** §9.1: a movie or series whose deciding library loses its files is refreshed. */
   metadataContext: Pick<LibraryMetadataContextObserver, 'filesLeaving'>
   logger: Logger
 }
 
-/** Ends the sessions on the files (§10.6: the rows go with them), then purges. */
 const purgeSources = (
   { missingSources, playbackSessions, metadataContext, logger }: MissingDeps,
   sourceIds: string[],
@@ -44,7 +39,6 @@ const purgeSources = (
   return purged
 }
 
-/** `DELETE /admin/sources/:id` and `POST /admin/sources/purge-missing`. */
 export const missingSourcesAdminFactory = (deps: MissingDeps): MissingSourcesAdmin => ({
   purge: ({ sourceId }) => {
     const state = deps.missingSources.stateOf(sourceId)
@@ -67,7 +61,6 @@ export const missingSourcesAdminFactory = (deps: MissingDeps): MissingSourcesAdm
   }),
 })
 
-/** The daily `purge_missing` (§7.5, §18): sources missing for more than 30 days. */
 export const purgeExpiredMissingFactory =
   (deps: MissingDeps & { clock: Clock; maxAgeMs?: number }) => (): { purged: number } => ({
     purged: purgeSources(
@@ -80,12 +73,6 @@ export const purgeExpiredMissingFactory =
     ),
   })
 
-// ── Job retention (§18) ──────────────────────────────────────────────────────
-
-/**
- * Hourly `purge-jobs`: `done` jobs go 7 days after they finished, `failed` and `cancelled` ones
- * after 30 days; `queued` and `running` stay (§18 "Rules").
- */
 export const purgeOldJobsFactory =
   ({
     jobRepository,
@@ -106,10 +93,8 @@ export const purgeOldJobsFactory =
     return { deleted }
   }
 
-/** Resolved notifications, and finished scan runs (each library's latest stays), kept this long. */
 export const HISTORY_RETENTION_MS = 30 * 24 * 60 * 60_000
 
-/** With `purge-jobs`, hourly: the other histories that only grow (§18 "Rules"). */
 export const purgeOldHistoryFactory =
   ({
     notifications,
@@ -132,9 +117,6 @@ export const purgeOldHistoryFactory =
     return deleted
   }
 
-// ── Database export (§5.4, §21) ──────────────────────────────────────────────
-
-/** "Exporter la base": `VACUUM INTO db/backups/projo-export-<time>.db`. */
 export const exportDatabaseFactory =
   ({
     exporter,
@@ -162,9 +144,6 @@ export const exportDatabaseFactory =
     return result
   }
 
-// ── Periodic checks (§15 notifications) ──────────────────────────────────────
-
-/** `cache/disk_low`: less than 2 GB free on `/data`; resolved once there is room again. */
 export const checkDiskSpaceFactory =
   ({
     diskUsage,
@@ -192,10 +171,6 @@ export const checkDiskSpaceFactory =
     })
   }
 
-/**
- * `scan/needs_review_count`, daily while "To review" is not empty: each day's reminder
- * supersedes (resolves) the previous one; an empty queue resolves it.
- */
 export const remindNeedsReviewFactory =
   ({
     countNeedsReview,

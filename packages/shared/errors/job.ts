@@ -5,7 +5,6 @@ export const jobErrorCodes = [
   'job/cancelled',
   'job/not_cancellable',
   'job/not_retryable',
-  /** Notification kind (§16): a job failed on its last attempt. */
   'job/failed',
 ] as const
 

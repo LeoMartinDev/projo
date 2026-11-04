@@ -37,7 +37,6 @@ const fingerprintKeys = {
   similarity: settingKeys.fingerprintSimilarity,
 } as const satisfies Record<keyof SegmentSettings['fingerprint'], SettingKey>
 
-/** §12 `segments.*` keys of the `settings` table; an unset or invalid value reads as its default. */
 export const createSqliteSegmentSettings = ({ db }: { db: Db }): SegmentSettingsStore => {
   const read = (settingKey: SettingKey): unknown =>
     db.select().from(settings).where(eq(settings.key, settingKey)).get()?.value

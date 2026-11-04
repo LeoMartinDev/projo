@@ -200,7 +200,6 @@ describe('next episode', () => {
     expect(episodeCards(episodes).map(episodeNumberLabel)).toEqual(['1-2', '3', '4-6'])
     expect(episodeNumberLabel({ id: 'x', seasonNumber: 1 })).toBeUndefined()
     expect(nextInSeason(episodes, 'e1')?.id).toBe('e3')
-    // Opened on an episode another file covers too: after the whole file.
     expect(nextInSeason(episodes, 'e2')?.id).toBe('e3')
     expect(nextInSeason(episodes, 'e5')).toBeUndefined()
   })

@@ -4,7 +4,6 @@ import type { Clock } from '../../core/clock.ts'
 import type { NotificationRepository } from '../../core/notifications/notification.ts'
 import type { NotificationsAdmin } from './types.ts'
 
-/** §15 "Notifications": the centre (unread, read, resolved) and "lu". */
 export const notificationsAdminFactory = ({
   notificationRepository,
   clock,

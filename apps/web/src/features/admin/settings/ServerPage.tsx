@@ -22,7 +22,6 @@ import '../admin-table.css'
 import '../operations/operations.css'
 import './settings.css'
 
-/** "Nom" (§15 "Server"): shown on the login and invitation pages. */
 const ServerName = ({ name }: { name: string }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -133,7 +132,6 @@ const Storage = ({ storage }: { storage: StorageDto | undefined }) => {
   )
 }
 
-/** "Exporter la base" (§5.4): `VACUUM INTO db/backups/`, the file written shown under. */
 const ExportDatabase = () => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -166,11 +164,6 @@ const ExportDatabase = () => {
   )
 }
 
-/**
- * `/admin/server` (§15 "Server"): the name; port, `TRUST_PROXY` and the data folder read-only
- * (environment variables, §5.4); space used under it by category; maintenance: "Exporter la
- * base", "Optimiser les images"; "Assistants IA" (§27.3).
- */
 export const ServerPage = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)

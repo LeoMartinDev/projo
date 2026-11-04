@@ -3,12 +3,6 @@ import { type MouseEvent, type PointerEvent, useRef } from 'react'
 const holdMs = 480
 const slopPx = 10
 
-/**
- * Long press on a touch screen (artboard `MobileHome`: "long press for the actions"), or a
- * secondary click (mouse, trackpad, context menu key): `onLongPress` gets the pressed element,
- * which the menu anchors to. The click that ends a long press is swallowed so the card does not
- * also open; the system menu is replaced. A primary mouse click keeps its normal behaviour.
- */
 export const useLongPress = (onLongPress: (element: HTMLElement) => void) => {
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const origin = useRef<{ x: number; y: number }>(undefined)
@@ -43,7 +37,6 @@ export const useLongPress = (onLongPress: (element: HTMLElement) => void) => {
     onPointerLeave: cancel,
     onContextMenu: (event: MouseEvent<HTMLElement>) => {
       event.preventDefault()
-      // During or after a long press (Android fires it too): the timer opens the menu.
       if (origin.current !== undefined || fired.current) return
       onLongPress(event.currentTarget)
     },

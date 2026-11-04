@@ -10,7 +10,6 @@ import { reviewQueryKey } from '../identify/queries.ts'
 import { sourcesByStateQueryKey, statsQueryKey } from '../operations/queries.ts'
 import { fileName } from './parsed.ts'
 
-/** Hiding (§7.8, `state = rejected`): out of every list and scan until shown again from "Hidden". */
 export const HideSourceDialog = ({
   source,
   onClose,

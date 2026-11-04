@@ -33,7 +33,6 @@ afterEach(async () => {
   media.cleanup()
 })
 
-/** Each file its own size, hence its own signature (§7.6): no accidental "same file" lookups. */
 const place = (relativePath: string): string => {
   const path = placeVideo(media.path, relativePath)
   unique += 1
@@ -52,7 +51,6 @@ const createLibrary = async (hint = 'auto') => {
   return library
 }
 
-/** Quiet period, probes, then identification and images. */
 const settle = async () => {
   world.clock.advance(121_000)
   world.jobQueue.enqueue({ type: 'watch_pending', payload: {}, dedupeKey: 'watch_pending' })
@@ -120,7 +118,6 @@ describe('TMDB identification (§9.2)', () => {
       title: 'Inception',
       year: 2010,
       imdb_id: 'tt1375666',
-      // FR has no certification: US fallback (§9.1), filtered on the US scale (§14).
       content_rating: 'PG-13',
       content_rating_country: 'US',
     })
@@ -141,7 +138,6 @@ describe('TMDB identification (§9.2)', () => {
       { name: 'Christopher Nolan', role: 'writer' },
     ])
 
-    // Poster in French first, textless backdrop, PNG logo (the SVG is skipped).
     const images = world.query<{ id: string; kind: string; tmdb_path: string; local_path: string }>(
       'SELECT id, kind, tmdb_path, local_path FROM images ORDER BY kind, tmdb_path',
     )
@@ -149,7 +145,6 @@ describe('TMDB identification (§9.2)', () => {
     expect(byKind('poster').map((i) => i.tmdb_path)).toEqual(['/aej3LRUga5rhgkmRP6XMFw3ejbl.jpg'])
     expect(byKind('backdrop').map((i) => i.tmdb_path)).toEqual(['/s3TBrRGB1iav7gFOCNx3H31MoES.jpg'])
     expect(byKind('logo').map((i) => i.tmdb_path)).toEqual(['/fr0aWVvRcIdlpmeXHVZxk8f1Q5E.png'])
-    // Photos of the credited people who have one (Tom Hardy has none; Nolan once).
     expect(byKind('profile')).toHaveLength(4)
     for (const image of images) {
       expect(existsSync(join(world.data.path, 'images', image.local_path))).toBe(true)
@@ -163,19 +158,16 @@ describe('TMDB identification (§9.2)', () => {
     expect((await world.requestApi(`/images/${movie?.poster_image_id}?w=300`)).status).toBe(400)
     expect((await world.requestApi('/images/unknown-id')).status).toBe(404)
     if (hasFfmpegEncoder('libwebp')) {
-      // §9.1: served as its WebP variant (the fixture is narrower than the ladder: full size).
       const poster = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
       expect(poster.status).toBe(200)
       expect(poster.headers.get('cache-control')).toContain('immutable')
       expect(poster.headers.get('content-type')).toBe('image/webp')
       expect((await poster.arrayBuffer()).byteLength).toBeGreaterThan(0)
-      // Variants not encoded yet: the original, cached an hour only.
       const posterPath = byKind('poster')[0]?.local_path ?? ''
       rmSync(join(world.data.path, 'images', posterPath.replace(/\.jpg$/u, '.full.webp')))
       const fallback = await world.requestApi(`/images/${movie?.poster_image_id}?w=342`)
       expect(fallback.headers.get('content-type')).toBe('image/jpeg')
       expect(fallback.headers.get('cache-control')).toBe('private, max-age=3600')
-      // "Optimize the images" (admin, by hand) encodes it again.
       expect((await world.request('/images/optimize', { method: 'POST' })).status).toBe(202)
       await world.runJobs(['image_variants'])
       expect(
@@ -183,7 +175,6 @@ describe('TMDB identification (§9.2)', () => {
       ).toBe('image/webp')
     }
 
-    // Idempotent: a second run downloads nothing.
     const before = world.tmdb.requests.length
     world.jobQueue.enqueue({ type: 'fetch_images', payload: { itemId: movie?.id } })
     await world.runJobs(['fetch_images'])
@@ -248,13 +239,11 @@ describe('TMDB identification (§9.2)', () => {
       year: 2022,
       content_rating: '16',
       series_status: 'in_production',
-      // §13.5 "2022 – 2024".
       last_air_date: '2024-06-26',
       episode_count_tmdb: 28,
       tvdb_id: 402474,
     })
     expect(season).toMatchObject({
-      // TMDB's "Saison 1" is generic: no title of its own (§6.3).
       title: '',
       tmdb_id: 209386,
       parent_id: series?.id,
@@ -262,19 +251,16 @@ describe('TMDB identification (§9.2)', () => {
       content_rating: '16',
       content_rating_country: 'FR',
     })
-    // Only the episodes with a file exist (§9.2 step 3).
     expect(episodes.map((e) => e.title).sort()).toEqual(['Hands', 'Système'])
     const hands = episodes.find((e) => e.title === 'Hands')
     expect(hands?.overview).toContain('health inspection')
     expect(hands?.still_image_id).toBeDefined()
     expect(season?.poster_image_id).toBeDefined()
     expect(series?.logo_image_id).toBeDefined()
-    // One search for the series name, one season fetch (database cache) for both files.
     expect(world.tmdb.callsTo('search/tv')).toHaveLength(1)
     expect(
       world.tmdb.callsTo('tv/136315/season/1').filter((r) => r.params['language'] === 'fr-FR'),
     ).toHaveLength(1)
-    // The second cast photo is gone from TMDB (404): skipped, not retried.
     expect(world.query('SELECT * FROM jobs WHERE state = ?', 'failed')).toEqual([])
   })
 
@@ -310,7 +296,6 @@ describe('TMDB identification (§9.2)', () => {
       match_state: 'needs_review',
       review_reason: 'ambiguous_match',
     })
-    // The local item stays: the file remains playable until someone decides.
     expect(items()).toMatchObject([{ kind: 'movie', title: 'Dune' }])
     expect(items()[0]?.tmdb_id).toBeUndefined()
 
@@ -335,7 +320,6 @@ describe('TMDB identification (§9.2)', () => {
       match_state: 'needs_review',
       review_reason: 'no_match',
     })
-    // The queue size comes with every page (sidebar badge, §15), not only what the page holds.
     const page = (await (
       await world.request('/sources?matchState=needs_review&limit=1')
     ).json()) as SourcesPage
@@ -365,7 +349,6 @@ describe('TMDB identification (§9.2)', () => {
 
   test('the year search returns only unrelated titles: searched again without it', async () => {
     await world.setKey()
-    // 2021 on TMDB; the search with 2020 only finds "Norm of the North".
     place('BAC Nord (2020) French VOF 2160p 10bit 4KLight HDR BluRay x265-QTZ.mkv')
     await createLibrary('movies')
     await settle()
@@ -408,7 +391,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     ])
     const movie = items().find((row) => row.id === body.itemIds[0])
     expect(movie).toMatchObject({ tmdb_id: 438631, year: 2021, content_rating: '12' })
-    // The local item was adopted: same id, nothing left behind.
     expect(items()).toHaveLength(1)
 
     await fullScan(library.id)
@@ -454,7 +436,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(sourceRow('Rushes.mkv')?.state).toBe('rejected')
     expect(linksOf(rushes?.id ?? '')).toEqual([])
 
-    // Shown again: back in "To review", on its item kept with its history (§7.8).
     await world.request(`/sources/${rushes?.id}/restore`, { method: 'POST' })
     await world.runJobs(['probe_source'])
     await world.runJobs(['match_source'])
@@ -468,7 +449,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     place('Ours/Season 1/Ours.S01E02.mkv')
     place('Ours/Season 1/Ours.S01E09.mkv')
     place('Autre/Season 1/Autre.S01E01.mkv')
-    // Same show name, another show folder: left alone.
     place('Rangement/Ours/Season 1/Ours.S01E03.mkv')
     await createLibrary('series')
     await settle()
@@ -487,7 +467,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(assigned.status).toBe(200)
     const body = (await assigned.json()) as AssignResponse
     expect(body.sourceIds.toSorted()).toEqual([e01?.id ?? '', e02?.id ?? ''].toSorted())
-    // The Bear has 8 episodes in season 1: E09 stays in "To review".
     expect(body.needsReview).toEqual([
       { sourceId: e09?.id ?? '', seasonNumber: 1, episodeNumber: 9 },
     ])
@@ -496,7 +475,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
       match_state: 'needs_review',
       review_reason: 'episode_not_found',
     })
-    // Another series, or the same name in another show folder, is left alone.
     expect(sourceRow('Autre.S01E01.mkv')).toMatchObject({
       match_state: 'needs_review',
       review_reason: 'no_match',
@@ -536,7 +514,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
       match_state: 'needs_review',
       review_reason: 'no_match',
     })
-    // E01, identified already, does not follow E02.
     const again = await world.request(`/sources/${sourceRow('Ours.S01E02.mkv')?.id}/assign`, {
       method: 'POST',
       json: { kind: 'episode', seriesTmdbId: 136315, seasonNumber: 1, episodeNumber: 2 },
@@ -563,7 +540,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
       match_state: 'needs_review',
       review_reason: 'no_episode_number',
     })
-    // No longer the movie: no number, so no local episode either.
     expect(linksOf(source?.id ?? '')).toEqual([])
 
     await world.request(`/libraries/${library.id}`, { method: 'PATCH', json: { hint: 'auto' } })
@@ -586,7 +562,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     })
     await world.request(`/sources/${dune?.id}/reject`, { method: 'POST' })
     expect(sourceRow('Dune.mkv')).toMatchObject({ state: 'rejected', match_state: 'unmatched' })
-    // Scans leave it alone, full ones included; only the admin shows it again.
     await world.request(`/libraries/${library.id}/scan`, { method: 'POST', json: {} })
     await world.runJobs(['scan_library'])
     expect(sourceRow('Dune.mkv')?.state).toBe('rejected')
@@ -599,7 +574,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
 
     const restored = await world.request(`/sources/${dune?.id}/restore`, { method: 'POST' })
     expect(restored.status).toBe(204)
-    // Checked now, without waiting for a quiet period.
     await world.runJobs(['probe_source'])
     await world.runJobs(['match_source'])
     expect(sourceRow('Dune.mkv')).toMatchObject({ state: 'ready', match_state: 'manual' })
@@ -625,7 +599,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(source?.match_state).toBe('manual')
     const linked = items().find((row) => row.id === linksOf(source?.id ?? '')[0])
     expect(linked).toMatchObject({ tmdb_id: 841, year: 1984 })
-    // A season cannot be re-identified on its own.
     world.db.$client.run(
       `INSERT INTO items (id, kind, title, sort_title, created_at, updated_at) VALUES ('s1', 'season', 'S', 's', '2026-01-01', '2026-01-01')`,
     )
@@ -718,7 +691,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     const body = (await response.json()) as AssignResponse
     const e01 = sourceRow('Ours.S01E01.mkv')
     const e09 = sourceRow('Ours.S01E09.mkv')
-    // The Bear has 8 episodes in season 1: E09 waits in "To review", E01 moved.
     expect(body.sourceIds).toEqual([e01?.id ?? ''])
     expect(body.needsReview).toEqual([
       { sourceId: e09?.id ?? '', seasonNumber: 1, episodeNumber: 9 },
@@ -736,7 +708,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
   test('a correction survives the purge of its source: the file coming back gets it again', async () => {
     await world.setKey()
     const path = place('Dune.mkv')
-    // Another file: an emptied root would be held as unreachable rather than missing (§7.5).
     place('Inception (2010).mkv')
     const library = await createLibrary('movies')
     await settle()
@@ -745,7 +716,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
       method: 'POST',
       json: { kind: 'movie', tmdbId: 841 },
     })
-    // The file goes away, its missing source is purged (the row is deleted).
     const bytes = await Bun.file(path).arrayBuffer()
     rmSync(path)
     await fullScan(library.id)
@@ -754,7 +724,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     expect(world.query('SELECT relative_path, tmdb_id FROM manual_matches')).toEqual([
       { relative_path: 'Dune.mkv', tmdb_id: 841 },
     ])
-    // Back at the same path, with other bytes (no signature match): a new source, same decision.
     await Bun.write(path, new Uint8Array([...new Uint8Array(bytes), 0, 1, 2, 3]))
     await fullScan(library.id)
     await settle()
@@ -776,7 +745,6 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
       method: 'POST',
       json: { kind: 'movie', tmdbId: 841 },
     })
-    // A copy elsewhere, same bytes: a new source with the same signature.
     placeVideo(media.path, 'Copie/Dune.mkv', original)
     await fullScan(library.id)
     await settle()
@@ -796,7 +764,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       ((await (await world.request('/settings')).json()) as AdminSettingsDto).metadata.tmdbApiKey
         .state
     expect(await state()).toBe('valid')
-    // The key is revoked on TMDB's side: the next request is answered 401.
     world.db.$client.run(
       `UPDATE settings SET value = '"revoked-key-0123456789abcdef"' WHERE key = 'metadata.tmdb_api_key'`,
     )
@@ -812,7 +779,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     await createLibrary('movies')
     await settle()
 
-    // M1 behaviour: two local items, nothing from TMDB, a single open notification.
     expect(items().map((row) => [row.title, row.tmdb_id])).toEqual([
       ['Autre nom', undefined],
       ['Inception', undefined],
@@ -826,7 +792,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     expect(open()).toHaveLength(1)
     expect(world.tmdb.requests).toHaveLength(0)
 
-    // Progress on both local items, for the same profile.
     const viewer = seedViewer(world.db, 'viewer-1')
     const inception = items().find((row) => row.title === 'Inception')
     const other = items().find((row) => row.title === 'Autre nom')
@@ -840,7 +805,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       .query(`INSERT INTO watchlist (profile_id, item_id, added_at) VALUES (?, ?, ?)`)
       .run(viewer.profileId, other?.id ?? '', '2026-05-02T10:00:00.000Z')
 
-    // A wrong key is refused, the right one relaunches the matching.
     const refused = await world.setKey('not-a-valid-tmdb-key-123456')
     expect(refused.status).toBe(422)
     const saved = await world.setKey()
@@ -856,7 +820,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     await world.runJobs(['match_source'])
     await world.runJobs(['fetch_images'])
 
-    // One TMDB item: the first local item matched is adopted (same id), the other merged into it.
     const rows = items()
     expect(rows.map((row) => row.tmdb_id)).toEqual([27205])
     const kept = rows[0]?.id
@@ -879,7 +842,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
   })
 
   test('the edits of a local item merged into a TMDB item show on it (§9.3)', async () => {
-    // Uploads re-encoded as they are (ffmpeg is tested on its own).
     await world.stop()
     world = createMetadataWorld({
       imageReencoder: {
@@ -892,7 +854,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     await settle()
     const [movie] = items()
     expect(movie?.tmdb_id).toBe(27205)
-    // Without key, a second file of the movie gets a local item; the admin edits it.
     await world.setKey('')
     place('Autre nom [tmdbid-27205].mkv')
     await fullScan(library.id)
@@ -929,7 +890,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     const library = await createLibrary()
     await settle()
     const tmdbSeries = items().find((row) => row.kind === 'series')
-    // Without key, a new file gets local items (a second "The Bear" series).
     await world.setKey('')
     place('Vrac/The.Bear.S01E03.mkv')
     await fullScan(library.id)
@@ -966,7 +926,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       language: 'fr-FR',
       tmdbApiKey: { configured: false, state: 'missing' },
     })
-    // §15 "Playback" and "Server" (M5 contract): §24 defaults, environment shown read-only.
     expect(empty.playback).toEqual({
       maxConcurrentTranscodes: 2,
       audioDownmix: 'stereo',
@@ -1011,7 +970,6 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       hwAccel: 'vaapi',
     })
     expect(body.server.name).toBe('Maison')
-    // What the playback use cases read on their next session or job (§10).
     expect(
       world.query(
         "SELECT key, value FROM settings WHERE key LIKE 'playback.%' OR key = 'server.name' ORDER BY key",

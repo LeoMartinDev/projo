@@ -13,16 +13,10 @@ import { reservedRows } from './category-batches.ts'
 import { Row, RowSkeleton } from './Row.tsx'
 import { categorySeeAll } from './see-all.ts'
 
-/** The next batch is asked for this far before its reserved rows scroll into view. */
 const aheadPx = 800
 
 export type CategoriesQuery = UseInfiniteQueryResult<InfiniteData<HomeCategoriesDto>>
 
-/**
- * The category rows of the home (§13.3 item 6), under the fixed rows: 2:3 posters, batch by
- * batch. The room of the next batch is reserved by poster row skeletons, and a sentinel over them
- * asks for it once they come near the viewport; after the last batch, nothing is left to ask for.
- */
 export const CategoryRows = ({
   categories,
   onLongPress,
@@ -38,7 +32,6 @@ export const CategoryRows = ({
 
   useEffect(() => {
     if (sentinel === undefined || !hasNextPage || isFetchingNextPage || isFetchNextPageError) return
-    // Observing again after each batch: a sentinel still in range asks for the next one.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage()

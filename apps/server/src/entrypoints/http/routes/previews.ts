@@ -9,11 +9,6 @@ import { respondError } from '../errors.ts'
 import { respondWithFile } from '../file-range.ts'
 import { currentProfileId } from '../principal.ts'
 
-/**
- * `GET /previews/:itemId.mp4` (§13.3): the hero's muted clip, with `Range` (Safari asks for byte
- * ranges of every `<video>`), for a profile that sees the item and the file it was cut from.
- * Mounted at `/api/v1`.
- */
 export const previewsRoutes = ({
   previewAccess,
   mediaFiles,
@@ -41,7 +36,6 @@ export const previewsRoutes = ({
     return respondWithFile(c, {
       mediaFiles,
       path: path.value,
-      // Same URL for a clip cut again from a new file: revalidated.
       headers: { 'Content-Type': 'video/mp4', 'Cache-Control': 'private, no-cache' },
     })
   })

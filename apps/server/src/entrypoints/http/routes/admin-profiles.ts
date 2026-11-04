@@ -28,11 +28,6 @@ const toAccessResponse = (items: LibraryProfileAccess[]): LibraryProfileAccessRe
   })),
 })
 
-/**
- * Profiles administered from elsewhere (§15): `POST /accounts/:id/profiles` (Comptes) and
- * `GET/PUT /libraries/:id/profiles` ("Profiles with access" of a library, §14). Built by the
- * profiles module, mounted at `/api/v1/admin` (behind `requireAdmin`). Never `.use('*')`.
- */
 export const adminProfilesRoutes = ({
   profiles,
   libraryAccess,

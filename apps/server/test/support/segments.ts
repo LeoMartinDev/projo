@@ -18,7 +18,6 @@ import type { SegmentSettingsStore } from '../../src/core/segments/settings-stor
 import { defaultSegmentSettings, type SegmentSettings } from '../../src/core/settings/settings.ts'
 import type { SegmentProviders } from '../../src/infrastructure/segments/providers.ts'
 
-/** In-memory `SegmentRepository` applying the §12.1 priority rule like the SQLite one. */
 export const inMemorySegments = (now: () => Date = () => new Date(0)) => {
   const segments = new Map<string, Segment>()
   const lookups = new Map<string, SegmentLookupRow>()
@@ -58,7 +57,6 @@ export const inMemorySegments = (now: () => Date = () => new Date(0)) => {
   return { repository, segments, lookups }
 }
 
-/** In-memory `segments.*` settings. */
 export const inMemorySegmentSettings = (initial: Partial<SegmentSettings> = {}) => {
   let current: SegmentSettings = { ...defaultSegmentSettings, ...initial }
   const store: SegmentSettingsStore = {
@@ -86,10 +84,8 @@ export const inMemorySegmentSettings = (initial: Partial<SegmentSettings> = {}) 
   return store
 }
 
-/** Item facts for the in-memory catalog; `sharesFile` defaults to false. */
 export type FactsInput = Omit<SegmentItemFacts, 'sharesFile'> & { sharesFile?: boolean }
 
-/** In-memory `SegmentCatalog`: `items` by id; seasons from `seasonId`. */
 export const inMemorySegmentCatalog = (items: FactsInput[]): SegmentCatalog => ({
   findItem: (itemId) => {
     const item = items.find((entry) => entry.itemId === itemId)
@@ -104,7 +100,6 @@ export const inMemorySegmentCatalog = (items: FactsInput[]): SegmentCatalog => (
   listItemsToResolve: () => [],
 })
 
-/** A ready source of `durationMs` with `chapters`, for `listReadySources`. */
 export const readySource = (
   id: string,
   durationMs: number,
@@ -124,10 +119,6 @@ export const readySource = (
 
 type Answer = SegmentLookup | 'unavailable' | 'rate_limited'
 
-/**
- * Fake providers: `answers[provider](item)` decides the answer (default: nothing found); every
- * call is recorded in `calls`. Contributors record their submissions in `submitted`.
- */
 export const fakeSegmentProviders = (
   answers: Partial<Record<SegmentProviderId, (item: SegmentItemRef) => Answer>> = {},
   { submitFails }: { submitFails?: Partial<Record<SegmentContributor['id'], boolean>> } = {},
@@ -180,7 +171,6 @@ export const fakeSegmentProviders = (
   return { providers, calls, submitted, validatedKeys }
 }
 
-/** In-memory `segment_submissions`. */
 export const inMemorySubmissions = () => {
   const rows: Parameters<SegmentSubmissionRepository['record']>[0][] = []
   const repository: SegmentSubmissionRepository = {

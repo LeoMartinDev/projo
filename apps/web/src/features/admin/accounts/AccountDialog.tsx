@@ -17,14 +17,11 @@ import { AdminAvatar, avatarColors, ColorPicker } from './parts.tsx'
 import { ProfileCard } from './ProfileCard.tsx'
 import { accountsQueryKey } from './queries.ts'
 
-/** §14 / §24: 1 to 5 profiles per account. */
 const maxProfiles = 5
 
-/** The first colour the account does not use yet (as the server picks it). */
 const nextColor = (account: AdminAccountDto): AvatarColor =>
   avatarColors.find((color) => !account.profiles.some((p) => p.avatarColor === color)) ?? 'blue'
 
-/** `POST /admin/accounts/:id/profiles`: name and colour; the rest is edited on its card. */
 const AddProfileDialog = ({
   account,
   onClose,
@@ -107,11 +104,6 @@ const AddProfileDialog = ({
   )
 }
 
-/**
- * The detail of an account (§14, §15 Comptes), opened from its row of the table: the account
- * (role, deactivation, password, sessions, deletion), then each of its profiles with its settings,
- * and "Ajouter un profil" (up to 5). A modal of stable size; only its body scrolls.
- */
 export const AccountDialog = ({
   account,
   libraries,

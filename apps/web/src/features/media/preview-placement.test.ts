@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { placePreview } from './preview-placement.ts'
 
-// A row of 300 px cards from x = 50 to x = 1250, a window of 900 px under an 80 px header.
 const bounds = { left: 50, right: 1250, top: 92, bottom: 888 }
 const preview = { width: 450, height: 410 }
 const card = (left: number, top: number) => ({ left, top, width: 300, height: 190 })

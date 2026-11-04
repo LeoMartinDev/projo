@@ -10,8 +10,6 @@ import {
 
 import { items } from './items.ts'
 
-// §6.2 Librairies et sources
-
 export const libraries = sqliteTable('libraries', {
   id: text().primaryKey(),
   name: text().notNull(),
@@ -42,7 +40,6 @@ export const libraryRoots = sqliteTable(
       .default('ok'),
     lastScanAt: text(),
     lastFileCount: integer().notNull().default(0),
-    /** `rootErrorReasons` of `@projo/shared/api/libraries`; rows of older versions: English text. */
     lastError: text({ enum: ['not_found', 'not_directory', 'io_error', 'empty', 'no_media'] }),
   },
   (t) => [
@@ -66,13 +63,10 @@ export const sources = sqliteTable(
     state: text({ enum: ['pending', 'ready', 'missing', 'rejected'] }).notNull(),
     pendingReason: text({ enum: ['growing', 'probe_failed', 'decode_failed', 'too_small'] }),
     sizeBytes: integer().notNull(),
-    // fs.Stats#mtimeMs as-is (fractional ms): compared for strict equality by the stability check.
     mtime: real().notNull(),
     inode: text(),
     discoveredAt: text().notNull(),
-    // Since when the source is pending (24 h stuck notification, §7.3 step 5).
     pendingSince: text(),
-    // Since when (size, mtime) has been observed unchanged: the quiet-period counter (§7.3 step 3).
     unchangedSince: text(),
     stableSince: text(),
     readyAt: text(),

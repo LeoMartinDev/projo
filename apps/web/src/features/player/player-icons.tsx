@@ -1,5 +1,3 @@
-/** Player-only icons, drawn like the artboard `Player` (24 grid, round caps). */
-
 type IconProps = { size?: number }
 
 const svg = (size: number) => ({
@@ -58,7 +56,6 @@ export const ChaptersIcon = ({ size = 22 }: IconProps) => (
   </svg>
 )
 
-/** Fullscreen corners of the artboard (stroke 1.75). */
 export const CornersIcon = ({ size = 20 }: IconProps) => (
   <svg {...svg(size)} strokeWidth={1.75}>
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />

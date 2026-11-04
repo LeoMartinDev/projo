@@ -162,7 +162,6 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     })
     expect(wrongVerifier.status).toBe(400)
     expect(await wrongVerifier.json()).toMatchObject({ error: 'invalid_grant' })
-    // The code is spent by any exchange attempt: a second one, even right, fails.
     const reused = await token({
       grant_type: 'authorization_code',
       code,
@@ -198,7 +197,6 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     expect(second.refresh_token).not.toBe(first.refresh_token)
     expect((await ping(second.access_token)).status).toBe(200)
 
-    // The old refresh token again: copied, the whole connection is revoked.
     const replayed = await token({
       grant_type: 'refresh_token',
       refresh_token: first.refresh_token,

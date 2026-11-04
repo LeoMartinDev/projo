@@ -25,11 +25,6 @@ type Deps = {
   logger: Logger
 }
 
-/**
- * §15 "Jobs": the list with each job's target ("cible", named when it still exists), "Relancer"
- * (a `failed` or `cancelled` job back to `queued`, attempts reset) and "Undo" (through the
- * runner, which aborts a running job).
- */
 export const jobsAdminFactory = ({
   jobAdminRepository,
   jobRepository,

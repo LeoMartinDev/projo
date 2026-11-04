@@ -46,7 +46,6 @@ const useMarkRead = () => {
   })
 }
 
-/** Opening a notification reads it. */
 const NotificationDetails = ({
   notification,
   onClose,
@@ -179,11 +178,6 @@ const SkeletonRows = () => (
   </>
 )
 
-/**
- * `/admin/notifications` (§15 "Notifications"): the centre, unread first in mind (dot and
- * "Marquer comme lue"), read and resolved ones kept. A row opens its details and reads it; the
- * badge of the menu counts the unread ones. Live through `notification.created`.
- */
 export const NotificationsPage = () => {
   const { t } = useTranslation()
   const [filter, setFilter] = useState<Filter>('all')

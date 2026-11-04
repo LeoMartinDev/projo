@@ -3,7 +3,6 @@ import { initReactI18next } from 'react-i18next'
 
 import { isLocale, type Locale, matchLocale, resources } from '@projo/i18n'
 
-/** Browser language by default (§19); the active profile's `ui_locale` overrides it. */
 export const detectLocale = (languages: readonly string[] = navigator.languages): Locale =>
   matchLocale(languages)
 

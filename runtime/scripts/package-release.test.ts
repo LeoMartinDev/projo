@@ -29,7 +29,6 @@ const writeFiles = async (root: string, files: Record<string, string>) => {
   }
 }
 
-/** A bundle as build-bundle leaves it: files plus a manifest that lists them all. */
 const fakeBundle = async (version = '1.2.3') => {
   const dir = await tempDir()
   await writeFiles(dir, BUNDLE)
@@ -56,14 +55,12 @@ describe('package-release', () => {
       CHECKSUMS_FILE,
     ])
 
-    // The bundle at the root of the archive, nothing else, contents unchanged.
     const archive = new Uint8Array(await readFile(join(outDir, archiveName('1.2.3'))))
     const entries = await new Bun.Archive(archive).files()
     expect([...entries.keys()].sort()).toEqual([...Object.keys(BUNDLE), MANIFEST_FILE].sort())
     for (const [path, content] of Object.entries(BUNDLE))
       expect(await entries.get(path)?.text()).toBe(content)
 
-    // manifest.json published next to the archive is the very one inside it.
     const manifest = await readFile(join(outDir, MANIFEST_FILE), 'utf8')
     expect(manifest).toBe(await readFile(join(bundleDir, MANIFEST_FILE), 'utf8'))
     expect(await entries.get(MANIFEST_FILE)?.text()).toBe(manifest)
@@ -114,7 +111,6 @@ describe('package-release', () => {
     })
   })
 
-  // Creating links needs privileges on Windows.
   test.skipIf(process.platform === 'win32')('refuses a symbolic link in the bundle', async () => {
     const bundleDir = await fakeBundle()
     await symlink('/etc/passwd', join(bundleDir, 'public/passwd'))

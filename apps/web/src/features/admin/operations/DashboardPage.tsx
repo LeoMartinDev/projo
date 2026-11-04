@@ -34,7 +34,6 @@ type Counter = {
     | '/admin/notifications'
     | '/admin/jobs'
   search?: { state: 'failed' }
-  /** Draws the eye when not zero (something to act on). */
   alert?: boolean
 }
 
@@ -176,11 +175,6 @@ const useCounters = (stats: AdminStatsDto | undefined): Counter[][] => {
   ]
 }
 
-/**
- * `/admin` (§15 "Dashboard"): the counters (movies, shows, episodes, files waiting, to
- * review, missing), the running scans with their progress (SSE), active sessions, unread
- * notifications, recent job failures, the versions and the update available.
- */
 export const DashboardPage = () => {
   const { t } = useTranslation()
   const stats = useQuery(statsQuery)
@@ -190,7 +184,6 @@ export const DashboardPage = () => {
   useLiveNotifications()
   const data = stats.data
   const groups = useCounters(data)
-  // The updater's own status (live through `update.state`), else the dashboard's last check.
   const available = update.available ?? data?.updateAvailable?.version
 
   if (stats.isError && data === undefined)

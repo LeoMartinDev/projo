@@ -27,7 +27,6 @@ import { ColorSwatches, PinFields } from './IdentityFields.tsx'
 import { useUpdateProfile } from './queries.ts'
 import './profiles.css'
 
-/** Languages offered for audio and subtitles (§11.1), ISO 639-1. */
 const trackLanguages = [
   'fr',
   'en',
@@ -61,7 +60,6 @@ const locales: readonly UiLocale[] = ['fr', 'en']
 
 type Editable = Omit<UpdateProfileBody, 'currentPin' | 'pin' | 'libraryIds' | 'libraryAccess'>
 
-/** A switch row of the kit (`.setting`): label, short description, switch. */
 const SwitchSetting = ({
   label,
   description,
@@ -101,10 +99,6 @@ const Panel = ({ title, children }: { title: string; children: ReactNode }) => {
   )
 }
 
-/**
- * Name, colour and optional PIN of the profile (§13.6), edited in the page and saved with one
- * button. A restricted profile does not set or remove a PIN (§14): the PIN part is hidden.
- */
 const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPin: boolean }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -194,11 +188,6 @@ const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPi
   )
 }
 
-/**
- * Profile settings (§11.1, §12.4, §14): interface language, audio and subtitle languages,
- * subtitle mode, anime in original version, autoplay, skipping intros and credits. Every change
- * is saved at once. Library access and maximum rating are the admin's: shown, not editable.
- */
 const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   const { t } = useTranslation()
   const ids = useId()
@@ -372,7 +361,6 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   )
 }
 
-/** `/settings/profile`: settings of the active profile. */
 export const ProfileSettingsPage = () => {
   const { t } = useTranslation()
   const session = useQuery(sessionQuery)

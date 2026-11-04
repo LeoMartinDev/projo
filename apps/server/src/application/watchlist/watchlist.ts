@@ -16,10 +16,8 @@ type Deps = {
 
 export type WatchlistItemError = AppError<'item/not_found' | 'item/invalid_kind'>
 
-/** Same cursor as Movies / Shows sorted by addition, on the date of addition to the list. */
 const cursorSort = { sort: 'added', order: 'desc' } as const
 
-/** "My list" (§13.4, §17.2): movies and series of the active profile. */
 export const watchlistFactory = ({
   catalogRepository,
   watchlistRepository,
@@ -42,7 +40,6 @@ export const watchlistFactory = ({
   }
 
   return {
-    /** `GET /watchlist`: visible items, last added first. */
     list: async ({
       profileId,
       cursor,
@@ -78,7 +75,6 @@ export const watchlistFactory = ({
         })
       }),
 
-    /** `GET /watchlist/:itemId`. */
     status: async ({
       profileId,
       itemId,
@@ -92,7 +88,6 @@ export const watchlistFactory = ({
         ok(watchlistRepository.find({ profileId, itemId: id })),
       ),
 
-    /** `POST /watchlist/:itemId`: idempotent. */
     add: async ({
       profileId,
       itemId,
@@ -106,7 +101,6 @@ export const watchlistFactory = ({
         ok(watchlistRepository.add({ profileId, itemId: id, addedAt: clock.now() })),
       ),
 
-    /** `DELETE /watchlist/:itemId`: idempotent; an item gone or hidden can still be removed. */
     remove: async ({ profileId, itemId }: { profileId: string; itemId: string }): Promise<void> => {
       watchlistRepository.remove({ profileId, itemId })
     },

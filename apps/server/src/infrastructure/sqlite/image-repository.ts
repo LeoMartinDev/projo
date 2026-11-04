@@ -22,7 +22,6 @@ const slotKey = {
 
 const toStoredImage = (row: typeof images.$inferSelect): StoredImage => stripNulls(row)
 
-/** `images` rows and the image columns of `items` and `people` (§6.3, §9.1). */
 export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository => ({
   findById: (id) => {
     const row = db.select().from(images).where(eq(images.id, id)).get()
@@ -89,7 +88,6 @@ export const createSqliteImageRepository = ({ db }: { db: Db }): ImageRepository
     return toStoredImage(row)
   },
 
-  // One pass over the references (`NOT IN` is computed once), not a lookup per image.
   listUnused: () =>
     db.$client
       .query<{ id: string }, []>(

@@ -57,7 +57,6 @@ describe('§14 maximum rating', () => {
       libraryId: 'library-us',
       rootId: 'library-us-root',
     })
-    // "PG" is not a French rating: hidden in a French library.
     movie('fr-pg', { contentRating: 'PG' })
     const list = (scope: VisibilityScope) =>
       titles(repo.listTopLevel({ kind: 'movie', sort: 'title', order: 'asc', limit: 10, scope }))
@@ -71,7 +70,6 @@ describe('§14 maximum rating', () => {
   test('a rating keeps its own country: US fallback in a French library, two libraries', () => {
     movie('fallback', { contentRating: 'PG-13', contentRatingCountry: 'US' })
     movie('fallback-pg', { contentRating: 'PG', contentRatingCountry: 'US' })
-    // Rated in France, also in the US library: the French scale applies to both sources.
     movie('both', { contentRating: '10', contentRatingCountry: 'FR' })
     insertSource(db, {
       id: 'f-both-us',
@@ -219,7 +217,6 @@ describe('§13.4 sorts and filters', () => {
     const { profileId } = seedViewer(db)
     insertProgress(db, { profileId, itemId: 'heat', watched: true })
     insertProgress(db, { profileId, itemId: 'alien', ratio: 0.5 })
-    // Rewatching a watched movie: in progress wins.
     insertProgress(db, { profileId, itemId: 'casino', ratio: 0.4, watched: true })
     const watch = (state: 'watched' | 'unwatched' | 'in_progress') =>
       list({ filters: { watch: state }, profileId })
@@ -250,7 +247,6 @@ describe('§13.4 sorts and filters', () => {
       insertProgress(db, { profileId, itemId: id, watched: true })
     }
     insertProgress(db, { profileId, itemId: 'playing-s1e1', ratio: 0.5 })
-    // A hidden episode (pending file) does not count.
     insertItem(db, {
       id: 'done-s1e3',
       kind: 'episode',
@@ -458,7 +454,6 @@ describe('progress queries', () => {
         absent: true,
       }),
     ])
-    // The whole series gone: nothing left to go on with.
     missing('f-show-s2e1')
     expect(progress.listPlayed({ profileId, scope: everything })).toEqual([])
   })

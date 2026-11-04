@@ -7,7 +7,6 @@ import type { Db } from './database.ts'
 import { fromIso, parseJsonColumn, stripNulls, toIso, toNullable } from './rows.ts'
 import { appVersions, updateRuns } from './schema/ops.ts'
 
-/** `code` read as any string: a newer version may have written a code this one does not declare. */
 const runErrorSchema = z.object({ code: z.string(), message: z.string() })
 
 const toAppVersion = (row: typeof appVersions.$inferSelect): AppVersion => ({
@@ -33,7 +32,6 @@ const toRun = (row: typeof updateRuns.$inferSelect): UpdateRun => {
   }
 }
 
-/** `app_versions` and `update_runs` (§6.5, §15 "update log"). */
 export const createSqliteUpdateRepository = ({ db }: { db: Db }): UpdateRepository => ({
   versions: () =>
     db

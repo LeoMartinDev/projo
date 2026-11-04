@@ -41,12 +41,6 @@ type Deps = {
   trustProxy: boolean
 }
 
-/**
- * §17.2 Auth, public side of invitations (§14): `GET /invitations/:token`,
- * `POST /invitations/:token/accept` (both public, see `authenticate`). The admin side lives in
- * `admin-accounts.ts`.
- * Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')`.
- */
 export const invitationsRoutes = ({
   invitations,
   openSession,
@@ -84,7 +78,6 @@ export const invitationsRoutes = ({
       })
       if (!result.ok) return respondErrorWithRetry(c, result.error)
 
-      // Signed in right away, on the new account's first profile (§4 parcours 2).
       const { account, profile } = result.value
       const userAgent = c.req.header('user-agent') ?? ''
       const { token, session } = openSession({

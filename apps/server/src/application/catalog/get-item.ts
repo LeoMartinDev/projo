@@ -14,15 +14,12 @@ import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
 import type { PlayButton, SeriesPlay } from './series-play.ts'
 
 export type ItemDetail = CatalogEntry & {
-  /** Ready sources of a movie or an episode (empty for seasons and series). */
   sources: PlayableSource[]
   series?: CatalogItem
   season?: CatalogItem
   people: ItemPerson[]
   media: MediaSummary
-  /** Series and seasons: "Resume S2 · E4" / "Play". */
   play?: PlayButton
-  /** Series and seasons: the first episode in broadcast order ("From the beginning", §13.5). */
   firstEpisodeId?: string
 }
 
@@ -34,11 +31,6 @@ type Deps = {
 
 export type GetItemError = AppError<'item/not_found'>
 
-/**
- * `GET /items/:id` (§13.5): a visible item with its ready sources, ancestors, profile progress,
- * cast, best quality and languages, and for a series or a season the episode its button plays.
- * Cast: the item's, else (season, episode) the series'.
- */
 export const getItemFactory =
   ({ catalogRepository, catalogEntries, seriesPlay }: Deps) =>
   async ({

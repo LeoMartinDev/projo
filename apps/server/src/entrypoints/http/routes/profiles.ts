@@ -34,11 +34,6 @@ const actorOf = (c: Context<AppEnv>): ProfileActor => {
   }
 }
 
-/**
- * §17.2 Profils: `/profiles`, `/profiles/:id`, `/profiles/:id/verify-pin`, `/profiles/:id/select`.
- * Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is
- * mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const profilesRoutes = ({ profiles, getMe }: Deps) =>
   new Hono<AppEnv>()
     .get('/profiles', (c) => {
@@ -64,7 +59,6 @@ export const profilesRoutes = ({ profiles, getMe }: Deps) =>
         ? c.json(toProfileDto(result.value), 200)
         : respondErrorWithRetry(c, result.error)
     })
-    // Body optional: without a JSON content type, Hono validates `{}`.
     .delete('/profiles/:id', validate('json', deleteProfileBodySchema), async (c) => {
       const { currentPin } = c.req.valid('json')
       const result = await profiles.delete({

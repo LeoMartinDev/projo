@@ -2,10 +2,6 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { CatalogPosition, CatalogSort, SortOrder } from './catalog.ts'
 
-/**
- * Opaque pagination cursor (§17.1): base64url of `sort:order:id:keys…` (see `decodeCursor`).
- */
-
 const toBase64Url = (text: string): string => {
   let binary = ''
   for (const byte of new TextEncoder().encode(text)) binary += String.fromCharCode(byte)
@@ -13,7 +9,6 @@ const toBase64Url = (text: string): string => {
 }
 
 const fromBase64Url = (value: string): string | undefined => {
-  // atob throws on these; reject them first.
   if (value.length === 0 || value.length % 4 === 1 || !/^[A-Za-z0-9_-]+$/.test(value)) {
     return undefined
   }
@@ -36,7 +31,6 @@ export const encodeCursor = ({
 
 const numberPattern = /^-?\d+(\.\d+)?(e[-+]?\d+)?$/i
 
-/** Rejects a malformed cursor, or one produced by another sort or order. */
 export const decodeCursor = (
   cursor: string,
   expected: { sort: CatalogSort; order: SortOrder },
@@ -46,8 +40,6 @@ export const decodeCursor = (
       context: { sort: expected.sort, order: expected.order },
     }),
   )
-  // Numeric sorts: `sort:order:id:number:title`; others: `sort:order:id:value`. The last key may
-  // contain `:`, the others never do.
   const pattern = isNumericSort(expected.sort)
     ? /^(\w+):(\w+):([^:]+):([^:]+):(.*)$/s
     : /^(\w+):(\w+):([^:]+):(.*)$/s

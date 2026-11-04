@@ -14,19 +14,12 @@ import type {
   TmdbSeries,
 } from '../../core/metadata/tmdb.ts'
 
-/**
- * Zod schemas of the TMDB v3 responses projo reads (https://developer.themoviedb.org/reference),
- * and their mapping to the domain types. TMDB sends `null` and `""` for unknown values: both
- * become absent properties.
- */
-
 const absent = <T extends z.ZodType>(schema: T) =>
   schema.nullish().transform((value): z.infer<T> | undefined => value ?? undefined)
 const text = absent(z.string()).transform((value) =>
   value === undefined || value.trim() === '' ? undefined : value,
 )
 const num = absent(z.number())
-/** `YYYY-MM-DD`, `""` or null. */
 const date = text.transform((value) =>
   value !== undefined && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : undefined,
 )
@@ -36,8 +29,6 @@ const yearOf = (value: string | undefined): number | undefined =>
 
 const opt = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }
-
-// ── Search, find, configuration ─────────────────────────────────────────────
 
 const movieHitSchema = z.object({
   id: z.number().int(),
@@ -90,7 +81,6 @@ export const toSeriesHits = (response: z.infer<typeof seriesSearchSchema>): Tmdb
 
 const alternativeTitleSchema = z.object({ title: z.string() })
 
-/** Movies list them in `titles`, series in `results`. */
 export const alternativeTitlesSchema = z.object({
   titles: z.array(alternativeTitleSchema).optional(),
   results: z.array(alternativeTitleSchema).optional(),
@@ -120,12 +110,8 @@ export const toFindResult = (response: z.infer<typeof findSchema>): TmdbFindResu
 
 export const configurationSchema = z.object({ images: z.object({}).passthrough() })
 
-// ── Shared pieces of details ────────────────────────────────────────────────
-
-/** Only the TMDB genre ids are kept: projo stores its own genre ids, labels come from the web (§9.1). */
 const genresSchema = z.array(z.object({ id: z.number().int() })).default([])
 
-/** The TMDB genre ids of a details response. */
 export const tmdbGenreIdsOf = (details: { genres: z.infer<typeof genresSchema> }): number[] =>
   details.genres.map((genre) => genre.id)
 
@@ -157,7 +143,6 @@ const toImages = (images: z.infer<typeof imagesSchema>): TmdbImages => ({
   logos: images.logos.map(toImage),
 })
 
-/** `/movie/{id}/images`, `/tv/{id}/images`, `/tv/{id}/season/{n}/images` (posters only). */
 export const imagesResponseSchema = imagesSchema
 export const toImagesResponse = toImages
 
@@ -208,8 +193,6 @@ const toCredits = (credits: z.infer<typeof creditsSchema>): TmdbCredits => ({
 const externalIdsSchema = z
   .object({ imdb_id: text, tvdb_id: num })
   .default({ imdb_id: undefined, tvdb_id: undefined })
-
-// ── Movie ───────────────────────────────────────────────────────────────────
 
 export const movieSchema = z.object({
   id: z.number().int(),
@@ -267,8 +250,6 @@ export const toMovie = (movie: z.infer<typeof movieSchema>): TmdbMovie => ({
   ...opt('imdbId', movie.external_ids.imdb_id ?? movie.imdb_id),
   ...opt('tvdbId', movie.external_ids.tvdb_id),
 })
-
-// ── Series ──────────────────────────────────────────────────────────────────
 
 export const seriesSchema = z.object({
   id: z.number().int(),
@@ -349,8 +330,6 @@ export const toSeries = (series: z.infer<typeof seriesSchema>): TmdbSeries => ({
   ...opt('imdbId', series.external_ids.imdb_id),
   ...opt('tvdbId', series.external_ids.tvdb_id),
 })
-
-// ── Season ──────────────────────────────────────────────────────────────────
 
 const episodeSchema = z.object({
   id: z.number().int(),

@@ -19,10 +19,8 @@ import type { RequestUpdateCheck } from './types.ts'
 export const disabledError = () =>
   appError('update/disabled', 'the updater is disabled (development, or no supervisor)')
 
-/** Coalesces the daily check and the button (§18: `check_updates` is a singleton). */
 export const CHECK_UPDATES_DEDUPE_KEY = 'check_updates'
 
-/** `POST /admin/updates/check`. */
 export const requestUpdateCheckFactory =
   ({
     jobQueue,
@@ -54,21 +52,12 @@ type Deps = {
 
 export type CheckUpdatesError = AppError<'update/disabled'>
 
-/**
- * `check_updates` (§16.4): the latest release of the channel, compared to the running version;
- * its `runtimeMin` against the runtime. Raises `update/available`, or `update/runtime_too_old`
- * with the `docker pull` to run (no update offered then). An unreachable GitHub is recorded on
- * the check (shown by the admin page) rather than failing the job: an offline server would
- * otherwise notify every day.
- */
 export const checkUpdatesFactory =
   ({ releaseSource, checkStore, notifier, state, processControl, clock, logger }: Deps) =>
   async (): Promise<Result<UpdateCheckRecord, CheckUpdatesError>> => {
     if (!processControl.enabled) return err(disabledError())
     const { appVersion, runtimeVersion } = processControl
     const previous = checkStore.read()
-    // A check during an update (the button, the daily task) leaves its live state alone: the
-    // admin page would otherwise show "available" while the download or the switch goes on.
     const setState: UpdateStateHolder['set'] = (next) => {
       if (!isUpdateBusy(state.current().state)) state.set(next)
     }

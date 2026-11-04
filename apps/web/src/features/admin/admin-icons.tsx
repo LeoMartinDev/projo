@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 
-/** Admin-only stroke icons, drawn like `shared/ui/icons.tsx` (24 grid, 1.6 stroke, round caps). */
 const Icon = ({ size = 18, children }: { size?: number; children: ReactNode }) => (
   <svg
     width={size}
@@ -20,7 +19,6 @@ const Icon = ({ size = 18, children }: { size?: number; children: ReactNode }) =
 
 type IconProps = { size?: number }
 
-/** Artboard `AdminAccounts`, sidebar entry "Comptes". */
 export const UsersIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <circle cx="9" cy="8" r="3.5" />
@@ -71,7 +69,6 @@ export const GlobeIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** Sidebar entry "Updates" (§15): an arrow into a tray. */
 export const UpdateIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
@@ -79,7 +76,6 @@ export const UpdateIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** Sidebar entry "Tableau de bord" (§15): four tiles. */
 export const DashboardIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="4" width="7" height="8" rx="1.5" />
@@ -89,7 +85,6 @@ export const DashboardIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Fichiers en attente": an hourglass. */
 export const PendingIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M7 4h10M7 20h10" />
@@ -97,7 +92,6 @@ export const PendingIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Manquants": a file with a dashed outline. */
 export const MissingIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path
@@ -108,7 +102,6 @@ export const MissingIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Jobs": stacked bars of a queue. */
 export const JobsIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="5" width="16" height="4" rx="1.5" />
@@ -117,7 +110,6 @@ export const JobsIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Notifications": a bell. */
 export const BellIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />
@@ -125,7 +117,6 @@ export const BellIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Playback": a play triangle in a frame. */
 export const PlaybackIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="3.5" y="5" width="17" height="14" rx="2" />
@@ -133,7 +124,6 @@ export const PlaybackIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Intros and credits": skip forward. */
 export const SkipIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M5 6.5v11l8-5.5z" />
@@ -141,7 +131,6 @@ export const SkipIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Metadata": a tag. */
 export const TagIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M4 12.2V5.5A1.5 1.5 0 0 1 5.5 4h6.7l7.3 7.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z" />
@@ -149,7 +138,6 @@ export const TagIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** "Server": two stacked units. */
 export const ServerIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="4.5" width="16" height="6.5" rx="1.5" />
@@ -158,7 +146,6 @@ export const ServerIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-/** Database export. */
 export const DatabaseIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <ellipse cx="12" cy="6" rx="7" ry="2.5" />

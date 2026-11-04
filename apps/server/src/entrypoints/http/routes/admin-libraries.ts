@@ -67,7 +67,6 @@ export const toLibraryDto = (library: LibraryView): LibraryDto => ({
   ...(library.lastScan === undefined ? {} : { lastScan: toScanRunDto(library.lastScan) }),
 })
 
-/** Zod `.partial()` output → object without `undefined` values (`exactOptionalPropertyTypes`). */
 const definedOnly = <T extends Record<string, unknown>>(value: T) =>
   Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as {
     [K in keyof T]?: Exclude<T[K], undefined>
@@ -81,11 +80,6 @@ type Deps = {
   requestLibraryScan: ReturnType<typeof requestLibraryScanFactory>
 }
 
-/**
- * §17.2 Admin librairies: `/libraries`, `/libraries/:id`, `/libraries/:id/scan`, `/libraries/:id/scans`.
- * Mounted at `/api/v1/admin`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is
- * mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const adminLibrariesRoutes = ({
   views,
   createLibrary,

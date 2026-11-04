@@ -9,16 +9,10 @@ import { librariesQueryKey } from './queries.ts'
 type ScanProgress = ServerEventPayloads['scan.progress']
 type ScanProgressStats = ScanProgress['stats']
 
-/** A scan seen live on the SSE stream (or just requested by this admin). */
 export type LiveScan =
   | { status: 'queued'; since: string }
   | ({ status: 'running' } & Pick<ScanProgress, 'scanRunId' | 'stats' | 'phase' | 'total'>)
 
-/**
- * Percentage of a running scan when its total is known (`stats.seen / total`), `undefined` for an
- * indeterminate bar (first walk of a root). Capped at 99 until the walk is over: the estimate
- * comes from the previous walk and the folder may have grown.
- */
 export const scanPercent = (live: LiveScan | undefined): number | undefined => {
   if (live?.status !== 'running' || live.total === undefined) return undefined
   if (live.phase === 'processing') return 100
@@ -39,7 +33,6 @@ export type ActivityEntry =
 
 const mergeWindowMs = 60_000
 
-/** Adds a `source.ready` to the feed, merged with the previous one of the same library. */
 export const addReadySource = (
   feed: readonly ActivityEntry[],
   libraryId: string,
@@ -69,11 +62,6 @@ const browserTimers: Timers = {
   clear: (handle) => clearTimeout(handle),
 }
 
-/**
- * At most one `run` per `intervalMs`: the first trigger runs at once, the ones that follow inside
- * the window are folded into a single run at its end. Thousands of `probe_source` events become a
- * refresh every couple of seconds.
- */
 export const createThrottle = (run: () => void, intervalMs: number, timers = browserTimers) => {
   let timer: ReturnType<typeof setTimeout> | undefined
   let due = false
@@ -105,23 +93,14 @@ export const createThrottle = (run: () => void, intervalMs: number, timers = bro
 
 const refreshIntervalMs = 2000
 
-/** Jobs that move sources between analysis phases (§7.3): quiet period over, probe done. */
 const analysisJobTypes: ReadonlySet<string> = new Set(['watch_pending', 'probe_source'])
 
-/** Libraries (list and details), not their scan history: it only changes with a scan. */
 const refreshLibraries = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
     queryKey: librariesQueryKey,
     predicate: (query) => !query.queryKey.includes('scans'),
   })
 
-/**
- * Live state of the admin screens from `GET /api/v1/events` (§17.1): `scan.progress` and
- * `scan.finished` for the walk; `source.ready` and the end of `watch_pending` / `probe_source`
- * jobs for the analysis that follows, which refresh the libraries at most every 2 s.
- * `analyzing`: some library has files on their way to `ready` (job events are ignored otherwise:
- * `watch_pending` also runs every 30 s for files that failed their probe).
- */
 export const useLiveScans = ({ analyzing = false }: { analyzing?: boolean } = {}) => {
   const queryClient = useQueryClient()
   const [scans, setScans] = useState<ReadonlyMap<string, LiveScan>>(() => new Map())
@@ -185,7 +164,6 @@ export const useLiveScans = ({ analyzing = false }: { analyzing?: boolean } = {}
     analyzing,
   )
 
-  // A cancelled scan sends no `scan.finished`: the run's `finishedAt`, read again, ends its bar.
   useServerEvent('job.updated', (payload) => {
     if (payload.type === 'scan_library' && payload.state === 'cancelled') throttle.trigger()
   })

@@ -95,7 +95,6 @@ export const createSqliteScanRunRepository = ({ db }: { db: Db }): ScanRunReposi
   purgeFinishedBefore: (before) =>
     db.$client
       .query(
-        // The latest run of a library stays: it is the library's "last scan" (§15).
         `DELETE FROM scan_runs WHERE finished_at < ?1 AND id NOT IN (
            SELECT (SELECT r.id FROM scan_runs r WHERE r.library_id = l.id
                    ORDER BY r.started_at DESC, r.id DESC LIMIT 1)

@@ -24,10 +24,6 @@ const toAssistantTokenDto = (token: AssistantToken): AssistantTokenDto => ({
   ...(token.lastUsedAt === undefined ? {} : { lastUsedAt: token.lastUsedAt.toISOString() }),
 })
 
-/**
- * §27.3 "AI assistants" (Admin → Server): the signed-in admin's assistant tokens. A new token acts
- * as the active profile, unrestricted by the `/admin/*` guard. Mounted at `/api/v1/admin`.
- */
 export const adminAssistantsRoutes = ({ assistantTokens }: { assistantTokens: AssistantTokens }) =>
   new Hono<AppEnv>()
     .get('/assistant-tokens', (c) => {

@@ -63,7 +63,6 @@ describe('§15 "Génériques" settings', () => {
     expect(
       await admin.update({ contribution: 'manual_only', theintrodbApiKey: 'good-key-5678' }),
     ).toMatchObject({ ok: true, value: { contribution: 'manual_only' } })
-    // Removing the key while contributing: refused.
     expect(await admin.update({ theintrodbApiKey: '' })).toMatchObject({
       ok: false,
       error: { code: 'segment/contribution_requires_key' },

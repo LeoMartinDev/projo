@@ -7,7 +7,6 @@ import { isSemVer } from './semver'
 export const MANIFEST_FILE = 'manifest.json'
 export const ENTRY_FILE = 'server.js'
 
-/** Contract of PRODUCT.md §16.2. `files` maps a POSIX relative path to its SHA-256 (hex). */
 export type Manifest = {
   version: string
   runtimeMin: string
@@ -20,7 +19,6 @@ const SHA256_HEX = /^[0-9a-f]{64}$/
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && !!value && !Array.isArray(value)
 
-/** Manifest paths are POSIX on every platform: normalized with `posix`, never the native `sep`. */
 export const isSafeRelativePath = (path: string): boolean => {
   if (path === '' || isAbsolute(path) || posix.isAbsolute(path) || path.includes('\\')) return false
   const normalized = posix.normalize(path)
@@ -71,7 +69,6 @@ export const sha256File = async (path: string): Promise<string> => {
   return hasher.digest('hex')
 }
 
-/** Relative POSIX paths of every regular file under `dir`, sorted. */
 export const listFiles = async (dir: string): Promise<string[]> => {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true })
   return entries
@@ -91,7 +88,6 @@ export const hashTree = async (
   return Object.fromEntries(hashes)
 }
 
-/** Checks every file listed in the manifest against its SHA-256. Extra files are tolerated. */
 export const verifyTree = async (
   dir: string,
   manifest: Manifest,

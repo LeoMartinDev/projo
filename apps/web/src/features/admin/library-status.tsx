@@ -16,20 +16,12 @@ import './library-status.css'
 
 type RunningScan = Extract<LiveScan, { status: 'running' }>
 
-/**
- * Where an analysis stands (§7.2–7.3): the scan is requested or walks the roots, then files wait
- * for their quiet period, then they are probed and sample-decoded.
- */
 export type AnalysisPhase =
   | { step: 'queued' }
   | { step: 'discovering'; live?: RunningScan }
   | { step: 'waiting'; nextReadyAt?: string }
   | { step: 'verifying' }
 
-/**
- * `ready / total`: ready sources over ready + on their way (waiting or verifying). `failed`:
- * sources that will not get ready on their own, shown apart, never blocking "up to date".
- */
 export type LibraryState =
   | { kind: 'analyzing'; phase: AnalysisPhase; ready: number; total: number; failed: number }
   | { kind: 'unreachable'; path: string; reason?: RootErrorReason }
@@ -37,11 +29,6 @@ export type LibraryState =
   | { kind: 'ok'; failed: number }
   | { kind: 'never' }
 
-/**
- * What the "Status" column shows: a scan (requested, live or unfinished) first, then files still on
- * their way to `ready`, then unreachable roots, the last scan error, and "up to date" only when
- * nothing is in progress.
- */
 export const libraryState = (library: LibraryDto, live: LiveScan | undefined): LibraryState => {
   const { ready } = library.sourceCounts
   const { waiting, verifying, failed, nextReadyAt } = library.analysis
@@ -52,9 +39,6 @@ export const libraryState = (library: LibraryDto, live: LiveScan | undefined): L
     ...progress,
   })
 
-  // A requested scan can finish before the request's answer arrives: the list then shows it done.
-  // A running one is over once its run has a `finishedAt`: a cancelled scan sends no
-  // `scan.finished`, and one sent during a disconnection is never replayed.
   const finishedAt = library.lastScan?.finishedAt
   const stale =
     finishedAt !== undefined &&
@@ -80,24 +64,19 @@ export const libraryState = (library: LibraryDto, live: LiveScan | undefined): L
   return library.lastScan === undefined ? { kind: 'never' } : { kind: 'ok', failed }
 }
 
-/** Why a root is unreachable (§7.5): "Dossier vide"… Generic for a root without a known reason. */
 export const rootErrorLabel = (t: TFunction, reason: RootErrorReason | undefined): string =>
   reason === undefined ? t('admin.status.unreachable') : t(`admin.rootError.${reason}`)
 
-/** A scan is requested or walking the roots: no new scan, "Last analysis" reads "in progress". */
 export const isScanning = (state: LibraryState): boolean =>
   state.kind === 'analyzing' &&
   (state.phase.step === 'queued' || state.phase.step === 'discovering')
 
-/** Libraries with files on their way to `ready`: their list is refreshed live. */
 export const hasAnalysisInProgress = (library: LibraryDto): boolean =>
   library.analysis.waiting + library.analysis.verifying > 0
 
-/** "~2 min" from now; a passed estimate reads as the next minute (the 30 s check, the probe). */
 const etaMs = (iso: string, now: Date): number =>
   Math.max(1, Math.ceil((new Date(iso).getTime() - now.getTime()) / 60_000)) * 60_000
 
-/** The phase in one short line, and the unreadable files apart. */
 export const AnalysisDetail = ({ state }: { state: LibraryState }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -148,7 +127,6 @@ const isWalking = (
 const walkPercent = (phase: AnalysisPhase): number | undefined =>
   phase.step === 'discovering' ? scanPercent(phase.live) : undefined
 
-/** "12 / 78 ready" once the walk is over; the walk's percentage while it runs, when known. */
 export const AnalysisCount = ({
   state,
 }: {
@@ -167,10 +145,6 @@ export const AnalysisCount = ({
   })
 }
 
-/**
- * The bar of an analysis: the walk while it runs (determinate when the previous walk gives a
- * total), then ready files over ready + on their way. `withCount`: the count beside the bar.
- */
 export const AnalysisMeter = ({
   state,
   label,
@@ -210,10 +184,6 @@ export const AnalysisMeter = ({
   )
 }
 
-/**
- * Three fixed slots (state, bar, detail) whatever the state: a library going from "analyse en
- * cours" to "up to date" keeps its height.
- */
 export const LibraryStatus = ({ state }: { state: LibraryState }) => {
   const { t } = useTranslation()
   switch (state.kind) {
@@ -275,13 +245,11 @@ export const LibraryStatus = ({ state }: { state: LibraryState }) => {
   }
 }
 
-/** `POST /admin/libraries/:id/scan` (`quick` or `full`, §7.4). */
 export const useScanLibrary = (onQueued: (libraryId: string, requestedAt: string) => void) => {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, mode }: { id: string; mode: 'quick' | 'full' }) =>
       request(() => api.admin.libraries[':id'].scan.$post({ param: { id }, json: { mode } })),
-    // Taken before the request: a fast scan may finish before the answer arrives.
     onMutate: () => ({ requestedAt: new Date().toISOString() }),
     onSuccess: (_result, { id }, context) => {
       onQueued(id, context.requestedAt)

@@ -8,14 +8,8 @@ import type {
 } from '../../core/updates/update.ts'
 import type { GetUpdatesStatus } from './types.ts'
 
-/** §15 "update log": the latest runs shown. */
 export const RECENT_RUNS_LIMIT = 20
 
-/**
- * `GET /admin/updates` (§15 "Updates"): the running version, the last check, the newer
- * release if any, the versions present on the disk (and whether a switch to each is possible),
- * the log.
- */
 export const getUpdatesStatusFactory =
   ({
     processControl,

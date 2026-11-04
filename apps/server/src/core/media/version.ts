@@ -2,21 +2,14 @@ import type { DynamicRange, EditionId, Resolution } from '@projo/shared/api/vers
 
 export type { DynamicRange, EditionId, Resolution }
 
-/**
- * §7.7: what tells the versions of an item apart, as codes. Derived on read from `sources.probe`
- * (main video stream) and `sources.parsed` (edition); the label is composed by the web.
- */
 export type SourceVersion = {
   resolution?: Resolution
   dynamicRange?: DynamicRange
-  /** ffprobe `codec_name`, lowercase (`hevc`, `h264`, `av1`…). */
   videoCodec?: string
   edition?: EditionId
-  /** Text of a `{edition-…}` tag; exclusive with `edition`. */
   editionName?: string
 }
 
-/** Width first so that scope formats (1920x800) keep their class. */
 export const resolutionOf = (
   width: number | undefined,
   height: number | undefined,
@@ -37,7 +30,6 @@ type MainVideo = {
   dynamicRange?: DynamicRange
 }
 
-/** The version of a file from its main video stream (`undefined` before the probe) and its parse. */
 export const sourceVersionOf = (
   video: MainVideo | undefined,
   parsed: { edition?: EditionId | undefined; editionName?: string | undefined },

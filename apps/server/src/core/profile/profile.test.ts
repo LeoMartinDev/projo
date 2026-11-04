@@ -53,7 +53,6 @@ describe('rating scales (§14)', () => {
     expect(allowedRatingsFor('BE', '10')).toEqual(['AL', 'KT', '6', '9'])
     expect(allowedRatingsFor('CH', '0')).toEqual(['0'])
     expect(allowedRatingsFor('JP', '18')).toEqual([])
-    // "Not rated" is never part of a scale: hidden as soon as a limit is set.
     for (const ratings of Object.values(allowedRatingsByCountry('18'))) {
       expect(ratings).not.toContain('NR')
       expect(ratings).not.toContain('')
@@ -165,7 +164,6 @@ describe('accounts and invitations', () => {
     expect(rule('admin', [free])).toBe(false)
     expect(rule('user', [kid])).toBe(false)
     expect(rule(undefined, [kid])).toBe(false)
-    // Already without one (a promoted user): further changes are not blocked.
     expect(removesLastUnrestricted({ role: 'admin', before: [kid], after: [] })).toBe(false)
   })
 

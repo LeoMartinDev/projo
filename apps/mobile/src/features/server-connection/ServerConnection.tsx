@@ -19,10 +19,8 @@ const checkServer = checkServerFactory({
 
 const storedUrlKey = ['server-url'] as const
 const healthKey = (url: string) => ['server-health', url] as const
-/** Prefix of every query of the signed-in account: dropped with the server. */
 export const sessionQueryPrefix = 'session'
 
-/** TanStack Query wants a rejection: the `Err` of a `Result` becomes one, as is. */
 export const unwrap = async <T, E>(result: Promise<Result<T, E>> | Result<T, E>): Promise<T> => {
   const settled = await result
   if (!settled.ok) throw settled.error
@@ -36,20 +34,13 @@ type ServerConnection = {
   connectError?: Failure
   recheck: () => void
   rechecking: boolean
-  /** Changing server: the URL, the token and the last profile are forgotten. */
   forget: () => void
-  /** `GET <url>/health` of a server that is not (yet) the stored one: a pairing link's (§14). */
   check: CheckServer
-  /** Keeps `url`, already checked, as the server: what pairing with a scanned code does. */
   adopt: (url: string, status: ServerStatus) => Promise<Result<void, ConnectionError<'unknown'>>>
 }
 
 const ServerConnectionContext = createContext<ServerConnection | undefined>(undefined)
 
-/**
- * The server the app talks to: its URL (kept on the device), and its `/health`, checked at launch
- * and on every return to the foreground (§26.4).
- */
 export const ServerConnectionProvider = ({
   children,
   store = secureServerUrlStore,
@@ -83,7 +74,6 @@ export const ServerConnectionProvider = ({
     mutationFn: async (input: string): Promise<{ url: string; status: ServerStatus }> => {
       const normalized = await unwrap(normalizeServerUrl(input))
       const status = await unwrap(checkServer(normalized))
-      // Another server (`/health` names none): the previous one's token must never reach it.
       if (normalized !== url) await unwrap(sessionStore.clear())
       await unwrap(store.save(normalized))
       return { url: normalized, status }

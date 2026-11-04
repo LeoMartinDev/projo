@@ -13,10 +13,6 @@ import {
   type TerminationReason,
 } from '../../core/playback/session.ts'
 
-/**
- * `GET /admin/playback/sessions` (§10.6, §15): sessions still alive. One silent for 60 s is over
- * even before the sweep ends it.
- */
 export const listActivePlaybackSessionsFactory =
   ({ queries, clock }: { queries: AdminPlaybackSessionQueries; clock: Clock }) =>
   (): ActivePlaybackSessionView[] => {
@@ -28,11 +24,6 @@ export const listActivePlaybackSessionsFactory =
 
 export type StopPlaybackSessionAsAdminError = AppError<'playback/session_not_found'>
 
-/**
- * `DELETE /admin/playback/sessions/:id` (§10.6): ends the session, its ffmpeg is stopped and the
- * player is told (`playback.session_terminated`, reason `admin`: "Playback stopped by
- * the administrator"). An already ended session is not found.
- */
 export const stopPlaybackSessionAsAdminFactory =
   ({
     sessionRepository,

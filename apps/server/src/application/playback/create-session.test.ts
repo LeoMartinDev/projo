@@ -209,7 +209,6 @@ describe('createPlaybackSession: version choice (§7.7)', () => {
         ],
       },
     })
-    // Safari decodes HEVC: the 4K version wins.
     expect(await play({ capabilities: safari })).toMatchObject({
       value: { source: { id: 'hevc-4k' }, plan: { mode: 'hls_remux' } },
     })
@@ -295,7 +294,6 @@ describe('createPlaybackSession: parts (§7.7, §8.4)', () => {
         ],
       },
     })
-    // The session row keeps the item position.
     expect(sessions[0]).toMatchObject({ sourceId: 'cd2', positionMs: 1_500_000 })
   })
 
@@ -469,7 +467,6 @@ describe('createPlaybackSession: tracks (§11)', () => {
         { index: 2, codec: 'aac', language: 'ja', isDefault: false },
       ],
     })
-    // The episode's own genres are empty: the series is the work (§11.1).
     const items = [
       item('show', 'series', { originalLanguage: 'ja', genres: ['animation', 'action'] }),
       item('show-s1', 'season', { parentId: 'show' }),

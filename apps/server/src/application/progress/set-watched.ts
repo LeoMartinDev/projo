@@ -23,10 +23,6 @@ type Deps = {
 
 export type SetWatchedError = AppError<'item/not_found'>
 
-/**
- * `POST|DELETE /items/:id/watched` (§13.1 "Marquer vu / non vu"): on a movie or an episode, or
- * on every visible episode of a season or a series. "Non vu" puts the position back to 0.
- */
 export const setWatchedFactory =
   ({ catalogRepository, progressRepository, progressViews, clock }: Deps) =>
   async ({

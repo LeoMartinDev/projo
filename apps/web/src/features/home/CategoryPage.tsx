@@ -14,10 +14,6 @@ import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import '../catalog/catalog.css'
 
-/**
- * The page behind "See all ›" of a category row (§13.3): the grid of Movies and Shows with every
- * title of the category, movies and shows mixed, in the row's order, without sort or filter.
- */
 export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
   const { t } = useTranslation()
   const page = useInfiniteQuery(homeCategoryPageQuery(category))

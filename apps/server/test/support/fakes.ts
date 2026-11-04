@@ -3,7 +3,6 @@ import type { IdGenerator } from '../../src/core/ids.ts'
 import { jobDefaults, type Job } from '../../src/core/jobs/job.ts'
 import type { EnqueueJobInput, JobQueue } from '../../src/core/jobs/ports.ts'
 
-/** Deterministic ids: `id-1`, `id-2`… (or with a custom prefix). */
 export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
   let counter = 0
   return {
@@ -14,7 +13,6 @@ export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
   }
 }
 
-/** EventBus keeping every published event in `events`. */
 export const createRecordingEventBus = () => {
   const events: ServerEvent[] = []
   const listeners = new Set<EventListener>()
@@ -34,7 +32,6 @@ export const createRecordingEventBus = () => {
   return { bus, events }
 }
 
-/** JobQueue keeping every enqueue in `enqueued`; dedupes on `dedupeKey` like the real one. */
 export const createRecordingJobQueue = () => {
   const enqueued: EnqueueJobInput[] = []
   const queued = new Map<string, Job>()

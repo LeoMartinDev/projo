@@ -35,10 +35,6 @@ const toStorageDto = (storage: Awaited<ReturnType<GetStorage>>): StorageDto => (
   measuredAt: storage.measuredAt.toISOString(),
 })
 
-/**
- * §15 "Dashboard" and "Server", §17.2: `GET /admin/stats`, `GET /admin/storage`,
- * `POST /admin/db/export`. Mounted at `/api/v1/admin`.
- */
 export const adminSystemRoutes = ({
   getStats,
   getStorage,

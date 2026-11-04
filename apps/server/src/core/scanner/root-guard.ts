@@ -2,7 +2,6 @@ import type { RootErrorReason } from '@projo/shared/api/libraries'
 
 import type { FileStat, FsError } from '../fs/file-system.ts'
 
-/** `reason` is stored on the root (`last_error`); `message`, in English, goes to the logs. */
 export type RootAssessment =
   { kind: 'ok' } | { kind: 'unreachable'; reason: RootErrorReason; message: string }
 
@@ -12,10 +11,6 @@ const unreachable = (reason: RootErrorReason, message: string): RootAssessment =
   message,
 })
 
-/**
- * §7.5 guard, before the root's directory listing is trusted: a missing path, an I/O error or
- * something that is not a directory means the disk is not there, never that the files are gone.
- */
 export const assessRootStat = (
   stat: { ok: true; value: FileStat } | { ok: false; error: FsError },
 ) => {
@@ -29,11 +24,6 @@ export const assessRootStat = (
     : unreachable('not_directory', 'root path is not a directory')
 }
 
-/**
- * §7.5 guard, after the walk: a root that used to hold videos and is now empty (unmounted mount
- * point) or holds no video at all is treated as unreachable, so nothing is marked missing. When
- * every file really was deleted, the sources stay until the admin removes the root or the library.
- */
 export const assessRootContent = ({
   entryCount,
   videoCount,

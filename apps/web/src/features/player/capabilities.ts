@@ -1,29 +1,15 @@
 import type { AudioCodecId, ClientCapabilities, VideoCodecId } from '@projo/shared/api/playback'
 
-/**
- * Codec detection (§10.2): for the fixed list of codecs, the browser is asked with
- * `MediaSource.isTypeSupported` (or `canPlayType` without MSE), then confirmed by
- * `navigator.mediaCapabilities.decodingInfo` when available. Everything browser-specific is
- * injected (`MediaEnvironment`) so the logic is tested in Bun.
- */
 export type MediaEnvironment = {
-  /** `MediaSource.isTypeSupported` (or `ManagedMediaSource`), absent without MSE. */
   isTypeSupported?: (type: string) => boolean
-  /** `HTMLVideoElement.canPlayType`. */
   canPlayType: (type: string) => string
-  /** `navigator.mediaCapabilities.decodingInfo`, absent on old browsers. */
   decodingInfo?: (configuration: MediaDecodingConfiguration) => Promise<{ supported: boolean }>
-  /** hls.js can run (MSE or ManagedMediaSource). */
   hlsJsSupported: boolean
-  /** Apple WebKit (Safari, every iOS browser): prefer its native HLS player (§10.3). */
   preferNativeHls: boolean
-  /** Physical pixels of the screen height. */
   screenHeight?: number
-  /** iPhone or iPad (iPadOS says it is a Mac: Apple vendor with touch points). */
   appleTouch?: boolean
 }
 
-/** Probe strings: a common profile per codec, in an MP4 container (what fMP4 HLS carries). */
 export const videoProbes: Record<VideoCodecId, readonly string[]> = {
   avc1: ['video/mp4; codecs="avc1.640028"', 'video/mp4; codecs="avc1.42E01E"'],
   hvc1: ['video/mp4; codecs="hvc1.1.6.L120.90"', 'video/mp4; codecs="hev1.1.6.L120.90"'],
@@ -55,7 +41,6 @@ const decodingConfiguration = (
     : { audio: { contentType, channels: '2', bitrate: 192_000, samplerate: 48_000 } }),
 })
 
-/** `decodingInfo` confirms; if it throws (unknown configuration), the type check stands. */
 const decodes = async (
   env: MediaEnvironment,
   kind: 'video' | 'audio',
@@ -106,7 +91,6 @@ export const detectCapabilities = async (env: MediaEnvironment): Promise<ClientC
     videoCodecs,
     audioCodecs,
     hls,
-    // iOS shows subtitles from the stream in Picture-in-Picture and over AirPlay, never a `<track>`.
     ...(hls === 'native' && env.appleTouch === true ? { subtitleDelivery: 'hls' as const } : {}),
     ...(env.screenHeight === undefined || env.screenHeight <= 0
       ? {}
@@ -116,7 +100,6 @@ export const detectCapabilities = async (env: MediaEnvironment): Promise<ClientC
 
 type MediaSourceStatic = { isTypeSupported: (type: string) => boolean }
 
-/** The real browser environment. `hlsJsSupported` comes from `Hls.isSupported()`. */
 export const browserMediaEnvironment = (hlsJsSupported: boolean): MediaEnvironment => {
   const scope = window as unknown as {
     MediaSource?: MediaSourceStatic

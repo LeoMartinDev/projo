@@ -7,10 +7,6 @@ import type { AuthorizeStream, SessionAccessError, StreamAccess } from './sessio
 export type DirectStreamError =
   SessionAccessError | AppError<'playback/source_unavailable' | 'playback/mode_unsupported'>
 
-/**
- * `GET /stream/:sessionId/:secret/direct` (§10.2 `direct`, §20): the file of an active `direct`
- * session, nothing else, while the source is `ready` (a file being replaced is not).
- */
 export const directStreamFactory =
   ({
     authorize,

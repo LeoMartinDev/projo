@@ -13,9 +13,7 @@ import type { CatalogEntries, CatalogEntry } from '../catalog/catalog-entries.ts
 import type { PlayButton, SeriesPlay } from '../catalog/series-play.ts'
 
 export type HomeHero = {
-  /** The movie or the series. */
   item: CatalogEntry
-  /** Series: the episode `play` starts. */
   episode?: CatalogEntry
   play?: PlayButton
 }
@@ -39,10 +37,6 @@ type Deps = {
 
 const unique = <T>(values: Iterable<T>): T[] => [...new Set(values)]
 
-/**
- * `GET /home` (§13.3): hero, "Continue watching", "Up next", "Recently added", "My list",
- * for the active profile and its scope, in a bounded number of queries.
- */
 export const getHomeFactory =
   ({
     catalogRepository,
@@ -75,7 +69,6 @@ export const getHomeFactory =
     })
     const recent = catalogRepository.listRecentlyAdded({ limit: homeRules.rowLimit, scope })
     const listed = watchlistRepository.listVisible({ profileId, scope, limit: homeRules.rowLimit })
-    // The hero's fallback skips what the profile removed ("Remove", §13.1).
     const recentRows = progressRepository.findMany({
       profileId,
       itemIds: recent.map((item) => item.id),
@@ -88,7 +81,6 @@ export const getHomeFactory =
         .filter((id) => recentRows.get(id)?.hiddenFromContinue !== true),
     })
 
-    // Every item the rows show, read once.
     const episodeIds = [
       ...continueRow.map((entry) => entry.itemId),
       ...upNextRow.map((entry) => entry.episode.id),
@@ -115,7 +107,6 @@ export const getHomeFactory =
       if (entry === undefined) return undefined
       const series = seriesId === undefined ? undefined : known.get(seriesId)
       if (series === undefined) return entry
-      // The card's "My list" button acts on the series (§13.3).
       const seriesInWatchlist = entries.get(series.id)?.inWatchlist
       return {
         ...entry,

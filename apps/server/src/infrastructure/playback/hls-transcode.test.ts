@@ -25,14 +25,6 @@ import { createFfprobe } from './ffprobe.ts'
 import { createBoxSplitter, fragmentStartTicks, readTracks } from './fmp4.ts'
 import { createHlsSegmenter, detectFfmpegFilters } from './hls-segmenter.ts'
 
-/**
- * §10.3 transcode against the real ffmpeg: H.264 and HEVC 10-bit sources to H.264 8-bit, fixed
- * 4 s segments whatever ffmpeg run produced them, and bitmap subtitles burnt in on time after a
- * seek (§10.4). The subtitles are hand-written PGS (ffmpeg cannot make bitmap subtitles from
- * text); each cue is a white box on a black video, so the luma of that area says whether a
- * subtitle was burnt in.
- */
-
 const media = createTempDir('projo-transcode-media-')
 const files: Record<string, string> = {}
 const ffprobe = createFfprobe()
@@ -42,7 +34,6 @@ const box = { x: 40, y: 50, width: 80, height: 20 }
 const cues: BitmapCue[] = [
   { startS: 1, endS: 3, ...box },
   { startS: 9, endS: 11, ...box },
-  // On screen across the 16 s segment start.
   { startS: 13, endS: 19, ...box },
 ]
 
@@ -71,7 +62,6 @@ beforeAll(async () => {
     durationS: 14,
     pixelFormat: 'yuv420p10le',
   })
-  // The same stream tagged HDR10 (BT.2020, PQ) in its VUI, as an HDR remux would be.
   files['hdr'] = join(media.path, 'hdr.mkv')
   await ffmpeg([
     '-i',
@@ -84,8 +74,6 @@ beforeAll(async () => {
     'hevc_metadata=colour_primaries=9:transfer_characteristics=16:matrix_coefficients=9',
     files['hdr'],
   ])
-  // Black video (2 s GOP) + its PGS track: muxed with `-copyts`, else the track is rebased on
-  // its first cue.
   const black = join(media.path, 'black.mkv')
   await ffmpeg([
     '-f',
@@ -129,7 +117,6 @@ beforeAll(async () => {
     '-copyts',
     files['blackPgs'],
   ])
-  // The same track as DVD subtitles (VobSub), embedded.
   files['blackDvd'] = join(media.path, 'black-dvd.mkv')
   await ffmpeg([
     '-i',
@@ -190,7 +177,6 @@ const jobFor = async (
   }
 }
 
-/** init + segments glued together: what a player's MSE buffer receives. */
 const glue = (dir: string, name: string, parts: string[]): string => {
   const out = join(dir, name)
   writeFileSync(out, Buffer.concat(parts.map((part) => readFileSync(part))))
@@ -216,7 +202,6 @@ const moofs = (segment: string) =>
 const seconds = (ticks: number, timescale: number): number =>
   Math.round((ticks / timescale - outputTimestampOffsetS) * 1000) / 1000
 
-/** Start time (s, offset removed) of every video fragment of a segment file. */
 const fragmentStarts = (init: string, segment: string): number[] => {
   const { video } = tracksOf(init)
   return moofs(segment).map((entry) =>
@@ -224,12 +209,6 @@ const fragmentStarts = (init: string, segment: string): number[] => {
   )
 }
 
-/**
- * The timeline a player builds from the boxes (tfdt + durations + composition offsets): video
- * frame presentation times, sorted, and audio fragments as [start, end] in decode time. ffprobe
- * is not used here: without edit lists its mov demuxer shifts pts by the largest negative
- * composition offset, which browsers do not.
- */
 const timeline = (init: string, segments: string[]) => {
   const { video, audio } = tracksOf(init)
   const frames: number[] = []
@@ -257,7 +236,6 @@ const timeline = (init: string, segments: string[]) => {
   return { frames: frames.sort((a, b) => a - b), audioFragments }
 }
 
-/** Glued segments of several runs: one timeline, no hole, no jump (24 fps sources). */
 const expectContinuous = (init: string, segments: string[], fromS: number, toS: number) => {
   const { frames, audioFragments } = timeline(init, segments)
   expect(frames[0]).toBeCloseTo(fromS, 3)
@@ -265,20 +243,16 @@ const expectContinuous = (init: string, segments: string[], fromS: number, toS: 
   for (let i = 1; i < frames.length; i += 1) {
     expect((frames[i] ?? 0) - (frames[i - 1] ?? 0)).toBeCloseTo(1 / 24, 3)
   }
-  // A run started mid-file has audio from its pre-roll on.
   const audioStart = audioFragments[0]?.[0] ?? NaN
   expect(audioStart).toBeGreaterThan(fromS - transcodePrerollS - 0.05)
   expect(audioStart).toBeLessThan(fromS + 0.05)
   for (let i = 1; i < audioFragments.length; i += 1) {
     const gap = (audioFragments[i]?.[0] ?? 0) - (audioFragments[i - 1]?.[1] ?? 0)
-    // Within a run: contiguous. Across runs: the pre-roll of a later run overlaps the previous
-    // segment (MSE replaces), or AAC frame grids differ: never a hole of more than one frame.
     expect(gap).toBeLessThan(1024 / 48_000 + 1e-3)
     expect(gap).toBeGreaterThan(-0.6)
   }
 }
 
-/** Mean luma of the subtitle box for each frame (presentation order), with its source time. */
 const boxLuma = async (
   init: string,
   segment: string,
@@ -315,7 +289,6 @@ const boxLuma = async (
   })
 }
 
-/** Is the box lit at `timeS` (the frame nearest to it)? */
 const litAt = (frames: { t: number; luma: number }[], timeS: number): boolean => {
   const frame = frames.reduce((best, f) =>
     Math.abs(f.t - timeS) < Math.abs(best.t - timeS) ? f : best,
@@ -336,7 +309,6 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
       ['video', 'h264'],
       ['audio', 'aac'],
     ])
-    // Never upscaled: 160×90 stays 160×90 at 480p.
     const video = (probe.streams[0] ?? {}) as { width?: number; height?: number }
     expect([video.width, video.height]).toEqual([160, 90])
     expect(await decodesCleanly(glued)).toBe(true)
@@ -345,7 +317,6 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
 
   test('seek, then back to the start: segments of both runs chain without hole or jump', async () => {
     const job = await jobFor('t-seek', files['h264'] ?? '')
-    // 22 s of video, a little more of audio (AAC frames): the last segment ends at 22.02.
     expect(job.segments.map((s) => [s.startS, Math.round(s.endS)])).toEqual([
       [0, 4],
       [4, 8],
@@ -355,15 +326,12 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
       [20, 22],
     ])
     const { segmenter, dir } = newSegmenter()
-    // Seek first: ffmpeg starts at 12 s.
     const third = unwrap(await segmenter.segment(job, 3))
     const init = unwrap(await segmenter.segment(job, 'init'))
     expect(fragmentStarts(init, third)).toEqual([12])
-    // Back to the start: outside the window, a new run from 0.
     const zero = unwrap(await segmenter.segment(job, 0))
     const one = unwrap(await segmenter.segment(job, 1))
     const two = unwrap(await segmenter.segment(job, 2))
-    // Segment 3 exists (seek run): the run from 0 goes on to the end.
     const four = unwrap(await segmenter.segment(job, 4))
     const last = unwrap(await segmenter.segment(job, 5))
     expect([zero, one, two, four, last].map((segment) => fragmentStarts(init, segment))).toEqual([
@@ -395,7 +363,6 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
       pix_fmt: 'yuv420p',
       profile: 'High',
     })
-    // AC-3 (Safari only) → AAC stereo.
     expect(probe.streams[1]).toMatchObject({ codec_name: 'aac', channels: 2 })
     expect(await decodesCleanly(glued)).toBe(true)
     expectContinuous(init, [one, two], 4, 12)
@@ -436,7 +403,6 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
       { origin: 'embedded', streamIndex: 2 },
       2,
     )
-    // ffmpeg's PGS → DVD conversion drops the clear events: only the starts are checked.
     expect([8.5, 9.5, 10.5].map((t) => litAt(frames, t))).toEqual([false, true, true])
   })
 
@@ -450,7 +416,6 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
   })
 })
 
-/** Homebrew's ffmpeg has no zscale (libzimg); the runtime image's has it. */
 const canTonemap = hasFfmpeg() && Object.values(detectFfmpegFilters()).every(Boolean)
 
 describe.skipIf(!canTonemap)('HDR → SDR tone mapping (real ffmpeg with zscale, §10.3)', () => {
@@ -520,7 +485,6 @@ describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, 
 
   test('a VAAPI run that fails before writing anything is retried in software', async () => {
     const world = vaapiWorld()
-    // Accessible but not a DRM device: ffmpeg cannot open VAAPI on it.
     const fakeNode = join(media.path, 'fake-render-node')
     writeFileSync(fakeNode, '')
     const job = { ...(await jobFor('v-fails', files['h264'] ?? '')), hwAccel: 'vaapi' as const }

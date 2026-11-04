@@ -10,10 +10,6 @@ import { createMetadataWorld, type MetadataWorld } from '../support/metadata-wor
 
 setDefaultTimeout(90_000)
 
-/**
- * The MCP server over the metadata world (TMDB replayed). Sources are inserted as rows, without
- * the scanner: the tools only read and decide (§27.4).
- */
 let world: MetadataWorld
 let assistants: ReturnType<typeof buildAssistantsModule>
 let app: Hono<AppEnv>
@@ -51,7 +47,6 @@ const sourceRow = (pathEnd: string) =>
     `%${pathEnd}`,
   )[0]
 
-/** "Ours" (no TMDB match), S01E01, E02 and E09 to review under a local series; "Dune" too. */
 const seedReview = () => {
   insertLibrary(world.db)
   insertItem(world.db, { id: 'local-ours', kind: 'series', title: 'Ours' })

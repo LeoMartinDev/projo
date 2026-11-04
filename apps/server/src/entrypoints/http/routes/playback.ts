@@ -41,7 +41,6 @@ const optional = <K extends string, V>(key: K, value: V | undefined) =>
 
 const encode = encodeURIComponent
 
-/** §10.4: text tracks are served as WebVTT whatever the mode; bitmap ones are burnt in (or not). */
 export const toSubtitleTrackDto = (
   track: SubtitleTrack,
   { burnInEnabled }: { burnInEnabled: boolean },
@@ -65,11 +64,9 @@ export const toSubtitleTrackDto = (
 
 export const toPlaybackSessionDto = (
   created: CreatedPlaybackSession,
-  /** The client shows subtitles from the stream (§10.4): HLS starts at `master.m3u8`. */
   { hlsSubtitles }: { hlsSubtitles: boolean },
 ): PlaybackSessionDto => {
   const { session, plan, media, startPositionMs, durationMs, mediaSegments, tracks } = created
-  // §20: the capability prefix of every stream URL of the session.
   const streamBase = `${apiPrefix}/stream/${encode(session.id)}/${encode(created.streamSecret)}`
   return {
     id: session.id,
@@ -112,7 +109,6 @@ export const toPlaybackSessionDto = (
     chapters: (media.chapters ?? []).map((chapter) => ({
       startMs: chapter.startMs,
       endMs: chapter.endMs,
-      // Muxer defaults ("Chapter 01") are not names: the player numbers them (§10.7).
       ...optional('title', chapterTitle(chapter.title)),
     })),
     ...optional('trickplayUrl', created.trickplayUrl),
@@ -134,16 +130,9 @@ type Deps = {
   stopPlaybackSession: StopPlaybackSession
   setTrackPreferences: SetTrackPreferences
   clearTrackPreferences: ClearTrackPreferences
-  /** What the active profile may see (§14: library access, content rating). */
   scopeFor: VisibilityScopeResolver
 }
 
-/**
- * §17.2 Lecture: `/playback/sessions*` and `/items/:id/track-preferences` (`/items/:id/segments`
- * comes in M4; `/subtitles/*`, `/trickplay/*` have their own routes). Mounted at `/api/v1`.
- * Middleware: per route or path-scoped, never `.use('*')` (the sub-app is mounted at a shared
- * prefix, a wildcard would leak to every other domain).
- */
 export const playbackRoutes = ({
   createPlaybackSession,
   heartbeat,
@@ -152,7 +141,6 @@ export const playbackRoutes = ({
   clearTrackPreferences,
   scopeFor,
 }: Deps) => {
-  // The session's own profile is used: `navigator.sendBeacon` cannot send `X-Profile-Id`.
   const beat = async (
     c: Context<AppEnv, '/playback/sessions/:id/heartbeat'>,
     body: { positionMs: number },
@@ -176,92 +164,88 @@ export const playbackRoutes = ({
       : respondError(c, result.error)
   }
 
-  return (
-    new Hono<AppEnv>()
-      .post('/playback/sessions', validate('json', createPlaybackSessionBodySchema), async (c) => {
-        const { account, session } = currentPrincipal(c)
+  return new Hono<AppEnv>()
+    .post('/playback/sessions', validate('json', createPlaybackSessionBodySchema), async (c) => {
+      const { account, session } = currentPrincipal(c)
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const body = c.req.valid('json')
+      const result = await createPlaybackSession({
+        accountId: account.id,
+        authSessionId: session.id,
+        profileId: profileId.value,
+        itemId: body.itemId,
+        capabilities: body.capabilities,
+        quality: body.quality,
+        scope: scopeFor(profileId.value),
+        ...optional('sourceId', body.sourceId),
+        ...optional('audioStreamIndex', body.audioStreamIndex),
+        ...optional('subtitleTrackId', body.subtitleTrackId),
+        ...optional('startPositionMs', body.startPositionMs),
+      })
+      return result.ok
+        ? c.json(
+            toPlaybackSessionDto(result.value, {
+              hlsSubtitles: body.capabilities.subtitleDelivery === 'hls',
+            }),
+            201,
+          )
+        : respondError(c, result.error)
+    })
+    .put('/playback/sessions/:id/heartbeat', validate('json', playbackHeartbeatBodySchema), (c) =>
+      beat(c, c.req.valid('json')),
+    )
+    .post('/playback/sessions/:id/heartbeat', async (c) => {
+      const body = await parseTextJsonBody(c.req, playbackHeartbeatBodySchema)
+      return body.ok ? beat(c, body.value) : respondError(c, body.error)
+    })
+    .delete('/playback/sessions/:id', async (c) => {
+      const { account } = currentPrincipal(c)
+      const result = await stopPlaybackSession({
+        sessionId: c.req.param('id'),
+        accountId: account.id,
+        profileId: c.get('profileId'),
+      })
+      return result.ok
+        ? c.json(
+            {
+              sessionId: result.value.id,
+              endedAt: result.value.endedAt.toISOString(),
+            } satisfies PlaybackSessionEnded,
+            200,
+          )
+        : respondError(c, result.error)
+    })
+    .put(
+      '/items/:id/track-preferences',
+      validate('json', trackPreferencesBodySchema),
+      async (c) => {
         const profileId = currentProfileId(c)
         if (!profileId.ok) return respondError(c, profileId.error)
         const body = c.req.valid('json')
-        const result = await createPlaybackSession({
-          accountId: account.id,
-          authSessionId: session.id,
-          profileId: profileId.value,
-          itemId: body.itemId,
-          capabilities: body.capabilities,
-          quality: body.quality,
-          scope: scopeFor(profileId.value),
-          ...optional('sourceId', body.sourceId),
-          ...optional('audioStreamIndex', body.audioStreamIndex),
-          ...optional('subtitleTrackId', body.subtitleTrackId),
-          ...optional('startPositionMs', body.startPositionMs),
-        })
-        return result.ok
-          ? c.json(
-              toPlaybackSessionDto(result.value, {
-                hlsSubtitles: body.capabilities.subtitleDelivery === 'hls',
-              }),
-              201,
-            )
-          : respondError(c, result.error)
-      })
-      .put('/playback/sessions/:id/heartbeat', validate('json', playbackHeartbeatBodySchema), (c) =>
-        beat(c, c.req.valid('json')),
-      )
-      // Same as PUT, for `navigator.sendBeacon(url, JSON.stringify(body))` on page close: it can
-      // only POST, and a string body goes as `text/plain`, so the body is parsed whatever its type.
-      .post('/playback/sessions/:id/heartbeat', async (c) => {
-        const body = await parseTextJsonBody(c.req, playbackHeartbeatBodySchema)
-        return body.ok ? beat(c, body.value) : respondError(c, body.error)
-      })
-      .delete('/playback/sessions/:id', async (c) => {
-        const { account } = currentPrincipal(c)
-        const result = await stopPlaybackSession({
-          sessionId: c.req.param('id'),
-          accountId: account.id,
-          profileId: c.get('profileId'),
-        })
-        return result.ok
-          ? c.json(
-              {
-                sessionId: result.value.id,
-                endedAt: result.value.endedAt.toISOString(),
-              } satisfies PlaybackSessionEnded,
-              200,
-            )
-          : respondError(c, result.error)
-      })
-      .put(
-        '/items/:id/track-preferences',
-        validate('json', trackPreferencesBodySchema),
-        async (c) => {
-          const profileId = currentProfileId(c)
-          if (!profileId.ok) return respondError(c, profileId.error)
-          const body = c.req.valid('json')
-          const result = await setTrackPreferences({
-            profileId: profileId.value,
-            itemId: c.req.param('id'),
-            scope: scopeFor(profileId.value),
-            subtitlesEnabled: body.subtitlesEnabled,
-            ...optional('audioLanguage', body.audioLanguage),
-            ...optional('subtitleLanguage', body.subtitleLanguage),
-          })
-          return result.ok
-            ? c.json(toTrackPreferencesDto(result.value), 200)
-            : respondError(c, result.error)
-        },
-      )
-      .delete('/items/:id/track-preferences', async (c) => {
-        const profileId = currentProfileId(c)
-        if (!profileId.ok) return respondError(c, profileId.error)
-        const result = await clearTrackPreferences({
+        const result = await setTrackPreferences({
           profileId: profileId.value,
           itemId: c.req.param('id'),
           scope: scopeFor(profileId.value),
+          subtitlesEnabled: body.subtitlesEnabled,
+          ...optional('audioLanguage', body.audioLanguage),
+          ...optional('subtitleLanguage', body.subtitleLanguage),
         })
-        return result.ok ? noContent(c) : respondError(c, result.error)
+        return result.ok
+          ? c.json(toTrackPreferencesDto(result.value), 200)
+          : respondError(c, result.error)
+      },
+    )
+    .delete('/items/:id/track-preferences', async (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const result = await clearTrackPreferences({
+        profileId: profileId.value,
+        itemId: c.req.param('id'),
+        scope: scopeFor(profileId.value),
       })
-  )
+      return result.ok ? noContent(c) : respondError(c, result.error)
+    })
 }
 
 export type PlaybackRoutes = ReturnType<typeof playbackRoutes>

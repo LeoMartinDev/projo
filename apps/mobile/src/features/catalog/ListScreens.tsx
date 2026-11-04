@@ -19,7 +19,6 @@ type PagedQuery = {
   query: ReturnType<typeof useInfiniteQuery<ItemPage, Error, InfiniteData<ItemPage>>>
 }
 
-/** A grid of pages without sort or filter: My list, a category page (§13.3, §13.4). */
 const PagedGrid = ({ queryKey, query, empty }: PagedQuery & { empty: ReactElement }) => {
   const items = query.data?.pages.flatMap((page) => page.items) ?? []
   if (query.isError && items.length === 0)
@@ -41,7 +40,6 @@ const PagedGrid = ({ queryKey, query, empty }: PagedQuery & { empty: ReactElemen
   )
 }
 
-/** My list (§13.4): the same grid as Movies and Shows, last added first. */
 export const WatchlistScreen = () => {
   const { t } = useTranslation()
   const router = useRouter()
@@ -69,10 +67,6 @@ export const WatchlistScreen = () => {
   )
 }
 
-/**
- * The page behind "See all ›" of a category row (§13.3): every title of the category, movies and
- * shows mixed, in the row's order.
- */
 export const CategoryScreen = ({ category }: { category: HomeCategorySlug }) => {
   const { t } = useTranslation()
   const options = useCatalogQueries().categoryPage(category)

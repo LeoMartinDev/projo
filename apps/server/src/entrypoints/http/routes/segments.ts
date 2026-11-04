@@ -6,10 +6,6 @@ import { respondError } from '../errors.ts'
 import { currentPrincipal, currentProfileId } from '../principal.ts'
 import { toItemSegmentsDto } from './segments-dto.ts'
 
-/**
- * `GET /items/:id/segments` (§17.2 Lecture): the known segments of a movie or an episode the
- * active profile sees; the chain's lookups for an admin account. Mounted at `/api/v1`.
- */
 export const segmentsRoutes = ({ getItemSegments }: { getItemSegments: GetItemSegments }) =>
   new Hono<AppEnv>().get('/items/:id/segments', (c) => {
     const profileId = currentProfileId(c)

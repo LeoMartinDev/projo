@@ -10,12 +10,6 @@ import type { HlsJob, HlsSegmenter } from '../../core/playback/ports.ts'
 import { createFfprobe } from './ffprobe.ts'
 import { createHlsSegmenter, fallsBackToSoftware, wantsVaapi } from './hls-segmenter.ts'
 
-/**
- * §10.3 run control against the real ffmpeg: when a request waits, when it restarts ffmpeg, and
- * when it gives up (a tail with no video frame, a segment deleted behind the player, a request
- * the player abandoned).
- */
-
 const media = createTempDir('projo-segmenter-media-')
 const files: Record<string, string> = {}
 const ffprobe = createFfprobe()
@@ -28,7 +22,6 @@ beforeAll(async () => {
     audio: 'aac',
     durationS: 40,
   })
-  // 10 s of video, 14 s of audio: the container lasts 14 s.
   const tail = join(media.path, 'audio-tail.mkv')
   const proc = Bun.spawn({
     cmd: [
@@ -122,10 +115,8 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
   test('a tail past the last video frame: one run, then an error (no restart loop)', async () => {
     const probe = await probeOf(files['tail'] ?? '')
     expect(Math.round((probe.durationMs ?? 0) / 1000)).toBe(14)
-    // The probe knows where the video ends (Matroska `DURATION` tag).
     expect(probe.video[0]?.durationMs).toBe(10_000)
 
-    // Planned on the container's duration: the 12–14 s segment holds no frame.
     const job = await jobFor('tail', files['tail'] ?? '')
     expect(job.segments).toHaveLength(4)
     const { segmenter, runsStarted } = newSegmenter({ waitMs: 10_000 })
@@ -136,11 +127,9 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     })
     expect(runsStarted()).toHaveLength(1)
     expect(Date.now() - startedAt).toBeLessThan(5_000)
-    // The run that went to the end says so to later requests too: no new ffmpeg.
     expect(await segmenter.segment(job, 3)).toMatchObject({ ok: false })
     expect(runsStarted()).toHaveLength(1)
 
-    // Planned on the video's end: every segment exists.
     const planned = await jobFor('tail-video', files['tail'] ?? '', 10)
     expect(planned.segments).toHaveLength(3)
     expect((await segmenter.segment(planned, 2)).ok).toBe(true)
@@ -166,7 +155,6 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
   test('an older request still waiting does not take the run back from the latest one', async () => {
     const job = await jobFor('pingpong', files['long'] ?? '')
     const { segmenter, runsStarted } = newSegmenter({ bufferAhead: 1, waitMs: 3_000 })
-    // The player asks for 8, then seeks to 0 before 8 arrives (its request for 8 not aborted).
     const older = segmenter.segment(job, 8)
     const latest = await segmenter.segment(job, 0)
     expect(latest.ok).toBe(true)
@@ -205,7 +193,6 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     const until = async (condition: () => boolean) => {
       for (let tries = 0; tries < 100 && !condition(); tries += 1) await Bun.sleep(20)
     }
-    // Paused ahead of the player with its next segment open.
     await until(() => temporaries().length > 0)
     expect(temporaries()).toHaveLength(1)
     await segmenter.stopAll()

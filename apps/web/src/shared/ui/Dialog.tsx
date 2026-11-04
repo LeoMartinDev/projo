@@ -4,10 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { CloseIcon } from './icons.tsx'
 import { useElement } from './use-element.ts'
 
-/**
- * Native modal `<dialog>`: focus trap, Escape and backdrop come from the browser. `fill` gives it a
- * fixed height whose body does not scroll: the content lays out its own scrolling region.
- */
 export const Dialog = ({
   open,
   title,
@@ -38,7 +34,6 @@ export const Dialog = ({
       ref={ref}
       className={fill ? 'dialog dialog--fill' : 'dialog'}
       aria-labelledby={titleId}
-      // React propagates cancel and close up the tree: ignore those of a nested dialog.
       onClose={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}

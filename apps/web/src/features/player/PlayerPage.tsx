@@ -198,7 +198,6 @@ const countdownTickMs = 250
 
 type Interruption =
   | { kind: 'failure'; failure: ApiFailure }
-  /** Connection lost: retried automatically at the position (§10.7). */
   | { kind: 'network'; failure: ApiFailure }
   | { kind: 'terminated'; reason: 'admin' | 'timeout' | 'ended' }
 
@@ -224,14 +223,6 @@ const isEditable = (target: EventTarget | undefined) => {
 const inOverlay = (target: EventTarget | undefined) =>
   target instanceof Element && (target.closest('[data-player-overlay]') ?? undefined) !== undefined
 
-/**
- * Player (§10.7, artboards `Player` and `PlayerNext`): full-frame video, top (quit) and bottom
- * chrome fading after 3 s, the bar (buffer, segments, trickplay, remaining time), the controls
- * row and its menus (chapters, speed, quality, subtitles and audio), the episodes panel; parts
- * chained on the item timeline, track changes as new sessions (the old one deleted first), the
- * memory toast of §11.3, shortcuts and touch gestures; loading, buffering, network loss (resumed
- * at the position), transcode limit, admin stop, end of the item.
- */
 export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: boolean }) => {
   const { t } = useTranslation()
   const errorMessage = useErrorMessage()
@@ -258,7 +249,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     id: string | undefined
   }>()
   const [lastSubtitleId, setLastSubtitleId] = useState<string>()
-  /** A subtitle track or "Off" picked in this playback: an audio change keeps it. */
   const [subtitlesChosen, setSubtitlesChosen] = useState(false)
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(loadSubtitleSettings)
   const [rate, setRate] = useState(1)
@@ -268,14 +258,10 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [seekHud, setSeekHud] = useState<{ side: 'left' | 'right'; seconds: number; id: number }>()
   const [volumeHud, setVolumeHud] = useState<number>()
-  /** Where the intro (or recap) button appeared: its 8 s run from there (§12.4). */
   const [skipEntry, setSkipEntry] = useState<{ key: string; atMs: number }>()
-  /** "Intro skipped · Undo" after a jump over an intro or a recap. */
   const [skipped, setSkipped] = useState<{ segment: SkippableSegment; id: number }>()
-  /** "Watch the credits": the card stays closed for that segment. */
   const [dismissedNextUp, setDismissedNextUp] = useState<ReadonlySet<string>>(() => new Set())
   const [countdown, setCountdown] = useState<Countdown>()
-  /** Segments skipped once (or brought back) in this playback: never skipped automatically again. */
   const handledSegmentsRef = useRef(new Set<string>())
 
   const idleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -285,9 +271,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     undefined,
   )
   const lastPositionRef = useRef<number | undefined>(undefined)
-  /** The next stream stays paused: a session reopened (retry) while the video was paused. */
   const startPausedRef = useRef(false)
-  /** Audio changed with the subtitles left to the cascade: remembered once that session opens. */
   const pendingAudioMemoryRef = useRef<{ attempt: number } | undefined>(undefined)
   const gestureRef = useRef<{
     pointer: string
@@ -323,10 +307,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   })
   const session: PlaybackSessionDto | undefined = playback.data?.session
   const hlsMode = playback.data?.hls ?? 'mse'
-  // §10.4: iOS shows the stream's subtitle renditions itself (PiP, AirPlay), no `<track>`.
   const hlsSubtitles = playback.data?.subtitles === 'hls'
 
-  // ── Timeline ────────────────────────────────────────────────────────────────
   const streamMs = state.duration * 1000
   const totalMs =
     session === undefined
@@ -350,7 +332,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     retry: false,
   })
 
-  // ── Tracks ──────────────────────────────────────────────────────────────────
   const audioIndex = session?.selectedAudioStreamIndex
   const subtitleId =
     session === undefined
@@ -364,8 +345,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       : vttTrackOf(session.subtitleTracks, subtitleId)
   const scope = item.data?.kind === 'episode' ? 'series' : 'movie'
 
-  // The player never stays in the history: quitting goes back to the page it was opened from
-  // (else replaces it with the item page), so "Retour" from there never reopens the video.
   const exit = useCallback(() => {
     if (canGoBack) {
       router.history.back()
@@ -384,7 +363,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     }
   }, [canGoBack, item.data, itemId, navigate, router])
 
-  // One history entry for a whole binge: the next episode replaces the current one.
   const playEpisode = useCallback(
     (episode: Pick<ItemSummaryDto, 'id'>) =>
       void navigate({
@@ -396,13 +374,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     [navigate],
   )
 
-  // ── Session changes ─────────────────────────────────────────────────────────
   const currentPosition = () =>
     video !== undefined && session !== undefined && video.readyState > 0
       ? itemPositionMs(session, video.currentTime)
       : (lastPositionRef.current ?? positionMs)
 
-  /** New session for `change`: the current one is stopped and deleted first (§10.2). */
   const switchSession = async (change: SessionChange) => {
     if (session === undefined) return
     const at = currentPosition()
@@ -435,7 +411,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (followingPart !== undefined) void switchSession({ type: 'part', part: followingPart })
   })
 
-  /** The stream to attach: the renditions of `master.m3u8` carry the subtitle delay (§10.4). */
   const streamedSession = useEffectEvent((current: PlaybackSessionDto) =>
     hlsSubtitles && current.stream.type === 'hls'
       ? {
@@ -453,7 +428,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return showInDocumentPictureInPicture(pipStage, video, () => setPipStage(undefined))
   }, [pipStage, video])
 
-  // Stream attachment and session lifecycle (`session-lifecycle.ts`).
   useEffect(() => {
     if (video === undefined || session === undefined) return
     openingMemoryRef.current ??= { value: memoryAtOpen(session) }
@@ -488,7 +462,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       onPosition: (positionMs) => {
         lastPositionRef.current = positionMs
       },
-      // Progress, "Reprendre" and "vu" changed: the pages behind the player refetch them.
       onLetGo: () => void queryClient.invalidateQueries({ queryKey: ['catalog'] }),
     })
     heartbeatRef.current = lifecycle.heartbeat
@@ -502,8 +475,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   useServerEvent('playback.session_terminated', (payload) => {
     if (session === undefined || payload.playbackSessionId !== session.id) return
-    // The echo of our own DELETE during a switch (the next session is not on screen yet): not an
-    // interruption, or the new session plays under a "session expired" screen.
     if (isSessionLetGo(session.id)) return
     forgetSession(session.id)
     teardownRef.current?.()
@@ -517,7 +488,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     )
   })
 
-  // §10.4: Safari lists the stream's subtitle renditions as text tracks; the chosen one shows.
   useEffect(() => {
     if (video === undefined || session === undefined || !hlsSubtitles) return
     const label = renditionLabel(session.subtitleTracks, subtitleId)
@@ -532,7 +502,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return () => video.textTracks.removeEventListener('addtrack', apply)
   }, [video, session, subtitleId, hlsSubtitles])
 
-  // §10.4: a new delay reloads the same session's master at the current time, once it settles.
   useEffect(() => {
     if (video === undefined || session?.stream.type !== 'hls' || !hlsSubtitles) return
     const url = withSubtitleOffset(session.stream.url, subtitleSettings.delayMs)
@@ -541,7 +510,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return () => clearTimeout(timer)
   }, [video, session, hlsSubtitles, subtitleSettings.delayMs])
 
-  // iOS plays fullscreen in its own player: the browser draws the subtitles there.
   useEffect(() => {
     if (video === undefined) return
     const begin = () => setNativeFullscreen(true)
@@ -585,8 +553,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     (interruption?.kind === 'network' || failure.code === 'network') &&
     reconnectDelay(reconnectAttempt) !== undefined
 
-  // Network loss or timed-out session: a new session at the position, after a growing delay or
-  // as soon as the connection or the page (unlocked phone, tab shown again) comes back.
   useEffect(() => {
     if (!networkLost) return
     const timer = setTimeout(() => reconnect(), reconnectDelay(reconnectAttempt))
@@ -603,7 +569,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     }
   }, [networkLost, reconnectAttempt])
 
-  // ── Track changes ───────────────────────────────────────────────────────────
   const remember = (kind: TrackKind, selection: Parameters<typeof preferencesOf>[0]) => {
     const current = preferencesOf(selection)
     const previous = memory?.value ?? openingMemoryRef.current?.value
@@ -622,11 +587,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     )
   }
 
-  /**
-   * Subtitles chosen in this playback: kept, remembered with the new audio right away. Otherwise
-   * the cascade picks them for the new audio (§11.2) and the memory is written once the new
-   * session shows what it picked (written before, the cascade would read it back).
-   */
   const chooseAudio = (track: AudioTrackDto) => {
     if (session === undefined || track.index === audioIndex) return
     if (subtitlesChosen) {
@@ -712,7 +672,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const changeSubtitleSettings = (update: (settings: SubtitleSettings) => SubtitleSettings) =>
     setSubtitleSettings(update)
 
-  // Delay and size are remembered per device (§10.4).
   useEffect(() => saveSubtitleSettings(subtitleSettings), [subtitleSettings])
 
   const changeRate = (value: number) => {
@@ -720,18 +679,15 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (video !== undefined) setPlaybackRate(video, value)
   }
 
-  // ── End of the item ─────────────────────────────────────────────────────────
   const itemEnded = state.ended && followingPart === undefined && session !== undefined
   const nextEpisode = next.status === 'found' ? next.episode : undefined
 
-  // Without a next episode: back to the page after 5 s (§10.7).
   useEffect(() => {
     if (!itemEnded || next.status !== 'none') return
     const timer = setTimeout(exit, endedReturnDelayMs)
     return () => clearTimeout(timer)
   }, [itemEnded, next.status, exit])
 
-  // ── Chrome ──────────────────────────────────────────────────────────────────
   const wake = useCallback(() => {
     setIdle(false)
     clearTimeout(idleTimer.current)
@@ -744,7 +700,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   }, [])
 
   const closeOverlay = () => {
-    // The button that opened a menu gets the focus back.
     const opener =
       overlay === undefined
         ? undefined
@@ -753,7 +708,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     opener?.focus()
   }
 
-  // ── Commands ────────────────────────────────────────────────────────────────
   const togglePlay = () => {
     if (video !== undefined) togglePlayback(video)
   }
@@ -779,7 +733,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (video !== undefined) toggleFullscreen(video)
   }
 
-  /** Over an intro or a recap: to its end, "Intro skipped · Undo" (§12.4). */
   const skipOver = (segment: SkippableSegment) => {
     handledSegmentsRef.current.add(segmentKey(segment))
     setToast(undefined)
@@ -787,7 +740,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     seekToItem(segment.endMs)
   }
 
-  /** "Undo": back to the start of the segment, which is not skipped automatically again. */
   const undoSkip = () => {
     if (skipped === undefined) return
     const { segment } = skipped
@@ -796,7 +748,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     seekToItem(segment.startMs)
   }
 
-  /** `S`: over the intro or recap playing, else to the end of the segment playing (credits…). */
   const skipSegment = () => {
     if (session === undefined) return
     const at = currentPosition()
@@ -820,7 +771,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (choice !== undefined) chooseSubtitle(choice)
   }
 
-  // ── Segments (§12.4): "Skip intro", "Next episode" ──────────────────
   const blocked = (failure !== undefined && !networkLost) || interruption?.kind === 'terminated'
   const segments = session?.segments ?? []
   const skippable = session === undefined ? undefined : skippableAt(segments, positionMs)
@@ -830,8 +780,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       ? skipButtonPhase(skipEntry.atMs, positionMs)
       : { phase: 'full' as const, progress: 0 }
 
-  // Read from `<video>` on each `timeupdate` (never at 0 before the stream reached its start
-  // position): where the button appeared, and `autoSkipIntro`, once per segment while it plays.
   const onSegmentTime = useEffectEvent((element: HTMLVideoElement) => {
     if (session === undefined || blocked || element.readyState === 0) return
     const at = itemPositionMs(session, element.currentTime)
@@ -885,7 +833,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     (itemEnded || !state.paused)
   const launch = activeCountdown?.leftMs === 0 && nextEpisode !== undefined
 
-  // Closing the card drops its countdown: back into the credits, it starts over.
   useEffect(() => {
     if (!nextUpShown) return
     return () => setCountdown(undefined)
@@ -913,7 +860,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     if (launch) playNext()
   }, [launch])
 
-  // Now Playing: lock screen, Control Center, headset keys (§10.7).
   const posterUrl = item.data?.series?.images?.poster ?? item.data?.images.poster
   const nowPlaying = useMemo(
     () => (title === '' ? undefined : nowPlayingOf({ title, subtitle, posterUrl })),
@@ -926,7 +872,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     next: nextEpisode === undefined ? undefined : () => playEpisode(nextEpisode),
   })
 
-  // "Vu" on entering the credits (§13.1): the server hears of the position right away.
   const creditsKey = trigger?.kind === 'credits' ? trigger.key : undefined
   useEffect(() => {
     if (creditsKey !== undefined) heartbeatRef.current?.beat()
@@ -987,7 +932,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return () => window.removeEventListener('keydown', listener)
   }, [])
 
-  // ── Touch: double tap ±10 s on the sides, vertical drag for the volume ──────
   const showSeekHud = (side: 'left' | 'right') => {
     const gesture = gestureRef.current
     clearTimeout(gesture.hudTimer)
@@ -1063,7 +1007,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     else togglePlay()
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   const loading =
     !blocked &&
     (networkLost ||
@@ -1346,7 +1289,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       ) : undefined}
 
       {showEnd ? (
-        // Only without a next episode: with one, the card above is the end screen.
         <div className="player__overlay player__overlay--end" role="status">
           <p className="player__overlay-title">{t('player.ended')}</p>
           <p className="player__overlay-text">{t('player.returning')}</p>

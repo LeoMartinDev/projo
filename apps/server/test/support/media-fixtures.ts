@@ -11,11 +11,6 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-/**
- * Tiny real videos for scanner integration tests (§22), generated once per test process with
- * ffmpeg `testsrc` + `sine` (3 s, noise so the file stays above the 1 MB candidate floor).
- * Nothing is committed: everything lives in the OS temp directory.
- */
 let cached: { mkv: string; mp4: string } | undefined
 
 const run = (args: string[]): void => {
@@ -64,7 +59,6 @@ export const baseVideos = (): { mkv: string; mp4: string } => {
   return cached
 }
 
-/** The base video with an embedded English SRT track (default, forced flag off). */
 export const videoWithEmbeddedSubtitles = (): string => {
   const { mkv } = baseVideos()
   const srt = join(dirname(mkv), 'embedded.srt')
@@ -96,7 +90,6 @@ export const videoWithEmbeddedSubtitles = (): string => {
   return out
 }
 
-/** Writes the first `fraction` of the base video: a download in progress. */
 export const placePartialVideo = (root: string, relativePath: string, fraction: number): string => {
   const target = join(root, relativePath)
   ensureParent(target)
@@ -105,12 +98,10 @@ export const placePartialVideo = (root: string, relativePath: string, fraction: 
   return target
 }
 
-/** Rewrites the whole base video over a partial one (the download finished). */
 export const completeVideo = (path: string): void => {
   copyFileSync(baseVideos().mkv, path)
 }
 
-/** A second, different video (other duration) for signature tests. */
 export const otherVideo = (): string => {
   const { mkv } = baseVideos()
   const other = join(dirname(mkv), 'other.mkv')
@@ -140,7 +131,6 @@ const ensureParent = (path: string): void => {
   mkdirSync(dirname(path), { recursive: true })
 }
 
-/** Copies the base video to `root/relativePath` (extension decides mkv or mp4). */
 export const placeVideo = (root: string, relativePath: string, from?: string): string => {
   const target = join(root, relativePath)
   ensureParent(target)
@@ -160,7 +150,6 @@ export const placeText = (
   return target
 }
 
-/** A valid header but zeros over most of the file: ffprobe passes, sample decoding fails (§7.3). */
 export const placeCorruptedVideo = (root: string, relativePath: string): string => {
   const target = placeVideo(root, relativePath)
   const size = statSync(target).size
@@ -176,7 +165,6 @@ export const placeCorruptedVideo = (root: string, relativePath: string): string 
   return target
 }
 
-/** Only zeros: ffprobe fails (`probe_failed`). */
 export const placeGarbage = (root: string, relativePath: string, sizeBytes = 2_000_000): string => {
   const target = join(root, relativePath)
   ensureParent(target)
@@ -184,7 +172,6 @@ export const placeGarbage = (root: string, relativePath: string, sizeBytes = 2_0
   return target
 }
 
-/** Appends bytes: simulates a download in progress (size and mtime move). */
 export const growFile = (path: string, bytes = 64 * 1024): void => {
   const fd = openSync(path, 'a')
   writeSync(fd, Buffer.alloc(bytes, 1))

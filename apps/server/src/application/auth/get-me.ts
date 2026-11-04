@@ -14,11 +14,9 @@ export type Me = {
   account: AuthAccount
   profiles: Profile[]
   activeProfileId?: string
-  /** §13.6 "Who's watching?": no active profile could be resolved for this request. */
   needsProfileSelection: boolean
 }
 
-/** `GET /auth/me`: the account and its profiles (§17.2). */
 export const getMeFactory =
   ({ accountRepository, profileRepository }: Deps) =>
   ({

@@ -2,7 +2,6 @@ import type { SessionKind } from '@projo/shared/api/auth'
 
 import type { AuthSession } from './principal.ts'
 
-/** §6.1 `sessions`: cookie sessions and bearer tokens. Only the token hash is stored. */
 export type Session = {
   id: string
   accountId: string
@@ -24,20 +23,15 @@ export type SessionRepository = {
   touch: (input: { id: string; lastSeenAt: Date; expiresAt: Date }) => void
   setLastProfile: (input: { id: string; profileId: string }) => void
   revoke: (input: { id: string; revokedAt: Date }) => void
-  /** Not revoked and not expired at `now`, most recently seen first. */
   listActiveByAccount: (input: { accountId: string; now: Date }) => Session[]
-  /** Revokes every session of the account still open, but `exceptId`. */
   revokeAllByAccount: (input: { accountId: string; revokedAt: Date; exceptId?: string }) => void
 }
 
 const minuteMs = 60_000
 const dayMs = 24 * 60 * minuteMs
 
-/** §14 / §24: 30 days, sliding. */
 export const sessionLifetimeMs = 30 * dayMs
-/** §14: the expiry is pushed back on a request more than 24 h after the previous renewal. */
 export const sessionRenewalIntervalMs = dayMs
-/** `last_seen_at` ("last activity") is refreshed at most this often. */
 export const sessionTouchIntervalMs = 5 * minuteMs
 
 export type SessionState = 'active' | 'revoked' | 'expired'
@@ -48,10 +42,6 @@ export const sessionState = (session: Session, now: Date): SessionState => {
   return 'active'
 }
 
-/**
- * What an authenticated request should write back: nothing, a new `last_seen_at`, or a new
- * `last_seen_at` and a renewed expiry (then the cookie is re-sent).
- */
 export const sessionRefresh = (
   session: Session,
   now: Date,

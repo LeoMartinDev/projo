@@ -30,10 +30,6 @@ export type CompleteSetupInput = {
 
 export type CompleteSetupError = AppError<'setup/already_completed'>
 
-/**
- * First launch (§14, §15): creates the admin account, its first profile and the server
- * settings. Refused as soon as an account exists, including when two requests race.
- */
 export const completeSetupFactory =
   ({ setupRepository, passwordHasher, clock, ids, logger }: Deps) =>
   async ({

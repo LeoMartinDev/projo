@@ -62,7 +62,6 @@ describe('segments', () => {
     }
     expect(repo.listByItem('ep-1')).toEqual([])
     expect(repo.save({ itemId: 'ep-1', origin: 'manual', candidate: intro })?.origin).toBe('manual')
-    // Other types are not concerned.
     expect(
       repo.save({ itemId: 'ep-1', origin: 'skipdb', candidate: { ...intro, type: 'credits' } }),
     ).toBeDefined()

@@ -1,19 +1,10 @@
-/*
- * Spectator cards (artboards `Home`, `MobileHome`, kit v2 tokens): 16:9 cards with their hover
- * preview, 2:3 posters, the long-press sheet, round icon buttons, tones for missing pictures.
- */
-
 @import '../../shared/styles/media.css';
 
-/* The panel colour of a preview, from its artwork (MediaCard, artwork-tint.ts). Registered so it
-   transitions when the sample arrives instead of flashing. */
 @property --card-tint {
   syntax: '<color>';
   inherits: true;
   initial-value: #161619;
 }
-
-/* ── Previous / next arrows of a horizontal row (home rows, casting) ───── */
 
 .row__pager {
   display: flex;
@@ -46,8 +37,6 @@
   cursor: default;
 }
 
-/* ── Tones: the colour of a card without picture (§13.5 "repli") ────────── */
-
 .tone-0 {
   --tone: #2b4560;
 }
@@ -74,8 +63,6 @@
   height: 100%;
   object-fit: cover;
 }
-
-/* ── Round icon buttons (artboard `Home`, `.round`) ─────────────────────── */
 
 .round-button {
   display: inline-flex;
@@ -137,8 +124,6 @@
   opacity: 0.5;
 }
 
-/* ── Rating badge, progress line ────────────────────────────────────────── */
-
 .rating-badge {
   display: inline-flex;
   align-items: center;
@@ -166,8 +151,6 @@
   height: 3px;
 }
 
-/* ── Card of a home row ─────────────────────────────────────────────────── */
-
 .cw {
   position: relative;
   flex: 0 0 var(--card-width);
@@ -179,8 +162,6 @@
   z-index: 30;
 }
 
-/* Its own layer from the start (`will-change`): without it Firefox repaints the card at every frame
-   of the hover zoom, which judders. */
 .card {
   position: relative;
   display: flex;
@@ -193,8 +174,6 @@
   will-change: transform;
 }
 
-/* The hover shadow of the picture, faded in: a transitioned `box-shadow` is repainted at every
-   frame. Outside `.card__art`, which clips. */
 .card::before {
   content: '';
   position: absolute;
@@ -258,12 +237,10 @@
   overflow-wrap: anywhere;
 }
 
-/* Clear of the progress bar below it. */
 .card__art:has(.card__progress) .card__title {
   bottom: 20px;
 }
 
-/* A phone's cards are narrower: a 20 px title would take two lines for most names. */
 @media (--compact) {
   .card__title {
     font-size: 17px;
@@ -276,7 +253,6 @@
   line-clamp: 4;
 }
 
-/* A real poster already carries its title. */
 .cw--poster .card__art:has(.cover-img) .card__title {
   display: none;
 }
@@ -332,10 +308,6 @@
   white-space: nowrap;
 }
 
-/* ── Preview (desktop: hover or keyboard focus) ─────────────────────────── */
-
-/* `left`, `top` and the horizontal `transform-origin` come from MediaCard (preview-placement.ts),
-   which keeps it inside the row and the window; these are its resting place before it measures. */
 .preview {
   position: absolute;
   top: -30px;
@@ -376,7 +348,6 @@
     visibility 0s linear 0.45s;
 }
 
-/* Keyboard: at once, so Tab reaches the actions. */
 .cw:focus-within .preview {
   opacity: 1;
   visibility: visible;
@@ -393,8 +364,6 @@
   opacity: 1;
 }
 
-/* The tint under everything, deepening towards the bottom. Without artwork (none, or it failed),
-   the item's tone darkened. */
 .preview::before {
   content: '';
   position: absolute;
@@ -411,9 +380,6 @@
   --card-tint: color-mix(in oklab, var(--tone, #2b3445) 35%, #0e1014);
 }
 
-/* Taller than the card's 16:9, behind the title and the actions; fades out into the tint. The fade
-   keeps a two-line title ≥ 3:1 over a white artwork at every width of a paged row; the info lines
-   sit past the artwork, on the tint. */
 .preview__art {
   position: absolute;
   top: 0;
@@ -450,8 +416,6 @@
   animation: ken-burns 10s ease-out 0.45s both;
 }
 
-/* A fixed height (the title grows upwards over the artwork): every preview of a row has the same
-   size, with or without artwork. */
 .preview__head {
   position: relative;
   display: flex;
@@ -495,7 +459,6 @@
   flex: 1 1 auto;
 }
 
-/* Room for its four lines (line, badges, genres, progress) whichever are there. */
 .preview__info {
   display: flex;
   flex-direction: column;
@@ -550,13 +513,10 @@
   flex: 0 0 16px;
 }
 
-/* A row that scrolls natively (no fine pointer, see Row) would clip the preview: the long press
-   opens the sheet there. */
 .row__viewport:not(.row__viewport--paged) .preview {
   display: none;
 }
 
-/* Touch screens: no hover, the long press opens the sheet instead. */
 @media not (--fine-pointer) {
   .preview {
     display: none;
@@ -572,10 +532,6 @@
   }
 }
 
-/* ── Poster tile (grids, search) ────────────────────────────────────────── */
-
-/* Not clipped (`overflow`), so that its hover shadow can be a faded-in `::after` (see `.card`);
-   the picture is rounded itself. Own layer for the hover zoom, as `.card`. */
 .poster {
   position: relative;
   display: flex;
@@ -640,7 +596,6 @@
   padding: 14px 14px 18px;
 }
 
-/* With a poster the caption is only for assistive technologies. */
 .poster:has(.poster__img) .poster__caption {
   position: absolute;
   width: 1px;
@@ -696,8 +651,6 @@
   width: auto;
   height: 3px;
 }
-
-/* ── Long-press sheet (artboard `MobileHome`) ───────────────────────────── */
 
 .card-sheet {
   display: flex;
@@ -785,10 +738,6 @@
 .sheet-line--danger {
   color: var(--color-error-soft);
 }
-
-/* ── Card menu (wider than a phone, CardSheet.tsx) ───────────────────────────
-   The card lifted where it is, above the dimmed page, its actions in glass beside it. The dialog
-   fills the window and stays transparent: what is outside the two is the backdrop. */
 
 .card-menu {
   position: fixed;

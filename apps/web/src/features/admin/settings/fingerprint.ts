@@ -1,10 +1,5 @@
 import type { SegmentSettingsDto } from '@projo/shared/api/segments'
 
-/**
- * Fingerprinting thresholds of the "Intros and credits" settings (§12.3, §15), typed as text: bounds of
- * `updateSegmentSettingsBodySchema`, similarity shown as a percentage. Pure: tests run in Bun.
- */
-
 export type Thresholds = Omit<SegmentSettingsDto['fingerprint'], 'enabled'>
 export type ThresholdField = keyof Thresholds
 export type ThresholdsDraft = Record<ThresholdField, string>
@@ -17,7 +12,6 @@ export const thresholdFields = [
   'similarity',
 ] as const satisfies readonly ThresholdField[]
 
-/** Bounds in the unit of the field as typed (similarity in percent). */
 export const thresholdBounds: Record<ThresholdField, { min: number; max: number }> = {
   introMinutes: { min: 1, max: 30 },
   creditsMinutes: { min: 1, max: 15 },
@@ -37,7 +31,6 @@ export const thresholdsDraftOf = (thresholds: Thresholds): ThresholdsDraft => ({
 export type CheckedThresholds =
   { ok: true; value: Thresholds } | { ok: false; invalid: readonly ThresholdField[] }
 
-/** Whole numbers within bounds, and a shortest common sequence below the longest. */
 export const checkThresholds = (draft: ThresholdsDraft): CheckedThresholds => {
   const read = (field: ThresholdField) => {
     const text = draft[field].trim()
@@ -63,7 +56,6 @@ export const checkThresholds = (draft: ThresholdsDraft): CheckedThresholds => {
   }
 }
 
-/** Only the thresholds that changed (the section is patched partially). */
 export const changedThresholds = (stored: Thresholds, next: Thresholds): Partial<Thresholds> =>
   Object.fromEntries(
     thresholdFields

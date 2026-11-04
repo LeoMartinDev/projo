@@ -18,7 +18,6 @@ import './search.css'
 
 const debounceMs = 180
 
-/** The query sent to the API, `debounceMs` after the last keystroke (§13.5 "instant"). */
 const useDebounced = (value: string): string => {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
@@ -61,11 +60,6 @@ const ResultRow = ({
   </li>
 )
 
-/**
- * Search overlay (§13.2, §13.5): instant results from 2 characters, movies then series, each a
- * grid; up and down arrows move through them (combobox, `moveInGrid`), Enter opens one, Escape
- * closes.
- */
 export const SearchOverlay = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const { t } = useTranslation()
   const [dialog, ref] = useElement<HTMLDialogElement>()
@@ -81,7 +75,6 @@ export const SearchOverlay = ({ open, onClose }: { open: boolean; onClose: () =>
       ref={ref}
       className="search"
       aria-label={t('search.label')}
-      // React propagates cancel and close up the tree: ignore those of a nested dialog.
       onClose={(event) => {
         if (event.target === event.currentTarget) onClose()
       }}
@@ -120,7 +113,6 @@ const SearchPanel = ({ onClose }: { onClose: () => void }) => {
     void navigate({ to: '/items/$itemId', params: { itemId: item.id } })
   }
 
-  // The grids' column count, as laid out now (it follows the panel's width).
   const columns = () => {
     const list = document.getElementById(listId)?.querySelector('.search__list')
     return list ? getComputedStyle(list).gridTemplateColumns.split(' ').length : 1
@@ -206,13 +198,11 @@ const SearchPanel = ({ onClose }: { onClose: () => void }) => {
             <CloseIcon />
           </button>
         </div>
-        {/* On a phone an × inside the field reads as "clear": iOS's Cancel beside it instead. */}
         <button type="button" className="search__cancel" onClick={onClose}>
           {t('common.cancel')}
         </button>
       </div>
       <div className="search__results" id={listId} role="listbox" aria-label={t('search.results')}>
-        {/* Nothing typed yet: the field's placeholder already says what to do. */}
         {!ready ? undefined : search.isError ? (
           <ErrorAlert error={search.error} />
         ) : data === undefined ? (

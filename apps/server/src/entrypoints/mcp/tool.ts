@@ -4,14 +4,12 @@ import type { AppError, Result } from '@projo/shared'
 
 import type { Logger } from '../../core/logger.ts'
 
-/** Who calls a tool (§27.3): an admin account, acting as one of its unrestricted profiles. */
 export type ToolContext = {
   accountId: string
   profileId: string
   logger: Logger
 }
 
-/** MCP tool annotations: the client asks before a write, warns before a destructive one. */
 export type ToolAnnotations = {
   readOnlyHint: boolean
   destructiveHint?: boolean
@@ -19,7 +17,6 @@ export type ToolAnnotations = {
   openWorldHint?: boolean
 }
 
-/** Every tool answers an object (`structuredContent` must be one). */
 export type ToolValue = Record<string, unknown>
 
 export type ToolOutcome =
@@ -27,25 +24,18 @@ export type ToolOutcome =
   | { kind: 'invalid_arguments'; message: string }
   | { kind: 'failed'; error: AppError }
 
-/** A tool as `tools/list` describes it and `tools/call` runs it (§27.4). */
 export type McpTool = {
   name: string
   title: string
   description: string
-  /** JSON Schema of the arguments, from the Zod schema that validates them (§27.6). */
   inputSchema: Record<string, unknown>
   annotations: ToolAnnotations
   call: (args: unknown, context: ToolContext) => Promise<ToolOutcome>
-  /** Ids worth logging (`sourceId`, `itemId`…), never the whole arguments. */
   targets: (args: unknown) => Record<string, unknown>
 }
 
 const targetKeys = ['sourceId', 'itemId', 'tmdbId', 'libraryId'] as const
 
-/**
- * A tool from a Zod schema of its arguments: the schema is published as `inputSchema` and checked
- * before `run`; an expected failure is a `Result` error, sent back as a tool error (`isError`).
- */
 export const defineTool = <S extends z.ZodObject>({
   name,
   title,

@@ -3,11 +3,6 @@ import type { MiddlewareHandler } from 'hono'
 import type { StaticFiles } from '../../infrastructure/http/static-files.ts'
 import type { AppEnv } from './context.ts'
 
-/**
- * Never the SPA: the API, `/health`, and the machine endpoints of §27 (`/mcp`, OAuth discovery,
- * registration and tokens), where an `index.html` with a 200 would read as broken metadata. The
- * OAuth consent page, `/oauth/authorize`, is a page of the web app.
- */
 const isApiPath = (path: string): boolean =>
   path === '/api' ||
   path.startsWith('/api/') ||
@@ -20,10 +15,6 @@ const isApiPath = (path: string): boolean =>
 
 const hasExtension = (path: string): boolean => /\.[a-z0-9]+$/i.test(path)
 
-/**
- * Serves the built web app with SPA fallback: unknown extension-less paths get `index.html`.
- * Hashed assets (`/assets/*`) are cached forever, everything else is revalidated.
- */
 export const serveWebApp =
   ({ staticFiles }: { staticFiles: StaticFiles }): MiddlewareHandler<AppEnv> =>
   async (c, next) => {

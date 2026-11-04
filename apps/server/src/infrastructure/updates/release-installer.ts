@@ -24,15 +24,12 @@ import {
   parseSwitchReport,
 } from './release-files.ts'
 
-/** A bundle is a few MB; anything this large is not a projo release (disk filling guard). */
 const MAX_ARCHIVE_BYTES = 512 * 1024 ** 2
 const SMALL_FILE_TIMEOUT_MS = 30_000
-/** Whole archive download. */
 const ARCHIVE_TIMEOUT_MS = 10 * 60_000
 
 export type FsReleaseInstallerConfig = {
   paths: DataPaths['app']
-  /** Allowed prefix of asset URLs (§20); tests point it at their server. */
   downloadPrefix?: string
   fetch?: FetchLike
   logger: Logger
@@ -60,7 +57,6 @@ const sha256OfFile = async (path: string): Promise<string | undefined> => {
   }
 }
 
-/** First file of the manifest that is missing or differs, if any. */
 const findCorrupted = async (
   dir: string,
   manifest: ReleaseManifest,
@@ -84,17 +80,11 @@ const readManifestIn = async (dir: string): Promise<ReleaseManifest | undefined>
   }
 }
 
-/**
- * §16.4 "Update" on the disk (`/data/app`): download into `staging/<v>`, `SHA256SUMS`
- * then every file of the manifest (§20), extraction with Bun's own tar reader (no native
- * dependency), rename into `versions/<v>`. Also `pending` and the supervisor's report.
- */
 export const createFsReleaseInstaller = (config: FsReleaseInstallerConfig): ReleaseInstaller => {
   const { paths } = config
   const downloadPrefix = config.downloadPrefix ?? RELEASE_DOWNLOAD_PREFIX
   const doFetch: FetchLike = config.fetch ?? ((input, init) => fetch(input, init))
   const log = config.logger.child({ module: 'updates' })
-  /** `versions/<v>` never changes once installed: checked once per directory mtime. */
   const verified = new Map<string, { mtimeMs: number; manifest: ReleaseManifest | undefined }>()
 
   const checkVersionDir = async (version: string): Promise<ReleaseManifest | undefined> => {
@@ -138,7 +128,6 @@ export const createFsReleaseInstaller = (config: FsReleaseInstallerConfig): Rele
     return ok(parseChecksums(new TextDecoder().decode(bytes)))
   }
 
-  /** Streams the archive to `file`, hashing on the way; resolves with its SHA-256. */
   const downloadArchive = async ({
     release,
     file,
@@ -190,7 +179,6 @@ export const createFsReleaseInstaller = (config: FsReleaseInstallerConfig): Rele
     return ok(hasher.digest('hex'))
   }
 
-  /** Writes every regular file of the archive under `dir`, refusing paths that leave it. */
   const extract = async (archiveFile: string, dir: string): Promise<Result<void, Fail>> => {
     const root = resolve(dir)
     let entries: Map<string, File>

@@ -5,9 +5,7 @@ import { type ConnectionError, connectionError } from './connection-error.ts'
 
 const key = 'projo.server-url'
 
-/** The server URL, kept on the device (Keychain) across launches (§26.3). */
 export type ServerUrlStore = {
-  /** `undefined` when none is stored, or when the Keychain cannot be read. */
   load: () => Promise<string | undefined>
   save: (url: string) => Promise<Result<void, ConnectionError<'unknown'>>>
   clear: () => Promise<Result<void, ConnectionError<'unknown'>>>

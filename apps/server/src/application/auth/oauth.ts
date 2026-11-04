@@ -38,7 +38,6 @@ type Deps = {
   logger: Logger
 }
 
-/** The authorization request of `/oauth/authorize` (query of the consent page). */
 export type AuthorizationRequest = {
   responseType: string
   clientId: string
@@ -76,11 +75,6 @@ export type TokenError = AppError<'oauth/invalid_grant' | 'oauth/invalid_client'
 
 const invalidGrant = (message: string) => err(appError('oauth/invalid_grant', message))
 
-/**
- * projo as the authorization server of its MCP server (§27.3): client registration and Client ID
- * Metadata Documents, the consent decision, the token endpoint, and the access tokens `/mcp`
- * accepts. `mcpUrl`: `<origin>/mcp` of the request, the protected resource.
- */
 export const oauthFactory = ({
   oauthRepository,
   assistantTokenRepository,
@@ -93,13 +87,11 @@ export const oauthFactory = ({
   ids,
   logger,
 }: Deps) => {
-  /** A CIMD client is (re)read when unknown or older than a day; a DCR client must exist. */
   const resolveClient = async (
     clientId: string,
   ): Promise<Result<OAuthClient, AppError<'oauth/invalid_client'>>> => {
     const known = oauthRepository.findClient(clientId)
     const now = clock.now()
-    // A URL is a Client ID Metadata Document (the fetcher refuses anything but HTTPS).
     if (!/^https?:\/\//.test(clientId)) {
       return known === undefined
         ? err(appError('oauth/invalid_client', 'unknown client', { context: { clientId } }))
@@ -128,7 +120,6 @@ export const oauthFactory = ({
     )
   }
 
-  /** Checks a request before the page shows it; errors are shown there, never redirected. */
   const checkRequest = async (
     request: AuthorizationRequest,
     mcpUrl: string,
@@ -176,7 +167,6 @@ export const oauthFactory = ({
   }
 
   return {
-    /** `POST /oauth/register` (RFC 7591): a public client, its redirect URIs checked. */
     register: ({
       clientName,
       redirectUris,
@@ -207,10 +197,6 @@ export const oauthFactory = ({
       return ok(client)
     },
 
-    /**
-     * `GET /api/v1/oauth/authorize`: what the consent page shows. `canAuthorize`: the signed-in
-     * account is an admin on an unrestricted active profile (§15).
-     */
     consent: async ({
       request,
       mcpUrl,
@@ -248,10 +234,6 @@ export const oauthFactory = ({
       })
     },
 
-    /**
-     * `POST /api/v1/oauth/authorize`: "Allow" gives a code bound to the PKCE challenge, the
-     * redirect URI, the account and its active profile; "Cancel" sends `access_denied` back.
-     */
     decide: async ({
       request,
       decision,
@@ -298,11 +280,6 @@ export const oauthFactory = ({
       return ok({ redirectTo: redirectWith(request.redirectUri, { code, state: request.state }) })
     },
 
-    /**
-     * `POST /oauth/token`: a code (once, within 60 s, its PKCE verifier and redirect URI) gives a
-     * new assistant and its tokens; a refresh token (rotated: used twice, it revokes the
-     * assistant) gives new ones.
-     */
     token: async (request: TokenRequest): Promise<Result<TokenResponse, TokenError>> => {
       const now = clock.now()
       if (request.grantType === 'authorization_code') {
@@ -349,7 +326,6 @@ export const oauthFactory = ({
         return invalidGrant('assistant revoked')
       }
       if (stored.rotatedAt !== undefined || !oauthRepository.markRotated({ tokenHash, at: now })) {
-        // §27.3: a refresh token presented twice was copied: the whole connection goes.
         assistantTokenRepository.revoke({ id: assistant.id, revokedAt: now })
         logger.warn('oauth refresh token reused, assistant revoked', {
           assistantTokenId: assistant.id,
@@ -370,7 +346,6 @@ export const oauthFactory = ({
       return ok(issueTokens(assistant.id, grantedScope('review offline_access')))
     },
 
-    /** An access token of `/mcp` → its assistant's principal, checked like a token's (§27.3). */
     authenticateAccess: (
       token: string,
     ): Result<

@@ -1,9 +1,3 @@
-/**
- * Localised labels the web takes from `Intl` (§19). Hermes lacks `Intl.DisplayNames`: then a
- * plainer label, never a crash. Relative dates: `formatRelative` of `@projo/i18n/format`.
- */
-
-/** Each language in itself, as iOS lists them, where `Intl.DisplayNames` is missing. */
 const endonyms: Record<string, string> = {
   ar: 'العربية',
   cs: 'Čeština',
@@ -33,10 +27,6 @@ const endonyms: Record<string, string> = {
   zh: '中文',
 }
 
-/**
- * ISO 639-2 codes of the languages above (ffprobe's track tags, §13.5 available tracks), the
- * bibliographic forms (`fre`, `ger`) included.
- */
 const twoLetterOf: Record<string, string> = {
   ara: 'ar',
   ces: 'cs',
@@ -72,10 +62,6 @@ const twoLetterOf: Record<string, string> = {
   chi: 'zh',
 }
 
-/**
- * "Français", "Japanese": a language by its ISO 639-1 (or 639-2) code, in `locale` when `Intl`
- * can.
- */
 export const languageName = (tag: string, locale: string): string => {
   const code = twoLetterOf[tag.toLowerCase()] ?? tag
   const name =

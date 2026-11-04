@@ -16,12 +16,6 @@ import { type CardPlace, detailTargetOf, progressRatioOf, toneOf, wideArtOf } fr
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
 import './media.css'
 
-/**
- * The actions of a card, on a long press or a secondary click: My list / Mark as watched / Info,
- * and "Remove" on Continue watching and Up next. On a phone, a bottom sheet (artboard
- * `MobileHome`) with the card's head, its progress and "Play"; on a tablet or a desktop, a menu
- * anchored to the card, which lifts above the dimmed page, as iPadOS does.
- */
 export const CardSheet = ({
   item,
   place,
@@ -46,10 +40,6 @@ export const CardSheet = ({
   )
 }
 
-/**
- * The long-press sheet of a poster grid (Movies, Shows, My list, category page). It follows the
- * fresh grid data, and closes when its item leaves the grid (removed from My list).
- */
 export const useGridCardSheet = (items: ItemSummaryDto[]) => {
   const [pressed, setPressed] = useState<{ id: string; anchor: HTMLElement }>()
   return {
@@ -65,11 +55,9 @@ export const useGridCardSheet = (items: ItemSummaryDto[]) => {
   }
 }
 
-/** Room between the lifted card and the menu, and kept from the window's edges. */
 const gap = 12
 const margin = 16
 
-/** Below the card when it fits, above otherwise (measured once the dialog is open). */
 const placeBeside = (panel: HTMLElement, card: DOMRect) => {
   const below = card.bottom + gap
   const top =
@@ -80,10 +68,6 @@ const placeBeside = (panel: HTMLElement, card: DOMRect) => {
   panel.style.left = `${Math.min(Math.max(card.left, margin), window.innerWidth - panel.offsetWidth - margin)}px`
 }
 
-/**
- * The menu of a wide screen: a copy of the card's picture lifted where the card is, the actions
- * below it (above when there is no room). A rotation or a resize closes it, like iPadOS.
- */
 const CardMenu = ({
   item,
   place,
@@ -96,16 +80,13 @@ const CardMenu = ({
   onClose: () => void
 }) => {
   const text = useCardText()(item)
-  // The picture of a home card (its caption stays behind), or a whole grid poster.
   const art = anchor.querySelector<HTMLElement>('.card__art') ?? anchor
   const [rect] = useState(() => art.getBoundingClientRect())
 
-  // Before the first paint: opened (a closed dialog measures 0), then the copy and the panel.
   const open: RefCallback<HTMLDialogElement> = useCallback(
     (dialog) => {
       if (!dialog || dialog.open) return
       dialog.showModal()
-      // The menu, not its first button: Safari rings it even after a touch (Sheet.tsx).
       dialog.focus()
       dialog.querySelector('.card-menu__lift')?.replaceChildren(art.cloneNode(true))
       const panel = dialog.querySelector<HTMLElement>('.card-menu__panel')
@@ -130,7 +111,6 @@ const CardMenu = ({
         onClose()
       }}
       onClick={(event) => {
-        // Anywhere but the actions: the dialog fills the window, its empty part is the backdrop.
         if (event.target === event.currentTarget) onClose()
       }}
     >
@@ -155,7 +135,6 @@ const CardSheetBody = ({
 }: {
   item: ItemSummaryDto
   place: CardPlace
-  /** The sheet's heading (picture, title, progress); the menu has the lifted card instead. */
   titleId?: string
   onClose: () => void
 }) => {

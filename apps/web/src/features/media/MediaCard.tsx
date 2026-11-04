@@ -44,13 +44,8 @@ import { requestArtworkTint, useArtworkTint } from './use-artwork-tint.ts'
 import { useLongPress } from './use-long-press.ts'
 import './media.css'
 
-/** Room kept between the preview and the window's edges. */
 const edgePx = 12
 
-/**
- * What is left of the slide of a paged row towards its new page (Row sets the target `transform`
- * of `.row__track` and transitions to it), so the preview is placed for where its card lands.
- */
 const remainingSlideOf = (wrapper: HTMLElement) => {
   const track = wrapper.closest<HTMLElement>('.row__track')
   if (!track || track.style.transform === '') return 0
@@ -60,17 +55,11 @@ const remainingSlideOf = (wrapper: HTMLElement) => {
   )
 }
 
-/**
- * Measures where the preview of `wrapper` (a `.cw`) opens: inside its row across (the paged row
- * clips what overflows it) and inside the window under the fixed header down. `undefined` when the
- * preview is not displayed (touch screens).
- */
 const measurePreview = (wrapper: HTMLElement, poster: boolean): PreviewPlacement | undefined => {
   const preview = wrapper.querySelector<HTMLElement>('.preview')
   if (!preview || preview.offsetWidth === 0) return undefined
   const root = document.documentElement
   const row = wrapper.closest('.row__viewport')?.getBoundingClientRect()
-  // `--header-height` is a calc() with the status bar's inset: the header itself says where it ends.
   const header = document.querySelector('.shell__header')?.getBoundingClientRect().bottom ?? 0
   const box = wrapper.getBoundingClientRect()
   return placePreview({
@@ -80,7 +69,6 @@ const measurePreview = (wrapper: HTMLElement, poster: boolean): PreviewPlacement
       width: box.width,
       height: box.height,
     },
-    // Layout sizes: the closed preview is scaled down.
     preview: { width: preview.offsetWidth, height: preview.offsetHeight },
     bounds: {
       left: Math.max(row?.left ?? edgePx, 0),
@@ -88,15 +76,10 @@ const measurePreview = (wrapper: HTMLElement, poster: boolean): PreviewPlacement
       top: header + edgePx,
       bottom: root.clientHeight - edgePx,
     },
-    // The resting place of artboard `Home`.
     restingTop: poster ? -6 : -30,
   })
 }
 
-/**
- * Keeps the preview of an open card in place while the page scrolls (focus scrolls a card into
- * view too), the window resizes or the row's slide to another page ends.
- */
 const useFollowPreview = (
   wrapper: HTMLElement | undefined,
   open: boolean,
@@ -125,10 +108,6 @@ const useFollowPreview = (
   }, [wrapper, open, update])
 }
 
-/**
- * The actions a card reveals (§13.3): Play, My list, Mark as watched, Remove (Continue
- * watching, Up next), More info. Round buttons of artboard `Home`.
- */
 const PreviewActions = ({
   item,
   place,
@@ -204,11 +183,6 @@ const PreviewActions = ({
   )
 }
 
-/**
- * The panel that grows out of a card on hover or focus (artboard `Home`, `.preview`): the artwork
- * runs behind the title and the actions and fades into a panel tinted with its colour
- * (`--card-tint`, artwork-tint.ts), the item's tone without artwork.
- */
 const Preview = ({
   item,
   place,
@@ -220,7 +194,6 @@ const Preview = ({
   place: CardPlace
   text: CardText
   placement: PreviewPlacement | undefined
-  /** Opened at least once: the closed preview counts as visible, so its art would load for every card. */
   opened: boolean
 }) => {
   const { t } = useTranslation()
@@ -263,7 +236,6 @@ const Preview = ({
       </div>
       <div className="preview__body">
         <PreviewActions item={item} place={place} actions={actions} />
-        {/* A failed action takes the place of the lines: the preview keeps its size. */}
         {actions.error ? (
           <div className="preview__info">
             <span className="preview__error" role="alert">
@@ -300,12 +272,6 @@ const Preview = ({
   )
 }
 
-/**
- * A card of a home row (§13.3): 16:9 with a still or backdrop (Continue watching, Up next,
- * Ma liste) or a 2:3 poster (Recently added, the category rows). The picture carries the
- * title, a progress bar and the "New episode" badge; hover or focus opens the preview with the
- * actions, a long press opens `CardSheet` on touch screens.
- */
 export const MediaCard = ({
   item,
   place,
@@ -316,7 +282,6 @@ export const MediaCard = ({
   item: ItemSummaryDto
   place: CardPlace
   isNew?: boolean
-  /** "Continue watching": the frame of the resume position, instead of the 16:9 image. */
   resumeFrame?: ResumeFrameDto
   onLongPress: (item: ItemSummaryDto, anchor: HTMLElement) => void
 }) => {
@@ -329,7 +294,6 @@ export const MediaCard = ({
   const target = detailTargetOf(item)
   const [wrapper, wrapperRef] = useElement<HTMLDivElement>()
   const [placement, setPlacement] = useState<PreviewPlacement>()
-  // Open while hovered or holding the focus (the CSS shows it on `:hover` / `:focus-within`).
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const opened = hovered || focused || placement !== undefined
@@ -348,7 +312,6 @@ export const MediaCard = ({
     requestArtworkTint(wideArtOf(item))
     update(element)
     setFocused(true)
-    // Again once Row has turned to the card's page (its focus handler runs after this one).
     requestAnimationFrame(() => update(element))
   }
   const onBlur = (event: FocusEvent<HTMLElement>) => {
@@ -360,7 +323,6 @@ export const MediaCard = ({
     <>
       <span className={`card__art tone-${toneOf(item.id)}`}>
         <Artwork src={art} className="cover-img" {...(poster ? {} : { sizes: 'auto, 25vw' })} />
-        {/* The thumbnail it stopped at (§10.5) over the metadata image, kept under it until it loads or when it cannot. */}
         {resumeFrame === undefined ? undefined : (
           <Artwork src={resumeFrame.url} className="cover-img" />
         )}

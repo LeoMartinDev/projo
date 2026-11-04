@@ -23,14 +23,9 @@ const recordSchema = z.object({
       runtimeMin: z.string(),
     })
     .optional(),
-  // any string: a newer version may have written a code this one does not declare
   error: z.object({ code: z.string(), message: z.string() }).optional(),
 })
 
-/**
- * `settings.updates.last_check`: what the last `check_updates` found, kept across restarts. A
- * value that no longer parses (older format) reads as "never checked".
- */
 export const createSqliteUpdateCheckStore = ({ db }: { db: Db }): UpdateCheckStore => ({
   read: (): UpdateCheckRecord | undefined => {
     const value = db

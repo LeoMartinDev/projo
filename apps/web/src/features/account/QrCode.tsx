@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { encode } from 'uqr'
 
-/** A QR code as one SVG path (no markup injected: the CSP stays strict). Quiet zone: the tile's padding. */
 export const QrCode = ({ value, label }: { value: string; label: string }) => {
   const { size, path } = useMemo(() => {
     const { data } = encode(value, { ecc: 'M', border: 0 })

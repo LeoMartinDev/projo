@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { createFullscreenScope, createVideoStore, fullscreenAction } from './video-state.ts'
 
-/** A playing `<video>` whose time and events the test drives. */
 const world = () => {
   const target = new EventTarget()
   const video = {
@@ -32,7 +31,6 @@ describe('video state', () => {
     fire('timeupdate')
     fire('waiting')
     expect(store.getSnapshot().waiting).toBe(true)
-    // Same time reported while stalled: still waiting.
     fire('timeupdate')
     expect(store.getSnapshot().waiting).toBe(true)
     video.currentTime = 5.25
@@ -76,7 +74,6 @@ describe('fullscreen across episodes (§10.7)', () => {
       for (const run of ticks.splice(0)) run()
     }
     const leaveFirst = scope.enter()
-    // `<PlayerPage key={itemId}>`: the old player unmounts as the next one mounts.
     leaveFirst()
     const leaveSecond = scope.enter()
     tick()

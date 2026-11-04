@@ -2,10 +2,8 @@ import { queryOptions } from '@tanstack/react-query'
 
 import { api, request } from '../../../shared/api/client.ts'
 
-/** Shared with the shell (avatar menu): kept apart from the admin chunks. */
 export const notificationsQueryKey = ['admin', 'notifications'] as const
 
-/** The menu badge (§15): unread notifications, all pages. */
 export const unreadNotificationsQuery = queryOptions({
   queryKey: [...notificationsQueryKey, 'unread'],
   queryFn: async () => {

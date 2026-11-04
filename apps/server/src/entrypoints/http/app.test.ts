@@ -26,7 +26,6 @@ writeFileSync(join(web.path, 'index.html'), '<!doctype html><title>projo</title>
 writeFileSync(join(web.path, 'assets', 'app-abc123.js'), 'console.log(1)')
 afterAll(() => web.cleanup())
 
-// A sample domain exercising validation, typed errors and context variables.
 const sampleRoutes = () =>
   new Hono<AppEnv>()
     .post('/samples', validate('json', z.object({ name: z.string().min(1) })), (c) =>
@@ -37,7 +36,6 @@ const sampleRoutes = () =>
       throw new Error('bug')
     })
 
-// Domains whose factories need dependencies are mounted empty: this file tests the HTTP shell.
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
 const routes: ApiRoutes = {

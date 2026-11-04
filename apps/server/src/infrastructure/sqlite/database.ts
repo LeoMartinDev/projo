@@ -19,10 +19,8 @@ export type OpenDatabaseError = AppError<
 >
 
 type OpenDatabaseInput = {
-  /** Path of the database file, or `:memory:`. */
   file: string
   migrationsDir: string
-  /** When set, an existing database is copied here before pending migrations run. */
   backupsDir?: string
   clock: Clock
   logger: Logger
@@ -35,12 +33,6 @@ const configure = (client: SqliteClient): void => {
   client.run('PRAGMA busy_timeout = 5000')
 }
 
-/**
- * Finalizes every statement still alive (Drizzle prepares one per query) before closing. A plain
- * `close()` is `sqlite3_close_v2`: with live statements the connection, and its handles on the
- * database, `-wal` and `-shm` files, stays open until they are garbage collected, which on Windows
- * keeps those files locked (they cannot be moved or deleted).
- */
 const release = (client: SqliteClient): void => {
   client.close(true)
 }
@@ -62,13 +54,8 @@ const pendingMigrations = (client: SqliteClient, migrations: MigrationMeta[]): n
 const backupFileName = (now: Date): string =>
   `projo-${now.toISOString().replaceAll(':', '-').replace('.', '-')}-pre-migration.db`
 
-/** Pre-migration copies kept in `backupsDir` (each is a whole database). */
 const KEPT_MIGRATION_BACKUPS = 2
 
-/**
- * Removes all but the newest pre-migration copies (names sort by time); the supervisor's copies
- * and the admin's exports are left. A failure only logs: the migration does not depend on it.
- */
 const pruneMigrationBackups = (backupsDir: string, logger: Logger): void => {
   try {
     const copies = readdirSync(backupsDir)
@@ -83,10 +70,6 @@ const pruneMigrationBackups = (backupsDir: string, logger: Logger): void => {
   }
 }
 
-/**
- * Opens SQLite (WAL, foreign keys), backs the file up into `backupsDir` when migrations are
- * pending on an existing database, then applies the Drizzle migrations.
- */
 export const openDatabase = ({
   file,
   migrationsDir,
@@ -139,9 +122,6 @@ export const openDatabase = ({
   const db = drizzle({ client, schema, casing: 'snake_case' })
 
   if (pending > 0) {
-    // Drizzle runs every pending migration in one transaction, where SQLite ignores this pragma:
-    // with foreign keys on, a table rebuild (`DROP TABLE x`) fires each ON DELETE CASCADE of x.
-    // A failure closes the connection, which takes the per-connection pragma with it.
     let violations: unknown[]
     try {
       client.run('PRAGMA foreign_keys = OFF')

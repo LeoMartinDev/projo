@@ -19,10 +19,6 @@ import { useCreateProfile, useDeleteProfile, useUpdateProfile } from './queries.
 export type EditorTarget =
   { mode: 'create' } | { mode: 'edit'; profile: ProfileDto; currentPin?: string }
 
-/**
- * Create or change a profile (§13.6): name, colour among six, optional 4-digit PIN; delete with
- * confirmation (its progress is lost). Built with the kit v2 fields, in a dialog.
- */
 export const ProfileEditor = ({
   target,
   canDelete,

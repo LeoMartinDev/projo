@@ -1,8 +1,4 @@
-/* Profiles (§13.6, artboard `Main`), PIN, editor, profile settings. */
-
 @import '../../shared/styles/media.css';
-
-/* ── "Who's watching?" ────────────────────────────────────────────────────── */
 
 .who {
   position: relative;
@@ -78,7 +74,6 @@
   outline-offset: 6px;
 }
 
-/* The others dim while one is pointed at (artboard `Main`). */
 .who__profiles:hover .who__profile:not(:hover) {
   opacity: 0.45;
 }
@@ -217,8 +212,6 @@
   }
 }
 
-/* ── PIN ────────────────────────────────────────────────────────────────── */
-
 .dialog:has(.pin) {
   width: min(420px, calc(100vw - 32px));
 }
@@ -255,7 +248,6 @@
   animation: shake 0.45s var(--ease) both;
 }
 
-/* One real field over the four boxes: paste, autofill and the numeric keypad keep working. */
 .pin__input {
   position: absolute;
   inset: 0;
@@ -323,8 +315,6 @@
     transform: translateX(3px);
   }
 }
-
-/* ── Editor ─────────────────────────────────────────────────────────────── */
 
 .profile-editor {
   display: flex;
@@ -425,8 +415,6 @@
 .link-button:hover {
   color: var(--color-text-strong);
 }
-
-/* ── Settings pages ─────────────────────────────────────────────────────── */
 
 .settings {
   gap: 24px;

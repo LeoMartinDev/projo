@@ -11,10 +11,6 @@ import { useServerConnection } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 import { parseTypedPairing } from './pairing-input.ts'
 
-/**
- * The code of "Connect a device" typed by hand, for the server already chosen (§14, §26.3). A
- * pasted pairing link works too, and then names its server.
- */
 export const PairCodeScreen = () => {
   const { t } = useTranslation()
   const { gate } = useServerConnection()

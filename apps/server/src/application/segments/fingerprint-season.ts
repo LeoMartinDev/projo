@@ -19,44 +19,7 @@ import {
   type SegmentRepository,
 } from '../../core/segments/segment.ts'
 
-/**
- * §12.3 `fingerprint_season`: intro and credits of the episodes of a season that the chain left
- * without them, from the audio they share.
- *
- * - Waits for the chain (§12.3 "only for episodes without a result"): the first episode's
- *   `fetch_segments` enqueues this job while the others have not asked the providers yet. While a
- *   `fetch_segments` of an episode of the season is queued or running, the job does nothing and
- *   enqueues itself again `deferMs` (5 min) later.
- * - Targets: the episodes the catalog lists (the version playback plays, probed duration) whose
- *   chain has run (it always records its `chapter` lookup first), without a segment of the type
- *   and without its negative marker (`no_segment:<type>`). Only they receive segments and
- *   lookups; an episode whose chain has not run yet gets this job again from its own
- *   `fetch_segments`.
- * - References: episodes that already have the segment (any origin, e.g. a provider for E1–E5
- *   when E6 is missing) are fingerprinted too, only to corroborate the targets; their segment is
- *   never touched. At most `maxReferences` (6) of them, the closest to the targets in episode
- *   order, so that one missing episode in a 24-episode season costs 7 windows, not 24.
- *   Negatively marked episodes are neither.
- * - One file per version: episodes sharing a file (`E01-E02`, §8.4) are fingerprinted once, as
- *   one participant (a file never corroborates itself). Positions are on the file's timeline, so
- *   only its first episode can get the `intro` and only its last the `credits`; the others get
- *   neither segment nor lookup from it.
- * - Stacks (§7.7): the intro is searched in the first part, the credits in the last one, and the
- *   position is put back on the item timeline (durations of the previous parts added).
- * - Windows: the first `introMinutes` and the last `creditsMinutes`, each capped at half of a
- *   single-file episode so that a short episode's intro window never holds its credits.
- * - A type runs only with at least one target and two participants (targets + references,
- *   §12.3 "2 episodes minimum"); confidence = share of the other participants corroborating.
- * - Results: segments of origin `fingerprint` (the lowest priority, §12.1), and one `fingerprint`
- *   lookup per processed target: `found` (either type), else `error` when its audio could not be
- *   read, else `none`.
- * - Failures: `fpcalc` or `ffmpeg` missing, or no file readable at all, fail the job (retried,
- *   §18); a single unreadable file only costs that episode.
- */
-
-/** References fingerprinted per type at most. */
 export const maxReferences = 6
-/** Delay before trying again while the chain still runs for the season. */
 export const deferMs = 5 * 60_000
 
 type Deps = {
@@ -72,12 +35,10 @@ type Deps = {
 type FingerprintType = 'intro' | 'credits'
 const fingerprintTypes: FingerprintType[] = ['intro', 'credits']
 
-/** A window of audio to fingerprint, and where it sits on the item timeline. */
 export type FingerprintWindow = {
   path: string
   startSeconds: number
   durationSeconds: number
-  /** Item timeline position of the start of the window. */
   itemOffsetMs: number
   itemDurationMs: number
 }
@@ -107,17 +68,14 @@ export const fingerprintWindow = (
 
 type Participant = {
   fileKey: string
-  /** Items of the file that receive the segment; empty for a reference. */
   targets: string[]
   window: FingerprintWindow
-  /** Position of the file in episode order. */
   order: number
 }
 
 export type FingerprintSeasonSummary = {
   episodes: number
   segments: number
-  /** The chain still runs for the season: enqueued again for later. */
   deferred?: true
 }
 
@@ -177,8 +135,6 @@ export const fingerprintSeasonFactory =
       const all = [...files.values()].flatMap((file, order): Participant[] => {
         const window = fingerprintWindow(file, type, settings)
         if (window === undefined) return []
-        // A shared file's positions are on its own timeline: right for its first episode's
-        // intro and its last episode's credits only (§8.4).
         const owner = type === 'intro' ? file.itemIds[0] : file.itemIds.at(-1)
         if (owner === undefined) return []
         const targets = needs(owner, type) ? [owner] : []
@@ -250,7 +206,6 @@ export const fingerprintSeasonFactory =
         fingerprints.push({ key: fileKey, points: result.value })
       }
 
-      // The others could not be read: nothing to compare with, no answer for this type.
       if (fingerprints.length < 2) continue
       const detected = detectSharedSegments(fingerprints, settings)
       for (const { fileKey, targets: itemIds, window } of participants) {
@@ -280,7 +235,6 @@ export const fingerprintSeasonFactory =
       }
     }
 
-    // Nothing readable at all: the environment, not the files (job retried with backoff).
     if (lastError !== undefined && read === 0) return err(lastError)
 
     const segments = saves.filter((save) => save()).length

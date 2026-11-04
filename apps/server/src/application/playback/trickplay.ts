@@ -16,7 +16,6 @@ import {
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
 import type { SourceAccess } from './subtitle-vtt.ts'
 
-/** The database's view of the file (the scanner re-probes it when size or mtime change). */
 export const sourceFingerprint = (source: PlayableSource): FileFingerprint => ({
   sizeBytes: source.sizeBytes,
   mtimeMs: source.mtime,
@@ -24,13 +23,8 @@ export const sourceFingerprint = (source: PlayableSource): FileFingerprint => ({
 
 export const trickplayDedupeKey = (sourceId: string) => `trickplay:${sourceId}`
 
-/**
- * Sprites of a source in "Continue watching" (its card shows the resume frame): before the
- * other sprites and the clips (10), still after the enrichment.
- */
 export const trickplayInProgressPriority = 12
 
-/** §10.5: one job per source, lowest priority, after the enrichment (§18, priority 10). */
 export const requestTrickplay = (
   jobQueue: JobQueue,
   sourceId: string,
@@ -44,17 +38,11 @@ export const requestTrickplay = (
   })
 }
 
-/** The sprites of the source exist and were built from its current version. */
 const isFresh = (store: TrickplayStore, source: PlayableSource): boolean => {
   const stored = store.read(source.id)
   return stored !== undefined && sameFingerprint(stored.fingerprint, sourceFingerprint(source))
 }
 
-/**
- * Job `trickplay` (§10.5): `fps=1/10,scale=320:-2,tile=10x10` sprites and their index, when the
- * library (`trickplay_enabled`) and the server (`settings.trickplay_enabled`) want them. A source
- * whose sprites are up to date, gone, not ready or without video is skipped.
- */
 export const generateTrickplayFactory =
   ({
     catalogRepository,
@@ -100,11 +88,6 @@ export const generateTrickplayFactory =
     return ok('generated')
   }
 
-/**
- * `trickplayUrl` of the playback session DTO (§10.5): set only when the sprites of the played
- * source exist and are up to date ("sinon rien"). `?v=<mtime>` (kept by the sheet URLs): sheets
- * are cached a day, a replaced file must not show the old ones.
- */
 export const trickplayUrlFactory =
   ({
     catalogRepository,
@@ -123,10 +106,6 @@ export type TrickplayUrl = ReturnType<typeof trickplayUrlFactory>
 
 export type TrickplayAccessError = AppError<'playback/trickplay_not_found'>
 
-/**
- * `GET /trickplay/:sourceId/index.json`, `/:sheet.jpg` and `/frames/:second.webp`, for a profile
- * that may play the source.
- */
 export const trickplayFilesFactory = ({
   catalogRepository,
   trickplayStore,
@@ -176,10 +155,6 @@ export const trickplayFilesFactory = ({
       const path = trickplayStore.sheetPath({ sourceId, sheet })
       return path === undefined ? notFound(sourceId) : ok(path)
     },
-    /**
-     * The still of a thumbnail instant, sharper than its cell: what a "Continue watching" card
-     * shows (§13.3). Only the instants of the index, so at most one file per thumbnail.
-     */
     frame: async ({
       sourceId,
       second,
@@ -215,11 +190,6 @@ export const trickplayFilesFactory = ({
 
 export type TrickplayFiles = ReturnType<typeof trickplayFilesFactory>
 
-/**
- * Libraries analysed before trickplay existed, sprites lost or made from an older file: queues
- * the sources missing up-to-date sprites (deduplicated by source), those of an item in progress
- * first (an already queued job is raised to that priority). Returns how many were queued.
- */
 export const requestMissingTrickplayFactory =
   ({
     mediaCatalog,

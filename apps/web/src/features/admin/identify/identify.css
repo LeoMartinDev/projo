@@ -1,6 +1,3 @@
-/* TMDB identification (§7.8): "To review" and "Fix the match". Fills a fixed-height
-   dialog body; only the result list scrolls (AGENTS.md, UI layout). */
-
 .identify {
   flex: 1 1 auto;
   display: flex;

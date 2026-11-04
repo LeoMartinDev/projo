@@ -23,5 +23,4 @@ const subscribe = (listener: () => void) => {
   }
 }
 
-/** Current time, refreshed every 15 s: keeps "il y a 2 min" labels current. */
 export const useNow = (): Date => new Date(useSyncExternalStore(subscribe, () => now))

@@ -28,17 +28,8 @@ const m3u8 = (c: Context<AppEnv>, playlist: string) =>
     'Cache-Control': 'no-cache',
   })
 
-/**
- * §17.2 Lecture, flux, under the capability prefix of a session (§20):
- * `/stream/:sessionId/:secret/direct`, `/index.m3u8`, `/:segment`. The secret alone grants access
- * (public in the auth middleware): `<video>`, hls.js, Safari's native player, AVPlayer and AirPlay
- * receivers send no `X-Profile-Id`, the last two no cookie either. Playlists name their segments
- * relatively, so they stay under the prefix. Mounted at `/api/v1`. Middleware: per route or
- * path-scoped, never `.use('*')`.
- */
 export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
   new Hono<AppEnv>()
-    // Registered before `/:segment`, which would also match.
     .get('/stream/:sessionId/:secret/direct', async (c) => {
       const file = await directStream(streamAccess(c))
       if (!file.ok) return respondError(c, file.error)
@@ -79,7 +70,6 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
       const segment = await hlsStream.segment({
         ...streamAccess(c),
         name: c.req.param('segment'),
-        // A player that gives up on a segment (seek) must not keep driving ffmpeg.
         signal: c.req.raw.signal,
       })
       if (!segment.ok) return respondError(c, segment.error)
@@ -90,7 +80,6 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
         headers: {
           'Content-Type': 'video/mp4',
           'Content-Length': String(stats.value.size),
-          // A segment never changes for a session: the player may keep it.
           'Cache-Control': 'private, max-age=3600',
         },
       })

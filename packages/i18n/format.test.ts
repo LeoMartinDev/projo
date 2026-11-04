@@ -9,7 +9,6 @@ import {
   formatSoon,
 } from './format.ts'
 
-/** Intl separates numbers and units with (narrow) no-break spaces. */
 const plain = (value: string) => value.replace(/[\u00a0\u202f]/g, ' ')
 
 describe('formatClock', () => {

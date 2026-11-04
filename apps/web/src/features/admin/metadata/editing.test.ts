@@ -44,7 +44,6 @@ describe('metadata editor form (§9.3)', () => {
       body: { year: 2011, overview: '', genres: ['drama'] },
       problems: [],
     })
-    // Same genres in another order: the order is what the cards show, so it is a change.
     expect(changesOf({ ...form, genres: ['science_fiction', 'action'] }, item).body).toEqual({
       genres: ['science_fiction', 'action'],
     })

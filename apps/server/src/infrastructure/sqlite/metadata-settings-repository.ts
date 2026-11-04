@@ -6,13 +6,11 @@ import type { Db } from './database.ts'
 import { toIso } from './rows.ts'
 import { settings } from './schema/ops.ts'
 
-/** §9.1 default metadata language. */
 export const DEFAULT_METADATA_LANGUAGE = 'fr-FR'
 
 const asString = (value: unknown): string | undefined =>
   typeof value === 'string' && value.trim() !== '' ? value : undefined
 
-/** Metadata keys of the `settings` table (§5.4). */
 export const createSqliteMetadataSettings = ({ db }: { db: Db }): MetadataSettings => {
   const read = (key: SettingKey): unknown =>
     db.select().from(settings).where(eq(settings.key, key)).get()?.value

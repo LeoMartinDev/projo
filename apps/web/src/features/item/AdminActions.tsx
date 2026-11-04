@@ -10,13 +10,8 @@ import { MarkersDialog } from './markers/MarkersDialog.tsx'
 
 type Open = 'rematch' | 'edit' | 'edit-season' | 'markers' | undefined
 
-/** How long "Refresh started" stays in the menu before it closes. */
 const refreshedMenuMs = 1200
 
-/**
- * "Refresh" (§9.4): queues a `refresh_metadata` job; the page follows when it ends
- * (`catalog.changed`). The menu stays open to say it was queued, or why not.
- */
 const RefreshMenuItem = ({ itemId }: { itemId: string }) => {
   const { t } = useTranslation()
   const message = useErrorMessage()
@@ -54,12 +49,6 @@ const RefreshMenuItem = ({ itemId }: { itemId: string }) => {
   )
 }
 
-/**
- * Admins only (§13.5): a discreet "⋮" at the end of the actions (of the page, or of an episode
- * row), whose menu holds "Fix the match" (TMDB rematch dialog), "Modifier" (§9.3, and on
- * a series the season shown), "Refresh" (§9.4) and, for a movie or an episode, "Markers"
- * (§12.5), so the viewer actions stay alone in the row.
- */
 export const AdminMenu = ({
   itemId,
   kind,
@@ -70,12 +59,9 @@ export const AdminMenu = ({
 }: {
   itemId: string
   kind: 'movie' | 'series' | 'episode'
-  /** Episode code, in the markers and editor dialog titles. */
   name?: string
   durationMs?: number
-  /** Series page: the season shown, editable from the same menu. */
   season?: { id: string; name: string }
-  /** `end`: the menu opens leftwards (a "⋮" at the right edge of an episode row). */
   align?: 'start' | 'end'
 }) => {
   const { t } = useTranslation()
@@ -96,7 +82,6 @@ export const AdminMenu = ({
       >
         <MoreVerticalIcon size={20} />
       </button>
-      {/* Top layer (popover): never clipped by the hero's or a row's overflow. */}
       <div id={menuId} className="menu admin-menu__menu" role="menu" popover="auto">
         <button
           type="button"

@@ -7,12 +7,10 @@ import { appError, err, ok } from '@projo/shared'
 import type { ImageReencoder, UploadedImageType } from '../../core/metadata/editing.ts'
 import { runProcess, stderrTail } from './process.ts'
 
-/** §9.3: posters bounded to 1000 px wide, backdrops to 1920 px. */
 const maxWidth = { poster: 1000, backdrop: 1920 } as const
 
 const inputExtension: Record<UploadedImageType, string> = { jpeg: 'jpg', png: 'png', webp: 'webp' }
 
-/** Width and height read from a PNG `IHDR` or a JPEG `SOFn` header. */
 export const imageDimensions = (
   bytes: Uint8Array,
 ): { width: number; height: number } | undefined => {
@@ -25,7 +23,6 @@ export const imageDimensions = (
   while (offset + 9 < bytes.length) {
     if (bytes[offset] !== 0xff) return undefined
     const marker = bytes[offset + 1] ?? 0
-    // Padding bytes between segments.
     if (marker === 0xff) {
       offset += 1
       continue
@@ -41,11 +38,6 @@ export const imageDimensions = (
   return undefined
 }
 
-/**
- * `ImageReencoder` over ffmpeg (§20): the upload is decoded and encoded again, metadata dropped
- * (`-map_metadata -1`), width bounded. PNG stays PNG (transparency), JPEG and WebP become JPEG.
- * Files go through a private temporary folder; arguments are an array, never a shell (§20).
- */
 export const createFfmpegImageReencoder = ({
   binary = 'ffmpeg',
   timeoutMs = 30_000,
@@ -68,7 +60,6 @@ export const createFfmpegImageReencoder = ({
           '-v',
           'error',
           '-i',
-          // `file:` stops ffmpeg from reading a protocol or option in the name (§20).
           `file:${input}`,
           '-map',
           '0:v:0',

@@ -18,7 +18,6 @@ import { Logo } from '../shell/Logo.tsx'
 import '../setup/setup.css'
 import './invite.css'
 
-/** Unusable invitation (unknown or withdrawn, expired, already used): one sentence, the login. */
 const InvitationGone = ({ error }: { error: unknown }) => {
   const { t } = useTranslation()
   const code = toApiFailure(error).code
@@ -78,7 +77,6 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
         }),
       ),
     onSuccess: async (me) => {
-      // An account switch when someone was signed in: nothing of the previous account stays.
       signedOut(queryClient)
       signedIn(queryClient, me)
       await navigate({ to: '/', replace: true })
@@ -174,11 +172,6 @@ const InviteForm = ({ token, serverName }: { token: string; serverName?: string 
   )
 }
 
-/**
- * `/invite/$token` (§4 parcours 2, §14): a public page in the first-launch style. A valid
- * invitation asks for the first name of the first profile, a username and a password, then signs
- * in and opens the home.
- */
 export const InvitePage = ({ token }: { token: string }) => {
   const status = useQuery({
     queryKey: ['invitation', token],

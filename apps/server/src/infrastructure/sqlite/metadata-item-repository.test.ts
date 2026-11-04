@@ -130,7 +130,6 @@ describe('moveItemRows (local → TMDB fusion)', () => {
         ('local', 'no_segment:credits', '2026-01-02', 'no_segment')`,
     )
     repo.moveItemRows({ from: 'local', into: 'tmdb' })
-    // The negative marker follows and wins over the target's provider credits.
     expect(rows('SELECT id, item_id FROM segments ORDER BY id')).toEqual([
       { id: 'f', item_id: 'tmdb' },
     ])
@@ -215,7 +214,6 @@ describe('imageContext', () => {
     insertSource(db, { id: 'f2', itemId: 'e2' })
     for (const id of ['series', 's1', 'e1', 'e2'])
       expect(repo.imageContext(id)?.libraryLanguage).toBe('de-DE')
-    // The deciding library follows the server setting: no library language at all.
     db.$client.run(`UPDATE libraries SET metadata_language = NULL WHERE id = 'library-1'`)
     expect(repo.imageContext('e1')?.libraryLanguage).toBeUndefined()
   })

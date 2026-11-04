@@ -7,13 +7,6 @@ import { api, request } from '../../shared/api/client.ts'
 import { itemQuery } from '../catalog/queries.ts'
 import { type CardPlace, isWatched, listTargetOf } from './media.ts'
 
-/**
- * Card and detail actions (§13.1, §13.3): Ma liste, Marquer vu / non vu, Retirer, Lire. Each one
- * refreshes the whole profile-scoped cache (`['catalog', …]`: home rows, grids, pages, search).
- * While a toggle is pending, `pending` holds the value it is moving to, so the button flips at
- * once.
- */
-
 const useRefreshCatalog = () => {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: ['catalog'] })
@@ -30,7 +23,6 @@ export const useWatchlistToggle = () => {
   })
   return {
     mutation,
-    /** Shown state of `item`: the pending value while the call runs. */
     listed: (item: Pick<ItemSummaryDto, 'id' | 'inWatchlist'>): boolean =>
       mutation.isPending && mutation.variables.id === item.id
         ? mutation.variables.listed
@@ -59,7 +51,6 @@ export const useWatchedToggle = () => {
   }
 }
 
-/** "Remove" from Continue watching / Up next (§13.1 `hidden_from_continue`). */
 export const useHideFromContinue = () => {
   const refresh = useRefreshCatalog()
   return useMutation({
@@ -69,11 +60,6 @@ export const useHideFromContinue = () => {
   })
 }
 
-/**
- * "Play" on any card: a movie or an episode opens the player (which resumes by itself); a series
- * first reads its main button (`GET /items/:id` → `play`, §13.5) — or opens its page when nothing
- * is playable yet.
- */
 export const usePlayItem = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -91,11 +77,6 @@ export const usePlayItem = () => {
   })
 }
 
-/**
- * Every action of a card (§13.3), for its desktop preview and its sheet or menu alike: My list
- * (an episode's acts on its series), Mark as watched, Remove (Continue watching, Up next), Play.
- * `error`: the last failed one, which both show.
- */
 export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
@@ -105,7 +86,6 @@ export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
   const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
   const seen = watched.watched(item)
   return {
-    /** `false` when the card has no list button (`listTarget` undefined). */
     canList: listTarget !== undefined,
     listed,
     toggleList: () => {

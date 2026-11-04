@@ -25,13 +25,6 @@ type SeasonInput = {
   maxAgeMs: number
 }
 
-/**
- * TMDB details of an identified item in the metadata language, titles and overviews missing in it
- * completed from en-US (§9.1). `maxAgeMs`: a response stored in the database no older than that is
- * reused (0: always asked again, the refresh of §9.4). The only implementation of that fallback:
- * the matcher (`resolve-match.ts`) completes what it read through `completeMovie` and
- * `completeSeason`.
- */
 export const tmdbDetailsFactory = ({ tmdb }: { tmdb: TmdbApi }) => {
   const completeMovie = async (
     movie: TmdbMovie,
@@ -47,7 +40,6 @@ export const tmdbDetailsFactory = ({ tmdb }: { tmdb: TmdbApi }) => {
     return ok(mergeFallback(movie, english.value, input.language))
   }
 
-  /** `needs`: the episodes worth an en-US request (default: any episode missing a text). */
   const completeSeason = async (
     season: TmdbSeason,
     input: SeasonInput,

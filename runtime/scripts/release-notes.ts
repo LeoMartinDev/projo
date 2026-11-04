@@ -1,8 +1,3 @@
-// Release notes from the Conventional Commits since the previous release (PRODUCT.md §22).
-// Plain text that reads as Markdown: GitHub renders it, and so does the admin for this subset
-// (`## ` headings, `- ` lists, paragraphs, `code`, https links: features/admin/updates/release-notes.ts).
-// Usage: bun runtime/scripts/release-notes.ts --tag vX.Y.Z [--from vA.B.C] [--manifest dist/release/manifest.json]
-//          [--runtime-image ghcr.io/leomartindev/projo:A.B.C]
 import { parseArgs } from 'node:util'
 import { readManifest } from '../supervisor/manifest'
 import { dirname } from 'node:path'
@@ -21,7 +16,6 @@ export type ParsedCommit = {
 
 const HEADER = /^(?<type>[a-z]+)(?:\((?<scope>[^()]+)\))?(?<bang>!)?: (?<description>.+)$/u
 
-/** `type(scope)!: description`; anything else is kept as an `other` entry with its subject. */
 export const parseCommit = ({ hash, subject, body }: Commit): ParsedCommit => {
   const match = HEADER.exec(subject.trim())
   const groups = match?.groups
@@ -36,7 +30,6 @@ export const parseCommit = ({ hash, subject, body }: Commit): ParsedCommit => {
   }
 }
 
-/** Sections in display order; types not listed here land in "Other changes". */
 const SECTIONS: ReadonlyArray<{ title: string; types: readonly string[] }> = [
   { title: 'Features', types: ['feat'] },
   { title: 'Fixes', types: ['fix'] },
@@ -44,7 +37,6 @@ const SECTIONS: ReadonlyArray<{ title: string; types: readonly string[] }> = [
 ]
 const OTHER_TITLE = 'Other changes'
 const BREAKING_TITLE = 'Breaking changes'
-/** Release commits (`chore(release): 1.2.0`) say nothing the notes do not already say. */
 const isReleaseCommit = (commit: ParsedCommit) =>
   commit.type === 'chore' && commit.scope === 'release'
 
@@ -54,10 +46,8 @@ const line = (commit: ParsedCommit): string =>
 export type ReleaseNotesInput = {
   version: string
   previousTag?: string
-  /** Newest first, as `git log` prints them. */
   commits: readonly Commit[]
   runtimeMin?: string
-  /** The runtime image published with this release, when there is one. */
   runtimeImage?: string
 }
 
@@ -107,7 +97,6 @@ export const renderReleaseNotes = ({
 const FIELD = '\u001f'
 const RECORD = '\u001e'
 
-/** `git log <from>..<to>` without merges, newest first. */
 export const readCommits = (to: string, from?: string): Commit[] => {
   const range = from === undefined ? to : `${from}..${to}`
   const run = Bun.spawnSync([
@@ -144,7 +133,6 @@ if (import.meta.main) {
     console.error('release-notes: --tag vX.Y.Z is required')
     process.exit(1)
   }
-  // An empty --from (first release, no previous tag) means the whole history.
   const from = values.from || undefined
   let runtimeMin: string | undefined
   if (values.manifest !== undefined) {

@@ -19,7 +19,6 @@ import { useSession } from '../session/Session.tsx'
 
 const sessionsKey = ['session', 'devices'] as const
 
-/** The session's client, or a failure if the server is gone meanwhile. */
 const useApi = () => {
   const { api } = useSession()
   return () => {
@@ -28,7 +27,6 @@ const useApi = () => {
   }
 }
 
-/** `POST /auth/password`: the server signs the other devices out (§14). */
 const PasswordSection = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -152,7 +150,6 @@ const Device = ({
   )
 }
 
-/** The account's browsers and devices (§14), most recent first, revocable one by one. */
 const DevicesSection = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -160,7 +157,6 @@ const DevicesSection = () => {
   const sessions = useQuery({
     queryKey: sessionsKey,
     queryFn: () => unwrap(requestApi(() => api().auth.sessions.$get(), sessionsResponseSchema)),
-    // Not kept after the screen: another account signed in later never sees this list.
     gcTime: 0,
   })
   const revoke = useMutation({
@@ -204,7 +200,6 @@ const DevicesSection = () => {
   )
 }
 
-/** `/settings/account`: password and devices, hidden from a restricted profile (§14). */
 export const AccountScreen = () => (
   <SettingsPage>
     <PasswordSection />

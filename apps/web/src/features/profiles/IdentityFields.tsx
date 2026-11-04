@@ -8,7 +8,6 @@ import { CheckIcon } from '../../shared/ui/icons.tsx'
 
 const colors = avatarColorSchema.options
 
-/** The six avatar colours (§13.6), as a radio group of swatches. */
 export const ColorSwatches = ({
   value,
   onChange,
@@ -43,10 +42,6 @@ export const ColorSwatches = ({
   )
 }
 
-/**
- * The optional 4-digit PIN of a profile (§13.6): a switch, a "change" link when one is set, and
- * the field for the new code. `hasPin` is the stored state; the draft is `on`, `changing`, `pin`.
- */
 export const PinFields = ({
   hasPin,
   on,

@@ -10,7 +10,6 @@ import type { ImageReencoder } from '../../src/core/metadata/editing.ts'
 import { insertItem, insertLibrary, insertSource } from '../support/catalog-fixtures.ts'
 import { createMetadataWorld, type MetadataWorld } from '../support/metadata-world.ts'
 
-/** Stands for ffmpeg (tested on its own): the bytes come back as they are. */
 const reencoded: { type: string; kind: string }[] = []
 const fakeReencoder: ImageReencoder = {
   reencode: async ({ bytes, type, kind }) => {
@@ -52,7 +51,6 @@ const imageFile = (imageId: string) => {
 
 const imageIdOf = (url: string | undefined) => url?.replace('/api/v1/images/', '') ?? ''
 
-/** The identified movie Inception (TMDB 27205), its metadata and images fetched once. */
 const seedMovie = async () => {
   insertItem(world.db, { id: 'movie', kind: 'movie', tmdbId: 27205, title: 'Inception' })
   insertSource(world.db, { id: 'src-movie', itemId: 'movie' })
@@ -60,7 +58,6 @@ const seedMovie = async () => {
   await world.runJobs(['refresh_metadata', 'fetch_images'])
 }
 
-/** The Bear (TMDB 136315): season 1 with its episodes 1 and 2 on disk, nothing else. */
 const seedSeries = () => {
   insertItem(world.db, { id: 'series', kind: 'series', tmdbId: 136315, title: 'The Bear' })
   insertItem(world.db, {
@@ -115,7 +112,6 @@ describe('editing and locks (§9.3)', () => {
     })
     expect(world.events.some((event) => event.type === 'catalog.changed')).toBe(true)
 
-    // Overview edited by hand in the database, then a refresh: TMDB writes it, locks hold.
     world.db.$client.run(`UPDATE items SET overview = 'stale' WHERE id = 'movie'`)
     expect((await send('POST', '/items/movie/refresh')).status).toBe(202)
     await world.runJobs(['refresh_metadata'])
@@ -130,7 +126,6 @@ describe('editing and locks (§9.3)', () => {
     const back = await send('DELETE', '/items/movie/overrides/title')
     expect(back.status).toBe(200)
     expect(await back.json()).toMatchObject({ title: 'Inception', locked: ['year', 'genres'] })
-    // Idempotent.
     expect((await send('DELETE', '/items/movie/overrides/title')).status).toBe(200)
     expect(items(`SELECT sort_title FROM items WHERE id = 'movie'`)).toEqual([
       { sort_title: 'inception' },
@@ -149,11 +144,9 @@ describe('editing and locks (§9.3)', () => {
     insertItem(world.db, { id: 'local', kind: 'movie', title: 'Vacances 2019' })
     expect((await send('PATCH', '/items/local', {})).status).toBe(400)
     expect((await send('PATCH', '/items/local', { year: 1500 })).status).toBe(400)
-    // Genres come from the fixed list (§9.3): a free name is refused.
     expect((await send('PATCH', '/items/local', { genres: ['Comédie'] })).status).toBe(400)
     expect((await send('PATCH', '/items/local', { title: 'Vacances' })).status).toBe(200)
     expect((await send('DELETE', '/items/local/overrides/rating')).status).toBe(400)
-    // A local item: edits yes, no TMDB value to come back to, no refresh nor alternatives.
     const back = await send('DELETE', '/items/local/overrides/title')
     expect(await back.json()).toMatchObject({ title: 'Vacances', locked: [] })
     const refresh = await send('POST', '/items/local/refresh')
@@ -211,12 +204,10 @@ describe('images (§9.3, §20)', () => {
       world.tmdb.requests.some((r) => r.path === '/t/p/w500/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg'),
     ).toBe(true)
 
-    // A refresh and its images job never replace a locked image.
     await send('POST', '/items/movie/refresh')
     await world.runJobs(['refresh_metadata', 'fetch_images'])
     expect((await editor('movie')).images.poster).toBe(after.images.poster)
 
-    // "Back to the TMDB value": TMDB's own choice comes back at once.
     const back = await send('DELETE', '/items/movie/overrides/poster')
     const restored = (await back.json()) as ItemMetadataDto
     expect(restored.locked).toEqual([])
@@ -240,7 +231,6 @@ describe('images (§9.3, §20)', () => {
     huge.set([0xff, 0xd8, 0xff])
     const tooLarge = await upload(huge)
     expect([tooLarge.status, await errorCode(tooLarge)]).toEqual([413, 'image/too_large'])
-    // A declared length past the limit is refused before the body is read.
     const declared = await world.request('/items/movie/images', {
       method: 'POST',
       headers: {
@@ -264,12 +254,10 @@ describe('images (§9.3, §20)', () => {
     ])
     const file = imageFile(id)
     expect(file !== undefined && existsSync(file)).toBe(true)
-    // Served like any image of a visible item.
     expect((await world.requestApi(dto.images.backdrop?.replace('/api/v1', '') ?? '')).status).toBe(
       200,
     )
 
-    // Back to TMDB: the custom file goes.
     const back = await send('DELETE', '/items/movie/overrides/backdrop')
     expect(((await back.json()) as ItemMetadataDto).locked).toEqual([])
     expect(file !== undefined && existsSync(file)).toBe(false)
@@ -326,9 +314,7 @@ describe('refresh (§9.4)', () => {
       items(`SELECT id, title, series_status, episode_count_tmdb FROM items ORDER BY kind, id`),
     ).toEqual([
       { id: 'e1', title: 'Mon épisode' },
-      // Missing in French: from en-US (§9.1).
       { id: 'e2', title: 'Hands' },
-      // TMDB's "Saison 1" is generic: no title of its own (§6.3).
       { id: 's1', title: '', episode_count_tmdb: expect.any(Number) },
       {
         id: 'series',
@@ -337,11 +323,9 @@ describe('refresh (§9.4)', () => {
         episode_count_tmdb: expect.any(Number),
       },
     ])
-    // Images of every refreshed item follow.
     expect(
       items(`SELECT payload FROM jobs WHERE type = 'fetch_images' AND state = 'queued'`),
     ).toHaveLength(4)
-    // `catalog.changed` at the end comes from the job's end (`catalog-changes`).
     expect(items(`SELECT state FROM jobs WHERE type = 'refresh_metadata'`)).toEqual([
       { state: 'done' },
     ])
@@ -357,7 +341,6 @@ describe('refresh (§9.4)', () => {
     expect([missing.status, await errorCode(missing)]).toEqual([404, 'library/not_found'])
     const response = await send('POST', '/libraries/library-1/refresh-metadata')
     expect(response.status).toBe(202)
-    // Asked twice: one job.
     const again = (await (
       await send('POST', '/libraries/library-1/refresh-metadata')
     ).json()) as JobRef

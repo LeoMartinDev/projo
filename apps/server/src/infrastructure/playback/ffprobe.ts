@@ -19,13 +19,8 @@ const failure = (message: string, context: Record<string, unknown>, cause?: unkn
     ...(cause === undefined ? {} : { cause }),
   })
 
-/**
- * The keyframe scan reads every packet of the video stream, minutes for a big file on a network
- * share; past this, ffprobe is hung and killed.
- */
 const KEYFRAME_SCAN_TIMEOUT_MS = 30 * 60_000
 
-/** Runs ffprobe through `runProcess` (arguments as an array, §20; killed on timeout or abort). */
 const run = async (
   binary: string,
   priority: ProcessPriority,
@@ -59,13 +54,11 @@ const parseJson = (text: string): unknown => {
   }
 }
 
-/** Keyframe times (seconds) made relative to `startS`, to the microsecond, sorted and unique. */
 const relativeKeyframes = (times: readonly number[], startS: number): number[] =>
   [...new Set(times.map((time) => Math.max(0, Math.round((time - startS) * 1e6) / 1e6)))].sort(
     (a, b) => a - b,
   )
 
-/** Keyframe pts (seconds) from `pts_time,flags` CSV lines, relative to `startS`. */
 export const parseKeyframeCsv = (csv: string, startS: number): number[] => {
   const times: number[] = []
   for (const line of csv.split('\n')) {
@@ -100,13 +93,8 @@ const readFormat = (value: unknown): { startS: number; durationS?: number } => {
   }
 }
 
-/** `file:` keeps ffmpeg from reading a path as a protocol or an option (§20). */
 export const fileInput = (path: string): string => `file:${toHostPath(path)}`
 
-/**
- * `processPriority`: `background` for the instance of the background `index_keyframes` jobs
- * (§18), `normal` (default) for what a player waits for.
- */
 export const createFfprobe = ({
   binary = 'ffprobe',
   processPriority = 'normal',
@@ -114,7 +102,6 @@ export const createFfprobe = ({
 }: {
   binary?: string
   processPriority?: ProcessPriority
-  /** Default: the scanner prober's (60 s). */
   probeTimeoutMs?: number
 } = {}): MediaProber & KeyframeExtractor => {
   const prober = createFfprobeProber({
@@ -123,7 +110,6 @@ export const createFfprobe = ({
     ...(probeTimeoutMs === undefined ? {} : { timeoutMs: probeTimeoutMs }),
   })
   return {
-    // The scanner's prober (60 s timeout), read like a stored probe: one ffprobe call and parser.
     probe: async (path): Promise<Result<MediaInfo, ProbeError>> => {
       const probed = await prober.probe({ path })
       if (!probed.ok) {
@@ -138,12 +124,6 @@ export const createFfprobe = ({
       return media === undefined ? err(failure('ffprobe returned no stream', { path })) : ok(media)
     },
 
-    /**
-     * §10.3: the cues of a Matroska file when they list every keyframe (`matroska-cues.ts`), else
-     * `ffprobe -select_streams <v> -show_entries packet=pts_time,flags`, which reads every packet
-     * of the video stream (no decoding). Times are made relative to the container start, like
-     * ffmpeg's `-ss` and `-start_at_zero`.
-     */
     extract: async ({
       path,
       videoStreamIndex,

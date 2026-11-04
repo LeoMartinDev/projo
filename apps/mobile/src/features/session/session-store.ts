@@ -8,17 +8,11 @@ const profileKey = 'projo.profile-id'
 
 export type StoredSession = { readonly token?: string; readonly profileId?: string }
 
-/**
- * The device's bearer token (§26.3) and the last profile used on it (§13.6), in the Keychain.
- * Both belong to the stored server: changing server clears them.
- */
 export type SessionStore = {
-  /** Empty when nothing is stored, or when the Keychain cannot be read. */
   load: () => Promise<StoredSession>
   saveToken: (token: string) => Promise<Result<void, Failure<'unknown'>>>
   saveProfileId: (profileId: string) => Promise<Result<void, Failure<'unknown'>>>
   clearToken: () => Promise<Result<void, Failure<'unknown'>>>
-  /** Token and profile: the device forgets the server's account. */
   clear: () => Promise<Result<void, Failure<'unknown'>>>
 }
 

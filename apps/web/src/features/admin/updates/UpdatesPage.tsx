@@ -34,7 +34,6 @@ type Confirming = { kind: 'update' | 'rollback'; version: string }
 
 const BUSY = new Set<UpdatesStatusDto['state']>(['downloading', 'applying', 'restarting'])
 
-/** Live line under the release: what the updater is doing (§16.4). */
 const Progress = ({ status }: { status: UpdatesStatusDto }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -71,7 +70,6 @@ const PullCommand = ({ command }: { command: string }) => {
     <div className="upd-pull">
       <p className="upd-pull__text">{t('admin.updates.runtimeTooOld')}</p>
       <div className="upd-pull__row">
-        {/* An input, not <code>: the plain-HTTP copy fallback selects a field. */}
         <input
           ref={inputRef}
           className="upd-pull__command"
@@ -136,7 +134,6 @@ const ReleaseNotes = ({ notes }: { notes: string }) => (
   </div>
 )
 
-/** The newer release (version, date, notes) and "Update", or "projo is up to date". */
 const Release = ({
   status,
   onUpdate,
@@ -180,7 +177,6 @@ const Release = ({
         ) : undefined}
       </div>
       <Progress status={status} />
-      {/* Updater off (`bun run dev`): the runtime is not a version, the image is not the point. */}
       {!status.enabled ||
       available.runtimeCompatible ||
       available.pullCommand === undefined ? undefined : (
@@ -335,12 +331,6 @@ const ConfirmDialog = ({
   )
 }
 
-/**
- * `/admin/updates` (§15 "Updates", §16.4): running version and last check, the newer release
- * with its notes and "Update", the versions on the disk with "Go back to this version",
- * the log. Live through `update.state`; during the switch the page waits for the server and
- * reloads.
- */
 export const UpdatesPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()

@@ -31,7 +31,6 @@ import type {
   SetManualSegment,
 } from './types.ts'
 
-/** `GET /items/:id/segments`: a movie or an episode the profile sees (§14). */
 export const getItemSegmentsFactory =
   ({
     catalogRepository,
@@ -75,12 +74,6 @@ type MarkerDeps = {
   logger: Logger
 }
 
-/**
- * Manual markers (§12.5): `PUT`, `DELETE` and "Apply to the whole season". A manual segment
- * outranks every other origin; a negative marker (`{ absent: true }`, `no_segment:<type>`)
- * removes the segment of its type and stops the chain for it. Contribution (`manual_only`)
- * submits each new manual segment (`submit_segment`).
- */
 export const segmentMarkersFactory = ({
   segmentTarget,
   segmentCatalog,
@@ -153,7 +146,6 @@ export const segmentMarkersFactory = ({
       )
     }
     segmentRepository.removeLookup({ itemId, provider: noSegmentKey(type) })
-    // The chain runs again from scratch for this item (negative markers of other types stay).
     for (const row of lookups) {
       if (negativeMarkerType(row.provider) === undefined) {
         segmentRepository.removeLookup({ itemId, provider: row.provider })
@@ -206,7 +198,6 @@ export const segmentMarkersFactory = ({
       const durationMs = episode.value.ref.durationMs
       let changed = false
       for (const type of applied) {
-        // "except those already manual" (§12.2 row 1): a manual segment or a negative marker.
         if (episodeSegments.get(type)?.origin === 'manual' || episodeAbsent.has(type)) continue
         const segment = segments.get(type)
         if (absent.has(type) || segment === undefined) {
@@ -214,7 +205,6 @@ export const segmentMarkersFactory = ({
           changed = true
           continue
         }
-        // Credits and preview keep their distance to the end (a longer finale ends later).
         const shift =
           (type === 'credits' || type === 'preview') &&
           durationMs !== undefined &&
@@ -222,7 +212,6 @@ export const segmentMarkersFactory = ({
             ? durationMs - sourceDurationMs
             : 0
         const startMs = Math.max(0, segment.startMs + shift)
-        // A shorter episode keeps what fits of the marker.
         const endMs =
           durationMs === undefined
             ? segment.endMs + shift

@@ -12,14 +12,11 @@ import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { isLocalHostname } from './local-address.ts'
 import { QrCode } from './QrCode.tsx'
 
-/** Seconds as `4:05`. */
 const formatCountdown = (seconds: number): string =>
   `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
-/** `K7M4PX` → `K7M 4PX`: easier to read out and type (the server ignores the space). */
 const spaced = (code: string): string => `${code.slice(0, 3)} ${code.slice(3)}`
 
-/** `Date.now()` to the second: two reads within one second agree (a stable store snapshot). */
 const currentSecond = () => Math.floor(Date.now() / 1000) * 1000
 
 let tick = currentSecond()
@@ -44,10 +41,8 @@ const subscribeTicks = (listener: () => void) => {
   }
 }
 
-/** Without subscribers `tick` is stale: read the clock instead. */
 const tickSnapshot = () => (tickTimer === undefined ? currentSecond() : tick)
 
-/** The code's countdown, then "expired" and `renew` (the QR tile fades through CSS `:has`). */
 const Countdown = ({ expiresAt, renew }: { expiresAt: string; renew: ReactNode }) => {
   const { t } = useTranslation()
   const now = useSyncExternalStore(subscribeTicks, tickSnapshot)
@@ -64,12 +59,6 @@ const Countdown = ({ expiresAt, renew }: { expiresAt: string; renew: ReactNode }
   )
 }
 
-/**
- * "Connect a device" (§14): a code valid 5 minutes and its QR code of `<origin>/pair?code=…`,
- * the origin written under it (the app keeps it as its server), a warning when that origin only
- * works at home. The claim arrives as `pairing.claimed` (SSE, to this session only). A live code
- * is shown again when the dialog reopens. Fixed size whatever the state.
- */
 export const ConnectDeviceDialog = ({
   open,
   onClose,
@@ -77,7 +66,6 @@ export const ConnectDeviceDialog = ({
 }: {
   open: boolean
   onClose: () => void
-  /** A device was paired (or may have been, once the dialog closes): reload the devices. */
   onDevicesChanged: () => void
 }) => {
   const { t } = useTranslation()
@@ -91,7 +79,6 @@ export const ConnectDeviceDialog = ({
     },
   })
 
-  // Only when the dialog opens: a code that expires while it is shown waits for "New code".
   const onOpen = useEffectEvent(() => {
     const live =
       pairing !== undefined &&

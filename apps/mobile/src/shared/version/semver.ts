@@ -1,4 +1,3 @@
-/** Semantic version (semver.org). Build metadata is ignored, as the spec says. */
 export type SemVer = {
   readonly major: number
   readonly minor: number
@@ -30,7 +29,6 @@ const compareIdentifiers = (a: string, b: string): number => {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-/** A release outranks its prereleases: `1.4.0-beta.1 < 1.4.0`. */
 const comparePrerelease = (a: readonly string[], b: readonly string[]): number => {
   if (a.length === 0 || b.length === 0) return Math.sign(b.length - a.length)
   for (let index = 0; index < Math.max(a.length, b.length); index++) {
@@ -44,7 +42,6 @@ const comparePrerelease = (a: readonly string[], b: readonly string[]): number =
   return 0
 }
 
-/** Negative when `a < b`, 0 when equal, positive when `a > b`. */
 export const compareSemVer = (a: SemVer, b: SemVer): number =>
   Math.sign(a.major - b.major) ||
   Math.sign(a.minor - b.minor) ||

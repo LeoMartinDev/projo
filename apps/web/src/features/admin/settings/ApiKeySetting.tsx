@@ -11,10 +11,6 @@ import { useUpdateSettings } from './queries.ts'
 
 type KeyStatus = { configured: boolean; last4?: string; rejected?: boolean }
 
-/**
- * An API key (TMDB §9.1, TheIntroDB §12.2): never shown back, only "configured · ••••1234";
- * validated by the server before it is stored, `""` removes it.
- */
 export const ApiKeySetting = ({
   label,
   status,

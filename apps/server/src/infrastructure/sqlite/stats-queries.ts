@@ -6,21 +6,11 @@ import { fromIso } from './rows.ts'
 import { libraries, scanRuns } from './schema/libraries.ts'
 import { playbackSessions } from './schema/playback.ts'
 
-/**
- * A ready source of the item `alias` (§6.3), the admin seeing every library. Starts from the
- * item's links (`CROSS JOIN`, see `catalog-sql.ts`): one index lookup per item.
- */
 const ready = (alias: string) =>
   sql.raw(
     `EXISTS (SELECT 1 FROM source_items si CROSS JOIN sources s ON s.id = si.source_id WHERE si.item_id = ${alias}.id AND s.state = 'ready')`,
   )
 
-/**
- * §15 "Dashboard". Counts on 20 000 items: movies and episodes are one pass over their kind
- * (`items_kind…` index) with an indexed lookup each; series are the parents of the parents of the
- * visible episodes (`DISTINCT`, no correlated subquery per series); sources by state are one pass
- * over the `state` index.
- */
 export const createSqliteStatsQueries = ({ db }: { db: Db }): StatsQueries => ({
   counts: (): CatalogCounts => {
     const [row] = db.all<{

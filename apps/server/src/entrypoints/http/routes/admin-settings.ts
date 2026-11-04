@@ -63,11 +63,6 @@ const toDto = ({ metadata, segments, playback, server }: Sections): AdminSetting
   }
 }
 
-/**
- * `GET/PATCH /admin/settings` (§17.2 Admin operations): sections "Playback", "Metadata",
- * "Intros and credits" and "Server" (§15). A PATCH applies its sections in that order and stops at the
- * first error. Mounted at `/api/v1/admin`.
- */
 export const adminSettingsRoutes = (sections: Sections) =>
   new Hono<AppEnv>()
     .get('/settings', (c) => c.json(toDto(sections), 200))
@@ -97,7 +92,6 @@ export const adminSettingsRoutes = (sections: Sections) =>
       return c.json(toDto(sections), 200)
     })
 
-/** Zod's `.partial()` types absent keys as `T | undefined`; `exactOptionalPropertyTypes` wants them gone. */
 const stripUndefined = <T extends Record<string, unknown>>(
   value: T,
 ): { [K in keyof T]?: Exclude<T[K], undefined> } =>

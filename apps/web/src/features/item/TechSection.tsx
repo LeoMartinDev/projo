@@ -13,7 +13,6 @@ import {
   videoCodecLabel,
 } from './media-labels.ts'
 
-/** `version`: its distinct label when the item has several files (§7.7). */
 const SourceInfo = ({ source, version }: { source: SourceDto; version: string | undefined }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -80,10 +79,6 @@ const SourceInfo = ({ source, version }: { source: SourceDto; version: string | 
 const languageList = (codes: readonly string[], locale: string) =>
   [...new Set(codes.map((code) => languageName(code, locale) ?? code))].join(', ')
 
-/**
- * Available tracks (audio and subtitle languages), versions when there are several files, then
- * the technical details of each file (§13.5 "versions, pistes disponibles").
- */
 export const TechSection = ({ item }: { item: ItemDetailDto }) => {
   const { t } = useTranslation()
   const locale = currentLocale()

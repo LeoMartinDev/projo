@@ -2,7 +2,6 @@ const compact = '(max-width: 640px)'
 const short = '(max-height: 560px)'
 const touch = '(pointer: coarse)'
 
-/** The named media queries of `media.css` for `matchMedia` (`--fine-pointer` → `finePointer`). */
 export const media = {
   compact,
   wide: '(min-width: 1100px)',
@@ -16,7 +15,6 @@ export const media = {
   desktop: `(not ${touch}) and (not ${compact})`,
 } as const
 
-/** Which layout the screen gets (`media.css`): exactly one of the three matches. */
 export type Device = 'phone' | 'tablet' | 'desktop'
 
 export const reducedMotion = '(prefers-reduced-motion: reduce)'

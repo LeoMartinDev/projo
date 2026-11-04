@@ -21,7 +21,6 @@ import { sourceFingerprint } from './trickplay.ts'
 
 export const previewDedupeKey = (itemId: string) => `preview:${itemId}`
 
-/** §18 `preview_clip`: by item (a movie or a series), lowest priority. */
 export const requestPreviewClip = (jobQueue: JobQueue, itemId: string): void => {
   jobQueue.enqueue({
     type: 'preview_clip',
@@ -46,10 +45,6 @@ const playable = (source: PlayableSource | undefined): ClipSource | undefined =>
   return { source, durationMs }
 }
 
-/**
- * What the clip of an item is cut from (§13.3): the best ready source of a movie; for a series,
- * its most recent episode (last in broadcast order) that has one.
- */
 const clipSourceFactory =
   (catalogRepository: CatalogRepository) =>
   (target: { id: string; kind: 'movie' | 'series' }): ClipSource | undefined => {
@@ -71,11 +66,6 @@ const clipSourceFactory =
     return undefined
   }
 
-/**
- * Job `preview_clip` (§13.3, §18): 20 s from 25 % of the duration, 720p H.264 + AAC, for a movie
- * or a series (an episode or a season stands for its series). Skipped when the stored clip comes
- * from the same file, or when nothing is playable.
- */
 export const generatePreviewClipFactory = ({
   catalogRepository,
   mediaCatalog,
@@ -131,10 +121,6 @@ export const generatePreviewClipFactory = ({
 
 export type PreviewAccessError = AppError<'playback/preview_not_found'>
 
-/**
- * The clip of a movie or a series, for a profile (§14): the item is visible to it, and so is the
- * source the clip was cut from, still in the version it was cut from.
- */
 export const previewAccessFactory =
   ({
     previewStore,
@@ -154,7 +140,6 @@ export const previewAccessFactory =
     itemId: string
     profileId: string
   }): Result<string, PreviewAccessError> => {
-    // The item first: the id comes from the URL, the store only ever sees ids of the database.
     const visible =
       catalogRepository.findVisible({ id: itemId, scope: scopeFor(profileId) }) !== undefined
     const stored = visible ? previewStore.read(itemId) : undefined
@@ -175,14 +160,8 @@ export const previewAccessFactory =
 
 export type PreviewAccess = ReturnType<typeof previewAccessFactory>
 
-/** How long a clip asked for and still missing is not asked for again (failed, nothing to cut). */
 const requestCooldownMs = 6 * 60 * 60_000
 
-/**
- * For `GET /home` (§13.3): `previewUrl` of the hero when its clip is ready for the profile, and
- * the clips of the items entering "Continue watching" / "Up next" requested when missing
- * (each item at most every 6 h).
- */
 export const homePreviewsFactory = ({
   previewAccess,
   mediaCatalog,
@@ -194,7 +173,6 @@ export const homePreviewsFactory = ({
   jobQueue: JobQueue
   clock: Clock
 }) => {
-  /** Clips asked for (movie or series id), and rows entries already looked at (any item id). */
   const requestedAt = new Map<string, number>()
   const checkedAt = new Map<string, number>()
   const request = (itemId: string, ready: boolean): void => {
@@ -206,13 +184,11 @@ export const homePreviewsFactory = ({
     if (target !== undefined) requestPreviewClip(jobQueue, target.id)
   }
   return {
-    /** The hero item (a movie or a series): its clip URL, or `undefined` (requested then). */
     previewUrl: ({ itemId, profileId }: { itemId: string; profileId: string }) => {
       const ready = previewAccess({ itemId, profileId }).ok
       request(itemId, ready)
       return ready ? `/api/v1/previews/${encodeURIComponent(itemId)}.mp4` : undefined
     },
-    /** Movies and episodes in progress or up next: their clip (series' for an episode) if missing. */
     prepare: ({ itemIds, profileId }: { itemIds: readonly string[]; profileId: string }) => {
       const now = clock.now().getTime()
       for (const itemId of itemIds) {

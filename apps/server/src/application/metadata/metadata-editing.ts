@@ -40,7 +40,6 @@ type Deps = {
   items: Pick<MetadataItemRepository, 'imageContext'>
   images: ImageRepository
   files: ImageFiles
-  /** WebP variants of a written image (§9.1). */
   encodeVariants: (localPath: string) => Promise<void>
   tmdb: Pick<TmdbApi, 'images' | 'downloadImage'>
   refresh: Pick<RefreshMetadata, 'currentMetadata'>
@@ -55,7 +54,6 @@ type Deps = {
   logger: Logger
 }
 
-/** Order of `locked` in the views. */
 const editableFields: readonly EditableField[] = [
   'title',
   'year',
@@ -74,10 +72,8 @@ const overrideKeyOf = {
   backdrop: 'backdropImageId',
 } as const satisfies Record<EditableField, keyof ItemOverrides>
 
-/** §9.1 sizes: what a chosen TMDB image is downloaded at. */
 const downloadSize = { poster: 'w500', backdrop: 'w1280' } as const
 const folderOf = { poster: 'posters', backdrop: 'backdrops' } as const
-/** At most this many alternatives in the editor's grid. */
 const MAX_ALTERNATIVES = 60
 
 const extensionOf = (contentType: string, path: string): string => {
@@ -87,7 +83,6 @@ const extensionOf = (contentType: string, path: string): string => {
   return /\.([a-z0-9]{2,4})$/iu.exec(path)?.[1]?.toLowerCase() ?? 'jpg'
 }
 
-/** The TMDB value of a text field, written back by "Back to the TMDB value" (undefined clears it). */
 const restoredOf = (field: 'title' | 'year' | 'overview' | 'genres', metadata: ItemMetadata) => {
   switch (field) {
     case 'title':
@@ -110,11 +105,6 @@ const notMatched = (itemId: string) =>
     }),
   )
 
-/**
- * Metadata editing (§9.3) and the refresh requests (§9.4) of the admin: values and locks, TMDB
- * image alternatives, chosen or uploaded images (re-encoded by ffmpeg, §20), "Back to the TMDB value".
- * Every change is published as `catalog.changed`: titles and posters change for every profile.
- */
 export const metadataEditingFactory = ({
   overrides,
   items,
@@ -148,7 +138,6 @@ export const metadataEditingFactory = ({
 
   const changed = () => eventBus.publish('catalog.changed', {})
 
-  /** Whose `/images` hold the alternatives of a slot (§9.3; seasons: series backdrops). */
   const targetOf = (
     itemId: string,
     kind: EditableImageKind,
@@ -202,7 +191,6 @@ export const metadataEditingFactory = ({
     )
   }
 
-  /** Puts a stored image in the slot (locked) and forgets the one it replaces. */
   const useImage = async (itemId: string, kind: EditableImageKind, imageId: string) => {
     const previous = images.itemImage({ itemId, slot: kind })
     overrides.set({
@@ -300,7 +288,6 @@ export const metadataEditingFactory = ({
       const lockable = lockableFieldOf[field]
       if (field === 'poster' || field === 'backdrop') {
         overrides.remove({ itemId, field: lockable, at: clock.now() })
-        // TMDB's choice comes back at once (stored details, one download).
         if (item.tmdbId !== undefined) {
           const fetched = await fetchImages({ itemId })
           if (!fetched.ok) {

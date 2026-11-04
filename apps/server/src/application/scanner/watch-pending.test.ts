@@ -10,7 +10,6 @@ import type { AdminNotifier } from '../../core/scanner/ports.ts'
 import type { PendingSourceView, SourcePatch, SourceRepository } from '../../core/source/source.ts'
 import { watchPendingFactory } from './watch-pending.ts'
 
-/** In-memory disk: path → (size, mtime). */
 const createMemoryFs = () => {
   const files = new Map<string, { sizeBytes: number; mtimeMs: number }>()
   const fileSystem: FileSystem = {
@@ -26,7 +25,6 @@ const createMemoryFs = () => {
   return { files, fileSystem }
 }
 
-/** The part of the source repository `watch_pending` uses, over one pending source. */
 const createPendingRepository = (initial: PendingSourceView) => {
   let source: PendingSourceView = initial
   const repository = {
@@ -83,7 +81,6 @@ const setup = (overrides: Partial<PendingSourceView> = {}) => {
     clock,
     logger: silentLogger,
   })
-  // The probes only; `watch_pending` re-enqueuing itself is checked on its own.
   const probes = () => enqueued.filter((job) => job.type === 'probe_source')
   return { clock, files, pending, enqueued: { probes }, all: enqueued, notified, watchPending }
 }
@@ -114,7 +111,6 @@ describe('watch_pending (§7.3 step 3) with a simulated disk and clock', () => {
     }
     expect(enqueued.probes()).toEqual([])
     expect(pending.current()).toMatchObject({ sizeBytes: 4_000_000, unchangedSince: clock.now() })
-    // Pre-allocated: the size is final, only mtime moves.
     clock.advance(30_000)
     files.set('/media/Film.mkv', { sizeBytes: 4_000_000, mtimeMs: 99 })
     expect(await watchPending()).toMatchObject({ changed: 1 })
@@ -139,7 +135,6 @@ describe('watch_pending (§7.3 step 3) with a simulated disk and clock', () => {
         runAfter: new Date(clock.now().getTime() + 90_000),
       },
     ])
-    // Stable: probed, nothing more to plan.
     clock.advance(90_000)
     await watchPending()
     expect(all.filter((job) => job.type === 'watch_pending')).toHaveLength(1)

@@ -64,15 +64,12 @@ type Deps = {
   sessionRepository: PlaybackSessionRepository
   subtitleTrackRepository: SubtitleTrackRepository
   trackPreferenceRepository: TrackPreferenceRepository
-  /** §11.1 settings of a profile; undefined for an unknown profile. */
   profileTracks: (profileId: string) => ProfileTrackDefaults | undefined
   playbackSettings: PlaybackSettingsReader
   mediaProber: MediaProber
   keyframeStore: KeyframeStore
   jobQueue: JobQueue
-  /** §10.5: the index URL of a source's trickplay sprites, when ready (`trickplayUrlFactory`). */
   trickplayUrl?: (sourceId: string) => string | undefined
-  /** §20: the secret of the session's stream URLs, stored hashed. */
   streamSecrets: SessionTokens
   clock: Clock
   ids: IdGenerator
@@ -89,29 +86,22 @@ export type CreatePlaybackSessionError = AppError<
   | 'playback/transcode_limit_reached'
 >
 
-/** §7.7: `version` tells it apart (labelled by the web). */
 export type VersionChoice = { sourceId: string; version: SourceVersion; selected: boolean }
 
 export type CreatedPlaybackSession = {
-  /** §20: the capability secret of the stream URLs, returned once and never stored. */
   streamSecret: string
   session: PlaybackSession
   plan: PlaybackPlan
-  /** The part played (the source itself when unstacked). */
   source: PlayableSource
   media: MediaInfo
-  /** Item timeline (cumulative over the parts). */
   startPositionMs: number
-  /** Item duration: the parts of the version added up. */
   durationMs?: number
   mediaSegments: MediaSegment[]
-  /** Each audio track of the part, with how it would reach the browser if chosen. */
   audioTracks: { stream: AudioStreamInfo; delivery?: AudioDelivery }[]
   subtitleTracks: SubtitleTrack[]
   tracks: ResolvedTracks
   burnInEnabled: boolean
   availableQualities: PlaybackQuality[]
-  /** Best first; `sourceId` = first part of each version. */
   versions: VersionChoice[]
   parts: TimelinePart[]
   partOffsetMs: number
@@ -136,26 +126,6 @@ type MediaResult = Result<MediaInfo, AppError<'playback/source_unavailable'>>
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)]
 
-/**
- * `POST /playback/sessions` (§10.6):
- * 1. the version (§7.7): the one of `sourceId` (any of its parts), else the best one playable
- *    without a video transcode on this client, else the highest resolution;
- * 2. the part (§8.4) that contains the start position (item timeline);
- * 3. the tracks: explicit ones, else the §11.2 cascade;
- * 4. the mode (§10.2), within `settings.max_concurrent_transcodes` for `hls_transcode`; a bitmap
- *    track chosen by the cascade (not named by the request) is left out when burning it in is
- *    impossible (no transcode slot, no HLS on the client): playable without subtitles;
- * 5. the session row, the progress of every item of the file (multi-episode files, §8.4), and the
- *    keyframe index right away when HLS remux needs it (§10.3).
- *
- * Transcode limit: active `hls_transcode` sessions count, except expired ones (no heartbeat for
- * 60 s, not swept yet) and the most recent one of the same auth session on the same item — the
- * player that replaces its session (quality, track, version change) is not blocked by the one it
- * is about to stop, whether it stops it before or after. Only one is exempt: other tabs of the
- * same browser on the same title count (at most one transcode above the limit, briefly). Ending
- * that session here instead would tell the player its current session was stopped before it
- * received the new one.
- */
 export const createPlaybackSessionFactory = ({
   catalogRepository,
   progressRepository,
@@ -173,10 +143,6 @@ export const createPlaybackSessionFactory = ({
   ids,
   logger,
 }: Deps) => {
-  /**
-   * The cascade's context: the series' (or movie's) memory, the profile, the work's original
-   * language and genres (the anime rule).
-   */
   const trackContext = ({
     item,
     profileId,
@@ -197,10 +163,6 @@ export const createPlaybackSessionFactory = ({
     }
   }
 
-  /**
-   * `subtitleTrackId` of the request. A track of another source (the previous part, another
-   * version) is mapped to its equivalent here; none, or an unknown id: the cascade decides.
-   */
   const explicitSubtitle = (
     trackId: string | undefined,
     tracks: readonly SubtitleTrack[],
@@ -213,10 +175,6 @@ export const createPlaybackSessionFactory = ({
     return equivalent === undefined ? {} : { subtitle: { trackId: equivalent.id } }
   }
 
-  /**
-   * §7.7: the version of `sourceId`; else the best one (ranked) whose first part plays without a
-   * video transcode on this client; else the best usable one; none usable: the first error.
-   */
   const chooseVersion = async ({
     versions,
     input,
@@ -256,7 +214,6 @@ export const createPlaybackSessionFactory = ({
     }
     if (usable !== undefined) return ok(usable)
     if (firstError !== undefined && !firstError.ok) return firstError
-    // Every version decoded but none has a mode (no video stream, no HLS on the client).
     return ok(versions[0])
   }
 
@@ -318,7 +275,6 @@ export const createPlaybackSessionFactory = ({
     if (!chosen.ok) return chosen
     const version = chosen.value
 
-    // Every part's media: the offsets need the durations of the parts before.
     const medias: MediaInfo[] = []
     for (const part of version.parts) {
       const media = await mediaOf(part)
@@ -376,8 +332,6 @@ export const createPlaybackSessionFactory = ({
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
       })
 
-    // Synchronous from here: no other request can start a transcode between the count and the
-    // insert.
     const now = clock.now()
     const withinTranscodeLimit = (
       plan: PlaybackPlan,
@@ -386,8 +340,6 @@ export const createPlaybackSessionFactory = ({
       const active = sessionRepository
         .listActive()
         .filter((other) => other.mode === 'hls_transcode' && !isExpired(other, now))
-      // Only the latest one of this auth session on this item is the one being replaced: N tabs
-      // of one browser on one title do not get N transcodes.
       const replaced = active
         .filter((other) => other.authSessionId === input.authSessionId && other.itemId === itemId)
         .reduce<PlaybackSession | undefined>(
@@ -413,8 +365,6 @@ export const createPlaybackSessionFactory = ({
       return decided.ok ? withinTranscodeLimit(decided.value) : decided
     }
 
-    // A bitmap track the cascade picked (not the request) must not make the file unplayable:
-    // without a transcode slot, or HLS on the client, the session starts without subtitles.
     const first = planFor(tracks.value)
     const dropSubtitle =
       !first.ok &&
@@ -470,7 +420,6 @@ export const createPlaybackSessionFactory = ({
     const { accountId: _accountId, ...row } = session
     sessionRepository.insert(row)
 
-    // §12, §7.7: the segments timed on this version (none when they belong to another cut).
     const segmentsOf = (id: string) =>
       segmentsForVersion(catalogRepository.listMediaSegments(id), {
         referenceMs: itemTimeline(
@@ -480,8 +429,6 @@ export const createPlaybackSessionFactory = ({
       })
     const mediaSegments = segmentsOf(itemId)
 
-    // A play starts: `last_played_at`, back in the home rows (its series too, §13.1), and the
-    // duration recorded for the heartbeats. A multi-episode file plays every episode it holds.
     for (const playedId of unique([itemId, ...catalogRepository.listSourceItemIds(source.id)])) {
       progressRepository.showAncestorsAgain({ profileId, itemId: playedId })
       if (durationMs === undefined || durationMs <= 0) continue
@@ -494,7 +441,6 @@ export const createPlaybackSessionFactory = ({
           positionMs: startPositionMs,
           durationMs,
           at: now,
-          // §12.4: a start in the credits (a track change there) keeps the item watched.
           ...creditsStartOf(playedId === itemId ? mediaSegments : segmentsOf(playedId)),
         }),
       )

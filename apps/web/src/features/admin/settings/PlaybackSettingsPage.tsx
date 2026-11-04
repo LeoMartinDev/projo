@@ -33,7 +33,6 @@ const bodyOf = (key: Toggle, on: boolean): Partial<PlaybackSettingsDto> =>
       ? { hwAccel: on ? 'vaapi' : 'off' }
       : { [key]: on }
 
-/** A switch saved at once. */
 const ToggleSetting = ({
   playback,
   setting,
@@ -83,7 +82,6 @@ const parseLimit = (key: Limit, value: string): number | undefined => {
     : undefined
 }
 
-/** The two limits, saved together with "Enregistrer". */
 const Limits = ({ playback }: { playback: PlaybackSettingsDto }) => {
   const { t } = useTranslation()
   const id = useId()
@@ -156,11 +154,6 @@ const Limits = ({ playback }: { playback: PlaybackSettingsDto }) => {
   )
 }
 
-/**
- * `/admin/settings/playback` (§15 "Playback"): simultaneous transcodes, transcode cache size,
- * stereo downmix, burnt-in subtitles, timeline thumbnails, hardware transcoding. Applied to the next session or job,
- * without restart (§10).
- */
 export const PlaybackSettingsPage = () => {
   const { t } = useTranslation()
   const settings = useQuery(settingsQuery)

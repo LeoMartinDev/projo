@@ -1,4 +1,3 @@
-/** Counting semaphore. */
 export const createLimiter = (max: number) => {
   let active = 0
   const waiting: (() => void)[] = []

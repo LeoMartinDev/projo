@@ -18,10 +18,8 @@ import { buildNewAccount, type NewAccountInput } from '../account/admin-accounts
 
 type Deps = {
   invitationRepository: InvitationRepository
-  /** Opaque single-use tokens, stored hashed (same generator as sessions). */
   tokens: SessionTokens
   passwordHasher: PasswordHasher
-  /** §20: 20 acceptances per hour per IP. */
   rateLimiter: RateLimiter
   clock: Clock
   ids: IdGenerator
@@ -47,7 +45,6 @@ const lookupError = (outcome: 'not_found' | 'expired' | 'used'): InvitationLooku
 
 export const invitationRateLimitKey = (ip: string) => `invitation:ip:${ip}`
 
-/** §14 Invitations: admin side (create, list, withdraw) and public side (check, accept). */
 export const invitationsFactory = ({
   invitationRepository,
   tokens,
@@ -57,7 +54,6 @@ export const invitationsFactory = ({
   ids,
   logger,
 }: Deps) => ({
-  /** The token is returned this once; only its hash is stored. */
   create: ({
     createdBy,
   }: {
@@ -88,7 +84,6 @@ export const invitationsFactory = ({
     return ok()
   },
 
-  /** `GET /invitations/:token`: whether the link can still be used. */
   check: ({ token }: { token: string }): Result<Invitation, InvitationLookupError> => {
     const invitation = invitationRepository.findByTokenHash(tokens.hash(token))
     if (invitation === undefined) return err(lookupError('not_found'))
@@ -96,10 +91,6 @@ export const invitationsFactory = ({
     return state === 'pending' ? ok(invitation) : err(lookupError(state))
   },
 
-  /**
-   * Creates a `user` account and its first profile from a pending invitation, atomically with
-   * marking it used (two parallel acceptances cannot both succeed).
-   */
   accept: async ({
     token,
     ip,

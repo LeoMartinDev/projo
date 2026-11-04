@@ -1,21 +1,13 @@
 import { type PlayableSource, resolutionOf, type Resolution } from '../catalog/catalog.ts'
 
-/**
- * §7.7 versions and parts of a movie or an episode. Every ready source of the item is a version,
- * except the parts of a stack (`stack_group_id`), which together form one version, ordered by
- * `part_index`.
- */
 export type PlaybackVersion = {
-  /** `stack_group_id`, or the id of the single source. */
   key: string
-  /** At least one; the parts of a stack in order. */
   parts: [PlayableSource, ...PlayableSource[]]
 }
 
 const byPartIndex = (a: PlayableSource, b: PlayableSource): number =>
   (a.partIndex ?? 0) - (b.partIndex ?? 0)
 
-/** Groups the ready sources of an item into versions, in the order of their first source. */
 export const groupVersions = (sources: readonly PlayableSource[]): PlaybackVersion[] => {
   const groups = new Map<string, PlayableSource[]>()
   for (const source of sources) {
@@ -28,7 +20,6 @@ export const groupVersions = (sources: readonly PlayableSource[]): PlaybackVersi
   })
 }
 
-/** The version a source (any of its parts) belongs to. */
 export const versionOf = (
   versions: readonly PlaybackVersion[],
   sourceId: string,
@@ -48,10 +39,6 @@ const qualityKey = (version: PlaybackVersion): [number, number, number] => {
   ]
 }
 
-/**
- * Best first: resolution, then dynamic range, then total size. A version whose stored probe is
- * unknown comes last. Stable for equal keys.
- */
 export const rankVersions = (versions: readonly PlaybackVersion[]): PlaybackVersion[] =>
   versions
     .map((version, order) => ({ version, order, key: qualityKey(version) }))
@@ -64,7 +51,6 @@ export const rankVersions = (versions: readonly PlaybackVersion[]): PlaybackVers
     })
     .map(({ version }) => version)
 
-/** A part on the item timeline (§8.4: positions and durations are cumulative over the parts). */
 export type TimelinePart = { sourceId: string; index: number; offsetMs: number; durationMs: number }
 
 export const partsTimeline = (
@@ -81,10 +67,6 @@ export const partsTimeline = (
 export const totalDurationMs = (timeline: readonly TimelinePart[]): number =>
   timeline.reduce((total, part) => total + part.durationMs, 0)
 
-/**
- * The part that contains an item position: `offset ≤ position < offset + duration`; past the end,
- * the last part.
- */
 export const partAt = (timeline: readonly TimelinePart[], positionMs: number): TimelinePart => {
   const found = timeline.find(
     (part) => positionMs >= part.offsetMs && positionMs < part.offsetMs + part.durationMs,

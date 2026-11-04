@@ -65,7 +65,6 @@ export const toMeResponse = ({
   needsProfileSelection,
 })
 
-/** `respondError`, with `Retry-After` when the error carries `retryAfterSeconds` (429). */
 export const respondErrorWithRetry = (c: Context<AppEnv>, error: AppError) => {
   const retryAfter = error.context?.['retryAfterSeconds']
   if (typeof retryAfter === 'number') c.header('Retry-After', String(retryAfter))
@@ -91,17 +90,11 @@ type Deps = {
   listSessions: ListSessions
   revokeSession: RevokeSession
   pairings: Pairings
-  /** §14: devices, tokens, pairing and password are refused to a restricted profile. */
   requireAccountActions: MiddlewareHandler<AppEnv>
   clock: Clock
   trustProxy: boolean
 }
 
-/**
- * §17.2 Auth: `/auth/*` (invitations: `invitations.ts`).
- * Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is
- * mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const authRoutes = ({
   login,
   changePassword,
@@ -129,7 +122,6 @@ export const authRoutes = ({
       if (!result.ok) return respondErrorWithRetry(c, result.error)
       const { token, session } = result.value
       if (session.kind === 'cookie') {
-        // Logging in again on the same browser replaces its previous cookie session.
         const previous = c.get('session')
         if (previous?.kind === 'cookie') {
           revokeSession({ accountId: previous.accountId, sessionId: previous.id })

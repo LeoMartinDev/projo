@@ -28,18 +28,10 @@ import {
 import { oauthRoutes } from '../oauth/routes.ts'
 import type { Platform } from './platform.ts'
 
-/** §27.3: 120 `/mcp` requests per minute per credential. */
 const mcpRateLimit = { limit: 120, windowMs: 60_000 }
-/** §27.3: 10 client registrations per hour per IP. */
 const registrationRateLimit = { limit: 10, windowMs: 60 * 60_000 }
-/** §27.3: 20 failed token requests per 15 min per IP. */
 const tokenFailureRateLimit = { limit: 20, windowMs: 15 * 60_000 }
 
-/**
- * Wiring of the MCP server (§27): assistant tokens ("AI assistants" in Admin → Server), OAuth 2.1
- * (discovery, registration, consent, tokens) and `POST /mcp` with the tools of §27.4, over the
- * metadata module's use cases.
- */
 export const buildAssistantsModule = (
   platform: Platform,
   {
@@ -47,7 +39,6 @@ export const buildAssistantsModule = (
     clientMetadata = createClientMetadataFetcher(),
   }: {
     assistantPorts: Pick<AssistantToolsDeps, 'review' | 'tmdbDetails' | 'metadataLanguage'>
-    /** Tests: Client ID Metadata Documents served locally. */
     clientMetadata?: ClientMetadataFetcher
   },
 ) => {
@@ -78,7 +69,6 @@ export const buildAssistantsModule = (
     logger: moduleLogger,
   })
 
-  // A token created in the admin, else an OAuth access token.
   const authenticate: McpAuthenticate = (token) => {
     const asToken = assistantTokens.authenticate(token)
     const principal =
@@ -110,7 +100,6 @@ export const buildAssistantsModule = (
 
   const scheduledTasks: ScheduledTask[] = [
     {
-      // §27.3: expired codes and tokens, registrations unused for 30 days.
       name: 'oauth-purge',
       initialDelayMs: 30 * 60_000,
       intervalMs: 24 * 60 * 60_000,
@@ -132,7 +121,6 @@ export const buildAssistantsModule = (
       trustProxy: config.trustProxy,
     }),
     scheduledTasks,
-    /** Mounted at the root, next to `/health` (§27.2). */
     mcpRoutes: mcpRoutes({
       protocol,
       authenticate,

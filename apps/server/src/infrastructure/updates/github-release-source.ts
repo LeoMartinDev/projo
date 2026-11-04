@@ -23,7 +23,6 @@ import {
 } from './release-files.ts'
 
 export const GITHUB_API_BASE_URL = 'https://api.github.com'
-/** §20: release files are downloaded from this prefix only. */
 export const RELEASE_DOWNLOAD_PREFIX = `https://github.com/${RELEASES_REPOSITORY}/releases/download/`
 
 const DEFAULT_TIMEOUT_MS = 15_000
@@ -33,7 +32,6 @@ const optionalString = z
   .nullish()
   .transform((value) => value ?? undefined)
 
-/** The fields of `GET /repos/{owner}/{repo}/releases/latest` the updater reads. */
 const githubReleaseSchema = z.object({
   tag_name: z.string(),
   html_url: z.string(),
@@ -50,20 +48,13 @@ const githubReleaseSchema = z.object({
 })
 
 export type GithubReleaseSourceConfig = {
-  /** Injectable for tests (a local server replaying a release). */
   apiBaseUrl?: string
-  /** Allowed prefix of asset URLs; tests point it at their server. */
   downloadPrefix?: string
   fetch?: FetchLike
   timeoutMs?: number
   logger: Logger
 }
 
-/**
- * §16.4 `check_updates`: the latest release of `LeoMartinDev/projo`, its archive and
- * `SHA256SUMS`, and `runtimeMin` read from the `manifest.json` published next to the archive
- * (checked against `SHA256SUMS`, so the archive is not downloaded to know whether it fits).
- */
 export const createGithubReleaseSource = (config: GithubReleaseSourceConfig): ReleaseSource => {
   const apiBase = (config.apiBaseUrl ?? GITHUB_API_BASE_URL).replace(/\/+$/u, '')
   const downloadPrefix = config.downloadPrefix ?? RELEASE_DOWNLOAD_PREFIX
@@ -106,7 +97,6 @@ export const createGithubReleaseSource = (config: GithubReleaseSourceConfig): Re
       if (outcome.kind === 'network_error')
         return unreachable('GitHub is unreachable', { reason: outcome.message })
       const { response } = outcome
-      // No release published yet.
       if (response.status === 404) return ok(undefined)
       if (!response.ok) return unreachable('GitHub answered an error', { status: response.status })
       const bytes = await readBytes(response)

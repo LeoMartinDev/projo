@@ -8,12 +8,6 @@ import { notifications } from '../../src/infrastructure/sqlite/schema/ops.ts'
 import { buildTestRelease, startGithubReleasesServer } from '../support/github-releases-server.ts'
 import { createUpdatesWorld } from '../support/updates-world.ts'
 
-/**
- * §16.4 end to end on the app side: the fake GitHub serves real tiny bundles; the module checks,
- * downloads, verifies (§20), installs into `versions/<v>`, writes `pending` and asks to exit 75;
- * the restarted app settles the supervisor's report.
- */
-
 const server = startGithubReleasesServer()
 afterAll(() => server.stop())
 
@@ -58,7 +52,6 @@ describe('updates (§16.4)', () => {
 
     const applied = await world.request('/updates/apply', { json: { version: '1.4.0' } })
     expect(applied.status).toBe(202)
-    // Singleton: a second click while it is queued.
     const again = await world.request('/updates/apply', { json: { version: '1.4.0' } })
     expect(again.status).toBe(409)
     const jobs = await world.runJobs()
@@ -82,7 +75,6 @@ describe('updates (§16.4)', () => {
       version: '1.4.0',
     })
 
-    // The supervisor switched and wrote its report; the app restarts on 1.4.0.
     writeFileSync(
       world.paths.app.switchResult,
       JSON.stringify({
@@ -256,7 +248,6 @@ describe('updates (§16.4)', () => {
         at: '2026-10-24T10:01:00.000Z',
       }),
     )
-    // 1.3.0 is on the disk too (the version that ran before).
     const previous = await buildTestRelease({ version: '1.3.0' })
     for (const [path, content] of Object.entries(previous.bundle)) {
       const target = join(world.paths.app.versions, '1.3.0', path)
@@ -285,7 +276,6 @@ describe('updates (§16.4)', () => {
       toVersion: '1.3.0',
       outcome: 'pending',
     })
-    // A second request while the switch is pending.
     expect((await world.request('/updates/rollback', { json: { version: '1.3.0' } })).status).toBe(
       409,
     )

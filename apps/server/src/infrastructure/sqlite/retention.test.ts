@@ -11,8 +11,6 @@ import { scanRuns } from './schema/libraries.ts'
 import { notifications } from './schema/ops.ts'
 import { createSqliteTmdbResponseStore } from './tmdb-response-store.ts'
 
-/** §18 "Rules": the stores that only grew are trimmed. */
-
 const day = (n: number) => new Date(Date.UTC(2026, 9, n))
 
 let db: Db

@@ -6,8 +6,6 @@ import type { MediaProbe } from '../../core/media/probe.ts'
 import type { ParsedName } from '../../core/naming/index.ts'
 import { parseJsonColumn } from './rows.ts'
 
-// Zod schemas of the JSON columns of `sources` (§6: validated on read by `parseJsonColumn`).
-
 export const parsedNameSchema = z.object({
   title: z.string().optional(),
   year: z.number().int().optional(),
@@ -31,7 +29,6 @@ export const parsedNameSchema = z.object({
     .optional(),
 })
 
-/** `sources.parsed` → `ParsedName` (JSON never holds `undefined`, so the optional keys are exact). */
 export const readParsedName = (value: unknown): ParsedName =>
   parseJsonColumn(parsedNameSchema, value, 'sources.parsed') as ParsedName
 
@@ -42,7 +39,6 @@ const parsedEditionSchema = z
   })
   .catch({})
 
-/** The edition of `sources.parsed` alone (§7.7 version), lenient: what cannot be read is left out. */
 export const readParsedEdition = (
   value: unknown,
 ): { edition?: EditionId | undefined; editionName?: string | undefined } =>

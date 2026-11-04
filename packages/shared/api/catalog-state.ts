@@ -8,11 +8,6 @@ import {
 } from './catalog.ts'
 import { type GenreId, genreIdSchema } from './genres.ts'
 
-/**
- * Sort and filters of Movies / Shows (§13.4), as sent to `GET /movies|/series`; kept per profile
- * and per device by each client (the web's `localStorage`, the app's Keychain). Anything
- * unreadable falls back to the defaults.
- */
 export type CatalogQueryState = {
   sort: CatalogSort
   genre?: GenreId
@@ -21,7 +16,6 @@ export type CatalogQueryState = {
   watch?: WatchFilter
 }
 
-/** The query string of `GET /movies|/series` for a state and a page (`cursor`, `''` first). */
 export const catalogListParams = (state: CatalogQueryState, cursor: string, limit: number) => ({
   sort: state.sort,
   limit: String(limit),
@@ -39,7 +33,6 @@ export const defaultCatalogState: CatalogQueryState = { sort: 'title' }
 
 const storedSchema = z.object({
   sort: catalogSortSchema.catch('title'),
-  /** A genre id (§9.1); a name saved before ids ("Drame") is dropped. */
   genre: genreIdSchema.optional().catch(undefined),
   decade: z
     .number()
@@ -51,14 +44,12 @@ const storedSchema = z.object({
   watch: watchFilterSchema.optional().catch(undefined),
 })
 
-/** A state being edited: a filter set to `undefined` is removed. */
 export type CatalogStateDraft = {
   [K in keyof CatalogQueryState]?: CatalogQueryState[K] | undefined
 } & {
   sort: CatalogQueryState['sort']
 }
 
-/** Drops `undefined` keys (`exactOptionalPropertyTypes`) and a year outside its decade. */
 export const normalizeCatalogState = (state: CatalogStateDraft): CatalogQueryState => {
   const decade =
     state.decade ?? (state.year === undefined ? undefined : Math.floor(state.year / 10) * 10)
@@ -88,11 +79,9 @@ export const parseCatalogState = (value: unknown): CatalogQueryState => {
   })
 }
 
-/** Where a client keeps the state of a page (`movies`, `series`) for a profile. */
 export const catalogStateKey = (profileId: string, kind: 'movies' | 'series') =>
   `projo.catalog.${profileId}.${kind}`
 
-/** Filters set (the sort is not a filter): the count on the mobile "Filtres" button. */
 export const activeFilterCount = (state: CatalogQueryState): number =>
   [state.genre, state.decade, state.watch].filter((value) => value !== undefined).length
 
@@ -101,13 +90,8 @@ export const clearFilters = (state: CatalogQueryState): CatalogQueryState =>
     sort: state.sort,
   })
 
-/** Oldest and newest year of what the profile can see (`GET /genres` → `years`). */
 export type YearRange = { min: number; max: number }
 
-/**
- * Decades offered by the year filter, newest first, within the catalogue's years; the selected
- * one stays offered even if nothing is left in it.
- */
 export const decadesWithin = (range: YearRange | undefined, selected?: number): number[] => {
   const decades =
     range === undefined
@@ -121,22 +105,16 @@ export const decadesWithin = (range: YearRange | undefined, selected?: number): 
     : [...decades, selected].sort((a, b) => b - a)
 }
 
-/** Years of a decade, newest first, within the catalogue's years. */
 export const yearsOf = (decade: number, range: YearRange | undefined): number[] =>
   Array.from({ length: 10 }, (_, index) => decade + 9 - index).filter(
     (year) => range === undefined || (year >= range.min && year <= range.max),
   )
 
-/**
- * What "See all ›" of Recently added puts in the URL of Movies / Shows (§13.3): `sort=added`.
- * Anything else is dropped.
- */
 export type CatalogSearch = { sort?: 'added' }
 
 export const parseCatalogSearch = (search: Record<string, unknown>): CatalogSearch =>
   search['sort'] === 'added' ? { sort: 'added' } : {}
 
-/** The state Movies / Shows opens with: the remembered one, its sort replaced by the link's. */
 export const arrivalState = (
   stored: CatalogQueryState,
   search: CatalogSearch,

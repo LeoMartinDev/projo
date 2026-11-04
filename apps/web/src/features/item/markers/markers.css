@@ -1,6 +1,3 @@
-/* Markers dialog (§12.5): a fixed-size dialog whose body scrolls; the timeline on top, one row per
-   segment type (type and origin, start, end, "Pas d'…", delete), the lookups last. */
-
 @import '../../../shared/styles/media.css';
 
 .dialog:has(.markers) {
@@ -210,7 +207,6 @@
   color: var(--color-error-soft);
 }
 
-/* Footer: "Apply to the whole season" on the left, the dialog buttons on the right. */
 .markers__season {
   margin-right: auto;
 }

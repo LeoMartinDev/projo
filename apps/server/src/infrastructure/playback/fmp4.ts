@@ -1,8 +1,3 @@
-/**
- * Minimal ISO BMFF reading for the remuxer: split ffmpeg's fragmented MP4 stream into top-level
- * boxes, read track timescales from `moov`, the start time of a `moof`, and renumber `mfhd`.
- */
-
 export type Mp4Box = { type: string; bytes: Uint8Array }
 
 const typeAt = (bytes: Uint8Array, offset: number): string =>
@@ -15,7 +10,6 @@ const typeAt = (bytes: Uint8Array, offset: number): string =>
 
 const view = (bytes: Uint8Array) => new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
 
-/** Size and header length of the box at `offset`; undefined while the header is incomplete. */
 const boxHeader = (
   bytes: Uint8Array,
   offset: number,
@@ -28,19 +22,13 @@ const boxHeader = (
     if (end - offset < 16) return undefined
     return { size: Number(data.getBigUint64(offset + 8)), header: 16 }
   }
-  // size 0 ("to the end of the file") is never produced for fragments: rejected as < 8.
   return { size: size32, header: 8 }
 }
 
-/**
- * Incremental splitter of a byte stream into complete top-level boxes. Chunks are queued and
- * copied once, when a whole box is available (an `mdat` can weigh megabytes).
- */
 export const createBoxSplitter = () => {
   const queue: Uint8Array[] = []
   let queued = 0
 
-  /** Removes and returns the first `length` bytes of the queue (`peek` keeps them). */
   const take = (length: number, peek = false): Uint8Array => {
     const out = new Uint8Array(length)
     let filled = 0
@@ -83,7 +71,6 @@ export const createBoxSplitter = () => {
   }
 }
 
-/** Child boxes of a container box (`moov`, `trak`, `moof`…). */
 export const children = (box: Uint8Array, headerLength = 8): Mp4Box[] => {
   const result: Mp4Box[] = []
   let offset = headerLength
@@ -104,7 +91,6 @@ const child = (box: Uint8Array, type: string): Uint8Array | undefined =>
 
 export type TrackInfo = { trackId: number; timescale: number; handler: string }
 
-/** Tracks declared in `moov`: id (`tkhd`), timescale (`mdhd`), handler (`vide`, `soun`…). */
 export const readTracks = (moov: Uint8Array): TrackInfo[] =>
   children(moov)
     .filter((entry) => entry.type === 'trak')
@@ -127,10 +113,6 @@ export const readTracks = (moov: Uint8Array): TrackInfo[] =>
       ]
     })
 
-/**
- * Presentation time (in track timescale units) of the first sample of `trackId` in a `moof`:
- * `tfdt.baseMediaDecodeTime` plus the first sample's composition offset (`trun`).
- */
 export const fragmentStartTicks = (moof: Uint8Array, trackId: number): number | undefined => {
   for (const { type, bytes: traf } of children(moof)) {
     if (type !== 'traf') continue
@@ -152,15 +134,14 @@ const firstCompositionOffset = (trun: Uint8Array | undefined): number => {
   const flags = data.getUint32(8) & 0xffffff
   if ((flags & 0x800) === 0 || data.getUint32(12) === 0) return 0
   let offset = 16
-  if (flags & 0x1) offset += 4 // data_offset
-  if (flags & 0x4) offset += 4 // first_sample_flags
-  if (flags & 0x100) offset += 4 // sample_duration
-  if (flags & 0x200) offset += 4 // sample_size
-  if (flags & 0x400) offset += 4 // sample_flags
+  if (flags & 0x1) offset += 4
+  if (flags & 0x4) offset += 4
+  if (flags & 0x100) offset += 4
+  if (flags & 0x200) offset += 4
+  if (flags & 0x400) offset += 4
   return version === 1 ? data.getInt32(offset) : data.getUint32(offset)
 }
 
-/** Rewrites `mfhd.sequence_number` (in place): fragments get a number stable across ffmpeg runs. */
 export const setSequenceNumber = (moof: Uint8Array, sequence: number): void => {
   const mfhd = child(moof, 'mfhd')
   if (mfhd !== undefined) view(mfhd).setUint32(12, sequence)

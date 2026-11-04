@@ -34,10 +34,6 @@ import type {
   ParsedName,
 } from './types'
 
-/**
- * Version of the name analysis rules (§8). Bump it with any change to what `analyzeMediaPath`
- * returns: the next startup reads every name again (§7.4, scan kind `rules_update`).
- */
 export const NAMING_RULES_VERSION = 3
 
 type Context = {
@@ -45,12 +41,10 @@ type Context = {
   readonly stem: string
   readonly file: PreparedName
   readonly parents: readonly string[]
-  /** Nearest season folder above the file, with the folder right above it (the series folder) if any. */
   readonly seasonFolder?: SeasonFolder
   readonly seriesFolder?: string
 }
 
-/** A purely numeric folder is a season only below another folder: `24/` at the root is a show. */
 const isSeasonFolderAt = (parents: readonly string[], index: number): boolean => {
   const segment = parents[index] ?? ''
   if (parseSeasonFolder(segment) === undefined) return false
@@ -60,10 +54,6 @@ const isSeasonFolderAt = (parents: readonly string[], index: number): boolean =>
 const seasonFolderIndex = (parents: readonly string[]): number =>
   parents.findLastIndex((_, index) => isSeasonFolderAt(parents, index))
 
-/**
- * The folder holding a show's files: the one above the nearest season folder, otherwise the file's
- * own folder (`''` at the root). Files to review are identified together within it (§7.8).
- */
 export const showFolderOf = (relativePath: string): string => {
   const parents = parentSegments(relativePath.normalize('NFC'))
   const seasonIndex = seasonFolderIndex(parents)
@@ -113,11 +103,6 @@ const result = (
 
 type SeriesIdentity = { readonly series?: string; readonly year?: number; readonly ids?: IdTags }
 
-/**
- * Series name (§8.2 "Show name"): the folder above the season folder; otherwise what precedes the
- * episode number in the file name; otherwise (nothing precedes it) the file's folder. A folder
- * carrying an id tag always names the show; the folder's year completes a name it matches.
- */
 const resolveSeries = (ctx: Context, prefix: string): SeriesIdentity => {
   const fromPrefix = parseTitleFragment({ value: prefix }, { detectParts: false, detectYear: true })
   const folderName = ctx.seasonFolder === undefined ? parentFolder(ctx) : ctx.seriesFolder
@@ -151,7 +136,6 @@ const resolveSeries = (ctx: Context, prefix: string): SeriesIdentity => {
   }
 }
 
-/** Sonarr anime naming repeats the absolute number after the pattern: `S01E12 - 012 - Title`. */
 const LEADING_ABSOLUTE = /^[\s._-]*\d{1,4}[\s._]*-(?=[\s._]*\S)/u
 
 const episodeTitleFrom = (rest: string): string | undefined => {
@@ -162,15 +146,9 @@ const episodeTitleFrom = (rest: string): string | undefined => {
 
 const DASH_TITLE = /^[\s._]*-[\s._]*(?=\S)/u
 
-/** After a number read after the show name, only ` - Title` is a title: `Name 64 HD` has none. */
 const dashTitleFrom = (rest: string): string | undefined =>
   DASH_TITLE.test(rest) ? episodeTitleFrom(rest.replace(DASH_TITLE, ' ')) : undefined
 
-/**
- * Episode numbers found in a name. `nameEnd`: where the show name ends when a season marker sits
- * between it and the number (`Show S2 - 05`); `afterName`: a number read after the show name,
- * whose title only follows ` - `.
- */
 type EpisodeNumbers =
   | {
       readonly kind: 'standard'
@@ -228,7 +206,6 @@ const episodeResult = (
 const looksLikeMovieFolder = (fragment: TitleFragment): boolean =>
   fragment.title !== '' && (fragment.year !== undefined || fragment.ids !== undefined)
 
-/** Movie title and year, preferring a `Title (Year)` parent folder over the file name (§8.1 "Dossier par film"). */
 const movieParsed = (ctx: Context): ParsedName => {
   const file = parseTitleFragment(ctx.file)
   const folderName = parentFolder(ctx)
@@ -282,7 +259,6 @@ const unknownResult = (ctx: Context, extra: ParsedName): MediaPathAnalysis => {
   )
 }
 
-/** Title of the folder naming the show: above the season folder, otherwise the file's folder. */
 const showFolderTitle = (ctx: Context): string => {
   const folderName = ctx.seasonFolder === undefined ? parentFolder(ctx) : ctx.seriesFolder
   return folderName === undefined
@@ -290,11 +266,6 @@ const showFolderTitle = (ctx: Context): string => {
     : normalizeTitle(parseTitleFragment(folderName, { detectParts: false, detectYear: true }).title)
 }
 
-/**
- * Where the folder's title ends when the file name starts with it, otherwise 0. A number before
- * that point belongs to the title, not to an episode: `Fahrenheit 451/Fahrenheit 451.mkv`, but
- * `Station 19/Station 19 - 19.mkv` is episode 19.
- */
 const folderTitleEnd = (ctx: Context): number => {
   const title = showFolderTitle(ctx)
   const value = ctx.file.value
@@ -305,7 +276,6 @@ const folderTitleEnd = (ctx: Context): number => {
   return end ?? 0
 }
 
-/** Outside a show context, absolute numbering counts only inside a folder named like the show. */
 const isInSeriesFolder = (ctx: Context, hit: AbsoluteHit): boolean => {
   const folder = showFolderTitle(ctx)
   const prefix = normalizeTitle(
@@ -315,10 +285,6 @@ const isInSeriesFolder = (ctx: Context, hit: AbsoluteHit): boolean => {
   return folder.startsWith(prefix) || prefix.startsWith(folder)
 }
 
-/**
- * A number read after the show name (`Name 64`, `Name - 12`): a season marker right before it
- * (`S2 - 05`) gives the season and ends the show name; without any season, it is absolute.
- */
 const numberAfterName = (ctx: Context, hit: AbsoluteHit): EpisodeNumbers => {
   const marker = findSeasonMarker(ctx.file.value.slice(0, hit.index))
   const season = ctx.seasonFolder?.season ?? marker?.season
@@ -332,11 +298,6 @@ const numberAfterName = (ctx: Context, hit: AbsoluteHit): EpisodeNumbers => {
   }
 }
 
-/**
- * Episode numbers in a show context (§8.2 "Show context": a `series` library or a season folder),
- * in this order: `Episode 02` / `E02`, a date, the first `Name - 12`, a number starting the name,
- * the last standalone number before the release tags.
- */
 const showNumbers = (ctx: Context): EpisodeNumbers => {
   const value = ctx.file.value
   const folderSeason = ctx.seasonFolder?.season
@@ -367,10 +328,6 @@ const showNumbers = (ctx: Context): EpisodeNumbers => {
   return { kind: 'none' }
 }
 
-/**
- * Classifies and parses a file path relative to its library root (§7.2, §8). Total: always returns a value,
- * `unknown` with `classification_ambiguous` when nothing fits.
- */
 export const analyzeMediaPath = (input: MediaPathInput): MediaPathAnalysis => {
   const ctx = buildContext(input)
   const value = ctx.file.value

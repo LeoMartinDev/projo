@@ -72,7 +72,6 @@ describe('version switch (§16.3)', () => {
     await writeFile(layout.pendingFile, '1.4.0')
     const pending = await handler.begin(from)
     if (pending === undefined) throw new Error('switch not started')
-    // The new version migrated the database before failing.
     await writeFile(db.file, 'migrated by 1.4.0')
     await writeFile(`${db.file}-shm`, 'shm of 1.4.0')
 
@@ -87,7 +86,6 @@ describe('version switch (§16.3)', () => {
       outcome: 'rolled_back',
       reason: 'health_timeout',
     })
-    // The refused version stays on the disk (the app marks it failed).
     expect((await readAppState(layout)).installed).toContain('1.4.0')
   })
 
@@ -121,7 +119,6 @@ describe('version switch (§16.3)', () => {
     if (pending?.backup === undefined) throw new Error('switch not started')
     await writeFile(db.file, 'migrated by 1.4.0')
     await writeFile(`${db.file}-wal`, 'wal of 1.4.0')
-    // The backup's journal cannot be copied: the restore fails before touching the live files.
     await rm(`${pending.backup}-wal`)
     await mkdir(`${pending.backup}-wal`)
 

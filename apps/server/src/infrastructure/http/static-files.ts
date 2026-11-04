@@ -4,7 +4,6 @@ import { join, normalize, sep } from 'node:path'
 export type StaticFile = { path: string; file: Bun.BunFile }
 
 export type StaticFiles = {
-  /** Resolves a URL pathname to a regular file under `root`, refusing any escape from it. */
   resolve: (pathname: string) => StaticFile | undefined
 }
 

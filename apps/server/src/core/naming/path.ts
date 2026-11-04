@@ -10,7 +10,6 @@ export const parentSegments = (relativePath: string): readonly string[] =>
 
 export const directoryOf = (relativePath: string): string => joinPath(parentSegments(relativePath))
 
-/** Lowercased extension without the dot, `''` when none (a leading dot does not start an extension). */
 export const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf('.')
   return dot <= 0 ? '' : name.slice(dot + 1).toLowerCase()

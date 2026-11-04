@@ -10,11 +10,6 @@ import { tones } from '../../shared/styles/tokens.ts'
 import { useReducedMotion } from '../../shared/ui/Backdrop.tsx'
 import { useServerConnection } from '../server-connection/ServerConnection.tsx'
 
-/**
- * A server picture (`/api/v1/images/:id`, a sprite sheet…) for `expo-image`: absolute, with the
- * device's token and profile (the route checks the profile may see it). Its path is its cache key:
- * an image id changes when the image does (§9.1, `immutable`).
- */
 export const useServerImage = () => {
   const { gate } = useServerConnection()
   const base = gate.kind === 'connected' ? gate.url : ''
@@ -31,11 +26,6 @@ export const useServerImage = () => {
   }
 }
 
-/**
- * A picture of the catalogue that never shows as broken (the web's `Artwork`): the item's tone
- * fills its place while it loads, and when it is missing or fails, `fallback` is drawn instead.
- * It fades in, except under reduced motion.
- */
 export const Artwork = ({
   path,
   toneId,
@@ -47,15 +37,12 @@ export const Artwork = ({
   onRatio,
 }: {
   path: string | undefined
-  /** The item whose tone shows under the picture (`toneOf`). */
   toneId: string
   style?: StyleProp<ViewStyle>
   contentFit?: ImageContentFit
   position?: ImageContentPosition
   fallback?: ReactNode
-  /** `false`: no tone behind (a logo over a backdrop). */
   tinted?: boolean
-  /** Width / height of the loaded picture (a logo sized to it, as the web's `<img>`). */
   onRatio?: (ratio: number) => void
 }) => {
   const image = useServerImage()

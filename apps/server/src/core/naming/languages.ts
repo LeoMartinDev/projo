@@ -1,4 +1,3 @@
-/** [ISO 639-1, ISO 639-2/B, ISO 639-2/T, names (English, native, French)…] */
 const LANGUAGES: readonly (readonly [string, string, string, ...string[]])[] = [
   ['fr', 'fre', 'fra', 'french', 'français', 'francais'],
   ['en', 'eng', 'eng', 'english', 'anglais'],
@@ -77,11 +76,6 @@ const BY_CODE_OR_NAME: ReadonlyMap<string, string> = new Map(
 
 const REGION = /^[a-z]{2}$|^\d{3}$/iu
 
-/**
- * Normalizes a language code or name to BCP 47 style: ISO 639-1 when it exists, region kept (`pt-BR`).
- * Accepts 639-1, 639-2/B and /T (`fre`, `fra`), plain names (`french`, `français`). Unknown input gives `undefined`.
- * Also meant for embedded track tags (ffprobe reports 639-2) so both sides compare equal.
- */
 export const normalizeLanguage = (raw: string): string | undefined => {
   const value = raw.normalize('NFC').trim().toLowerCase()
   const direct = BY_CODE_OR_NAME.get(value)

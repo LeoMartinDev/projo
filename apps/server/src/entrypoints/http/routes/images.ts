@@ -10,10 +10,6 @@ import { validate } from '../validation.ts'
 
 export type ImageFileOpener = (path: string) => { exists: () => Promise<boolean> } & Blob
 
-/**
- * True when an item the profile may see (§6.3 and §14: ready source, library access, maximum
- * rating) or a person credited on one uses the image.
- */
 export type ImageAccess = (input: { imageId: string; profileId: string }) => boolean
 
 const notFound = (id: string) => ({
@@ -28,13 +24,6 @@ const image = (file: Blob, contentType: string, cacheControl: string) =>
     headers: { 'Content-Type': contentType, 'Cache-Control': cacheControl },
   })
 
-/**
- * `GET /images/:id?w=` (§9.1, §17.2 Catalogue): the stored image of an item the active profile
- * may see (or of a person credited on one: `canView`), never a TMDB URL. The profile is
- * `X-Profile-Id` or the session's last profile (`<img>` sends no header). Its
- * WebP variant of width `w` (or full size), else the original while the variants are not encoded:
- * the id changes when the image changes, so a variant is `immutable`, the original only an hour.
- */
 export const imagesRoutes = ({
   getImage,
   open,

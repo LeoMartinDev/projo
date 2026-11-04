@@ -1,5 +1,3 @@
-/** HTTP helpers of the updater: every network failure becomes a value, never a throw. */
-
 export type HttpOutcome =
   { kind: 'response'; response: Response } | { kind: 'network_error'; message: string }
 
@@ -10,7 +8,6 @@ export const USER_AGENT = 'projo-updater'
 const describe = (cause: unknown): string =>
   cause instanceof Error ? cause.message : String(cause)
 
-/** `fetch` with a timeout, combined with the caller's signal. */
 export const httpGet = async ({
   fetch,
   url,
@@ -37,7 +34,6 @@ export const httpGet = async ({
   }
 }
 
-/** Reads a small body (JSON, `SHA256SUMS`, `manifest.json`); `undefined` when it breaks. */
 export const readBytes = async (response: Response): Promise<Uint8Array | undefined> => {
   try {
     return new Uint8Array(await response.arrayBuffer())

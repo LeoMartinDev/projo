@@ -1,5 +1,3 @@
-/* ── Wordmark ───────────────────────────────────────────────────────────── */
-
 @import '../../shared/styles/media.css';
 
 .logo {
@@ -24,8 +22,6 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
-
-/* ── Spectator shell (artboards `Home`, `MobileHome`) ───────────────────── */
 
 .shell {
   --header-height: calc(80px + env(safe-area-inset-top));
@@ -53,7 +49,6 @@
   top: 16px;
 }
 
-/* Floats over the hero of Accueil and of the pages; glass once the page scrolls under it. */
 .shell__header {
   position: fixed;
   top: 0;
@@ -72,7 +67,6 @@
     box-shadow 0.35s ease;
 }
 
-/* Under a modal the page's scrollbar gives way to padding (base.css): the header keeps clear of it. */
 html:has(dialog:modal) .shell__header {
   right: var(--scrollbar-width, 0px);
 }
@@ -94,8 +88,6 @@ html:has(dialog:modal) .shell__header {
   gap: 4px;
 }
 
-/* Wider than a phone, the pill's glass is one shape drawn by use-pill-merge.ts: the navigation
-   alone, then, once the page scrolls, the wordmark and the actions fused into it. */
 .pill-merge__glass,
 .pill-merge__paint {
   position: absolute;
@@ -120,8 +112,6 @@ html:has(dialog:modal) .shell__header {
   fill: rgba(40, 40, 44, 0.42);
 }
 
-/* Opaque fill, opacity after the filter: with a translucent fill, the filters' `out` composite
-   would only remove that fraction of the inside, and the rim would not stand out from it. */
 .pill-merge__edge {
   fill: #fff;
   opacity: 0.1;
@@ -179,8 +169,6 @@ html:has(dialog:modal) .shell__header {
   color: var(--color-text-strong);
 }
 
-/* Search stands on its own glass, or the hero behind it could hide it; once the page scrolls, the
-   merged pill is its glass. */
 .shell__search {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(40, 40, 44, 0.42);
@@ -208,7 +196,6 @@ html:has(dialog:modal) .shell__header {
   min-width: 0;
 }
 
-/* A page below the header (Movies, Shows, My list, réglages). */
 .page {
   display: flex;
   flex: 1 1 auto;
@@ -219,7 +206,6 @@ html:has(dialog:modal) .shell__header {
   padding: calc(var(--header-height) + 16px) var(--gutter) 80px;
 }
 
-/* A page that is only a state (not found): centred in the room under the header. */
 .page--state {
   justify-content: center;
 }
@@ -238,7 +224,6 @@ html:has(dialog:modal) .shell__header {
   min-width: 0;
 }
 
-/* The installed web app has no browser back button (iOS has none either): its pages bring one. */
 .page__back {
   display: none;
   flex: 0 0 auto;
@@ -316,18 +301,15 @@ html:has(dialog:modal) .shell__header {
   display: none;
 }
 
-/* Tablet: the pill keeps its place but tightens. */
 @media not (--wide) {
   .pill-nav__link {
     padding: 0 13px;
   }
 }
 
-/* Phone: the navigation floats at the bottom of the screen (artboard MobileHome). */
 @media (--phone) {
   .shell {
     --header-height: calc(66px + env(safe-area-inset-top));
-    /* Room the pages keep below their content for the floating navigation. */
     --nav-room: calc(112px + env(safe-area-inset-bottom));
   }
 
@@ -337,8 +319,6 @@ html:has(dialog:modal) .shell__header {
       max(16px, env(safe-area-inset-left));
   }
 
-  /* No band behind the header once the page scrolls: the controls float on their own glass and
-     the wordmark steps aside, like Safari's toolbar. */
   .shell__logo {
     transition:
       opacity 0.25s ease,
@@ -365,7 +345,6 @@ html:has(dialog:modal) .shell__header {
   .pill-nav {
     position: fixed;
     right: 16px;
-    /* The inset already clears the home indicator or Safari's toolbar: sit just inside it. */
     bottom: max(12px, calc(env(safe-area-inset-bottom) - 14px));
     left: 16px;
     z-index: 45;
@@ -408,16 +387,12 @@ html:has(dialog:modal) .shell__header {
   }
 }
 
-/* In a browser tab the bottom edge is Safari's toolbar: the navigation takes the wordmark's place
-   in the header's single row, and floats at the bottom only in the installed web app
-   (manifest.webmanifest). */
 @media (--phone) and (--in-browser) {
   .shell {
     --header-height: calc(64px + env(safe-area-inset-top));
     --nav-room: 48px;
   }
 
-  /* Tighter than elsewhere: the four tabs and the two actions fit a 375 px screen whole. */
   .shell__header {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 8px;
@@ -427,7 +402,6 @@ html:has(dialog:modal) .shell__header {
     display: none;
   }
 
-  /* The avatar is narrower than its touch target: that margin already parts the two. */
   .shell__actions {
     gap: 0;
   }
@@ -440,7 +414,6 @@ html:has(dialog:modal) .shell__header {
     padding: 4px;
     border-radius: var(--radius-pill);
     box-shadow: none;
-    /* Narrowest phones: the tabs scroll rather than push the actions out. */
     overflow-x: auto;
     scrollbar-width: none;
   }
@@ -465,7 +438,6 @@ html:has(dialog:modal) .shell__header {
   }
 }
 
-/* Phone in landscape: the navigation keeps its own width instead of spanning the screen. */
 @media (--phone) and (not (--compact)) and (--in-browser) {
   .shell__header .pill-nav {
     justify-self: start;
@@ -476,8 +448,6 @@ html:has(dialog:modal) .shell__header {
     padding: 0 16px;
   }
 }
-
-/* ── Avatar and account menu ────────────────────────────────────────────── */
 
 .avatar {
   display: inline-flex;
@@ -509,7 +479,6 @@ html:has(dialog:modal) .shell__header {
   letter-spacing: -0.03em;
 }
 
-/* "Who's watching?" (artboard `Main`). */
 .avatar--tile {
   width: clamp(96px, 22vw, 132px);
   height: clamp(96px, 22vw, 132px);

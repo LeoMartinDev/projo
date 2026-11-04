@@ -5,7 +5,6 @@ import type { AvatarColor } from '@projo/shared/api/profiles'
 
 import { avatarColors, fonts, titleTracking } from '../../shared/styles/tokens.ts'
 
-/** Profile avatar (§13.6, `Main`): the initial on a coloured tile, no image. */
 export const Avatar = ({
   name,
   color,
@@ -15,7 +14,6 @@ export const Avatar = ({
   name: string
   color: AvatarColor
   size: number
-  /** A padlock on a PIN-protected profile (§13.6). */
   locked?: boolean
 }) => (
   <View

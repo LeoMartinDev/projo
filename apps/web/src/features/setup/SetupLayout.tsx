@@ -11,10 +11,6 @@ export type SetupStep = (typeof setupSteps)[number]
 const barState = (position: number, current: number) =>
   position < current ? 'done' : position === current ? 'current' : 'todo'
 
-/**
- * A wizard step (artboards `OnbAccount`, `OnbLibrary`): illustration, the wordmark and the step
- * bars on top, the display title on the left and the step's glass panel on the right.
- */
 export const StepScreen = ({
   step,
   image,

@@ -9,10 +9,6 @@ import { jobs } from './schema/ops.ts'
 
 type JobRow = typeof jobs.$inferSelect
 
-/**
- * `code` read as any string: a row written by another version may carry a code this one does not
- * declare (the admin's "Jobs" shows it as is, `JobErrorDto`).
- */
 const jobErrorSchema = z.object({
   code: z.string(),
   message: z.string(),
@@ -219,8 +215,6 @@ export const createSqliteJobRepository = ({ db }: { db: Db }): JobRepository => 
     return row === undefined ? undefined : toJob(row)
   },
 
-  // One range per state on `jobs_state_finished_at_idx`; `queued` and `running` rows are never
-  // matched, whatever their `finished_at`.
   purgeFinished: ({ doneBefore, failedBefore }) =>
     db
       .delete(jobs)

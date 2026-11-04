@@ -57,14 +57,9 @@ export type RunningProjo = {
 type StartInput = {
   env: Record<string, string | undefined>
   appPaths?: AppPaths
-  /**
-   * Ends the process once stopped for a version switch (§16.3: code 75). Only the real entry
-   * point passes it; without it a switch request just logs.
-   */
   exit?: (code: number) => void
 }
 
-/** Composition root: builds every module, then starts jobs and HTTP. */
 export const startProjo = ({
   env,
   appPaths = resolveAppPaths(),
@@ -84,9 +79,6 @@ export const startProjo = ({
   if (!built.ok) return built
   const platform = built.value
 
-  // ── Domain modules: one line each ───────────────────────────────────────────
-  // Accounts and profiles end their playback sessions before a deletion (§10.6), but playback is
-  // built from the profiles' visibility scope: bound once playback exists, called only later.
   const playbackLater: { current?: PlaybackSessionTerminator } = {}
   const endPlaybackWithin: PlaybackSessionTerminator = {
     endWithin: (scope) => playbackLater.current?.endWithin(scope),
@@ -94,16 +86,13 @@ export const startProjo = ({
   const auth = buildAuthModule(platform, { playbackSessions: endPlaybackWithin })
   const setup = buildSetupModule(platform)
   const profiles = buildProfilesModule(platform, { playbackSessions: endPlaybackWithin })
-  // §14: what each profile may see (library access, maximum rating), for catalog/progress/playback.
   const { visibilityScope } = profiles
   const events = buildEventsModule(platform)
-  // Before libraries and scanner: they end the sessions on what they delete.
   const playback = buildPlaybackModule(platform, { visibilityScope })
   const { playbackSessions } = playback
   playbackLater.current = playbackSessions
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)
-  // Subtitles, trickplay, hero previews (§10.4, §10.5, §13.3); before catalog: the home hero.
   const mediaAssets = buildMediaAssetsModule(platform, {
     visibilityScope,
     authorizeStream: playback.authorizeStream,
@@ -114,13 +103,9 @@ export const startProjo = ({
     homePreviews: mediaAssets.homePreviews,
     homeResumeFrames: mediaAssets.homeResumeFrames,
   })
-  // Intro / credits (§12); before metadata: its settings section shares `/admin/settings`.
   const segments = buildSegmentsModule(platform, { visibilityScope })
   const fingerprint = buildFingerprintModule(platform)
-  // Dashboard, jobs, notifications, missing files (§15); before metadata: its "Playback" and
-  // "Server" settings share `/admin/settings`. "Jobs" cancels through the runner, built last.
   const runnerLater: { current?: JobRunner } = {}
-  // Purged files may change the library deciding a movie or series (§9.1): metadata comes later.
   const metadataContextLater: { current?: LibraryMetadataContextObserver } = {}
   const operations = buildOperationsModule(platform, {
     playbackSessions,
@@ -132,12 +117,10 @@ export const startProjo = ({
       wake: () => runnerLater.current?.wake(),
     },
   })
-  // Updater (§16); a switch exits 75 after the same clean stop as SIGTERM (`exitForSwitch`).
   const switchLater: { request?: () => void } = {}
   const updates = buildUpdatesModule(platform, {
     exitForSwitch: () => switchLater.request?.(),
   })
-  // Before scanner: ready sources go to its `match_source`.
   const metadata = buildMetadataModule(platform, {
     playbackSessions,
     canViewImage: catalog.imageAccess.canView,
@@ -146,7 +129,6 @@ export const startProjo = ({
   })
   const { requestMatch } = metadata
   metadataContextLater.current = metadata.libraryMetadataContext
-  // After metadata: a new metadata language or rating country refreshes what it wrote (§9.4).
   const libraries = buildLibrariesModule(platform, {
     playbackSessions,
     metadataContext: metadata.libraryMetadataContext,
@@ -154,7 +136,6 @@ export const startProjo = ({
   })
   const scanner = buildScannerModule(platform, { playbackSessions, requestMatch })
   const progress = buildProgressModule(platform, { visibilityScope })
-  // MCP server (§27): its tools run the metadata module's "To review" and "Fix the match".
   const assistants = buildAssistantsModule(platform, { assistantPorts: metadata.assistantPorts })
 
   const modules: ModuleContribution[] = [
@@ -179,7 +160,6 @@ export const startProjo = ({
     assistants,
   ]
 
-  // ── HTTP ────────────────────────────────────────────────────────────────────
   const api = createApi({
     middleware: auth.middleware,
     routes: {
@@ -228,14 +208,12 @@ export const startProjo = ({
     webFiles: createStaticFiles({ root: appPaths.webDir }),
   })
 
-  // ── Jobs ────────────────────────────────────────────────────────────────────
   const runner = createJobRunner({
     jobRepository: platform.jobRepository,
     handlers: mergeJobHandlers(...modules.map((module) => module.jobHandlers)),
     clock: platform.clock,
     logger,
     eventBus: platform.eventBus,
-    // §18: the last failed attempt notifies the admins (`notification.created` on SSE).
     onFinalFailure: notifyJobFailureFactory({
       notifier: createSqliteAdminNotifier({
         db: platform.db,
@@ -252,16 +230,12 @@ export const startProjo = ({
     scheduler.register(task)
   }
 
-  // ── Start ───────────────────────────────────────────────────────────────────
   const server = Bun.serve({
     port: config.value.port,
     fetch: app.fetch,
-    // SSE and long streams: SSE must send a keep-alive more often than this.
     idleTimeout: 120,
-    // The largest body is an image upload (§21): caps chunked bodies, which carry no Content-Length.
     maxRequestBodySize: maxImageUploadBytes + 1024 * 1024,
   })
-  // Before the runner: settles the last switch (§16.3) from the runs it finds pending.
   void updates
     .reconcile()
     .catch((cause: unknown) => logger.error('update reconciliation failed', { error: cause }))
@@ -289,8 +263,6 @@ export const startProjo = ({
   let stopping: Promise<void> | undefined
   const stop = (): Promise<void> => (stopping ??= stopOnce())
 
-  // §16.3: the same clean stop as SIGTERM (jobs released, sessions ended, database closed),
-  // after the response or the job that asked for it, then the exit code of the switch.
   switchLater.request = () => {
     if (exit === undefined) {
       logger.warn('version switch requested, but this process cannot exit for it')

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react'
 
-/** Stroke icons of the spectator screens (artboards `Home`, `Series`, `MobileHome`): 24 grid. */
 const Icon = ({
   size,
   stroke = 1.75,
@@ -73,7 +72,6 @@ export const ChevronDownSmallIcon = ({ size = 18 }: IconProps) => (
   </Icon>
 )
 
-/** "From the beginning". */
 export const RestartIcon = ({ size = 18 }: IconProps) => (
   <Icon size={size}>
     <path d="M4 12a8 8 0 1 0 2.4-5.7" />
@@ -81,7 +79,6 @@ export const RestartIcon = ({ size = 18 }: IconProps) => (
   </Icon>
 )
 
-/** "Marquer comme vu" on cards (artboard `Home`). */
 export const SeenIcon = ({ size = 18 }: IconProps) => (
   <Icon size={size} stroke={1.8}>
     <path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" />
@@ -89,7 +86,6 @@ export const SeenIcon = ({ size = 18 }: IconProps) => (
   </Icon>
 )
 
-/** Watched episode (artboard `Series`). */
 export const CheckCircleIcon = ({ size = 20 }: IconProps) => (
   <Icon size={size}>
     <circle cx="12" cy="12" r="9" />

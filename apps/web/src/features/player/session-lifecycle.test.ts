@@ -27,13 +27,11 @@ const session = (id: string): PlaybackSessionDto => ({
   segments: [],
 })
 
-/** `<video>` as an event target with the three fields the lifecycle reads. */
 const fakeVideo = () => {
   const target = new EventTarget()
   return Object.assign(target, { readyState: 0, currentTime: 0, paused: true })
 }
 
-/** A player world: manual interval and ticks, a recording transport, the real session ends. */
 const world = () => {
   const log: string[] = []
   const intervals = new Map<number, () => void>()
@@ -146,7 +144,6 @@ describe('player session lifecycle (§10.6)', () => {
     await w.flush()
     expect(w.log).toEqual(['attach s1', 'heartbeat s1 700000', 'delete s1'])
     expect(events.letGo).toBe(1)
-    // Torn down: the listeners are gone, a late event sends nothing.
     video.dispatchEvent(new Event('pause'))
     expect(lifecycle.teardown()).toEqual({ positionMs: 700_000, paused: true })
     await w.flush()
@@ -185,7 +182,6 @@ describe('player session lifecycle (§10.6)', () => {
     await created
     await w.flush()
     expect(w.log).toEqual(['heartbeat ghost 600000', 'delete ghost'])
-    // The next player's POST waits for that DELETE.
     await w.ends.settled()
   })
 

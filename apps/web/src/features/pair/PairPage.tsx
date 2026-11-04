@@ -5,10 +5,6 @@ import { Logo } from '../shell/Logo.tsx'
 import '../setup/setup.css'
 import './pair.css'
 
-/**
- * `/pair?code=…` (§14): where a pairing QR code leads when scanned by something other than the
- * projo app. Public; it only says to open the app and scan the code.
- */
 export const PairPage = () => {
   const { t } = useTranslation()
   return (

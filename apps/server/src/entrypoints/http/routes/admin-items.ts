@@ -31,14 +31,12 @@ import { respondError } from '../errors.ts'
 import { parseJson, validate } from '../validation.ts'
 import { toAssignResponse } from './admin-sources.ts'
 
-/** `DELETE /items/:id/overrides/:field`: both path params, so the RPC client types the id. */
 const overrideParamSchema = overrideFieldParamSchema.extend({ id: z.string().min(1) })
 
 const posterFileSchema = z.object({
   file: z.string().regex(/^[A-Za-z0-9_-]{1,64}\.(jpg|jpeg|png|webp)$/u),
 })
 
-/** w185 by default (search results, poster alternatives); w300 for backdrop alternatives. */
 const posterSizeSchema = z.object({ size: tmdbPreviewSizeSchema.default('w185') })
 
 export type TmdbPosterProxy = (
@@ -72,13 +70,8 @@ export const toItemMetadataDto = (item: ItemMetadataView): ItemMetadataDto => {
 
 type ChoiceError = AppError<'common/validation_failed' | 'image/too_large'>
 
-/** Room for the multipart boundaries, headers and the `kind` field around the file. */
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024
 
-/**
- * `POST /admin/items/:id/images` body: JSON (TMDB alternative) or multipart (upload). The size is
- * checked on the declared file size before its bytes are read (§9.3: 10 MB).
- */
 const readImageChoice = async (request: Request): Promise<Result<ImageChoice, ChoiceError>> => {
   const invalid = (issues: unknown) =>
     err(
@@ -87,8 +80,6 @@ const readImageChoice = async (request: Request): Promise<Result<ImageChoice, Ch
       }),
     )
   if ((request.headers.get('content-type') ?? '').startsWith('multipart/form-data')) {
-    // `formData()` buffers the whole body: a declared length past the limit (plus the multipart
-    // framing) is refused before reading it.
     const declared = Number(request.headers.get('content-length') ?? 0)
     if (declared > maxImageUploadBytes + MULTIPART_OVERHEAD_BYTES) {
       return err(
@@ -132,12 +123,6 @@ const readImageChoice = async (request: Request): Promise<Result<ImageChoice, Ch
   return parsed.success ? ok(parsed.data) : invalid(parsed.error.issues)
 }
 
-/**
- * §17.2 Admin items: TMDB search for "To review" and "Fix the match",
- * re-identification of an item (M2); editing with locks, images, refresh (§9.3, §9.4, M5), and
- * "Refresh the whole library" (`/libraries/:id/refresh-metadata`), "Optimize the images"
- * (`/images/optimize`, §9.1). Mounted at `/api/v1/admin`.
- */
 export const adminItemsRoutes = ({
   review,
   tmdbPoster,
@@ -147,7 +132,6 @@ export const adminItemsRoutes = ({
   review: Review
   tmdbPoster: TmdbPosterProxy
   editing: MetadataEditing
-  /** Queues `image_variants`: the WebP variants of the images stored without them. */
   optimizeImages: () => { id: string }
 }) =>
   new Hono<AppEnv>()
@@ -174,10 +158,6 @@ export const adminItemsRoutes = ({
       }
       return c.json(body, 200)
     })
-    /**
-     * Search result posters (w185) proxied by the server: the web never loads TMDB directly
-     * (§9.1 "never hotlinked", strict CSP).
-     */
     .get(
       '/tmdb/posters/:file',
       validate('param', posterFileSchema),
@@ -208,7 +188,6 @@ export const adminItemsRoutes = ({
       })
       return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
     })
-    // ── §9.3 editing, §9.4 refresh (M5) ──
     .get('/items/:id', (c) => {
       const result = editing.get({ itemId: c.req.param('id') })
       return result.ok
@@ -267,10 +246,6 @@ export const adminItemsRoutes = ({
         return c.json(body, 200)
       },
     )
-    /**
-     * JSON `{ kind, tmdbPath }` (TMDB alternative) or `multipart/form-data` `kind` + `file`
-     * (upload): no validator, read by `readImageChoice`; the web posts both with `fetch`.
-     */
     .post('/items/:id/images', async (c) => {
       const itemId = c.req.param('id')
       const choice = await readImageChoice(c.req.raw)

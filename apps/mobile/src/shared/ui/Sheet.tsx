@@ -12,10 +12,6 @@ import {
 
 import { colors, fonts, sizes } from '../styles/tokens.ts'
 
-/**
- * A native iOS sheet (page sheet, swipe down to close) with a title and a close button: what the
- * web shows in a dialog (PIN, profile editor, pickers).
- */
 export const Sheet = ({
   open,
   title,

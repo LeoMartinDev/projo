@@ -28,12 +28,10 @@ const DetailSkeleton = () => (
   </div>
 )
 
-/** `/items/$itemId`: movie, series or episode; a season opens its series on that tab. */
 export const ItemPage = ({ itemId, season }: { itemId: string; season?: number }) => {
   const { t } = useTranslation()
   const item = useQuery(itemQuery(itemId))
   const session = useQuery(sessionQuery)
-  // Same rule as the "Administration" menu entry (§14): an admin acting from an unrestricted profile.
   const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
   if (item.isError)
     return (

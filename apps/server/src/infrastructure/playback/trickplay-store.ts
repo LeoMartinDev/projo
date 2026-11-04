@@ -36,26 +36,13 @@ const indexSchema = z.object({
   sheets: z.array(z.number().int()),
 })
 
-/**
- * Version of the sheet layout, stored in `source.json`. 2: thumbnail `i` stands for
- * `i × interval` (`start_time=0`) and the last started interval gets one. The sheets of 2 were
- * first built from every frame, now from the keyframes only: both stay valid, the older ones are
- * only more exact.
- */
 const generationVersion = 2
 const generationSchema = z.object({ generation: z.literal(generationVersion) })
 
-/** Width of the resume stills: a "Continue watching" card on a 2× screen. */
 const frameWidth = 640
 
-/** A long film decoded on a small CPU: generous, the job is the lowest priority anyway. */
 const generationTimeoutMs = 3 * 60 * 60_000
 
-/**
- * `/data/cache/trickplay/<source>/` (§10.5): `index.json` (the `trickplayIndexDtoSchema` served
- * as is), `0.jpg`, `1.jpg`… (10×10 thumbnails of 320 px, one every 10 s) and `source.json` (size
- * and mtime of the video they come from). Built in a temporary folder, then renamed in place.
- */
 export const createTrickplayStore = ({
   trickplayDir,
   ffmpeg = 'ffmpeg',
@@ -63,7 +50,6 @@ export const createTrickplayStore = ({
 }: {
   trickplayDir: string
   ffmpeg?: string
-  /** Of the ffmpeg of `generate`. */
   processPriority?: ProcessPriority
 }): TrickplayStore => {
   const dirOf = (sourceId: string) => join(trickplayDir, assetName(sourceId))
@@ -74,7 +60,6 @@ export const createTrickplayStore = ({
       const index = readJsonFile(join(dir, 'index.json'), indexSchema)
       const fingerprint = readJsonFile(join(dir, 'source.json'), fingerprintSchema)
       const generation = readJsonFile(join(dir, 'source.json'), generationSchema)
-      // Sheets from an older generation are ignored (and rebuilt by the backfill).
       return index === undefined || fingerprint === undefined || generation === undefined
         ? undefined
         : { index, fingerprint }
@@ -106,10 +91,6 @@ export const createTrickplayStore = ({
           '-v',
           'error',
           '-y',
-          // Keyframes only (§10.5): decoding every frame of every file kept the NAS at 100% CPU for
-          // a whole resync. The price: thumbnail `i` is the last keyframe at or before
-          // `i × interval`, up to a GOP early (a few seconds with a long one). The loop filter
-          // still costs a share of each keyframe, for nothing visible at 320 px.
           '-skip_frame',
           'nokey',
           '-skip_loop_filter',
@@ -122,12 +103,6 @@ export const createTrickplayStore = ({
           '-sn',
           '-dn',
           '-vf',
-          // `fps` repeats the last keyframe over the instants without one, but stops at the end
-          // of the last keyframe: `tpad` clones it up to the end of the file (at most `duration`
-          // more), `trim` cuts there, so the count is the duration's, not the last keyframe's.
-          // `start_time=0`: thumbnail `i` stands for `i × interval` (without it the first one is
-          // at `interval`, or none at all for a file shorter than that); `round=up`: one for the
-          // last started interval; full-range YUV is what the JPEG encoder expects.
           `tpad=stop_mode=clone:stop_duration=${durationS},trim=end=${durationS},fps=1/${intervalS}:round=up:start_time=0,scale=${width}:${height},tile=${columns}x${rows},format=yuvj420p`,
           '-q:v',
           '5',
@@ -198,7 +173,6 @@ export const createTrickplayStore = ({
       }
       const path = join(dir, `frame-${second}.webp`)
       if (fileExists(path)) return ok(path)
-      // Unique: two cards asking for the same still at once each write their own, the last rename wins.
       const temporary = `${path}.tmp-${process.pid}-${crypto.randomUUID()}`
       const run = await runProcess({
         command: ffmpeg,
@@ -208,8 +182,6 @@ export const createTrickplayStore = ({
           '-v',
           'error',
           '-y',
-          // The exact frame: decoded from the keyframe before it (0.6 s for a 4K HEVC film on a PC,
-          // a few on a NAS, once). `-skip_frame nokey` with a seek lands on the wrong scene in MKV.
           '-ss',
           String(second),
           '-i',
@@ -236,7 +208,6 @@ export const createTrickplayStore = ({
         removePath(temporary)
         return err(run.error)
       }
-      // Exit 0 without a picture: a second past the last keyframe the demuxer could seek to.
       if (run.value.exitCode !== 0 || !fileExists(temporary)) {
         removePath(temporary)
         return err(
@@ -249,7 +220,6 @@ export const createTrickplayStore = ({
           }),
         )
       }
-      // The sprites may have been rebuilt meanwhile: the folder is gone, the temporary with it.
       return attemptFs(
         () => {
           renameSync(temporary, path)

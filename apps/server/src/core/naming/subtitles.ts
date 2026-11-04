@@ -4,21 +4,17 @@ import { directoryOf, extensionOf, fileName, joinPath, splitPath, stemOf } from 
 export type SubtitleFormat = 'srt' | 'ass' | 'ssa' | 'vtt' | 'vobsub' | 'pgs'
 
 export type SubtitleTags = {
-  /** BCP 47 style (`fr`, `pt-BR`); absent = unknown language ("Sous-titres"). */
   readonly language?: string
   readonly forced: boolean
   readonly sdh: boolean
   readonly isDefault: boolean
-  /** Any text that is neither a language nor a flag. */
   readonly title?: string
 }
 
 export type ExternalSubtitle = SubtitleTags & {
-  /** For VobSub, the `.idx` file (its `.sub` sibling holds the bitmaps). */
   readonly subtitlePath: string
   readonly videoPath: string
   readonly format: SubtitleFormat
-  /** Bitmap formats can only be burnt in (§10.4). */
   readonly rendering: 'text' | 'bitmap'
 }
 
@@ -32,10 +28,6 @@ const TEXT_FORMATS: Readonly<Record<string, SubtitleFormat>> = {
 const FORCED_FLAGS: ReadonlySet<string> = new Set(['forced', 'foreign'])
 const SDH_FLAGS: ReadonlySet<string> = new Set(['sdh', 'cc'])
 
-/**
- * Reads language and flags from suffix tokens (§8.3). `hi` alone is Hindi; after a language it means SDH (`en.hi`).
- * Once a language is set, further language-looking tokens go to the title.
- */
 export const parseSubtitleTags = (tokens: readonly string[]): SubtitleTags => {
   let language: string | undefined
   let forced = false
@@ -75,7 +67,6 @@ const formatOf = (path: string, subtitlePaths: ReadonlySet<string>): SubtitleFor
   return subtitlePaths.has(`${stem}.sub`) || subtitlePaths.has(`${stem}.SUB`) ? 'vobsub' : undefined
 }
 
-/** Lower-case video stem → video; on a duplicate stem the first video wins. */
 const indexStems = (videos: readonly string[]): ReadonlyMap<string, string> => {
   const index = new Map<string, string>()
   for (const video of videos) {
@@ -85,7 +76,6 @@ const indexStems = (videos: readonly string[]): ReadonlyMap<string, string> => {
   return index
 }
 
-/** Longest video stem that the subtitle stem equals or extends with `.` (Jellyfin) or `-` (Infuse). */
 const matchByName = (
   subtitleStem: string,
   videos: ReadonlyMap<string, string> | undefined,
@@ -118,11 +108,6 @@ const groupByDirectory = (paths: readonly string[]): ReadonlyMap<string, readonl
 const subsFolderTokens = (stem: string): readonly string[] =>
   stem.split(/[\s._\-()[\]]+/u).filter((token) => token !== '' && !/^\d+$/u.test(token))
 
-/**
- * Attaches external subtitle files to their video (§8.3): same folder and same base name with a `.`/`-` suffix,
- * or anywhere under a `Subs/` folder whose parent holds a single video. Unmatched subtitles are left out.
- * `.sub` is only read as VobSub through its `.idx` sibling.
- */
 export const matchExternalSubtitles = ({
   videoPaths,
   subtitlePaths,

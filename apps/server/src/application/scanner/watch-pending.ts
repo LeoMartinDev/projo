@@ -8,10 +8,8 @@ import type { SourceRepository } from '../../core/source/source.ts'
 import { decideStability } from '../../core/source/stability.ts'
 import { probeJob } from './probe-source.ts'
 
-/** A file still being written is not stat'ed more often than this (quiet period 0). */
 const MIN_RECHECK_MS = 2_000
 
-/** §7.3 step 5: an admin notification after this long in `pending` (once per source). */
 export const STUCK_PENDING_MS = 24 * 60 * 60 * 1000
 
 type Deps = {
@@ -28,16 +26,9 @@ export type WatchPendingReport = {
   checked: number
   changed: number
   waiting: number
-  /** Sources whose quiet period is over: `probe_source` enqueued. */
   stable: number
 }
 
-/**
- * Job `watch_pending` (§7.3 step 3, every 30 s while sources are pending): stat only, never a
- * read. Size and mtime must both hold still for the library's quiet period before the probe.
- * The next run is also planned when the earliest quiet period ends (same dedupe key: one job),
- * so a file is ready then rather than at the next 30 s tick.
- */
 export const watchPendingFactory =
   ({
     sourceRepository,
@@ -81,7 +72,6 @@ export const watchPendingFactory =
         case 'waiting':
           report.waiting += 1
           if (decision.startCounter) sourceRepository.patch(source.id, { unchangedSince: now })
-          // Too small: it leaves that state by growing, not with time.
           if (source.pendingReason !== 'too_small') planIn(decision.remainingMs)
           break
         case 'stable':

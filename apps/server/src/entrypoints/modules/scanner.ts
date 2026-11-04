@@ -28,10 +28,8 @@ import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
 import type { ModuleContribution } from './types.ts'
 
-/** §7.4: first scans 10 s after start, then the periodic check every minute. */
 const STARTUP_DELAY_MS = 10_000
 const PERIODIC_TICK_MS = 60_000
-/** §7.3 step 3 / §18: `watch_pending` every 30 s while sources are pending. */
 const WATCH_PENDING_MS = 30_000
 
 export const scanLibraryPayloadSchema = z.object({
@@ -43,10 +41,6 @@ export const probeSourcePayloadSchema = z.object({
   mode: z.enum(['quarantine', 'verify', 'recheck']).default('quarantine'),
 })
 
-/**
- * Wiring of the scanner (§7): `scan_library`, `watch_pending`, `probe_source` handlers, watcher,
- * startup and periodic scans.
- */
 export const buildScannerModule = (
   { db, ids, clock, logger, eventBus, jobQueue, jobRepository }: Platform,
   {
@@ -59,7 +53,6 @@ export const buildScannerModule = (
       }),
   }: {
     playbackSessions: PlaybackSessionTerminator
-    /** The metadata module's (TMDB key check); default: plain `match_source` enqueue. */
     requestMatch?: MatchRequester
   },
 ): ModuleContribution => {
@@ -68,7 +61,6 @@ export const buildScannerModule = (
   const libraryRepository = createSqliteLibraryRepository({ db })
   const sourceRepository = createSqliteSourceRepository({ db, ids })
   const scanRunRepository = createSqliteScanRunRepository({ db })
-  // Startup: runs left open by a crashed process would show as running forever.
   const interrupted = scanRunRepository.closeUnfinished({
     finishedAt: clock.now(),
     error: 'scan/interrupted',
@@ -77,7 +69,6 @@ export const buildScannerModule = (
   const localItems = createSqliteLocalItemRepository({ db })
   const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const directoryCache = createInMemoryDirectoryCache()
-  // §18: only jobs use them (`scan_library`, `probe_source`): lowest CPU priority.
   const prober = createFfprobeProber({ processPriority: 'background' })
   const decoder = createFfmpegDecoder({ processPriority: 'background' })
   const requestScan = requestScanFactory({ jobQueue, jobRepository, clock, eventBus })
@@ -142,17 +133,12 @@ export const buildScannerModule = (
         run: async ({ libraryId, kind }, { signal, reportProgress, logger: jobLogger }) => {
           const result = await scanLibrary({ libraryId, kind, signal, reportProgress })
           if (!result.ok) {
-            // Deleted since the request: nothing to retry.
             jobLogger.info('scan skipped', { code: result.error.code, libraryId })
             return ok()
           }
-          // Walk interrupted (clean stop, cancel): not done, so a clean stop puts the scan back
-          // in the queue (§18) instead of completing one that saw part of the library only.
           if (result.value.run.error === 'job/cancelled')
             return err(appError('job/cancelled', 'scan interrupted', { context: { libraryId } }))
           watchers.sync()
-          // New pending files are checked now, not at the next 30 s tick (quiet period 0: ready
-          // at once); `watch_pending` then plans itself for the end of their quiet period.
           if (sourceRepository.countPending() > 0) {
             jobQueue.enqueue({ type: 'watch_pending', payload: {}, dedupeKey: 'watch_pending' })
           }

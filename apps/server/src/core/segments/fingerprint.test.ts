@@ -10,7 +10,6 @@ import {
   runTailSeconds,
 } from './fingerprint.ts'
 
-/** Deterministic 32-bit generator (mulberry32). */
 const random = (seed: number) => {
   let state = seed >>> 0
   return (): number => {
@@ -27,7 +26,6 @@ const noise = (length: number, seed: number): number[] => {
   return Array.from({ length }, () => next())
 }
 
-/** Flips `bits` distinct random bits of a share of the points; another share is replaced. */
 const degrade = (
   values: number[],
   {
@@ -51,7 +49,6 @@ const degrade = (
 const points = (seconds: number) => Math.round(seconds / pointSeconds)
 const params = { minSeconds: 15, maxSeconds: 150, similarity: 0.8 }
 
-/** Where a passage of `length` points at position `at` is expected to be reported. */
 const expected = (at: number, length: number) => ({
   startSeconds: at === 0 ? 0 : at * pointSeconds + runHeadSeconds,
   endSeconds: (at + length - 1) * pointSeconds + runTailSeconds,
@@ -108,14 +105,12 @@ describe('findSharedRun (§12.3 step 2)', () => {
   })
 
   test('points further apart than the similarity threshold do not match', () => {
-    // Every point 7 bits away, but one in ten left exact: they vote for the shift (step 1).
     const blurred = degrade(intro, { seed: 8, share: 1, bits: 7 }).map((value, i) =>
       i % 10 === 0 ? (intro[i] ?? 0) : value,
     )
     const a = episode(20, intro, 100, 1)
     const b = episode(20, blurred, 100, 3)
     expect(findSharedRun(a, b, params)).toBeUndefined()
-    // 8 bits allowed at 0.75.
     expect(findSharedRun(a, b, { ...params, similarity: 0.75 })).toBeDefined()
   })
 
@@ -159,7 +154,6 @@ describe('findSharedRun (§12.3 step 2)', () => {
     )
     expect(short?.a.startSeconds).toBeCloseTo(expected(20, 1).startSeconds, 5)
     expect(short?.a.endSeconds).toBeCloseTo(expected(20, 2 * half + points(2)).endSeconds, 5)
-    // 12 s halves apart from each other: each one is under 15 s.
     expect(
       findSharedRun(episode(20, withGap(6, 7), 100, 1), episode(50, withGap(6, 8), 100, 3), params),
     ).toBeUndefined()
@@ -168,7 +162,6 @@ describe('findSharedRun (§12.3 step 2)', () => {
   test('an isolated coincidence after the passage does not stretch it', () => {
     const after = noise(100, 11)
     const tail = noise(100, 12)
-    // One point equal 2 s after the end, within the gap tolerance.
     tail[points(2)] = after[points(2)] ?? 0
     const a = [...noise(30, 1), ...intro, ...after]
     const b = [...noise(70, 3), ...intro, ...tail]
@@ -209,7 +202,6 @@ describe('detectSharedSegments (§12.3 steps 3 and 5)', () => {
   test('the range most partners agree on wins over an outlier', () => {
     const recap = noise(points(40), 55)
     const episodes = [
-      // e1 shares a recap with e2 only, longer than the intro: the pair's answer is the recap.
       {
         key: 'e1',
         points: [...noise(20, 1), ...intro, ...noise(40, 2), ...recap, ...noise(50, 3)],

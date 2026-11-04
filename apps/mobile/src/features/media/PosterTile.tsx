@@ -10,11 +10,6 @@ import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 import { Artwork } from './Artwork.tsx'
 import { ProgressBar } from './parts.tsx'
 
-/**
- * A 2:3 tile of Movies, Shows, My list and the category pages (§13.4, the web's `PosterTile`):
- * without a poster (no TMDB match yet) the title and the year on the item's tone. A tick on what
- * is watched, a bar on what is in progress.
- */
 export const PosterTile = ({
   item,
   width,

@@ -8,12 +8,6 @@ import { visible } from './catalog-sql.ts'
 import type { Db } from './database.ts'
 import { fromIso, parseJsonColumn } from './rows.ts'
 
-/**
- * §13.3 category rows: the visible movies and series with a genre, in one query, grouped and
- * ranked by the core (`countCategories`, `categoryRows`). Measured on 20 000 items: about 7 ms,
- * where counting and ranking with window functions in SQL took 30 to 40 ms.
- */
-
 const genresSchema = z.array(genreIdSchema)
 
 export const createSqliteHomeCategoryQueries = ({ db }: { db: Db }): HomeCategoryQueries => ({

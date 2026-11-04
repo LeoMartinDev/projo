@@ -26,11 +26,6 @@ import {
   toContributionError,
 } from './http.ts'
 
-/**
- * TheIntroDB v4 (https://theintrodb.org/docs, OpenAPI 4.0.0): `GET /media` to read, `POST /submit`
- * to contribute a manual marker (§12.5), `POST /map` to check an API key. Its segment types are
- * projo's own (`intro`, `recap`, `credits`, `preview`).
- */
 export const THEINTRODB_BASE_URL = 'https://api.theintrodb.org/v4'
 
 const PROVIDER = 'theintrodb'
@@ -43,10 +38,6 @@ const timestampSchema = z.object({
 })
 type Timestamp = z.infer<typeof timestampSchema>
 
-/**
- * `MediaResponse`. `MediaEpisodeListResponse` (the fallback of a media without submissions) has
- * the same required fields and no segment array: it reads as "nothing".
- */
 const mediaSchema = z.object({
   tvdb_id: z.number(),
   type: z.enum(['movie', 'tv']),
@@ -65,10 +56,8 @@ const submissionSchema = z.object({
 
 const mapSchema = z.object({ tvdb_id: z.number(), type: z.enum(['movie', 'tv']) })
 
-/** `GET /media` 404 codes meaning "nothing for this media" (outcome `none`). */
 const noDataCodes = new Set(['no_submissions', 'episode_not_found', 'media_not_found'])
 
-/** `tvdb_id` (TheIntroDB's identity, the fastest), else `tmdb_id`, else `imdb_id`. */
 const mediaAddress = (item: SegmentItemRef): Record<string, string | number> | undefined => {
   if (item.tvdbId !== undefined) return { tvdb_id: item.tvdbId }
   if (item.tmdbId !== undefined) return { tmdb_id: item.tmdbId }
@@ -76,7 +65,6 @@ const mediaAddress = (item: SegmentItemRef): Record<string, string | number> | u
   return undefined
 }
 
-/** `{}` for a movie, `{ season, episode }` for an episode, `undefined` when unnumbered. */
 const episodeAddress = (item: SegmentItemRef): Record<string, number> | undefined => {
   if (item.kind === 'movie') return {}
   return item.seasonNumber === undefined || item.episodeNumber === undefined
@@ -90,12 +78,6 @@ const bearer = (key: string | undefined): Record<string, string> =>
 type Reading =
   { kind: 'segment'; candidate: SegmentCandidate } | { kind: 'absent' } | { kind: 'invalid' }
 
-/**
- * One weighted average of TheIntroDB. A `null` start of an intro or a recap means "from 0"; a
- * `null` end of credits or a preview means "until the end of the file" (dropped when the file
- * duration is unknown). A 0-length answer (`end = 0` for intro/recap, `start = 0` for
- * credits/preview, or both bounds `0` or `null`) is the "no such segment" of the API.
- */
 const readTimestamp = (
   type: SegmentType,
   { start_ms: start, end_ms: end, confidence }: Timestamp,
@@ -111,13 +93,6 @@ const readTimestamp = (
   return candidate === undefined ? { kind: 'invalid' } : { kind: 'segment', candidate }
 }
 
-/**
- * TheIntroDB returns one weighted average per cluster of submissions (several for a type when
- * submitters disagree, e.g. a cold open before the titles). The best is the one with the highest
- * `confidence` (the API's own measure of agreement within the cluster, which already accounts for
- * the weights), then the most `submission_count`, then the API order. Entries that make no sense
- * are skipped; when the best one is a "no segment" answer, the type is reported absent.
- */
 export const bestTimestamp = (
   type: SegmentType,
   entries: readonly Timestamp[],
@@ -199,7 +174,6 @@ export const createTheintrodbProvider = ({
   },
 })
 
-/** `video_duration_ms` accepts `0` (unknown) or 5 min to 6 h. */
 const videoDurationOf = (item: SegmentItemRef): Record<string, number> => {
   const duration = durationOf(item, undefined)
   return duration !== undefined && duration >= 300_000 && duration <= 21_600_000
@@ -207,7 +181,6 @@ const videoDurationOf = (item: SegmentItemRef): Record<string, number> => {
     : {}
 }
 
-/** §12.5: `POST /submit` of a manual marker, with the admin key (required). */
 export const createTheintrodbContributor = ({
   http,
   baseUrl,
@@ -260,11 +233,6 @@ export const createTheintrodbContributor = ({
   },
 })
 
-/**
- * The cheapest call that proves a key: `GET /media` ignores an unknown key (it answers as for an
- * anonymous caller), so the check is a `POST /map` dry run (stores nothing, 1 500/day per
- * account), which answers 401 to a refused key. 403 is a locked account: refused too.
- */
 export const validateTheintrodbKeyFactory =
   ({ http, baseUrl }: Pick<TheintrodbDeps, 'http' | 'baseUrl'>) =>
   async (
@@ -282,7 +250,6 @@ export const validateTheintrodbKeyFactory =
       url: `${baseUrl}/map`,
       scope: 'contribute',
       headers: bearer(key),
-      // Fight Club, addressed by its TVDB id: resolves without a TMDB/IMDb lookup.
       body: { type: 'movie', tvdb_id: 247 },
     })
     if (!response.ok) return response

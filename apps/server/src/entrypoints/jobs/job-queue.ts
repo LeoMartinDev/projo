@@ -9,11 +9,9 @@ type Deps = {
   ids: IdGenerator
   clock: Clock
   eventBus: EventBus
-  /** Wakes the runner; set once the runner exists (the queue is built first). */
   onEnqueued?: () => void
 }
 
-/** `JobQueue` port: persists through the repository, applies §18 defaults, wakes the runner. */
 export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued }: Deps) => {
   let wake = onEnqueued
   const queue: JobQueue = {

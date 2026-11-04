@@ -1,7 +1,6 @@
 export const logLevels = ['debug', 'info', 'warn', 'error'] as const
 export type LogLevel = (typeof logLevels)[number]
 
-/** Structured fields. `code` is an error code, `jobId` / `sessionId` correlate logs (§21). */
 export type LogFields = {
   code?: string
   jobId?: string
@@ -17,6 +16,5 @@ export type Logger = {
   info: LogFn
   warn: LogFn
   error: LogFn
-  /** A logger whose lines all carry `fields`. */
   child: (fields: LogFields) => Logger
 }

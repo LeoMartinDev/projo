@@ -31,7 +31,6 @@ const setup = ({ codes = [] }: { codes?: string[] } = {}) => {
     clock,
     ids: createSequentialIds('session-'),
   })
-  // The web session that shows the code.
   const creator = openSession({
     accountId: 'account-1',
     kind: 'cookie',
@@ -105,7 +104,6 @@ describe('create a pairing code', () => {
     t.clock.advance(pairingLifetimeMs)
     created(t)
 
-    // Codes created from a session since revoked no longer count.
     const other = setup({ codes: ['BBBBB2', 'BBBBB3', 'BBBBB4', 'BBBBB5'] })
     created(other)
     created(other)

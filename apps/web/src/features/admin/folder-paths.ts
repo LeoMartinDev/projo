@@ -7,7 +7,6 @@ export const parentOf = (path: string) => {
   return segments.length <= 1 ? '/' : `/${segments.slice(0, -1).join('/')}`
 }
 
-/** Library name suggested by its first folder: `/media/films` → `Films`. */
 export const nameFromFolder = (path: string, locale: string) => {
   const base = basename(path)
   return base.charAt(0).toLocaleUpperCase(locale) + base.slice(1)

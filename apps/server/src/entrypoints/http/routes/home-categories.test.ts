@@ -17,11 +17,6 @@ import {
   seedViewer,
 } from '../../../../test/support/catalog-fixtures.ts'
 
-/**
- * §13.3 item 6 over HTTP: `GET /home/categories`, batch by batch, and the category pages of
- * `GET /home/categories/:category`, within the §14 scope.
- */
-
 let app: ReturnType<typeof createCatalogTestApp>
 
 const get = async (path: string, as = 'leo') => {
@@ -38,7 +33,6 @@ const keys = (batch: HomeCategoriesDto) => batch.rows.map((row) => homeCategoryK
 const added = (n: number) => new Date(Date.UTC(2026, 1, 1, 0, n)).toISOString()
 
 let counter = 0
-/** `count` ready movies of `genres`, the latest added last. */
 const movies = (
   count: number,
   genres: GenreId[],
@@ -61,7 +55,6 @@ beforeEach(() => {
 })
 
 describe('GET /home/categories', () => {
-  // Action and Crime tie on 7: the §9.1 order. Western (5) is under the minimum.
   test('batches of 4 rows in the §13.3 order, then the end', async () => {
     movies(9, ['drama'])
     movies(8, ['comedy'])
@@ -75,7 +68,6 @@ describe('GET /home/categories', () => {
     expect(keys(first)).toEqual(['anime', 'genre-drama', 'genre-comedy', 'genre-action'])
     expect(first.total).toBe(6)
     expect(first.nextCursor).toBe('4')
-    // Newest first.
     expect(first.rows[1]?.items.map((item) => item.id)).toEqual(
       Array.from({ length: 9 }, (_, index) => `drama-${9 - index}`),
     )
@@ -94,7 +86,6 @@ describe('GET /home/categories', () => {
     insertProgress(app.db, { profileId: 'profile-of-leo', itemId: newest, ratio: 1, watched: true })
     const [row] = (await get('/home/categories')).rows
     expect(row?.items).toHaveLength(20)
-    // Unwatched newest first; the watched one left past the 20 shown.
     expect(row?.items[0]?.id).toBe(ids.at(-2))
     expect(row?.items.map((item) => item.id)).not.toContain(newest)
   })
@@ -155,7 +146,6 @@ describe('GET /home/categories/:category', () => {
     expect(first.items.map((item) => item.id)).toEqual(unwatched.slice(0, 20))
     expect(first.nextCursor).toBe('20')
     const second = await getPage(`/home/categories/drama?limit=20&cursor=${first.nextCursor}`)
-    // Past the 20 of the row: the rest, the watched one last.
     expect(second.items.map((item) => item.id)).toEqual([...unwatched.slice(20), newest])
     expect(second.nextCursor).toBeUndefined()
   })
@@ -165,7 +155,6 @@ describe('GET /home/categories/:category', () => {
     const animation = movies(2, ['animation'], { originalLanguage: 'en' })
     const idsOf = async (path: string) => (await getPage(path)).items.map((item) => item.id)
     expect(await idsOf('/home/categories/anime')).toEqual(anime.reverse())
-    // Under the 6 titles of a row: the page still lists them.
     expect(await idsOf('/home/categories/animation')).toEqual(animation.reverse())
   })
 

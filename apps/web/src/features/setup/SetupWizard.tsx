@@ -14,12 +14,6 @@ type Screen =
   | { kind: 'library'; name: string }
   | { kind: 'ready'; name: string; library?: CreatedLibrary }
 
-/**
- * §15 "Premier lancement" (artboards `Onb*`): welcome, then two steps, admin account and the
- * first library's folders, then the ready screen with the first scan. No setting is shown
- * (server name, metadata language, library options keep their defaults); the design's server
- * and profiles steps are left to the admin.
- */
 export const SetupWizard = () => {
   const queryClient = useQueryClient()
   const [screen, setScreen] = useState<Screen>({ kind: 'welcome' })

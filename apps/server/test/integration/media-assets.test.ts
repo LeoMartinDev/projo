@@ -54,12 +54,6 @@ import { silentLogger } from '../support/logger.ts'
 import { generateVideo, hasFfmpeg, hasFfmpegEncoder } from '../support/media.ts'
 import { videoWithEmbeddedSubtitles } from '../support/media-fixtures.ts'
 
-/**
- * §10.4 subtitles, §10.5 trickplay, §13.3 previews over HTTP, with real ffmpeg / ffprobe and the
- * module's job handlers run by hand. Authentication is stubbed: `x-profile` is the active profile
- * (the auth session's last one for `<track>`, `<img>`, `<video>`).
- */
-
 const latin1 = (text: string) => new Uint8Array([...text].map((char) => char.charCodeAt(0)))
 
 const media = createTempDir('projo-assets-media-')
@@ -137,7 +131,6 @@ beforeEach(() => {
   } as unknown as Platform
 
   seedViewer(db, 'leo')
-  // A profile without access to the library (§14): nothing of it exists for it.
   insertProfile(db, 'leo', 'profile-kid')
   insertLibrary(db, { rootPath: media.path })
   insertItem(db, { id: 'movie', kind: 'movie' })
@@ -181,7 +174,6 @@ beforeEach(() => {
     platform,
     {
       visibilityScope: scopes,
-      // One playback session, on `source-movie`, reached by its capability URL (§20).
       authorizeStream: ({ sessionId, secret }) =>
         sessionId === 'session-1' && secret === 'secret-1'
           ? ok({
@@ -305,7 +297,6 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
 
 describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
   test('sprites and index after the probe, served to profiles that may play the source', async () => {
-    // As the playback module builds it for the session DTO.
     const trickplayUrl = trickplayUrlFactory({
       catalogRepository: createSqliteCatalogRepository({ db }),
       trickplayStore: createTrickplayStore({ trickplayDir: join(data.path, 'cache/trickplay') }),
@@ -343,7 +334,6 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
     expect((await get('/trickplay/source-movie/index.json', kid)).status).toBe(404)
     expect((await get('/trickplay/source-movie/0.jpg', kid)).status).toBe(404)
 
-    // The file changed (new size / mtime in the database): stale until rebuilt.
     db.update(sources).set({ mtime: 1 }).where(eq(sources.id, 'source-movie')).run()
     expect(trickplayUrl('source-movie')).toBeUndefined()
     expect((await get('/trickplay/source-movie/index.json')).status).toBe(404)
@@ -355,23 +345,18 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
     expect(frame(25_000)).toBeUndefined()
     await run(assets.jobHandlers.trickplay, { sourceId: 'source-movie' })
 
-    // 22 s: the nearest thumbnail is the one at 20 s, its still extracted from the video.
     expect(frame(22_000)).toEqual({ sourceId: 'source-movie', second: 20 })
     if (hasFfmpegEncoder('libwebp')) {
       const still = await get('/trickplay/source-movie/frames/20.webp')
       expect(still.status).toBe(200)
       expect(still.headers.get('content-type')).toBe('image/webp')
     }
-    // Only the instants of the index (one file per thumbnail at most), only for who may play it.
     expect((await get('/trickplay/source-movie/frames/25.webp')).status).toBe(404)
     expect((await get('/trickplay/source-movie/frames/40.webp')).status).toBe(404)
     expect((await get('/trickplay/source-movie/frames/20.webp', kid)).status).toBe(404)
-    // Past the last thumbnail: the last one (the file probes a hair over 30 s: the one at 30 s);
-    // a profile that cannot see the item: none.
     expect(frame(9_999_000)).toEqual({ sourceId: 'source-movie', second: 30 })
     expect(frame(25_000, 'profile-kid')).toBeUndefined()
 
-    // The file changed: the sprites are stale, no frame.
     db.update(sources).set({ mtime: 1 }).where(eq(sources.id, 'source-movie')).run()
     expect(frame(25_000)).toBeUndefined()
   })
@@ -421,7 +406,6 @@ describe.skipIf(!hasFfmpeg())('hero preview (§13.3)', () => {
     expect(
       assets.homePreviews.previewUrl({ itemId: 'movie', profileId: 'profile-of-leo' }),
     ).toBeUndefined()
-    // Missing: requested once.
     expect(jobs.enqueued).toEqual([
       { type: 'preview_clip', payload: { itemId: 'movie' }, dedupeKey: 'preview:movie' },
     ])
@@ -444,14 +428,12 @@ describe.skipIf(!hasFfmpeg())('hero preview (§13.3)', () => {
     expect((await partial.arrayBuffer()).byteLength).toBe(100)
     expect((await get('/previews/movie.mp4', kid)).status).toBe(404)
     expect((await get('/previews/series.mp4')).status).toBe(404)
-    // Not an id of the database: 404, never a file name tried.
     for (const name of ['a%20b.mp4', '..mp4', '.mp4', '-x.mp4']) {
       const response = await get(`/previews/${name}`)
       expect(response.status).toBe(404)
       expect(await codeOf(response)).toBe('playback/preview_not_found')
     }
 
-    // 20 s, at most 720p, H.264 + AAC.
     const probe = await createFfprobeProber().probe({
       path: join(data.path, 'cache/previews/movie.mp4'),
     })
@@ -476,7 +458,6 @@ describe.skipIf(!hasFfmpeg())('hero preview (§13.3)', () => {
     expect((await run(assets.jobHandlers.preview_clip, { itemId: 'series' })).ok).toBe(true)
     expect((await get('/previews/series.mp4')).status).toBe(200)
 
-    // Home rows: what enters "Continuer" / "Up next" without a clip gets one requested.
     jobs.enqueued.length = 0
     assets.homePreviews.prepare({ itemIds: ['episode', 'movie'], profileId: 'profile-of-leo' })
     expect(jobs.enqueued).toEqual([

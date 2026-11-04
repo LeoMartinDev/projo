@@ -20,10 +20,8 @@ type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntri
 
 export type ListCatalogError = AppError<'catalog/invalid_cursor'>
 
-/** Default direction: titles A→Z, the others newest / highest first. */
 export const defaultOrder = (sort: CatalogSort): SortOrder => (sort === 'title' ? 'asc' : 'desc')
 
-/** `GET /movies`, `GET /series` (§13.4): visible items, sorts, filters, keyset pagination. */
 export const listCatalogFactory =
   ({ catalogRepository, catalogEntries }: Deps) =>
   async ({
@@ -47,7 +45,6 @@ export const listCatalogFactory =
     return andThen(
       cursor === undefined ? ok(undefined) : decodeCursor(cursor, { sort, order }),
       (after) => {
-        // One extra row tells whether a next page exists.
         const rows = catalogRepository.listTopLevel({
           kind,
           sort,
@@ -78,11 +75,6 @@ export const listCatalogFactory =
 
 export type ListCatalog = ReturnType<typeof listCatalogFactory>
 
-/**
- * `GET /genres` (§13.4 filters): genre ids of the visible movies and / or series (in the order of
- * `genreIds`: the web sorts them by translated label), and the oldest and newest year among them
- * (bounds of the year filter).
- */
 export const listGenresFactory =
   ({ catalogRepository }: { catalogRepository: CatalogRepository }) =>
   ({

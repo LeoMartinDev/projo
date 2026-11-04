@@ -9,16 +9,11 @@ import { useServerEvent } from '../../../shared/events/events.ts'
 
 export const updatesQueryKey = ['admin', 'updates'] as const
 
-/** `GET /admin/updates` (§15 "Updates", §16.4). */
 export const updatesQuery = queryOptions({
   queryKey: updatesQueryKey,
   queryFn: () => request(() => api.admin.updates.$get()),
 })
 
-/**
- * What the dashboard and the sidebar show (§15): the running version and the newer release, if
- * any. Kept fresh by `useLiveUpdates`.
- */
 export const useUpdateSummary = (): {
   version?: string
   runtime?: string
@@ -34,7 +29,6 @@ export const useUpdateSummary = (): {
   }
 }
 
-/** While the server restarts for a switch, `/health` is polled this often. */
 const HEALTH_POLL_MS = 2_000
 
 const readHealth = async (): Promise<HealthResponse | undefined> => {
@@ -46,12 +40,6 @@ const readHealth = async (): Promise<HealthResponse | undefined> => {
   }
 }
 
-/**
- * `update.state` (§17.1) patched into the status, which is refetched once the state settles.
- * While the server restarts for a switch (the event, a status already `restarting`, or
- * `watchRestart` after a rollback request), `/health` is polled until the server is back, then
- * the page reloads: the web app comes with the server version.
- */
 export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: string) => void } => {
   const queryClient = useQueryClient()
   const status = useQuery(updatesQuery)
@@ -90,7 +78,6 @@ export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: st
           sawDown = true
           continue
         }
-        // Back: the new version, or the old one again after the supervisor's rollback.
         if (sawDown || health.version !== restartingFrom) {
           window.location.reload()
           return

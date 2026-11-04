@@ -10,11 +10,6 @@ const decodedFrames = (progress: string): number => {
   return last === undefined ? 0 : Number.parseInt(last, 10)
 }
 
-/**
- * Lines the null muxer itself prints (`[null @ 0x…] … non monotonically increasing dts …`): MKV's
- * millisecond timestamps around B-frames trip it on ffmpeg 7.x at 24 fps. They say nothing about
- * whether the stream decodes.
- */
 const isNullMuxerNotice = (line: string): boolean => /^\[null @ [^\]]+\]/u.test(line)
 
 const decodingErrors = (stderr: string): string =>
@@ -23,12 +18,6 @@ const decodingErrors = (stderr: string): string =>
     .filter((line) => line.trim() !== '' && !isNullMuxerNotice(line))
     .join('\n')
 
-/**
- * `MediaDecoder` over `ffmpeg -ss <t> -i <f> -t <d> -f null -` (§7.3 step 4). ffmpeg exits 0 on
- * most decoding errors (zeroed MKV, truncated file), so any decoder or demuxer line on stderr at
- * `-v error`, or no decoded frame at all, counts as a failure. `-fps_mode passthrough` keeps
- * ffmpeg from resampling the frame rate, which is what produces the null muxer's DTS notices.
- */
 export const createFfmpegDecoder = ({
   binary = 'ffmpeg',
   timeoutMs = 60_000,
@@ -49,7 +38,6 @@ export const createFfmpegDecoder = ({
         '-ss',
         startSeconds.toFixed(3),
         '-i',
-        // `file:` stops ffmpeg from reading a protocol or option in the name (§20).
         `file:${toHostPath(path)}`,
         '-t',
         durationSeconds.toFixed(3),

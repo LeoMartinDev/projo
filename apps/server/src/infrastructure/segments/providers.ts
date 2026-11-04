@@ -26,20 +26,14 @@ import {
 } from './theintrodb.ts'
 
 export type SegmentProvidersDeps = {
-  /** Injected in tests (local server replaying recorded responses). */
   fetch?: typeof fetch
   baseUrls?: Partial<Record<SegmentProviderId, string>>
-  /** Per request; 10 s by default (§12.2: past it, the provider is unavailable). */
   timeoutMs?: number
-  /** Tests: a manual clock and an instant sleep for the throttle (rate-limit.ts). */
   now?: () => number
   sleep?: Sleep
-  /** Overrides of `defaultRateLimits` (tests). */
   rateLimits?: Partial<Record<keyof typeof defaultRateLimits, RateLimit>>
-  /** Read on every call: a key set in the admin applies at once. */
   theintrodbApiKey: () => string | undefined
   skipdbAnonymousKey: () => string | undefined
-  /** SkipDB anonymous key, created on the first submission (§12.5). */
   saveSkipdbAnonymousKey: (key: string) => void
   logger: Logger
 }
@@ -47,29 +41,22 @@ export type SegmentProvidersDeps = {
 export type SegmentProviders = {
   providers: Record<SegmentProviderId, SegmentProvider>
   contributors: Record<SegmentContributor['id'], SegmentContributor>
-  /** `PATCH /admin/settings`: a TheIntroDB key is checked before it is stored. */
   validateTheintrodbKey: (
     key: string,
   ) => Promise<Result<void, AppError<'segment/theintrodb_key_invalid'> | SegmentProviderError>>
 }
 
-/** Production endpoints of the three community databases. */
 export const segmentProviderBaseUrls: Record<SegmentProviderId, string> = {
   theintrodb: THEINTRODB_BASE_URL,
   introdb: INTRODB_BASE_URL,
   skipdb: SKIPDB_BASE_URL,
 }
 
-/**
- * §12.2 community providers and §12.5 contribution, behind the `SegmentProvider` port. Nothing
- * here stores or re-exposes provider data: the chain caches the results (§12.2 ToS).
- */
 export const createSegmentProviders = (deps: SegmentProvidersDeps): SegmentProviders => {
   const baseUrl = (id: SegmentProviderId) =>
     (deps.baseUrls?.[id] ?? segmentProviderBaseUrls[id]).replace(/\/+$/u, '')
   const now = deps.now ?? Date.now
   const sleep = deps.sleep ?? realSleep
-  /** Created once: every call of a provider in the process shares its window and its pause. */
   const limiter = (provider: SegmentProviderId, name: keyof typeof defaultRateLimits) =>
     createProviderLimiter({
       provider,

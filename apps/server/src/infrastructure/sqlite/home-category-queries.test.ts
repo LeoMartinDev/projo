@@ -52,7 +52,6 @@ describe('§13.3 category titles', () => {
         originalLanguage: 'ja',
         addedAt: new Date('2026-02-01T00:00:00.000Z'),
       },
-      // No `added_at`: `created_at`.
       { id: 'show', genres: ['drama'], addedAt: new Date('2026-01-01T00:00:00.000Z') },
     ])
   })

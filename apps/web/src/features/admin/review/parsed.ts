@@ -6,13 +6,11 @@ import { type ReviewReason, reviewReasonSchema } from '@projo/shared/api/metadat
 
 import type { IdentifyInitial } from '../identify/IdentifyForm.tsx'
 
-/** Last segment of a relative path: what the admin recognizes first. */
 export const fileName = (relativePath: string): string =>
   relativePath.split(/[\\/]/u).findLast((part) => part.length > 0) ?? relativePath
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
-/** `S01E03`, `S01E03-E04`, `E03` (no season): the scene notation, the same in every language. */
 export const sceneCode = (
   season: number | undefined,
   episode: number | undefined,
@@ -23,11 +21,6 @@ export const sceneCode = (
   return `${season === undefined ? '' : `S${pad(season)}`}E${pad(episode)}${range}`
 }
 
-/**
- * What the parser understood of the path (§15 "To review"), in one line: `Inception · 2010`,
- * `The Office · S02E03 · 2005`, `One Piece · #1015`, `Daily Show · 2024-03-01`; the edition in
- * the interface language (`Blade Runner · 1982 · Version longue`).
- */
 export const parsedSummary = (
   t: TFunction,
   source: Pick<SourceDto, 'parsed' | 'displayTitle'>,
@@ -49,13 +42,11 @@ export const parsedSummary = (
     .join(' · ')
 }
 
-/** Known §7.8 reason, or `undefined` for a code this web build does not know. */
 export const reviewReason = (value: string | undefined): ReviewReason | undefined => {
   const parsed = reviewReasonSchema.safeParse(value)
   return parsed.success ? parsed.data : undefined
 }
 
-/** The identification form, prefilled from the parse: series + season + episode, or title + year. */
 export const initialFromSource = (
   source: Pick<SourceDto, 'parsed' | 'displayTitle' | 'classification'>,
 ): IdentifyInitial => {

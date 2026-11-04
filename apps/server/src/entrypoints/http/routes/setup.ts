@@ -24,11 +24,6 @@ type Deps = {
   trustProxy: boolean
 }
 
-/**
- * §17.2 Setup: `GET /setup/status`, `POST /setup` (public, see `authenticate`).
- * Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')` (the sub-app is
- * mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const setupRoutes = ({
   getSetupStatus,
   completeSetup,
@@ -54,7 +49,6 @@ export const setupRoutes = ({
       })
       if (!result.ok) return respondError(c, result.error)
 
-      // The admin is signed in right away, as after `POST /auth/login`.
       const { account, profile } = result.value
       const userAgent = c.req.header('user-agent') ?? ''
       const { token, session } = openSession({

@@ -16,7 +16,6 @@ const systems: [RegExp, string][] = [
 const firstMatch = (table: [RegExp, string][], userAgent: string): string | undefined =>
   table.find(([pattern]) => pattern.test(userAgent))?.[1]
 
-/** Default device name of a cookie session: "Firefox · macOS" (§14 "nom, navigateur"). */
 export const describeUserAgent = (userAgent: string): string => {
   const parts = [firstMatch(browsers, userAgent), firstMatch(systems, userAgent)].filter(
     (part): part is string => part !== undefined,

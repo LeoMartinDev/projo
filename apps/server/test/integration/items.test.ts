@@ -44,7 +44,6 @@ const rescan = async (libraryId: string) => {
 const titles = () =>
   world
     .query<{ kind: string; title: string; year?: number }>(
-      // A season or an episode without a title of its own (§6.3) shows its number: '#2'.
       "SELECT kind, coalesce(nullif(title, ''), '#' || coalesce(episode_number, season_number)) AS title, year FROM items ORDER BY kind, 2, year",
     )
     .map((i) => `${i.kind}:${i.title}${i.year === undefined ? '' : ` (${i.year})`}`)
@@ -141,7 +140,6 @@ describe('M1 local items (§6.3, §7.7)', () => {
       },
     ])
     const id = page.items[0]?.id ?? ''
-    // Fixed on disk (same size and mtime would not be re-checked by the scanner alone).
     const recheck = await world.request(`/sources/${id}/recheck`, { method: 'POST' })
     expect(recheck.status).toBe(202)
     await world.runJobs(['probe_source'])

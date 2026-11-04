@@ -30,11 +30,6 @@ type Library = { ratingCountry: string; language?: string }
 
 type Tree = { ratingCountry: string; stale: boolean }
 
-/**
- * `libraries`: the deciding library of each item (absent: no file). `stale`: what
- * `staleLanguage` answers per library id ('' = every library), `decided`: `decidedBy`.
- * `trees`: what `treeStates` answers (mutable: files leaving), `withFiles`: `topLevelWithFiles`.
- */
 const setup = ({
   libraries = {},
   serverLanguage = 'fr-FR',
@@ -184,7 +179,6 @@ describe('refresh queued on a change of language or rating country (§9.4)', () 
     const world = setup({
       libraries: { series: { ratingCountry: 'FR' }, movie: { ratingCountry: 'FR' } },
     })
-    // Written with the settings the tree resolves to: nothing to do.
     expect(
       world.refresh.queueIfContextDiffers({
         itemId: 'series',
@@ -192,7 +186,6 @@ describe('refresh queued on a change of language or rating country (§9.4)', () 
         ratingCountry: 'FR',
       }),
     ).toBe(false)
-    // A file of a newer library in English, or in another country: the whole tree again.
     expect(
       world.refresh.queueIfContextDiffers({
         itemId: 'series',

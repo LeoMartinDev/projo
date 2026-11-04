@@ -43,13 +43,11 @@ describe('pendingBreakdownByLibrary (§7.3 phases)', () => {
   test('quiet period running, stable, failed; the oldest running counter', () => {
     pending('w1', 'growing', { unchangedSince: '2026-06-01T10:02:00.000Z' })
     pending('w2', 'growing', { unchangedSince: '2026-06-01T10:00:30.000Z' })
-    // No reason recorded: read as `growing`, like `watch_pending`.
     pending('w3', undefined, { unchangedSince: '2026-06-01T10:05:00.000Z' })
     pending('v1', 'growing', {
       unchangedSince: '2026-06-01T09:00:00.000Z',
       stableSince: '2026-06-01T09:02:00.000Z',
     })
-    // Failures keep their `stable_since` (the probe ran): they stay failures.
     pending('f1', 'probe_failed', {
       unchangedSince: '2026-06-01T08:00:00.000Z',
       stableSince: '2026-06-01T08:02:00.000Z',

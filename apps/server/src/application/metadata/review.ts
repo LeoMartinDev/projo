@@ -23,10 +23,6 @@ type Deps = {
   tmdb: TmdbApi
   resolveMatch: ResolveMatch
   applyMatch: ApplyMatch
-  /**
-   * §9.1: a tree written with other settings than its deciding library's is refreshed, and so is
-   * the one a file leaves when its deciding library changes.
-   */
   refresh: Pick<RefreshMetadata, 'queueIfContextDiffers' | 'filesLeaving'>
   items: MetadataItemRepository
   sourceRepository: Pick<SourceRepository, 'findById' | 'patch'>
@@ -38,7 +34,6 @@ type Deps = {
   logger: Logger
 }
 
-/** What an admin decides (§7.8): a movie, an episode of a series, or (rematch of a series) a series. */
 export type Assignment =
   | { kind: 'movie'; tmdbId: number }
   | {
@@ -59,10 +54,8 @@ export type AssignError =
       | 'metadata/episode_not_found'
     >
 
-/** An episode file the new series has no episode for (rematch of a series): left for review. */
 export type EpisodeNotFound = { sourceId: string; seasonNumber: number; episodeNumber: number }
 
-/** A file identified (or, in a dry run, that would be): its TMDB target, named (§27.5). */
 export type PlannedIdentification = {
   sourceId: string
   relativePath: string
@@ -74,10 +67,6 @@ export type PlannedIdentification = {
   episodeTitle?: string
 }
 
-/**
- * `dryRun` (§27.5): everything was checked against TMDB and nothing written; `itemIds` is then
- * empty (the items do not exist yet) and `identified` says what a real run would do.
- */
 export type AssignResult = {
   sourceIds: string[]
   itemIds: string[]
@@ -88,7 +77,6 @@ export type AssignResult = {
 
 type Matched = Exclude<Resolution, { kind: 'review' }>
 
-/** A decision checked against TMDB, not written yet. */
 type Prepared =
   | {
       kind: 'matched'
@@ -101,11 +89,6 @@ type Prepared =
     }
   | { kind: 'not_found'; source: Source; at: { seasonNumber: number; episodeNumber: number } }
 
-/**
- * "To review" and "Fix the match" (§7.8, journey 5). Every correction is written to
- * `manual_matches` before it is applied: it wins over the automatic matching at every later
- * scan, full scans included.
- */
 export const reviewFactory = ({
   tmdb,
   resolveMatch,
@@ -120,10 +103,6 @@ export const reviewFactory = ({
   clock,
   logger,
 }: Deps) => {
-  /**
-   * One source, one decision, checked against TMDB (nothing written). `current`: season and
-   * episode of its current episode item.
-   */
   const prepare = async (
     source: Source,
     assignment: Assignment,
@@ -181,7 +160,6 @@ export const reviewFactory = ({
     })
   }
 
-  /** Remembers then writes a prepared decision; returns the items the source now belongs to. */
   const commit = (prepared: Extract<Prepared, { kind: 'matched' }>, accountId: string) => {
     const { source, tmdbId, at } = prepared
     manualMatches.save({
@@ -248,14 +226,9 @@ export const reviewFactory = ({
   const sourceNotFound = (id: string) =>
     err(appError('source/not_found', 'source not found', { context: { id } }))
 
-  /** A file listed in "To review": waiting for a decision and present on the disk (§7.8). */
   const awaitsReview = (source: Source): boolean =>
     source.matchState === 'needs_review' && source.state === 'ready'
 
-  /**
-   * The other files to review linked to episodes of the same series as this source, in the same
-   * library root and show folder (§7.8).
-   */
   const reviewSiblings = (source: Source) => {
     const episode = items.linkedItems(source.id).find((item) => item.kind === 'episode')
     const season = episode?.parentId === undefined ? undefined : items.findItem(episode.parentId)
@@ -273,7 +246,6 @@ export const reviewFactory = ({
     })
   }
 
-  /** The admin kept the season and episode the file name gives (none typed over them). */
   const keepsOwnNumbers = (prepared: Extract<Prepared, { kind: 'matched' }>): boolean => {
     const { parsed } = prepared.source
     return (
@@ -283,7 +255,6 @@ export const reviewFactory = ({
   }
 
   return {
-    /** `GET /admin/tmdb/search`. */
     search: (input: {
       query: string
       kind: 'movie' | 'series'
@@ -304,19 +275,10 @@ export const reviewFactory = ({
           })
     },
 
-    /**
-     * `POST /admin/sources/:id/assign`: "it's a movie" / "it's an episode of…". An episode keeping
-     * the numbers of its file name takes along the other files to review of its series (same root,
-     * same show folder), each with its own numbers; those the chosen series lacks stay in "To
-     * review" (`episode_not_found`). Every file is checked against TMDB first: nothing is written
-     * if one of them fails. Files taken along are read again when writing: one hidden, moved or
-     * identified meanwhile is left alone.
-     */
     assignSource: async (input: {
       sourceId: string
       assignment: Assignment
       accountId: string
-      /** §27.5: check and plan only, write nothing. */
       dryRun?: boolean
     }): Promise<Result<AssignResult, AssignError>> => {
       const source = sourceRepository.findById(input.sourceId)
@@ -384,7 +346,6 @@ export const reviewFactory = ({
       return ok({ sourceIds, itemIds: [...itemIds], needsReview, identified, dryRun: false })
     },
 
-    /** `POST /admin/sources/:id/reject` (§7.8 "Hide"): out of every list and scan until restored. */
     rejectSource: ({
       sourceId,
     }: {
@@ -394,14 +355,11 @@ export const reviewFactory = ({
       if (source === undefined) return sourceNotFound(sourceId)
       const settle = refresh.filesLeaving({ sourceIds: [sourceId] })
       items.transaction(() => {
-        // Back to "not identified": if a full scan presents it again, the matching (and a
-        // correction remembered for it) runs again.
         sourceRepository.patch(sourceId, {
           state: 'rejected',
           matchState: 'unmatched',
           reviewReason: undefined,
         })
-        // §7.8: its items stay, invisible without a file, with their history for "Show again".
         items.replaceLinks({ sourceId, itemIds: [] })
       })
       settle()
@@ -409,11 +367,6 @@ export const reviewFactory = ({
       return ok()
     },
 
-    /**
-     * `POST /admin/sources/:id/restore` (§7.8 "Show again"): a hidden source goes through the
-     * pipeline again, checked now: its name is read again (a name to review is back in "To
-     * review"), then the probe, then the matching (a remembered correction applies again).
-     */
     restoreSource: ({
       sourceId,
     }: {
@@ -450,16 +403,10 @@ export const reviewFactory = ({
       return ok()
     },
 
-    /**
-     * `POST /admin/items/:id/rematch` ("Fix the match", §7.8): every source of the
-     * item (of its episodes for a series) is assigned again. Episodes keep their season and
-     * episode numbers unless the body sets them.
-     */
     rematchItem: async (input: {
       itemId: string
       assignment: Assignment
       accountId: string
-      /** §27.5: check and plan only, write nothing. */
       dryRun?: boolean
     }): Promise<Result<AssignResult, AssignError>> => {
       const item = items.findItem(input.itemId)
@@ -477,7 +424,6 @@ export const reviewFactory = ({
           }),
         )
       }
-      // Every file checked against TMDB first: nothing is written if one of them fails.
       const prepared: Prepared[] = []
       for (const link of items.sourcesUnder(item.id)) {
         const source = sourceRepository.findById(link.sourceId)
@@ -488,7 +434,6 @@ export const reviewFactory = ({
       }
       const single = item.kind !== 'series'
       const notFound = prepared.filter((p) => p.kind === 'not_found')
-      // A movie or an episode: one file, one decision, refused as a whole.
       if (single && notFound[0] !== undefined) return episodeNotFound(notFound[0])
       const needsReview = notFound.map((entry) => ({ sourceId: entry.source.id, ...entry.at }))
       if (input.dryRun === true) {
@@ -503,7 +448,6 @@ export const reviewFactory = ({
           dryRun: true,
         })
       }
-      // A series: the episodes the new series lacks wait in "To review", the others move.
       const identified: PlannedIdentification[] = []
       const sourceIds: string[] = []
       const itemIds = new Set<string>()

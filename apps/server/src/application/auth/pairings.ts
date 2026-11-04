@@ -24,7 +24,6 @@ type Deps = {
   sessionRepository: SessionRepository
   pairingCodes: PairingCodes
   openSession: OpenSession
-  /** §14: 10 claim attempts per 15 min per IP. */
   rateLimiter: RateLimiter
   eventBus: EventBus
   clock: Clock
@@ -40,16 +39,8 @@ export type ClaimPairingError = AppError<
 
 export const pairingClaimRateLimitKey = (ip: string) => `pairing:ip:${ip}`
 
-/** A fresh code could collide with a live one: drawn again, at most this many times. */
 const maxCodeDraws = 5
 
-/**
- * §14 "Pairing a device". `create`: a code for the signed-in account, tied to the session that
- * asked for it (revoking that session voids it). `claim`: the app trades the code for a bearer
- * session of that account, once; the creating session is told through `pairing.claimed`.
- * Both are synchronous: checking and writing with no `await` in between keeps two claims of one
- * code from both passing.
- */
 export const pairingsFactory = ({
   pairingRepository,
   sessionRepository,
@@ -66,7 +57,6 @@ export const pairingsFactory = ({
     return creator !== undefined && sessionState(creator, now) === 'active'
   }
 
-  /** A code no live pairing holds, with its hash. */
   const drawCode = (now: Date): { code: string; codeHash: string } => {
     for (let draw = 1; ; draw += 1) {
       const code = pairingCodes.generate()

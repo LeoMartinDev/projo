@@ -21,18 +21,12 @@ import { useLocale } from '../media/card-text.ts'
 import { useOpenItem } from '../media/navigation.ts'
 import { MetaLine, ProgressBar } from '../media/parts.tsx'
 
-/** expo-video's player is driven by assigning its properties, which hook values may not be. */
 const setPlayerMuted = (player: VideoPlayer, muted: boolean) => {
   player.muted = muted
 }
 
-/** Minimum time without touching the screen before the preview plays (the web's 2 s, §13.3). */
 const previewDelayMs = 2000
 
-/**
- * The hero's video preview, iPad only and on Wi-Fi (§26.5), never under reduced motion: the clip
- * (`previewUrl`) loops muted over the backdrop once it plays, paused while the home is not shown.
- */
 const HeroPreview = ({ url }: { url: string }) => {
   const { t } = useTranslation()
   const image = useServerImage()
@@ -82,11 +76,6 @@ const HeroPreview = ({ url }: { url: string }) => {
   )
 }
 
-/**
- * Hero of the home (§13.3): on an iPhone the 4:5 card of `MobileHome` on a fixed backdrop; on an
- * iPad the landscape hero of `Home`, with the video preview on Wi-Fi. Logo (title when absent),
- * metadata line, "Play" / "Resume S2 · E4", My list, More info.
- */
 export const Hero = ({
   hero,
   regular,
@@ -94,7 +83,6 @@ export const Hero = ({
 }: {
   hero: HomeHeroDto
   regular: boolean
-  /** iPad: height of the bars and header drawn over the hero, added to it. */
   under?: number
 }) => {
   const { t } = useTranslation()
@@ -110,7 +98,6 @@ export const Hero = ({
   const playLabel = playLabelOf(t, item, play)
   const rating = ratingBadge(t, locale, item.contentRating)
   const genres = item.genres.length === 0 ? undefined : genreLabels(t, item.genres, 3).join(', ')
-  // The box hugs the logo, as the web's `<img>` within its max sizes: no empty band above it.
   const [logoRatio, setLogoRatio] = useState<number>()
   const logoMax = regular ? { width: 420, height: 110 } : { width: width - 64, height: 90 }
   const logoWidth =
@@ -162,7 +149,6 @@ export const Hero = ({
 
   if (!regular)
     return (
-      // The card opens the title page (`MobileHome` has no "More info" button).
       <Pressable
         accessibilityHint={t('card.infoOn', { title })}
         onPress={() => openItem(item)}
@@ -240,7 +226,6 @@ export const Hero = ({
   )
 }
 
-/** Height of the hero, for its skeleton while the home loads. */
 export const heroHeight = (regular: boolean, width: number, height: number): number =>
   regular ? Math.min(width * 0.62, height * 0.72) : ((width - 32) * 5) / 4
 

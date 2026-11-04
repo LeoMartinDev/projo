@@ -27,11 +27,6 @@ const metaSchema = z.object({ sourceId: z.string(), fingerprint: fingerprintSche
 
 const encodeTimeoutMs = 10 * 60_000
 
-/**
- * `/data/cache/previews/<item>.mp4` (§13.3): 20 s, at most 720p, H.264 + AAC stereo around
- * 1.2 Mb/s (≈ 3 MB), `+faststart` so the `<video>` starts at once; `<item>.json` records the
- * source and the version of the file it was cut from.
- */
 export const createPreviewStore = ({
   previewsDir,
   ffmpeg = 'ffmpeg',
@@ -39,7 +34,6 @@ export const createPreviewStore = ({
 }: {
   previewsDir: string
   ffmpeg?: string
-  /** Of the ffmpeg of `generate`. */
   processPriority?: ProcessPriority
 }): PreviewStore => {
   const clipPath = (itemId: string) => join(previewsDir, `${assetName(itemId)}.mp4`)

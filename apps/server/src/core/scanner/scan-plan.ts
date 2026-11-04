@@ -13,7 +13,6 @@ import type {
   SourceSnapshot,
 } from '../source/source.ts'
 
-/** A video file found on disk by the walk, whatever its size. */
 export type FoundFile = {
   rootId: string
   relativePath: string
@@ -37,29 +36,23 @@ export type PlanStats = {
 export type ScanPlan = {
   inserts: NewSource[]
   patches: { id: string; patch: SourcePatch }[]
-  /** Pending sources whose probe or decode failed on unchanged bytes: re-tested each scan (§7.3 step 5). */
   retest: string[]
-  /** Full scan: ready sources whose signature must be checked again (§7.4 "Scan complet"). */
   verify: string[]
-  /** Sources whose path changed (moves): their item links may need a refresh. */
   moved: string[]
   stats: PlanStats
 }
 
 export type PlanInput = {
   libraryId: string
-  /** Sources of the reachable roots only: an unreachable root's sources are never touched (§7.5). */
   known: readonly SourceSnapshot[]
   found: readonly FoundFile[]
   now: Date
   full: boolean
-  /** Signatures of the new files listed by `moveProbeCandidates`, by `fileKey`. */
   signatures: ReadonlyMap<string, string>
   analyze: (relativePath: string) => MediaPathAnalysis
   newId: () => string
 }
 
-/** A source that was `ready` and has not changed since (missing keeps the reason it had). */
 const wasReady = (source: SourceSnapshot): boolean =>
   source.readyAt !== undefined && source.pendingReason === undefined
 
@@ -75,7 +68,6 @@ const statFields = (file: FoundFile): SourcePatch => ({
   inode: file.inode,
 })
 
-/** §7.3 step 2: back to quarantine, the quiet-period counter restarts now. */
 const quarantine = (source: SourceSnapshot, file: FoundFile, now: Date): SourcePatch => ({
   ...statFields(file),
   state: 'pending',
@@ -94,12 +86,6 @@ export const matchStateFor = (
   return reviewReason === undefined ? 'unmatched' : 'needs_review'
 }
 
-/**
- * Naming columns of a (re-)parsed path. An identified source keeps its state and has no review
- * reason, unless an automatic identification sees its classification change (§7.4: identified
- * again); a manual correction also keeps its classification (§7.8: "it's a movie" survives
- * every later scan); a hidden source never goes back to "To review".
- */
 const namingFields = (
   analysis: MediaPathAnalysis,
   current: Pick<SourceSnapshot, 'state' | 'matchState' | 'classification'> | undefined,
@@ -109,7 +95,6 @@ const namingFields = (
   matchState: MatchState
   reviewReason: NamingReviewReason | undefined
 } => {
-  // §7.4: an automatic identification does not survive a change of classification.
   const reclassified =
     current?.matchState === 'matched' && current.classification !== analysis.classification
   const matchState =
@@ -133,7 +118,6 @@ const stable = (value: unknown): string =>
         .join(',')}}`
     : JSON.stringify(value)
 
-/** Naming fields to rewrite when the parse of an unchanged path differs from what is stored. */
 const namingChanges = (
   source: SourceSnapshot,
   analysis: MediaPathAnalysis,
@@ -146,7 +130,6 @@ const namingChanges = (
   return same ? undefined : fields
 }
 
-/** New files that might be moved sources and need a probe to compare signatures (§7.6 step 2). */
 export const moveProbeCandidates = (
   known: readonly SourceSnapshot[],
   found: readonly FoundFile[],
@@ -167,10 +150,6 @@ export const moveProbeCandidates = (
   )
 }
 
-/**
- * Compares the disk with the `sources` table for one library (§7.2–7.6) and returns what to
- * write. Pure: the caller walks, probes move candidates, then applies the plan in a transaction.
- */
 export const planScan = ({
   libraryId,
   known,
@@ -192,7 +171,6 @@ export const planScan = ({
   const knownByKey = new Map(known.map((s) => [fileKey(s.rootId, s.relativePath), s]))
   const foundKeys = new Set(found.map((f) => fileKey(f.rootId, f.relativePath)))
 
-  // ── Files still at their path ──────────────────────────────────────────────
   const newFiles: FoundFile[] = []
   for (const file of found) {
     const source = knownByKey.get(fileKey(file.rootId, file.relativePath))
@@ -224,7 +202,6 @@ export const planScan = ({
         }
         break
       case 'missing':
-        // §7.5: back where it was, without loss.
         if (same && wasReady(source)) {
           plan.patches.push({
             id: source.id,
@@ -237,17 +214,14 @@ export const planScan = ({
         }
         break
       case 'rejected':
-        // §7.8: hidden until the admin shows it again, full scans included.
         break
     }
-    // A full scan re-reads names too: a new hint or a better parser re-classifies (§7.4).
     if (full) {
       const naming = namingChanges(source, analyze(file.relativePath))
       if (naming !== undefined) plan.patches.push({ id: source.id, patch: naming })
     }
   }
 
-  // ── Moves, then creations (§7.6) ──────────────────────────────────────────
   const origins = known.filter((s) => !foundKeys.has(fileKey(s.rootId, s.relativePath)))
   const consumed = new Set<string>()
   const takeOrigin = (
@@ -282,7 +256,6 @@ export const planScan = ({
         ...statFields(file),
         ...namingFields(analysis, source),
       }
-      // Same inode but touched since: the bytes may differ, re-check them.
       const contentChanged = byInode && source.mtimeMs !== file.mtimeMs
       const stateFields: SourcePatch =
         source.state === 'rejected'
@@ -322,7 +295,6 @@ export const planScan = ({
     plan.stats.pending += 1
   }
 
-  // ── Disappeared (§7.5) ────────────────────────────────────────────────────
   for (const source of origins) {
     if (consumed.has(source.id)) continue
     if (source.state === 'missing' || source.state === 'rejected') continue

@@ -5,10 +5,6 @@ import { colors, fonts, radii, sizes } from '../styles/tokens.ts'
 
 export type TextFieldInstance = ComponentRef<typeof TextInput>
 
-/**
- * The kit v2 field (§19, `Components`): a 58 px box, its label inside above the value, brighter
- * rim on focus, red rim when `invalid`; `trail` at the end (an eye, a check). Dark keyboard.
- */
 export const TextField = ({
   ref,
   label,
@@ -81,7 +77,6 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.medium,
     fontSize: 16,
-    // Explicit: a recycled native input keeps the letter spacing of a code field otherwise.
     letterSpacing: 0,
     padding: 0,
   },

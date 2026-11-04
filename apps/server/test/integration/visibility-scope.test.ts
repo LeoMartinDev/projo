@@ -13,10 +13,6 @@ import { insertLibrary } from '../support/catalog-fixtures.ts'
 import { createManualClock } from '../support/clock.ts'
 import { createTestDatabase } from '../support/database.ts'
 
-/**
- * The §14 rule as `VisibilityScope` states it (what the catalogue applies): a library outside
- * `libraryIds`, or a rating not listed for the library's country, does not exist for the profile.
- */
 const sees = (
   scope: VisibilityScope,
   item: { libraryId: string; country: string; rating?: string },
@@ -71,7 +67,6 @@ describe('visibility scope of a profile (SQLite)', () => {
     expect(sees(scope, { ...anime, rating: 'NR' })).toBe(false)
     expect(sees(scope, anime)).toBe(false)
     expect(sees(scope, { libraryId: 'films', country: 'FR', rating: 'U' })).toBe(false)
-    // Another country's scale applies to a library rated there.
     expect(sees(scope, { libraryId: 'anime', country: 'US', rating: 'PG' })).toBe(true)
     expect(sees(scope, { libraryId: 'anime', country: 'US', rating: 'PG-13' })).toBe(false)
     expect(sees(scope, { libraryId: 'anime', country: 'JP', rating: 'G' })).toBe(false)

@@ -12,10 +12,6 @@ export type PrepareAppDeps = {
   logger: Logger
 }
 
-/**
- * Resolves the version to launch: `current` when valid, otherwise the seed embedded in the image
- * (first start, or recovery from a broken link).
- */
 export const prepareAppFactory =
   ({ layout, runtimeVersion, installSeed, logger }: PrepareAppDeps) =>
   async (): Promise<Result<InstalledVersion, SupervisorError>> => {
@@ -35,8 +31,6 @@ export const prepareAppFactory =
 
     const state = await readAppState(layout)
     if (state.pending !== undefined) {
-      // Only an exit 75 starts a switch: a `pending` found at boot was left by an interrupted
-      // one (container stopped in between). The app settles its pending run at startup.
       logger.warn('stale pending switch dropped', {
         code: 'update/switch_interrupted',
         pending: state.pending,

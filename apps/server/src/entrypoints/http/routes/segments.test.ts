@@ -198,7 +198,6 @@ describe('fetch_segments job and its triggers', () => {
       absent: [],
       lookups: [],
     })
-    // The admin sees what the chain asked.
     const admin = (await (await call('/items/e1/segments', { role: 'admin' })).json()) as {
       lookups: { source: string; outcome: string }[]
     }
@@ -243,7 +242,6 @@ describe('fetch_segments job and its triggers', () => {
       { type: 'fetch_segments', payload: { itemId: 'e2' }, dedupeKey: 'segments:e2' },
       { type: 'fetch_segments', payload: { itemId: 'm1' }, dedupeKey: 'segments:m1' },
     ])
-    // A refresh runs fetch_images again: a fresh `none` is not asked again (§12.2, 30 days).
     await runJob('fetch_segments', { itemId: 'e2' })
     expect(fake.calls.map((entry) => entry.provider)).toEqual(['skipdb'])
   })
@@ -265,7 +263,6 @@ describe('fetch_segments job and its triggers', () => {
       })
       bus.bus.publish('job.updated', { jobId: job.id, type: 'match_source', state, attempts: 1 })
     }
-    // To review, matched (its `fetch_images` follows), TMDB unreachable (left `unmatched`).
     finish('f1', 'done')
     finish('f2', 'done')
     finish('f3', 'failed')
@@ -274,7 +271,6 @@ describe('fetch_segments job and its triggers', () => {
       { type: 'fetch_segments', payload: { itemId: 'm1' }, dedupeKey: 'segments:m1' },
     ])
 
-    // Once resolved, another `match_source` of the file asks nothing more.
     expect(await runJob('fetch_segments', { itemId: 'e1' })).toEqual({ ok: true, value: undefined })
     jobs.enqueued.length = 0
     finish('f1', 'done')

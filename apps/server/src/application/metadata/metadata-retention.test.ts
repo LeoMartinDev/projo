@@ -21,7 +21,6 @@ describe('metadata retention (§18 "Rules")', () => {
     const purge = purgeUnusedImagesFactory({
       images: {
         listUnused: () => ['a', 'b'],
-        // `b` got a reference between the listing and its deletion.
         deleteIfUnused: (id) => {
           const row = id === 'b' ? undefined : rows.get(id)
           if (row !== undefined) rows.delete(id)

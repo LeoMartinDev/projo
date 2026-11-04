@@ -45,7 +45,6 @@ type Deps = {
   fileSystem: FileSystem
   prober: MediaProber
   linkSourceItems: LinkSourceItems
-  /** §7.4 full scan: "retry matching of `unmatched` ones"; moved sources too. */
   requestMatch: MatchRequester
   notifier: AdminNotifier
   jobQueue: JobQueue
@@ -59,40 +58,27 @@ export type ScanLibraryInput = {
   libraryId: string
   kind: ScanKind
   signal?: AbortSignal
-  /** 0..100 for the job row. */
   reportProgress?: (progress: number) => void
 }
 
 export type ScanReport = {
   run: ScanRun
-  /** Roots skipped by the §7.5 guard. */
   unreachableRoots: string[]
 }
 
 export type ScanLibraryError = AppError<'library/not_found'>
 
-/** Above this, moved files are not probed during the scan: they go through the normal pipeline. */
 const MAX_MOVE_PROBES = 50
 const PROGRESS_EVERY_MS = 500
 
 const isUnder = (relativePath: string, directory: string): boolean =>
   directory === '' || relativePath === directory || relativePath.startsWith(`${directory}/`)
 
-/**
- * Files the walk should see: the last complete walk of every root, `undefined` when one was never
- * walked (first scan, new root) and the bar stays indeterminate.
- */
 const expectedFileCount = (roots: readonly LibraryRoot[]): number | undefined =>
   roots.every((root) => root.lastScanAt !== undefined)
     ? roots.reduce((sum, root) => sum + root.lastFileCount, 0)
     : undefined
 
-/**
- * One scan of a library (§7.2–7.7), job `scan_library`. Per root: §7.5 guard, walk, then one
- * plan for the whole library (moves may cross roots), applied in one transaction. Then parts,
- * external subtitles, item links of moved sources, probes to re-run. New files enter quarantine:
- * `watch_pending` and `probe_source` take them to `ready`.
- */
 export const scanLibraryFactory = (deps: Deps) => {
   const {
     libraryRepository,
@@ -185,8 +171,6 @@ export const scanLibraryFactory = (deps: Deps) => {
       err(appError('library/not_found', 'library not found', { context: { libraryId } }))
     const library: Library | undefined = libraryRepository.findById(libraryId)
     if (library === undefined) return notFound()
-    // Read after each await: a deleted library takes its scan run with it, a removed root its
-    // sources (cascade). `undefined`: the library is gone.
     const rootsNow = (): ReadonlySet<string> | undefined => {
       const current = libraryRepository.findById(libraryId)
       return current && new Set(current.roots.map((root) => root.id))
@@ -210,17 +194,14 @@ export const scanLibraryFactory = (deps: Deps) => {
         phase,
         ...(total === undefined ? {} : { total }),
       })
-      // The walk is most of the work: 0..60 of the job progress.
       if (phase === 'discovering' && expected !== undefined && expected > 0)
         reportProgress?.(Math.min(60, Math.round((stats.seen / expected) * 60)))
     }
     publishProgress(true)
 
-    // ── Walk each root behind the §7.5 guard ───────────────────────────────
     const walks: { root: LibraryRoot; walk: WalkResult }[] = []
     const unreachableRoots: string[] = []
     let seenBefore = 0
-    // Interrupted (cancel, clean stop): nothing applied, the next run starts over.
     const cancelled = () => {
       const finished = scanRunRepository.finish({
         id: run.id,
@@ -274,7 +255,6 @@ export const scanLibraryFactory = (deps: Deps) => {
     }
     phase = 'processing'
 
-    // ── Plan and apply (§7.4–7.6) ──────────────────────────────────────────
     const reachable = new Map(walks.map(({ root, walk }) => [root.id, walk]))
     const rootPaths = new Map(library.roots.map((root) => [root.id, root.path]))
     const knownNow = () =>
@@ -292,9 +272,7 @@ export const scanLibraryFactory = (deps: Deps) => {
       rootPaths,
       signal,
     )
-    // An aborted probe leaves its move unpaired: applied, it would be a new file and a missing one.
     if (signal?.aborted === true) return cancelled()
-    // Read again after the last await: plan and apply run without yielding to other jobs.
     const present = rootsNow()
     if (present === undefined) return notFound()
     const live = walks.filter(({ root }) => present.has(root.id))
@@ -337,7 +315,6 @@ export const scanLibraryFactory = (deps: Deps) => {
       }
     }
 
-    // ── Parts, subtitles, links (§7.7, §8.3, §8.4) ─────────────────────────
     const snapshots = sourceRepository
       .listSnapshots(libraryId)
       .filter((source) => reachable.has(source.rootId))
@@ -355,13 +332,11 @@ export const scanLibraryFactory = (deps: Deps) => {
         sourceRepository.replaceExternalSubtitles(sourceId, rows)
       }
     }
-    // Moved or re-stacked ready sources may now belong elsewhere; a full scan relinks every ready one.
     const relinkIds = full
       ? snapshots.filter((source) => source.state === 'ready').map((source) => source.id)
       : [...plan.moved, ...stackPatches.map((change) => change.id)]
     relink([...new Set(relinkIds)])
 
-    // ── Probes to (re)run ──────────────────────────────────────────────────
     for (const sourceId of plan.retest) {
       jobQueue.enqueue(probeJob(sourceId, 'quarantine'))
     }

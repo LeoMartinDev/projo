@@ -28,10 +28,6 @@ const toDto = (session: ActivePlaybackSessionView): AdminPlaybackSessionDto => (
   lastHeartbeatAt: session.lastHeartbeatAt.toISOString(),
 })
 
-/**
- * `GET /admin/playback/sessions` and `DELETE /admin/playback/sessions/:id` (§10.6, §15 "Sessions
- * actives"). Mounted at `/api/v1/admin`.
- */
 export const adminPlaybackRoutes = ({
   listActive,
   stop,

@@ -10,20 +10,8 @@ export type ProcessError = AppError<
   'media/binary_missing' | 'media/timeout' | 'media/ffmpeg_failed'
 >
 
-/**
- * CPU priority of a subprocess (§18): `normal` for what a viewer waits for (transcode, probe at
- * session start, subtitles asked by the player), `background` for job work (scan, trickplay,
- * previews, fingerprints…), which then only gets the CPU the rest leaves.
- */
 export type ProcessPriority = 'normal' | 'background'
 
-/**
- * Lowest priority for a child process: nice 19 on Linux, `IDLE_PRIORITY_CLASS` on Windows.
- * Called right after the spawn, before the binary has loaded its libraries and started its
- * worker threads, which inherit it (Linux nice is per thread). Best effort: lowering one's own
- * child is always allowed, so the only failure is a child that already exited (`ESRCH`); the
- * work never fails because of its priority. Returns whether the priority was applied.
- */
 export const lowerProcessPriority = (pid: number): boolean => {
   try {
     setPriority(pid, constants.priority.PRIORITY_LOW)
@@ -33,10 +21,6 @@ export const lowerProcessPriority = (pid: number): boolean => {
   }
 }
 
-/**
- * Runs a binary with an argument array, never through a shell (§20). File paths are plain
- * arguments: nothing is interpreted. Killed on timeout or abort.
- */
 export const runProcess = async ({
   command,
   args,
@@ -48,7 +32,6 @@ export const runProcess = async ({
   args: readonly string[]
   timeoutMs: number
   signal?: AbortSignal
-  /** Default `normal`: callers on a job path pass `background` explicitly. */
   priority?: ProcessPriority
 }): Promise<Result<ProcessOutput, ProcessError>> => {
   if (signal?.aborted === true) {
@@ -95,6 +78,5 @@ export const runProcess = async ({
   }
 }
 
-/** Last lines of a (possibly huge) stderr, for error contexts and logs. */
 export const stderrTail = (stderr: string, maxChars = 600): string =>
   stderr.length <= maxChars ? stderr.trim() : `…${stderr.slice(-maxChars).trim()}`

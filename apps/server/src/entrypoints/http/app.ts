@@ -16,19 +16,13 @@ import { serveWebApp } from './web-app.ts'
 
 type Deps = {
   api: Api
-  /**
-   * Routes outside `/api/v1` and outside the web app: `/mcp`, OAuth (§27). Absent in tests that
-   * do not need them.
-   */
   root?: Hono<AppEnv>[] | Hono<AppEnv>
   health: HealthRoutesDeps
   logger: Logger
   ids: IdGenerator
-  /** Built web app (`apps/web/dist` in dev, `public/` in the bundle). */
   webFiles: StaticFiles
 }
 
-/** The whole HTTP surface: security headers, `/health`, `/api/v1`, then the SPA. */
 export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }: Deps) => {
   const app = new Hono<AppEnv>()
 
@@ -41,7 +35,6 @@ export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }:
     await next()
     requestLogger.debug('http request', {
       method: c.req.method,
-      // §20: the secret of a stream URL and an invitation token are credentials.
       path: c.req.path
         .replace(/^(\/api\/v1\/stream\/[^/]+\/)[^/]+/, '$1***')
         .replace(/^(\/api\/v1\/invitations\/)[^/]+/, '$1***'),
@@ -50,7 +43,6 @@ export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }:
     })
   })
   app.use('*', securityHeaders())
-  // gzip for text (JS, CSS, JSON, VTT); never media, ranges or SSE (Hono's content-type filter).
   app.use('*', compress())
 
   app.route('/', healthRoutes(health))

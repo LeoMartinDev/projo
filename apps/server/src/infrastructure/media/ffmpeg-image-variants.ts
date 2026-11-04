@@ -7,7 +7,6 @@ import type { ImageFiles } from '../../core/metadata/ports.ts'
 import { imageDimensions } from './ffmpeg-image-reencoder.ts'
 import { runProcess, stderrTail } from './process.ts'
 
-/** Visually lossless for photos and logos (alpha kept), about half a TMDB JPEG at the same size. */
 const QUALITY = '82'
 
 const widthOf = (path: string): number | undefined => {
@@ -15,11 +14,6 @@ const widthOf = (path: string): number | undefined => {
   return width === undefined ? undefined : Number(width)
 }
 
-/**
- * `ImageVariants` over ffmpeg (§9.1): one process decodes the original once and writes every
- * missing variant (`split`, then `scale` per width), each through a temporary file renamed in
- * place so a reader never sees half a WebP. Background CPU priority (§18).
- */
 export const createFfmpegImageVariants = ({
   files,
   binary = 'ffmpeg',
@@ -42,7 +36,6 @@ export const createFfmpegImageVariants = ({
         }),
       )
     }
-    // A header ffmpeg-image-reencoder cannot read (WebP original): the full size only.
     const width = imageDimensions(bytes)?.width ?? 0
     const targets = expectedVariantPathsOf(localPath, width).map(files.absolutePath)
     const exists = await Promise.all(targets.map((path) => Bun.file(path).exists()))
@@ -63,7 +56,6 @@ export const createFfmpegImageVariants = ({
         '-v',
         'error',
         '-i',
-        // `file:` stops ffmpeg from reading a protocol or option in the name (§20).
         `file:${source}`,
         '-filter_complex',
         [split, ...scales].join(';'),

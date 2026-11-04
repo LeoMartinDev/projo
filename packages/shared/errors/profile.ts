@@ -7,14 +7,9 @@ export const profileErrorCodes = [
   'profile/invalid_pin',
   'profile/rate_limited',
   'profile/last_profile',
-  /** An admin account keeps at least one unrestricted profile (§14). */
   'profile/last_unrestricted',
   'profile/unknown_library',
   'profile/admin_only',
-  /**
-   * An account action (devices, tokens, password, other profiles, PINs) from a restricted active
-   * profile, or without a resolved one on an account that has restricted profiles (§14).
-   */
   'profile/restricted',
 ] as const
 

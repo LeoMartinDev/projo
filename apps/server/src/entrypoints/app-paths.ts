@@ -3,11 +3,6 @@ import { join, resolve } from 'node:path'
 
 import rootPackage from '../../../../package.json' with { type: 'json' }
 
-/**
- * Where the code runs from. In the release bundle (runtime/README.md) everything sits next to
- * `server.js`: `drizzle/` (migrations), `public/` (web), `manifest.json`. In the repo, the
- * migrations are in `apps/server/drizzle` and the web build in `apps/web/dist`.
- */
 export type AppPaths = {
   bundled: boolean
   appDir: string
@@ -37,5 +32,4 @@ export const resolveAppPaths = (entryDir: string = import.meta.dir): AppPaths =>
   }
 }
 
-/** Fallback version (dev); the bundle reads `manifest.json` instead. */
 export const sourceVersion: string = rootPackage.version

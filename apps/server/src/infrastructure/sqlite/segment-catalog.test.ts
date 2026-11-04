@@ -72,7 +72,6 @@ describe('SQLite segment catalog', () => {
 
   test('items of an unidentified file never resolved: not matched, ready, detect_segments', () => {
     const catalog = createSqliteSegmentCatalog({ db })
-    // A file holding two episodes, to review.
     db.insert(sourceItems).values({ sourceId: 'f1', itemId: 'e2' }).run()
     db.update(sources).set({ matchState: 'needs_review' }).where(eq(sources.id, 'f1')).run()
     expect(catalog.listUnidentifiedItemIds('f1')).toEqual(['e1', 'e2'])
@@ -81,7 +80,6 @@ describe('SQLite segment catalog', () => {
        VALUES ('e1', 'chapter', 'x', 'found')`,
     )
     expect(catalog.listUnidentifiedItemIds('f1')).toEqual(['e2'])
-    // `unmatched` (no key, TMDB unreachable) too; never a matched or a missing file.
     expect(catalog.listUnidentifiedItemIds('f3')).toEqual(['m1'])
     db.update(sources).set({ matchState: 'matched' }).where(eq(sources.id, 'f3')).run()
     expect(catalog.listUnidentifiedItemIds('f3')).toEqual([])
@@ -115,7 +113,6 @@ describe('items to resolve (backfill and retries, §12.2)', () => {
     lookup('e2', 'theintrodb', 'error', daysAgo(8))
     lookup('m1', 'theintrodb', 'found', daysAgo(400))
     expect(resolve()).toEqual(['e2'])
-    // A provider enabled since: asked for everyone.
     expect(resolve(['theintrodb', 'skipdb'])).toEqual(['e1', 'e2', 'm1'])
   })
 
@@ -124,9 +121,7 @@ describe('items to resolve (backfill and retries, §12.2)', () => {
     insertSource(db, { id: 'f5', itemId: 'local' })
     lookup('local', 'chapter', 'none', daysAgo(1))
     for (const id of ['e1', 'e2', 'm1']) lookup(id, 'chapter', 'none', daysAgo(1))
-    // e1 and e2 share a file.
     db.insert(sourceItems).values({ sourceId: 'f1', itemId: 'e2' }).run()
-    // m1: every type settled (three segments, one negative marker).
     db.$client.run(
       `INSERT INTO segments (id, item_id, type, start_ms, end_ms, origin, created_at) VALUES
         ('a', 'm1', 'intro', 0, 1, 'manual', 'x'), ('b', 'm1', 'recap', 0, 1, 'chapter', 'x'),

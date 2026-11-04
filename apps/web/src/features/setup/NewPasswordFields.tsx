@@ -9,7 +9,6 @@ import { passwordScore } from './password-strength.ts'
 
 const strengthKeys = ['empty', 'weak', 'fair', 'good', 'strong'] as const
 
-/** A new password and its confirmation: the rule (§14), the match, the mismatch shown once typed. */
 export const usePasswordPair = () => {
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -34,11 +33,6 @@ export const usePasswordPair = () => {
 
 export type PasswordPair = ReturnType<typeof usePasswordPair>
 
-/**
- * The new password with its strength meter, then its confirmation (first launch, invitation,
- * account page). `reveal`: the show/hide button, on the password field when the form has no
- * other password field to carry it.
- */
 export const NewPasswordFields = ({
   id,
   pair,

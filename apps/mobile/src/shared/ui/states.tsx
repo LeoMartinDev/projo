@@ -9,7 +9,6 @@ import { colors, fonts, radii } from '../styles/tokens.ts'
 import { Button } from './Button.tsx'
 import { textStyles } from './text.ts'
 
-/** A screen or a section with nothing to show (§19 "empty"). */
 export const EmptyState = ({
   title,
   text,
@@ -26,7 +25,6 @@ export const EmptyState = ({
   </View>
 )
 
-/** A load that failed (§19 "error"): the message translated from its code, and a retry. */
 export const ErrorState = ({ error, onRetry }: { error: unknown; onRetry: () => void }) => {
   const { t } = useTranslation()
   return (
@@ -40,7 +38,6 @@ export const ErrorState = ({ error, onRetry }: { error: unknown; onRetry: () => 
   )
 }
 
-/** A grey box in place of what loads (§19 "loading"), the size of what comes. */
 export const Skeleton = ({
   width,
   height,
@@ -65,10 +62,6 @@ export const Skeleton = ({
   />
 )
 
-/**
- * §19 "offline": a banner while the device has no network. The screens keep what they loaded;
- * coming back, the queries refetch (§26.5).
- */
 export const OfflineBanner = () => {
   const { t } = useTranslation()
   const network = useNetworkState()

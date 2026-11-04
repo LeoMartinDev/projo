@@ -12,8 +12,6 @@ import { profiles, sessions } from './accounts.ts'
 import { items } from './items.ts'
 import { sources } from './libraries.ts'
 
-// §6.4 Lecture et progression
-
 export const playbackProgress = sqliteTable(
   'playback_progress',
   {
@@ -88,12 +86,9 @@ export const playbackSessions = sqliteTable(
     quality: text(),
     audioStream: integer(),
     subtitleStream: integer(),
-    // `source_subtitles.id` of the selected track; no foreign key: a rescan replaces the rows.
     subtitleTrackId: text(),
     burnIn: integer({ mode: 'boolean' }).notNull().default(false),
-    // HLS remux: the chosen audio track copied as is or transcoded to AAC (depends on the client).
     audioDelivery: text({ enum: ['copy', 'aac'] }),
-    // §20: SHA-256 hex of the capability secret of the stream URLs; null on rows made before it.
     streamSecretHash: text(),
     startedAt: text().notNull(),
     lastHeartbeatAt: text().notNull(),
@@ -122,7 +117,6 @@ export const segments = sqliteTable(
     confidence: real(),
     createdAt: text().notNull(),
   },
-  // §12.1: at most one segment per type on an item.
   (t) => [uniqueIndex('segments_item_type_idx').on(t.itemId, t.type)],
 )
 
@@ -139,7 +133,6 @@ export const segmentLookups = sqliteTable(
   (t) => [primaryKey({ columns: [t.itemId, t.provider] })],
 )
 
-/** §12.5 "Each submission is logged": manual markers sent to TheIntroDB / SkipDB. */
 export const segmentSubmissions = sqliteTable(
   'segment_submissions',
   {

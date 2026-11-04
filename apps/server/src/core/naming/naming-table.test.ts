@@ -1,7 +1,3 @@
-/**
- * PRODUCT.md §8, line by line: every row of the naming table has at least one case here (§22).
- * Real-world release names and ambiguous cases live in `analyze.test.ts`.
- */
 import { describe, expect, test } from 'bun:test'
 
 import { analyzeMediaPath, showFolderOf } from './analyze'
@@ -56,8 +52,6 @@ describe('§8.1 Films', () => {
       })
     })
 
-    // Ambiguity: "premier" would turn `Blade Runner 2049 (2017)` into "Blade Runner" (2049). We keep the year in
-    // parentheses if any, otherwise the last candidate before the release tags, like Jellyfin.
     test('ambiguïté : une année dans le titre (2049) cède la place à la vraie année', () => {
       expect(analyze('Blade Runner 2049 (2017).mkv').parsed).toEqual({
         title: 'Blade Runner 2049',
@@ -212,8 +206,6 @@ describe('§8.1 Films', () => {
       expect(analyze(path).parsed).toMatchObject({ title: 'Blade Runner', edition })
     })
 
-    // Ambiguity: "alone after a separator" read as after the year, after ` - `, or among release tags,
-    // otherwise `The Final Cut (2004)` would lose its title.
     test('un libellé qui fait partie du titre reste dans le titre', () => {
       expect(analyze('The Final Cut (2004).mkv').parsed).toEqual({
         title: 'The Final Cut',
@@ -294,7 +286,6 @@ describe('§8.1 Films', () => {
       expect(fileKind(path)).toEqual({ kind: 'ignored', reason: 'unsupported_layout' })
     })
 
-    // Ambiguity: "3D" alone is part of real titles, only explicit stereo layouts are excluded.
     test('« 3D » seul reste un film', () => {
       expect(fileKind('Step Up 3D (2010).mkv')).toEqual({ kind: 'video' })
     })
@@ -357,8 +348,6 @@ describe('§8.2 Séries', () => {
       ).toMatchObject({ series: 'Prison Break', season: 2 })
     })
 
-    // Ambiguity: "purely numeric with an optional title" would make `21 Jump Street (2012)/` a season folder.
-    // Only keyword folders take a title; numeric folders must be digits only (max 3).
     test('dossier numérique : chiffres seuls', () => {
       expect(parseSeasonFolder('21 Jump Street (2012)')).toBeUndefined()
       expect(parseSeasonFolder('2019')).toBeUndefined()
@@ -566,7 +555,6 @@ describe('§8.2 Séries', () => {
         'series',
         { series: 'Show', absoluteEpisode: 5, episodeTitle: 'The Return Part 2' },
       ],
-      // the last number before the tags; a number of the folder's title never counts
       [
         'Mob Psycho 100/Mob Psycho 100 05.mkv',
         'series',
@@ -574,7 +562,6 @@ describe('§8.2 Séries', () => {
       ],
       ['Mob Psycho 100 05.mkv', 'series', { series: 'Mob Psycho 100', absoluteEpisode: 5 }],
       ['Show 2/Show 2 05.mkv', 'series', { series: 'Show 2', absoluteEpisode: 5 }],
-      // only the title's position counts, not its numbers' values
       ['9-1-1/9-1-1 - 01.mkv', 'series', { series: '9-1-1', absoluteEpisode: 1 }],
       [
         'Stargate SG-1/Stargate SG-1 - 01.mkv',
@@ -590,7 +577,6 @@ describe('§8.2 Séries', () => {
         'series',
         { series: 'Station 19', season: 1, episode: 19, episodeTitle: 'Title' },
       ],
-      // a season marker right before the number
       [
         'Shingeki no Kyojin S3 - 05.mkv',
         'series',
@@ -598,7 +584,6 @@ describe('§8.2 Séries', () => {
       ],
       ['Show - Saison 2 - 05.mkv', 'series', { series: 'Show', season: 2, episode: 5 }],
       ['Show Season 2 05.mkv', 'series', { series: 'Show', season: 2, episode: 5 }],
-      // a numeric folder at the root is a show, not a season
       ['24/24 - 12.mkv', 'series', { series: '24', absoluteEpisode: 12 }],
       ['24/S01E01.mkv', 'auto', { series: '24', season: 1, episode: 1 }],
       [
@@ -966,7 +951,6 @@ describe('§8.3 Sous-titres externes', () => {
       ])
     })
 
-    // Ambiguity: a lone `.sub` may be MicroDVD text; only the VobSub pair is supported.
     test('.sub sans .idx, .idx sans .sub : ignorés', () => {
       expect(match(['Film.mkv'], ['Film.fr.sub', 'Film.en.idx'])).toEqual([])
     })

@@ -25,14 +25,12 @@ import '../accounts/accounts.css'
 import '../admin-table.css'
 import './operations.css'
 
-/** The filters of §15 "Jobs": everything, then running, queued and failed jobs. */
 export const jobFilters = ['all', 'running', 'queued', 'failed'] as const
 export type JobFilter = (typeof jobFilters)[number]
 
 const stateOf = (filter: JobFilter): JobStateDto | undefined =>
   filter === 'all' ? undefined : filter
 
-/** When a job last moved: finished, started, or when it is due. */
 const jobDate = (job: AdminJobDto): string =>
   job.finishedAt ?? (job.state === 'running' ? job.startedAt : undefined) ?? job.runAfter
 
@@ -258,11 +256,6 @@ const SkeletonRows = () => (
   </>
 )
 
-/**
- * `/admin/jobs` (§15 "Jobs"): queued, running and failed jobs (type, target, state, attempts,
- * error with its code and context in the details), "Relancer", "Undo". Live through
- * `job.updated`. No log viewer (§15).
- */
 export const JobsPage = ({
   filter,
   onFilter,
@@ -285,7 +278,6 @@ export const JobsPage = ({
   useLiveJobs()
   const jobs = list.data?.pages.flatMap((page) => page.items) ?? []
   const busyId = retry.isPending ? retry.variables : cancel.isPending ? cancel.variables : undefined
-  // The dialog shows the row's latest state (the list refreshes live).
   const current =
     opened === undefined ? undefined : (jobs.find((job) => job.id === opened.id) ?? opened)
 

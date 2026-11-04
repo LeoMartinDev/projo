@@ -17,7 +17,6 @@ import type { ApplyMatch } from './apply-match.ts'
 import type { RefreshMetadata } from './refresh-metadata.ts'
 import type { Resolution, ResolveMatch } from './resolve-match.ts'
 
-/** Parser reasons (§7.8): a human decides, the matcher does not try (a correction still applies). */
 const PARSER_REVIEW_REASONS = new Set<ReviewReason>([
   'classification_ambiguous',
   'date_based',
@@ -32,7 +31,6 @@ type Deps = {
   settings: MetadataSettings
   resolveMatch: ResolveMatch
   applyMatch: ApplyMatch
-  /** §9.1: a tree written with other settings than its deciding library's is refreshed. */
   refresh: Pick<RefreshMetadata, 'queueIfContextDiffers'>
   notifier: AdminNotifier
   jobQueue: JobQueue
@@ -43,25 +41,18 @@ type Deps = {
 export type MatchOutcome =
   'matched' | 'manual' | 'needs_review' | 'skipped' | 'no_key' | 'unauthorized'
 
-/** Only a TMDB outage fails the job (retried with backoff, §18). */
 export type MatchSourceError = AppError<
   'metadata/tmdb_unavailable' | 'metadata/tmdb_invalid_response'
 >
 
 export const TMDB_NOTIFICATION_KEY = 'tmdb'
 
-/** Enqueues `fetch_images` for items whose metadata was just written (§18, by item). */
 export const requestImages = (jobQueue: JobQueue, itemIds: readonly string[]) => {
   for (const itemId of new Set(itemIds)) {
     jobQueue.enqueue({ type: 'fetch_images', payload: { itemId }, dedupeKey: `images:${itemId}` })
   }
 }
 
-/**
- * Job `match_source` (§9.2, §18): a correction remembered for the file first (by source, path,
- * then signature), else the automatic identification. Without a TMDB key nothing runs: the
- * source keeps its local items and one admin notification says why (§9.1).
- */
 export const matchSourceFactory = ({
   sourceRepository,
   libraryRepository,
@@ -110,7 +101,6 @@ export const matchSourceFactory = ({
         })
         return ok('unauthorized')
       case 'metadata/tmdb_not_found':
-        // A tag or a remembered id TMDB no longer knows.
         applyMatch.review(source.id, 'no_match')
         return ok('needs_review')
       case 'metadata/tmdb_unavailable':
@@ -160,7 +150,6 @@ export const matchSourceFactory = ({
             language,
           })
     if (!resolution.ok) return failure(source, resolution.error)
-    // Gone (deleted, quarantined) or fixed by the admin in "To review" while TMDB answered.
     const fresh = sourceRepository.findById(sourceId)
     if (fresh === undefined || fresh.state !== 'ready') return ok('skipped')
     if (fresh.matchState === 'matched' || fresh.matchState === 'manual') return ok('skipped')
@@ -175,7 +164,6 @@ export const matchSourceFactory = ({
         remembered.libraryId !== source.libraryId ||
         remembered.relativePath !== source.relativePath)
     ) {
-      // Recognized by path, signature or a move: the correction now follows this file.
       manualMatches.save({
         ...remembered,
         libraryId: source.libraryId,

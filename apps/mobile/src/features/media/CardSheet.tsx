@@ -31,7 +31,6 @@ const places: readonly CardPlace[] = [
   'grid',
 ]
 
-/** A tile of the sheet (artboard `MobileHome`): its icon over its label, white when on. */
 const Tile = ({
   label,
   icon,
@@ -57,12 +56,6 @@ const Tile = ({
   </Pressable>
 )
 
-/**
- * The long press of a card (§13.3, §26.5, artboard `MobileHome`): a native sheet with the card's
- * head, its progress, "Play" (inert until playback, M6 slice 5), My list / Mark as watched / More
- * info, and "Remove" on Continue watching and Up next. It reads the item in the query the card
- * comes from, so a toggle shows its new state, and closes when the item leaves it.
- */
 export const CardSheet = () => {
   const { t } = useTranslation()
   const router = useRouter()

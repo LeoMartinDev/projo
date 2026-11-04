@@ -1,8 +1,3 @@
-// Packs a built bundle (dist/app/) into the release assets the updater reads (PRODUCT.md §16.2):
-//   projo-app-<version>.tar.gz   the bundle at the root of the archive, regular files only
-//   manifest.json                byte-identical to the one inside the archive
-//   SHA256SUMS                   `sha256sum` format, the archive and manifest.json
-// Usage: bun runtime/scripts/package-release.ts [--bundle dist/app] [--out dist/release] [--tag vX.Y.Z]
 import { mkdir, readdir, readFile, rm } from 'node:fs/promises'
 import { join, relative, resolve, sep } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -33,20 +28,17 @@ const packageError = (
 
 export const CHECKSUMS_FILE = 'SHA256SUMS'
 
-/** Asset name of the archive; the updater looks for exactly this name. */
 export const archiveName = (version: string): string => `projo-app-${version}.tar.gz`
 
 export type PackagedRelease = {
   version: string
   manifest: Manifest
-  /** Asset name → absolute path, in upload order. */
   assets: Record<string, string>
 }
 
 export type PackageReleaseInput = {
   bundleDir: string
   outDir: string
-  /** The git tag being released: must be `v<manifest version>`. */
   tag?: string
 }
 
@@ -58,7 +50,6 @@ const sha256Hex = (data: Uint8Array): string => {
 
 type Walk = { files: string[]; others: string[] }
 
-/** POSIX paths of the regular files under `dir`; anything else (links, devices) in `others`. */
 const walk = async (dir: string): Promise<Walk> => {
   const entries = await readdir(dir, { recursive: true, withFileTypes: true })
   const toPosix = (entry: { parentPath: string; name: string }) =>
@@ -75,7 +66,6 @@ const walk = async (dir: string): Promise<Walk> => {
   }
 }
 
-/** The bundle must be exactly what its manifest describes: no extra, missing or changed file. */
 const checkBundle = async (bundleDir: string): Promise<Result<Manifest, PackageError>> => {
   const manifest = await readManifest(bundleDir)
   if (!manifest.ok) {

@@ -16,12 +16,6 @@ import { createRecordingJobQueue, createSequentialIds } from '../support/fakes.t
 import { silentLogger } from '../support/logger.ts'
 import { ffprobeJson, hasFfmpeg } from '../support/media.ts'
 
-/**
- * §12.3 end to end with real ffmpeg and fpcalc: three tiny episodes (audio only, AAC) share a 20 s
- * "intro" tune at different, non hop-aligned offsets and an 18 s "credits" tune, with their own
- * tunes in between and pink noise of their own under everything.
- */
-
 const canRun = hasFfmpeg() && (Bun.which('fpcalc') ?? '') !== ''
 
 const tune = (seconds: number, seed: number) =>
@@ -95,7 +89,6 @@ beforeAll(async () => {
       extension: 'mka',
       probe,
     })
-    // The episode's chain has run (`fetch_segments` always records its chapters first).
     createSqliteSegmentRepository({
       db,
       ids: createSequentialIds('seed-'),
@@ -156,9 +149,7 @@ describe.skipIf(!canRun)('fingerprint_season with ffmpeg and fpcalc (§12.3)', (
         outcome: 'found',
       })
     }
-    // Temporary WAVs are gone.
     expect(readdirSync(join(data.path, 'cache', 'fingerprint'))).toEqual([])
-    // Six windows (≈ 40 s of audio each): well under the test budget.
     expect(elapsedMs).toBeLessThan(8_000)
   })
 

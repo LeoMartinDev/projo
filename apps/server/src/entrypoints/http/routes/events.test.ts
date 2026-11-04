@@ -39,7 +39,6 @@ describe('GET /events (SSE)', () => {
       reason: 'admin',
     })
     t.eventBus.publish('source.ready', { sourceId: 'src-1', libraryId: 'lib-1' })
-    // Marker for the member: an event addressed to its own session.
     const memberSessions = await t.request('/api/v1/auth/sessions', {
       headers: { cookie: userCookie },
     })
@@ -132,12 +131,10 @@ describe('GET /events (SSE)', () => {
         .status,
     ).toBe(200)
     publish('after-demotion')
-    // Restricted while a user: an admin cannot narrow their last unrestricted profile.
     expect(
       (await leo.send('PATCH', `/api/v1/profiles/${zoe.profileId}`, { maxContentRating: '12' }))
         .status,
     ).toBe(200)
-    // Back to admin, but on a restricted profile: still nothing.
     expect(
       (await leo.send('PATCH', `/api/v1/admin/accounts/${zoe.account.id}`, { role: 'admin' }))
         .status,

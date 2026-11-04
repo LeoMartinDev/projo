@@ -57,7 +57,6 @@ describe('preferencesOf', () => {
   })
 
   test('after an audio change left to the cascade, the memory is what the new session shows', () => {
-    // `when_audio_differs` turned the French subtitles on for the English audio.
     const session = {
       audioTracks: [audio(1, 'fre'), audio(2, 'eng')],
       selectedAudioStreamIndex: 2,

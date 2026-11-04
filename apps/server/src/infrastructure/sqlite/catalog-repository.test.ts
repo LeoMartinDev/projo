@@ -21,7 +21,6 @@ beforeEach(() => {
   insertLibrary(db, { id: 'library-2', rootPath: '/media/kids' })
 })
 
-/** Series → 2 seasons; season 1 has a ready and a pending episode, season 2 only pending ones. */
 const seedSeries = () => {
   insertItem(db, { id: 'series', kind: 'series', title: 'Show', sortTitle: 'show' })
   insertItem(db, { id: 's1', kind: 'season', parentId: 'series', seasonNumber: 1 })
@@ -207,7 +206,6 @@ describe('sources', () => {
     insertSource(db, { id: 'gone', itemId: 'm', state: 'missing' })
     const [first, second, third] = repo.listReadySources({ itemId: 'm', scope: everything })
     expect(third).toBeUndefined()
-    // §7.7 version: an unreadable probe gives no technical field, the edition stays.
     expect(first).toMatchObject({
       id: 'big',
       version: { editionName: 'Cut 4K' },

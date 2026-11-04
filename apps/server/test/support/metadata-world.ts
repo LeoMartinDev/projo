@@ -13,19 +13,11 @@ import { silentLogger } from './logger.ts'
 import { createScannerWorld } from './scanner-world.ts'
 import { startTmdbServer, TEST_TMDB_KEY } from './tmdb-server.ts'
 
-/**
- * The scanner world (real scan, ffprobe, ffmpeg, in-memory database, manual clock) plus the
- * metadata module against a local TMDB replay server, images written to a temporary data dir.
- * Jobs run only when `runJobs` says so. `request` reaches the admin API of both, `requestApi`
- * the user API (`/images/:id`).
- */
 export const createMetadataWorld = ({
   canViewImage,
   imageReencoder,
 }: {
-  /** Default: the catalog's check, every profile seeing everything (§6.3 only). */
   canViewImage?: (input: { imageId: string; profileId: string }) => boolean
-  /** Uploaded images (§9.3); default: real ffmpeg. */
   imageReencoder?: ImageReencoder
 } = {}) => {
   const scanner = createScannerWorld()
@@ -60,7 +52,6 @@ export const createMetadataWorld = ({
     .route('/api/v1/admin', metadata.routes.adminItems)
     .route('/api/v1/admin', metadata.routes.adminSettings)
 
-  /** Admin API: libraries, sources (scanner world), then the metadata routes. */
   const ours =
     /^\/(settings|tmdb\/|items\/|images\/optimize|sources\/[^/]+\/(assign|reject|restore)|libraries\/[^/]+\/refresh-metadata)/u
   const request = async (path: string, init: RequestInit & { json?: unknown } = {}) => {
@@ -75,7 +66,6 @@ export const createMetadataWorld = ({
   }
   const requestApi = (path: string) => app.request(`/api/v1${path}`)
 
-  /** Runs due jobs of these types (highest priority, oldest first) until none is left. */
   const runJobs = async (types: readonly JobType[], max = 500): Promise<number> => {
     let ran = 0
     while (ran < max) {

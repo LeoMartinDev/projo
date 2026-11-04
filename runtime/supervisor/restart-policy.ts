@@ -1,7 +1,5 @@
 export type RestartPolicy = {
-  /** Delay before the n-th consecutive restart; the last value repeats. */
   delaysMs: readonly number[]
-  /** An app that ran at least this long is considered stable: the backoff starts over. */
   stableAfterMs: number
 }
 

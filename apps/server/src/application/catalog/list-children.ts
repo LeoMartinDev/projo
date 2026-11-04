@@ -11,7 +11,6 @@ type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntri
 
 export type ListChildrenError = AppError<'item/not_found' | 'item/invalid_kind'>
 
-/** `GET /items/:id/children`: visible seasons of a series, visible episodes of a season. */
 export const listChildrenFactory =
   ({ catalogRepository, catalogEntries }: Deps) =>
   async ({

@@ -27,11 +27,6 @@ const toRequest = (query: OAuthAuthorizeQuery): AuthorizationRequest => ({
   ...(query.resource === undefined ? {} : { resource: query.resource }),
 })
 
-/**
- * §27.3 consent, for the web page `/oauth/authorize`: `GET /oauth/authorize` describes the request,
- * `POST /oauth/authorize` records the decision and says where to go. Signed-in accounts only (the
- * `authenticate` middleware); the assistant acts as the active profile. Mounted at `/api/v1`.
- */
 export const oauthConsentRoutes = ({ oauth, trustProxy }: { oauth: OAuth; trustProxy: boolean }) =>
   new Hono<AppEnv>()
     .get('/oauth/authorize', validate('query', oauthAuthorizeQuerySchema), async (c) => {

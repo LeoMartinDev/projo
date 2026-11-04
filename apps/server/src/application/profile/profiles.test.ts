@@ -148,7 +148,6 @@ describe('create', () => {
       ok: false,
       error: { code: 'profile/restricted' },
     })
-    // A foreign profile id is not resolved either.
     const foreign = setup([
       sampleProfile(),
       kid,
@@ -160,7 +159,6 @@ describe('create', () => {
         input: { name: 'X' },
       }),
     ).toMatchObject({ ok: false, error: { code: 'profile/restricted' } })
-    // An account without restricted profiles keeps managing them before "Who's watching?".
     const open = setup([sampleProfile(), sampleProfile({ id: 'p2' })])
     expect(
       await open.profiles.create({ actor: { ...none, role: 'user' }, input: { name: 'X' } }),
@@ -317,7 +315,6 @@ describe('delete', () => {
   test('deletes another profile; a locked one needs its PIN', async () => {
     const t = setup([sampleProfile(), kid, locked])
     expect((await t.profiles.delete({ actor: user, profileId: 'kid' })).ok).toBe(true)
-    // Its playback stops before the cascade drops the rows (§10.6).
     expect(t.endedPlayback).toEqual([{ profileIds: ['kid'] }])
     expect(await t.profiles.delete({ actor: user, profileId: 'parent' })).toMatchObject({
       ok: false,
@@ -428,10 +425,8 @@ describe('visibility scope resolver', () => {
     })
     expect(t.scopes.resolve('ghost')).toEqual({ libraryIds: [] })
 
-    // A direct write is not seen while cached…
     t.store.profiles[0] = { ...sampleProfile(), maxContentRating: '0' }
     expect(t.scopes.resolve('profile-1')).toEqual({})
-    // …until the TTL expires, or at once through the use case.
     t.clock.advance(10_000)
     expect(t.scopes.resolve('profile-1').allowedRatings?.['FR']).toEqual(['U', 'TP'])
     const adminElsewhere = { ...admin, activeProfileId: 'boss' }

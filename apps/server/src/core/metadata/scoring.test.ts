@@ -103,11 +103,9 @@ describe('pickBest (§9.2)', () => {
     expect(pickBest({ title: 'Inceptionist' }, [hit(27205, 'Inception', 2010, 84)]).kind).toBe(
       'no_match',
     )
-    // The same title with the right year passes the lower threshold.
     expect(
       pickBest({ title: 'Inceptionist', year: 2010 }, [hit(27205, 'Inception', 2010, 84)]).kind,
     ).toBe('accepted')
-    // A one-letter typo is fine even without a year.
     expect(pickBest({ title: 'Incepton' }, [hit(27205, 'Inception', 2010, 84)]).kind).toBe(
       'accepted',
     )
@@ -153,14 +151,12 @@ describe('pickBest (§9.2)', () => {
       kind: 'accepted',
       hit: { tmdbId: 91363 },
     })
-    // Two well-known homonyms stay a human decision.
     expect(
       pickBest({ title: 'What If' }, [
         hit(91363, 'What If...?', 2021, 54, undefined, 4755),
         hit(81940, 'WHAT / IF', 2019, 9, undefined, 1200),
       ]).kind,
     ).toBe('ambiguous_match')
-    // A handful of votes against none proves nothing.
     expect(
       pickBest({ title: 'What If' }, [
         hit(208452, 'What If', 2022, 0.7, undefined, 12),
@@ -188,7 +184,6 @@ describe('pickBest (§9.2)', () => {
       kind: 'accepted',
       hit: { tmdbId: 381288 },
     })
-    // A single obscure exact year would have been accepted on its own: the favorite still wins.
     expect(pickBest({ title: 'Split', year: 2016 }, [obscure[1]!, shyamalan])).toMatchObject({
       kind: 'accepted',
       hit: { tmdbId: 381288 },
@@ -202,7 +197,6 @@ describe('pickBest (§9.2)', () => {
         hit(2, 'Split', 2017, 20, 'Split', 18767),
       ]),
     ).toMatchObject({ kind: 'accepted', hit: { tmdbId: 1 } })
-    // Two years off is another film.
     expect(
       pickBest({ title: 'Split', year: 2016 }, [
         hit(1, 'Split', 2016, 1, 'Split', 8),

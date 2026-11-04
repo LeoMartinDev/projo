@@ -26,14 +26,9 @@ export type AuthenticateError = AppError<
 export type Authenticated = {
   account: AuthAccount
   session: Session
-  /** The expiry was pushed back: a cookie must be re-sent with the new lifetime. */
   renewed: boolean
 }
 
-/**
- * Resolves a session token (cookie or bearer) into its account. Sliding expiry (§14): the
- * session is renewed for 30 days when the previous renewal is more than 24 h old.
- */
 export const authenticateFactory =
   ({ accountRepository, sessionRepository, sessionTokens, clock }: Deps) =>
   ({

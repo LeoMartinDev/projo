@@ -11,7 +11,6 @@ import {
   type WatchStatus,
 } from '../../core/progress/progress.ts'
 
-/** What a card shows: a movie or episode's own progress, or a season / series watch status. */
 export type ProgressView =
   { kind: 'playable'; progress?: ItemProgress } | { kind: 'aggregate'; status: WatchStatus }
 
@@ -23,10 +22,6 @@ export type ProgressViews = (input: {
   scope: VisibilityScope
 }) => Map<string, ProgressView>
 
-/**
- * Progress of a page of items in three queries: the containers' visible episodes, then every
- * needed progress row. Seasons and series are derived from their episodes, never stored (§13.1).
- */
 export const progressViewsFactory =
   ({ catalogRepository, progressRepository }: Deps): ProgressViews =>
   ({ profileId, items, scope }) => {

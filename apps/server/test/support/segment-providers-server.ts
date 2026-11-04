@@ -3,26 +3,9 @@ import { join, resolve } from 'node:path'
 
 import type { SegmentItemRef } from '../../src/core/segments/segment.ts'
 
-/**
- * A local HTTP server standing for the three community segment databases (§12.2), replaying the
- * responses recorded once from the real APIs in `test/fixtures/segments/` (never the real
- * services in tests):
- * - TheIntroDB, under `/theintrodb/v4`: `GET /media` → `theintrodb/media/<tvdb|tmdb|imdb>-<id>
- *   [-s<season>e<episode>].json` (the id sent with the highest priority), else the recorded 404
- *   `not-found.json`; `POST /submit` and `POST /map` with `Bearer TEST_THEINTRODB_KEY`, else 401.
- * - IntroDB, under `/introdb`: `GET /segments` → `introdb/segments/<imdb>-movie.json` or
- *   `<imdb>-s<season>e<episode>.json`, else 404.
- * - SkipDB, under `/skipdb`: `GET /api/segments` → `skipdb/segments/<imdb>[-s<season>e<episode>]
- *   .json`, else the recorded miss (200, all four segments `null`, what SkipDB answers); `POST /api/keys/anonymous` issues keys,
- *   `POST /api/segments` accepts them (`X-API-Key` or `Bearer`), else 401.
- * `respondNext(provider, …)` scripts the next answers (status, JSON or raw text, delay) to play
- * 404/429/500/garbage/timeouts; every request is logged with its headers and JSON body.
- */
 export const TEST_THEINTRODB_KEY = 'projo-test-theintrodb-key-0123456789'
 
-/** The works of the recorded fixtures (ids as on TVDB, TMDB and IMDb, durations of the releases). */
 export const recordedSegmentItems = {
-  /** The Simpsons S01E01: TheIntroDB intro with a `null` start. */
   simpsons: {
     itemId: 'item-simpsons-s01e01',
     kind: 'episode',
@@ -34,7 +17,6 @@ export const recordedSegmentItems = {
     durationMs: 1_394_000,
     detectSegments: true,
   },
-  /** Breaking Bad S01E01: on all three, TheIntroDB credits with a `null` end. */
   breakingBad: {
     itemId: 'item-breaking-bad-s01e01',
     kind: 'episode',
@@ -46,7 +28,6 @@ export const recordedSegmentItems = {
     durationMs: 3_500_000,
     detectSegments: true,
   },
-  /** Breaking Bad S01E99: a miss everywhere. */
   breakingBadMissing: {
     itemId: 'item-breaking-bad-s01e99',
     kind: 'episode',
@@ -58,7 +39,6 @@ export const recordedSegmentItems = {
     durationMs: 3_000_000,
     detectSegments: true,
   },
-  /** Fight Club, without TVDB id (TheIntroDB addressed by `tmdb_id`). */
   fightClub: {
     itemId: 'item-fight-club',
     kind: 'movie',
@@ -76,7 +56,6 @@ export type FakeSegmentProvider = 'theintrodb' | 'introdb' | 'skipdb'
 export type LoggedProviderRequest = {
   provider: FakeSegmentProvider
   method: string
-  /** Under the provider prefix: `/v4/media`, `/segments`, `/api/segments`… */
   path: string
   params: Record<string, string>
   authorization?: string
@@ -87,10 +66,8 @@ export type LoggedProviderRequest = {
 export type ScriptedResponse = {
   status: number
   json?: unknown
-  /** Raw body, for garbage answers. */
   text?: string
   headers?: Record<string, string>
-  /** Wait before answering (timeouts). */
   delayMs?: number
 }
 
@@ -190,7 +167,6 @@ export const startSegmentProvidersServer = () => {
     const { method, path, params } = request
     if (method === 'GET' && path === '/api/segments') {
       const found = readFixture(`skipdb/segments/${params['imdb_id']}${episodeSuffix(params)}.json`)
-      // The recorded miss (all four segments `null`), readdressed to the request.
       return Response.json(
         found ?? {
           ...asRecord(readFixture('skipdb/segments/tt0903747-s1e99.json')),
@@ -271,11 +247,9 @@ export const startSegmentProvidersServer = () => {
     requests,
     callsTo: (provider: FakeSegmentProvider, path?: string) =>
       requests.filter((r) => r.provider === provider && (path === undefined || r.path === path)),
-    /** The next answers of `provider`, in order, before the recorded ones resume. */
     respondNext: (provider: FakeSegmentProvider, ...responses: ScriptedResponse[]) => {
       scripted[provider].push(...responses)
     },
-    /** SkipDB forgets every anonymous key it issued (its next submission gets a 401). */
     revokeSkipdbKeys: () => {
       issuedKeys = []
     },
@@ -283,10 +257,6 @@ export const startSegmentProvidersServer = () => {
   }
 }
 
-/**
- * A manual clock for the providers' throttle (`now`, `sleep` of `createSegmentProviders`): `sleep`
- * records the wait and moves the clock to its end at once, so rate-limit tests take no real time.
- */
 export const createFakeClock = (startMs = Date.parse('2026-10-24T10:00:00.000Z')) => {
   let current = startMs
   const slept: number[] = []
@@ -296,7 +266,6 @@ export const createFakeClock = (startMs = Date.parse('2026-10-24T10:00:00.000Z')
       if (signal?.aborted === true) return false
       const until = current + ms
       slept.push(ms)
-      // Concurrent sleepers wait side by side: the clock ends at the latest wake-up.
       await Promise.resolve()
       current = Math.max(current, until)
       return true

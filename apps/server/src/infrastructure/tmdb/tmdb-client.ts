@@ -33,14 +33,10 @@ export const TMDB_API_BASE_URL = 'https://api.themoviedb.org/3'
 export const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p'
 
 export type TmdbClientConfig = {
-  /** Injectable for tests (a local server replaying recorded responses). */
   apiBaseUrl?: string
   imageBaseUrl?: string
-  /** Read on every request: a key changed in the admin applies at once. */
   apiKey: () => string | undefined
-  /** TMDB answered 401 to the stored key (not to a key being validated): §15 "key rejected". */
   onUnauthorized?: (key: string) => void
-  /** Database cache of detail responses (§9.2). */
   responseStore?: TmdbResponseStore
   clock: Clock
   logger: Logger
@@ -51,19 +47,16 @@ export type TmdbClientConfig = {
   searchCacheTtlMs?: number
 }
 
-/** §9.1: 4 requests at once, 10 s timeout, search responses kept 10 min in memory. */
 const DEFAULT_CONCURRENCY = 4
 const DEFAULT_TIMEOUT_MS = 10_000
 const IMAGE_TIMEOUT_MS = 30_000
 const DEFAULT_SEARCH_TTL_MS = 10 * 60_000
 const MAX_MEMORY_ENTRIES = 1_000
-/** 429: retries honoring `Retry-After` (capped); 5xx and network errors: short backoff. */
 const MAX_RATE_LIMIT_RETRIES = 5
 const MAX_RETRY_AFTER_MS = 30_000
 const DEFAULT_RETRY_AFTER_MS = 1_000
 const MAX_TRANSIENT_RETRIES = 2
 
-/** v4 read access tokens are JWTs (sent as Bearer); v3 keys go in `api_key`. */
 const isBearerToken = (key: string): boolean => key.startsWith('eyJ') && key.includes('.')
 
 const retryAfterMs = (header: string | undefined, now: Date): number => {
@@ -79,9 +72,6 @@ const describe = (cause: unknown): string =>
 
 type FetchOutcome = { kind: 'ok'; response: Response } | { kind: 'error'; error: TmdbError }
 
-/**
- * TMDB v3 client (§9.1). Every response is validated with Zod before it reaches the domain.
- */
 export const createTmdbClient = (config: TmdbClientConfig): TmdbApi => {
   const apiBase = (config.apiBaseUrl ?? TMDB_API_BASE_URL).replace(/\/+$/u, '')
   const imageBase = (config.imageBaseUrl ?? TMDB_IMAGE_BASE_URL).replace(/\/+$/u, '')
@@ -102,7 +92,6 @@ export const createTmdbClient = (config: TmdbClientConfig): TmdbApi => {
     memory.set(key, { expiresAt: config.clock.now().getTime() + searchTtlMs, payload })
   }
 
-  /** One HTTP exchange with the retries of §9.1. Holds a concurrency slot throughout. */
   const send = async (url: string, headers: Record<string, string>, timeout: number) => {
     let rateLimited = 0
     let transient = 0
@@ -165,7 +154,6 @@ export const createTmdbClient = (config: TmdbClientConfig): TmdbApi => {
     })
   }
 
-  /** GET of an API path, authenticated with `key` (the stored one by default). */
   const getJson = async <S extends z.ZodType>(
     path: string,
     params: Record<string, string | number | undefined>,
@@ -258,7 +246,6 @@ export const createTmdbClient = (config: TmdbClientConfig): TmdbApi => {
   const mapped = <T, U>(result: Result<T, TmdbError>, to: (value: T) => U): Result<U, TmdbError> =>
     result.ok ? ok(to(result.value)) : result
 
-  /** §9.1: a TMDB genre id projo does not know is dropped, and logged. */
   const withGenresChecked =
     <T extends { id: number; genres: { id: number }[] }, U>(
       kind: TmdbGenreKind,

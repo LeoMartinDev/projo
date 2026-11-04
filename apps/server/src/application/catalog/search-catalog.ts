@@ -6,7 +6,6 @@ type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntri
 
 export type SearchResults = { movies: CatalogEntry[]; series: CatalogEntry[] }
 
-/** `GET /search?q=` (§13.5): best 30 visible matches, movies and series apart. */
 export const searchCatalogFactory =
   ({ catalogRepository, catalogEntries }: Deps) =>
   async ({

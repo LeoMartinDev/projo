@@ -13,10 +13,6 @@ import {
 } from '../../core/segments/segment.ts'
 import type { ItemSegmentsView } from './types.ts'
 
-/**
- * A movie or an episode as the chain sees it: what providers are asked with, its timeline, and
- * whether its file holds other items too (§8.4: the timeline is then the file's, not its own).
- */
 export type SegmentTarget = { ref: SegmentItemRef; timeline: ItemTimeline; sharesFile: boolean }
 
 export type TargetDeps = {
@@ -26,7 +22,6 @@ export type TargetDeps = {
 
 export type TargetError = AppError<'item/not_found' | 'item/invalid_kind'>
 
-/** Any profile: jobs and admin routes. */
 export const segmentTargetFactory =
   ({ segmentCatalog, catalogRepository }: TargetDeps) =>
   (itemId: string): Result<SegmentTarget, TargetError> => {
@@ -61,7 +56,6 @@ export const negativeMarkerType = (key: SegmentLookupKey): SegmentType | undefin
   return segmentTypes.find((candidate) => candidate === type)
 }
 
-/** What `GET /items/:id/segments` and the admin marker routes answer. */
 export const segmentsView = (
   segmentRepository: Pick<SegmentRepository, 'listByItem' | 'listLookups'>,
   {
@@ -86,12 +80,10 @@ export const segmentsView = (
   }
 }
 
-/** `fetch_segments` (§18): one per item. */
 export const requestSegments = (jobQueue: JobQueue, itemId: string): void => {
   jobQueue.enqueue({ type: 'fetch_segments', payload: { itemId }, dedupeKey: `segments:${itemId}` })
 }
 
-/** `submit_segment` (§12.5): one per item and type. */
 export const requestSubmission = (jobQueue: JobQueue, itemId: string, type: SegmentType): void => {
   jobQueue.enqueue({
     type: 'submit_segment',

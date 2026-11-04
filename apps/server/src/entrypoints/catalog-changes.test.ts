@@ -11,7 +11,6 @@ test('one catalog.changed per burst of identifications, scans and ready files', 
   bus.publish('job.updated', done('match_source'))
   bus.publish('job.updated', done('fetch_images'))
   bus.publish('source.ready', { sourceId: 's', libraryId: 'l' })
-  // Not a catalogue change: another job, or one not done.
   bus.publish('job.updated', done('index_keyframes'))
   await Bun.sleep(40)
   expect(events.filter((event) => event.type === 'catalog.changed')).toHaveLength(1)

@@ -5,7 +5,6 @@ import { reviewQueryKey } from '../identify/queries.ts'
 
 const pageSize = 50
 
-/** The "To review" queue (§7.8): files present on the disk with `match_state = needs_review`. */
 export const reviewQuery = infiniteQueryOptions({
   queryKey: [...reviewQueryKey, 'list'],
   initialPageParam: '',
@@ -23,7 +22,6 @@ export const reviewQuery = infiniteQueryOptions({
   getNextPageParam: (page) => page.nextCursor,
 })
 
-/** Size of the queue for the sidebar badge: `total` of a one-row page. */
 export const reviewCountQuery = queryOptions({
   queryKey: [...reviewQueryKey, 'count'],
   queryFn: async () => {

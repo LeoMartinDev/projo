@@ -10,7 +10,6 @@ import { Avatar } from '../shell/Avatar.tsx'
 import { accountsQuery } from './accounts/queries.ts'
 import { librariesQueryKey } from './queries.ts'
 
-/** `GET /admin/libraries/:id/profiles`: who sees this library (§14 "Profiles with access"). */
 export const libraryProfilesQuery = (libraryId: string) =>
   queryOptions({
     queryKey: [...librariesQueryKey, libraryId, 'profiles'],
@@ -20,10 +19,6 @@ export const libraryProfilesQuery = (libraryId: string) =>
 
 export type ProfileRow = Omit<LibraryProfileAccessDto, 'hasAccess'>
 
-/**
- * The profiles of every account and who sees the library: from the library once it exists, else
- * from the accounts (a new library is seen by the profiles that see every library).
- */
 export const useLibraryProfiles = (
   libraryId: string | undefined,
 ): {
@@ -67,10 +62,6 @@ export const useLibraryProfiles = (
   }
 }
 
-/**
- * "Profiles with access" of the library form (§14, §15, artboard `AdminAddLibrary`): one switch per
- * profile of every account. Saved with the library (`PUT /admin/libraries/:id/profiles`).
- */
 export const LibraryProfiles = ({
   formId,
   rows,

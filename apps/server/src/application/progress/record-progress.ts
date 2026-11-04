@@ -23,7 +23,6 @@ export type RecordProgressError = AppError<
   'item/not_found' | 'progress/item_not_playable' | 'progress/invalid_position'
 >
 
-/** `PUT /items/:id/progress` (§13.1): position of the active profile on a movie or an episode. */
 export const recordProgressFactory =
   ({ catalogRepository, progressRepository, clock }: Deps) =>
   async ({
@@ -63,11 +62,9 @@ export const recordProgressFactory =
       positionMs,
       durationMs,
       at: clock.now(),
-      // §12.4: entering the credits marks it watched, like 93 %.
       ...creditsStartOf(catalogRepository.listMediaSegments(itemId)),
     })
     progressRepository.save(next)
-    // A play brings a series removed from the home rows back (§13.1).
     progressRepository.showAncestorsAgain({ profileId, itemId })
     return ok(next)
   }

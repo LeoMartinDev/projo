@@ -19,13 +19,6 @@ import {
 } from '../support/playback.ts'
 import { englishCues, frenchCues } from '../support/playback-library.ts'
 
-/**
- * Journey 3 and M3 "Complete playback" (§4, §10, §11, §23 M3): every file plays and resumes, with
- * the expected audio and subtitles without touching anything (timeline thumbnails: the server's
- * integration tests). Fixtures of the "Playback" library (`support/playback-library.ts`), one
- * household member per journey and project, French profile.
- */
-
 const isSessionEnd = (sessionId: string) => (response: Response) =>
   response.request().method() === 'DELETE' &&
   new URL(response.url()).pathname === `/api/v1/playback/sessions/${sessionId}`
@@ -59,8 +52,6 @@ test(
       const requestedAt = (await session).startPositionMs / 1000
       expect(requestedAt).toBeGreaterThanOrEqual(pausedAt - 0.5)
       expect(requestedAt).toBeLessThan(pausedAt + 1.5)
-      // WebKit on Linux plays HLS through hls.js on GStreamer, which now and then never starts a
-      // stream opened at a position (Safari plays HLS natively): the frames are checked on Chromium.
       if (browserName === 'webkit') return
       await expect
         .poll(() => playbackStart(video), { intervals: [50], timeout: 20_000 })
@@ -112,10 +103,8 @@ test(
         (track) => track.id === session.selectedSubtitleTrackId,
       )
       expect(selected).toMatchObject({ origin: 'external', language: 'fr', delivery: 'vtt' })
-      // The embedded English track is offered too, not chosen.
       expect(session.subtitleTracks.map((track) => track.language).toSorted()).toEqual(['en', 'fr'])
 
-      // The second cue (4.5 s to 9 s): on screen while the video is inside it, never the English.
       const [, second] = frenchCues
       await expect(captions(page)).toHaveText(second.text, { timeout: 20_000 })
       const at = await currentTime(video)
@@ -131,7 +120,6 @@ test(
       const selected = session.subtitleTracks.find(
         (track) => track.id === session.selectedSubtitleTrackId,
       )
-      // Only a forced track would be allowed (§11.2); the file has none.
       expect(selected).toBeUndefined()
       await expectPlayingPast(video, frenchCues[1].startS + 0.5)
       await expect(captions(page)).toHaveCount(0)
@@ -218,7 +206,6 @@ test('quality: 480p from the menu transcodes at the same position, the old sessi
   expect(Math.abs((await currentTime(video)) - before)).toBeLessThanOrEqual(2.5)
   await expectPlayingPast(video, before + 1)
 
-  // The admin sees the new session only (§10.6).
   const ids = (await adminSessions(adminRequest)).map((session) => session.id)
   expect(ids).toContain(second.id)
   expect(ids).not.toContain(first.id)
@@ -258,7 +245,6 @@ test('parts: a movie in two parts shows their total and chains them without a cl
     expect(second.partOffsetMs).toBe(partTwo.offsetMs)
     expect(second.startPositionMs).toBe(partTwo.offsetMs)
     await expectPlayingPast(video, 0.5)
-    // Item timeline: part 1 + what part 2 played, on the same total.
     await expect
       .poll(() => barSeconds(bar, 'aria-valuenow'))
       .toBeGreaterThanOrEqual(Math.floor(partTwo.offsetMs / 1000))

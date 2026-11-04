@@ -11,7 +11,6 @@ import { playbackProgress } from './schema/playback.ts'
 
 type ProgressRow = typeof playbackProgress.$inferSelect
 
-/** `listPlayed`: an episode's season and series. */
 const playedSeason = alias(items, 'played_season')
 const playedSeries = alias(items, 'played_series')
 
@@ -98,14 +97,11 @@ export const createSqliteProgressRepository = ({
         .select({
           progress: playbackProgress,
           kind: items.kind,
-          // Episodes: season → series (local and TMDB items always have a season).
           seriesId: playedSeason.parentId,
           seasonNumber: sql<
             number | null
           >`coalesce(${items.seasonNumber}, ${playedSeason.seasonNumber})`,
           episodeNumber: items.episodeNumber,
-          // 1: visible. 0: an episode whose files are gone, of a series still visible (§13.1:
-          // the show stays started). NULL: neither, left out.
           presence: sql<number | null>`CASE WHEN ${visible(scope)} THEN 1
               WHEN +${items.kind} = 'episode' AND ${visibleAs('played_series', scope)} THEN 0 END`,
         })

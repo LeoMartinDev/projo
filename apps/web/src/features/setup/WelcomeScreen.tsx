@@ -5,7 +5,6 @@ import { ArrowRightIcon } from '../../shared/ui/icons.tsx'
 import { Logo } from '../shell/Logo.tsx'
 import './setup.css'
 
-/** Artboard `OnbWelcome`: the first screen of a fresh server. */
 export const WelcomeScreen = ({ onStart }: { onStart: () => void }) => {
   const { t } = useTranslation()
   return (

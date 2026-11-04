@@ -2,11 +2,6 @@ import { type OAuthAuthorizeQuery, oauthAuthorizeQuerySchema } from '@projo/shar
 
 const queryKeys = Object.keys(oauthAuthorizeQuerySchema.shape)
 
-/**
- * The client's authorization request, read from the address bar as it came (§27.3). A missing or
- * repeated parameter, or one out of bounds, makes the request invalid: the page shows the error
- * and never redirects.
- */
 export const readAuthorizeQuery = (search: string): OAuthAuthorizeQuery | undefined => {
   const params = new URLSearchParams(search)
   const entries: [string, string][] = []

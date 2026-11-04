@@ -166,7 +166,6 @@ describe('job admin repository (§15 "Jobs")', () => {
     expect(retried?.finishedAt).toBeUndefined()
     expect(retried?.progress).toBeUndefined()
     expect(repository.retry({ id: uuid(2), now: later })).toBeUndefined()
-    // The runner can claim it again.
     expect(
       createSqliteJobRepository({ db }).claimNext({ types: ['probe_source'], now: later })?.id,
     ).toBe(uuid(1))
@@ -208,7 +207,6 @@ describe('job target labels', () => {
       seasonNumber: 2,
       episodeNumber: 4,
     })
-    // §6.3: a generic name is no title of its own.
     insertItem(db, {
       id: 'untitled',
       kind: 'episode',
@@ -445,7 +443,6 @@ describe('missing source repository (§7.5 purge)', () => {
     expect(['series', 'season', 'e2'].every(exists)).toBe(true)
     expect(exists('edited')).toBe(true)
     expect(exists('identified')).toBe(true)
-    // The correction stays, without its source (§6.3 `manual_matches`).
     expect(db.select().from(manualMatches).get()?.sourceId).toBeNull()
     expect(
       db

@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { pillMerge } from './pill-merge.ts'
 
-// A 1280 px header: the wordmark on the left, the navigation centred, the actions on the right.
 const layout = {
   logo: { left: 56, width: 66 },
   nav: { left: 470, width: 340 },
@@ -15,7 +14,6 @@ const still = (progress: number) => ({ progress, velocity: 0, acceleration: 0 })
 const both = (progress: number) => ({ logo: still(progress), actions: still(progress) })
 const subpaths = (path: string) => path.split('M').length - 1
 
-/** Width and height of the wordmark's bubble, the second subpath (`M x y H x A r …`). */
 const logoBubble = (path: string) => {
   const match = /^([\d.]+) [\d.]+H([\d.]+)A([\d.]+)/.exec(path.split('M')[2] ?? '')
   if (!match) throw new Error(`no bubble in ${path}`)

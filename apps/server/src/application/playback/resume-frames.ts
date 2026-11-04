@@ -7,16 +7,8 @@ import {
 import { groupVersions, partAt, partsTimeline, rankVersions } from '../../core/playback/versions.ts'
 import { sourceFingerprint } from './trickplay.ts'
 
-/** A timeline thumbnail instant (§10.5) of a source, in seconds of that file. */
 export type ResumeFrame = { sourceId: string; second: number }
 
-/**
- * "Continue watching" cards (§13.3): the timeline thumbnail instant (§10.5) nearest to the
- * position the profile stopped at, from the best version that has up-to-date sprites (its still
- * is extracted when the card asks for it). Without sprites (still queued, disabled, source gone)
- * the answer is `undefined` and the card keeps its metadata image. Positions are on the item timeline, so a
- * stack of parts (§8.4) is walked to the part holding the position.
- */
 export const resumeFramesFactory =
   ({
     catalogRepository,
@@ -44,7 +36,6 @@ export const resumeFramesFactory =
           durationMs: part.media?.durationMs ?? 0,
         })),
       )
-      // Parts without a known duration cannot be placed on the item timeline.
       if (version.parts.length > 1 && timeline.some((part) => part.durationMs <= 0)) continue
       const part = partAt(timeline, positionMs)
       const source = version.parts[part.index]

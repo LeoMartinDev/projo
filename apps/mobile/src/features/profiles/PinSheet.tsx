@@ -12,10 +12,6 @@ import { Avatar } from './Avatar.tsx'
 
 const pinLength = 4
 
-/**
- * The 4-digit PIN of a profile (§13.6, §14), as on the web: four boxes over one numeric field,
- * sent at the fourth digit; a refused PIN empties them for the next try.
- */
 export const PinSheet = ({
   profile,
   pending,
@@ -70,7 +66,6 @@ const PinForm = ({
           keyboardType="number-pad"
           maxLength={pinLength}
           onChangeText={(text) => {
-            // Not `editable={false}`: that drops the focus, and the keypad, for the next try.
             if (pending) return
             const digits = text.replace(/\D/g, '').slice(0, pinLength)
             if (digits.length === pinLength) {
@@ -105,7 +100,6 @@ const styles = StyleSheet.create({
   form: { alignItems: 'center', gap: 20, paddingTop: 24 },
   label: { color: colors.textSecondary, fontFamily: fonts.medium, fontSize: 16 },
   boxes: { flexDirection: 'row', gap: 12 },
-  // The field covers the boxes, transparent: a tap anywhere on them brings the keypad back.
   input: { ...StyleSheet.absoluteFill, zIndex: 1, color: 'transparent', opacity: 0.02 },
   box: {
     width: 56,

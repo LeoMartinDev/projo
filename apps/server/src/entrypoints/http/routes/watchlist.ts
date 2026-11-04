@@ -23,10 +23,6 @@ const toStatus = (itemId: string, entry: WatchlistEntry | undefined): WatchlistS
   ...(entry === undefined ? {} : { addedAt: entry.addedAt.toISOString() }),
 })
 
-/**
- * §17.2 "My list": `GET /watchlist` (page, last added first), `GET|POST|DELETE
- * /watchlist/:itemId`. Mounted at `/api/v1`.
- */
 export const watchlistRoutes = ({ watchlist, scopeFor }: Deps) => {
   const status = (action: 'status' | 'add') => async (c: Context<AppEnv, '/watchlist/:itemId'>) => {
     const profileId = currentProfileId(c)

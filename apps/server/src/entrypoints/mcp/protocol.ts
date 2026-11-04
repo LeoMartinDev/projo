@@ -2,12 +2,6 @@ import { z } from 'zod'
 
 import type { McpTool, ToolContext } from './tool.ts'
 
-/**
- * The MCP protocol of `POST /mcp` (§27.2): JSON-RPC 2.0, stateless, one message per request,
- * tools only. Hand-written: the surface is small and the SDK's transports target Node servers.
- */
-
-/** Newest first; an unknown version asked by a client gets the newest. */
 export const supportedProtocolVersions = ['2025-11-25', '2025-06-18', '2025-03-26'] as const
 
 const jsonRpcIdSchema = z.union([z.string(), z.number()])
@@ -25,12 +19,10 @@ export type JsonRpcResponse =
   | { jsonrpc: '2.0'; id: JsonRpcId; result: Record<string, unknown> }
   | {
       jsonrpc: '2.0'
-      /** Absent: the request could not be read far enough to know its id. */
       id?: JsonRpcId
       error: { code: number; message: string; data?: unknown }
     }
 
-/** JSON-RPC 2.0 error codes. */
 export const rpcErrors = {
   parse: -32700,
   invalidRequest: -32600,
@@ -53,10 +45,6 @@ const initializeParamsSchema = z.object({ protocolVersion: z.string() }).loose()
 
 type ServerInfo = { name: string; version: string; instructions: string }
 
-/**
- * One JSON-RPC message → its response, or `undefined` for a notification (answered 202 with no
- * body). `onToolCall` hears every call, for the logs.
- */
 export const createMcpProtocol = ({
   tools,
   server,
@@ -105,7 +93,6 @@ export const createMcpProtocol = ({
     if (outcome.kind === 'failed') {
       const { code, message, context: errorContext } = outcome.error
       onToolCall({ ...log, errorCode: code })
-      // §27.6: the projo error, never its cause, so the assistant can explain it or retry.
       const body = {
         code,
         message,
@@ -143,7 +130,6 @@ export const createMcpProtocol = ({
       const request = requestSchema.safeParse(message)
       if (!request.success) return failure(undefined, rpcErrors.invalidRequest, 'invalid request')
       const { id, method, params } = request.data
-      // Notifications (`notifications/initialized`, `notifications/cancelled`…): nothing to do.
       if (id === undefined) return undefined
 
       switch (method) {

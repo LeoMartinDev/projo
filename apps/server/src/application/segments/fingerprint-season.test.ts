@@ -23,10 +23,6 @@ import { deferMs, fingerprintSeasonFactory, fingerprintWindow } from './fingerpr
 
 const now = new Date('2026-10-24T12:00:00.000Z')
 
-/**
- * Every item's chain has run (a `chapter` lookup, not kept in `lookups`) unless it is listed in
- * `unchained`.
- */
 const inMemorySegments = ({ unchained = [] }: { unchained?: string[] } = {}) => {
   const segments: Segment[] = []
   const lookups: SegmentLookupRow[] = []
@@ -64,14 +60,12 @@ const inMemorySegments = ({ unchained = [] }: { unchained?: string[] } = {}) => 
   return { repository, segments, lookups }
 }
 
-/** Distinct pseudo-random points (a hash: no accidental twins). */
 const noise = (length: number, seed: number): number[] =>
   Array.from({ length }, (_, i) => (Math.imul(i + 1, 2654435761) ^ Math.imul(seed, 40503)) >>> 0)
 
 const theme = noise(200, 7)
 const outro = noise(180, 9)
 
-/** Fake fpcalc: an intro at `introAt` points in the first window, credits in the last. */
 const fakeFingerprinter = (
   files: Record<string, { introAt?: number; creditsAt?: number; seed: number }>,
   calls: string[] = [],
@@ -150,7 +144,6 @@ describe('fingerprintWindow', () => {
   test('a short episode: each window is at most half of it', () => {
     const episode = plain('e1', '/m/e1.mkv', 12 * minutes)
     expect(fingerprintWindow(episode, 'intro', settings)?.durationSeconds).toBe(360)
-    // The last 5 minutes already fit in the second half.
     expect(fingerprintWindow(episode, 'credits', settings)?.startSeconds).toBe(420)
     const tiny = plain('e1', '/m/e1.mkv', 6 * minutes)
     expect(fingerprintWindow(tiny, 'credits', settings)).toMatchObject({
@@ -238,7 +231,6 @@ describe('fingerprintSeason (§12.3)', () => {
       },
     })
     expect(await run({ seasonId: 's1' })).toEqual(ok({ episodes: 3, segments: 4 }))
-    // Intro: e1 (reference), e2 and e3; credits: e1 and e3.
     expect(calls).toEqual([
       '/m/e1.mkv@0',
       '/m/e2.mkv@0',
@@ -272,7 +264,6 @@ describe('fingerprintSeason (§12.3)', () => {
         ids.map((id, i) => [`/m/${id}.mkv`, { introAt: 10 + i * 20, seed: i + 1 }]),
       ),
     })
-    // Credits: six targets, no reference; intro: e6 against e1–e5.
     expect(await run({ seasonId: 's1' })).toMatchObject({ ok: true })
     expect(calls.filter((call) => call.endsWith('@0'))).toHaveLength(6)
     expect(segments.repository.find({ itemId: 'e6', type: 'intro' })).toMatchObject({

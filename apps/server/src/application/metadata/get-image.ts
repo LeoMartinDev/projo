@@ -17,11 +17,6 @@ const contentTypeOf = (path: string): string => {
   }
 }
 
-/**
- * `GET /images/:id` (§9.1, §20): the stored image, once the route's `canView` let the profile see
- * it (an item it may see, or a person credited on one, uses it). `variants`: the WebP files that
- * answer `width` (§9.1), best first; `path` is the original, served while they are missing.
- */
 export const getImageFactory =
   ({
     images,

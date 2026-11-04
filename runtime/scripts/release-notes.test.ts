@@ -93,7 +93,6 @@ describe('renderReleaseNotes', () => {
 })
 
 describe('readCommits', () => {
-  // The CI runs the tests in the runtime image, which has no git (the release job has it).
   test.skipIf(!Bun.which('git'))('reads subjects and bodies from git log', () => {
     const [head] = readCommits('HEAD')
     expect(head?.hash).toMatch(/^[0-9a-f]{40}$/u)

@@ -20,7 +20,6 @@ export type OpenSessionInput = {
   lastProfileId?: string
 }
 
-/** Creates a session (cookie) or a bearer token. The token is returned once, only its hash is kept. */
 export const openSessionFactory =
   ({ sessionRepository, sessionTokens, clock, ids }: Deps) =>
   ({

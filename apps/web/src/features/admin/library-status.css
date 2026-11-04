@@ -1,7 +1,3 @@
-/* State of a library: admin list, library page, onboarding "C'est prêt". */
-
-/* Three slots (state, bar, detail) at a fixed height whatever the state: going from "analyse en
-   cours" to "up to date" never moves the row (AGENTS.md, UI layout). */
 .lib-status {
   display: flex;
   flex-direction: column;

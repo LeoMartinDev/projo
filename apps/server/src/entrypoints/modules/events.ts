@@ -6,10 +6,6 @@ import { startCatalogChanges } from '../catalog-changes.ts'
 import { eventsRoutes } from '../http/routes/events.ts'
 import type { Platform } from './platform.ts'
 
-/**
- * Wiring of the SSE stream (§17.1) on the platform `EventBus`, and of `catalog.changed` (coalesced
- * catalogue changes, for every profile). Open streams close on shutdown.
- */
 export const buildEventsModule = (
   { db, clock, eventBus }: Platform,
   {

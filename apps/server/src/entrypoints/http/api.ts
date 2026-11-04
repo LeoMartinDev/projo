@@ -38,7 +38,6 @@ import type { SubtitlesRoutes } from './routes/subtitles.ts'
 import type { TrickplayRoutes } from './routes/trickplay.ts'
 import type { WatchlistRoutes } from './routes/watchlist.ts'
 
-/** One sub-app per domain, built by its module. The keys are fixed: the RPC type depends on them. */
 export type ApiRoutes = {
   setup: SetupRoutes
   auth: AuthRoutes
@@ -77,16 +76,10 @@ export type ApiRoutes = {
 }
 
 export type ApiMiddleware = {
-  /**
-   * Checks `Origin` on mutating requests, resolves cookie / bearer and `X-Profile-Id` into
-   * `account`, `session`, `profileId`; answers 401 on every non-public route without a session.
-   */
   authenticate: MiddlewareHandler<AppEnv>
-  /** Guards `/admin/*`: 401 without account, 403 without the admin role. */
   requireAdmin: MiddlewareHandler<AppEnv>
 }
 
-/** Everything under `/api/v1`. Its type is the Hono RPC contract (`AppType`). */
 export const createApi = ({
   routes,
   middleware,

@@ -19,7 +19,6 @@ test('reads stored values and ignores invalid ones', () => {
       { key: settingKeys.maxConcurrentTranscodes, value: 4, updatedAt: at },
       { key: settingKeys.audioDownmix, value: 'surround', updatedAt: at },
       { key: settingKeys.burnInEnabled, value: false, updatedAt: at },
-      // Not a value (VAAPI only, §10.3).
       { key: settingKeys.hwAccel, value: 'qsv', updatedAt: at },
     ])
     .run()

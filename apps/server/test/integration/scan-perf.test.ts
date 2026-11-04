@@ -17,7 +17,6 @@ afterAll(async () => {
   tmp.cleanup()
 })
 
-/** Sparse 1.5 MB files: real sizes for the scanner, almost nothing on disk. No probe runs here. */
 const generate = () => {
   for (let i = 0; i < FILES; i += 1) {
     const series = Math.floor(i / 50)

@@ -14,7 +14,6 @@ import { failureFromResponse, networkFailure } from '../../../shared/api/failure
 import { getActiveProfileId } from '../../../shared/session/active-profile.ts'
 import { invalidateAfterIdentify } from '../identify/queries.ts'
 
-/** `GET /admin/items/:id` (§9.3): values and locks of the editor. */
 export const itemMetadataQueryKey = (itemId: string) => ['admin', 'item-metadata', itemId] as const
 
 export const itemMetadataQuery = (itemId: string) =>
@@ -23,7 +22,6 @@ export const itemMetadataQuery = (itemId: string) =>
     queryFn: () => request(() => api.admin.items[':id'].$get({ param: { id: itemId } })),
   })
 
-/** `GET /admin/items/:id/images/alternatives?kind=` (TMDB, through the server). */
 export const imageAlternativesQuery = (itemId: string, kind: EditableImageKind) =>
   queryOptions({
     queryKey: ['admin', 'item-metadata', itemId, 'alternatives', kind] as const,
@@ -38,10 +36,6 @@ export const imageAlternativesQuery = (itemId: string, kind: EditableImageKind) 
     retry: false,
   })
 
-/**
- * The editor's answer replaces its query; the alternatives (their `current` flag) and every viewer
- * query (titles, posters) are refetched.
- */
 const applyEdit = async (queryClient: QueryClient, item: ItemMetadataDto) => {
   queryClient.setQueryData(itemMetadataQueryKey(item.id), item)
   await Promise.all([
@@ -52,7 +46,6 @@ const applyEdit = async (queryClient: QueryClient, item: ItemMetadataDto) => {
   ])
 }
 
-/** `PATCH /admin/items/:id`: the fields given are stored and locked. */
 export const useUpdateItemMetadata = (itemId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -62,7 +55,6 @@ export const useUpdateItemMetadata = (itemId: string) => {
   })
 }
 
-/** `DELETE /admin/items/:id/overrides/:field` ("Back to the TMDB value"). */
 export const useRemoveOverride = (itemId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -74,10 +66,6 @@ export const useRemoveOverride = (itemId: string) => {
   })
 }
 
-/**
- * `POST /admin/items/:id/images`: JSON (a TMDB alternative) or multipart (an upload). The route
- * reads its body itself, outside the RPC types.
- */
 const postImage = async (itemId: string, body: ChooseItemImageBody | FormData) => {
   const profileId = getActiveProfileId()
   const profileHeaders = profileId === undefined ? {} : { [profileIdHeader]: profileId }
@@ -97,7 +85,6 @@ const postImage = async (itemId: string, body: ChooseItemImageBody | FormData) =
   return (await response.json()) as ItemMetadataDto
 }
 
-/** A TMDB alternative. */
 export const useChooseImage = (itemId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -106,7 +93,6 @@ export const useChooseImage = (itemId: string) => {
   })
 }
 
-/** An upload (JPEG, PNG or WebP, 10 MB; re-encoded by the server). */
 export const useUploadImage = (itemId: string) => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -120,18 +106,15 @@ export const useUploadImage = (itemId: string) => {
   })
 }
 
-/** `POST /admin/items/:id/refresh` (§9.4 "Refresh"): a job; the page follows `catalog.changed`. */
 export const useRefreshItem = () =>
   useMutation({
     mutationFn: (itemId: string) =>
       request(() => api.admin.items[':id'].refresh.$post({ param: { id: itemId } })),
   })
 
-/** `POST /admin/images/optimize` ("Optimize the images", §9.1): one `image_variants` job. */
 export const useOptimizeImages = () =>
   useMutation({ mutationFn: () => request(() => api.admin.images.optimize.$post()) })
 
-/** `POST /admin/libraries/:id/refresh-metadata` ("Refresh the whole library"). */
 export const useRefreshLibrary = () =>
   useMutation({
     mutationFn: (libraryId: string) =>

@@ -12,7 +12,6 @@ import { toItemSummaryDto } from './catalog.ts'
 
 type Deps = { searchCatalog: SearchCatalog; scopeFor: VisibilityScopeResolver }
 
-/** §13.5 `GET /search?q=`. Mounted at `/api/v1`. */
 export const searchRoutes = ({ searchCatalog, scopeFor }: Deps) =>
   new Hono<AppEnv>().get('/search', validate('query', searchQuerySchema), async (c) => {
     const profileId = currentProfileId(c)

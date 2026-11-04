@@ -74,7 +74,6 @@ describe('cleanup_cache (§10.3)', () => {
         sessionWith('ended-middle', new Date(2000)),
       ],
     )
-    // 13 GiB for 10: orphan (1), ended-old (3) → 9 GiB.
     expect(cleanup()).toEqual({
       removed: ['orphan', 'ended-old'],
       freedBytes: 4 * gib,

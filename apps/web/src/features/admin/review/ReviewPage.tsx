@@ -23,10 +23,6 @@ import './review.css'
 const ClassificationIcon = ({ value }: { value: SourceDto['classification'] }) =>
   value === 'movie' ? <FilmIcon /> : value === 'episode' ? <TvIcon /> : <LayersIcon />
 
-/**
- * "It's a movie" / "it's an episode of…" for one source (§7.8). When other files of the series
- * came along or stay to review, the dialog says how many before closing.
- */
 const IdentifySourceDialog = ({ source, onClose }: { source: SourceDto; onClose: () => void }) => {
   const { t } = useTranslation()
   const formId = useId()
@@ -103,7 +99,6 @@ const SkeletonRows = () => (
   </>
 )
 
-/** `/admin/review`: the "To review" queue (§7.8, §15, journey 5); a file can be hidden. */
 export const ReviewPage = () => {
   const { t } = useTranslation()
   const locale = currentLocale()

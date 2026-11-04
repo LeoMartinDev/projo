@@ -31,7 +31,6 @@ type Draft = {
   autoSkipIntro: boolean
   autoSkipCredits: boolean
   pinOn: boolean
-  /** New PIN being typed: when the PIN is turned on, or changed. */
   pin: string
 }
 
@@ -51,7 +50,6 @@ const draftOf = (profile: AdminProfileDto): Draft => ({
 const sameIds = (a: readonly string[], b: readonly string[]) =>
   a.length === b.length && a.every((id) => b.includes(id))
 
-/** Only what changed: `PATCH /profiles/:id` leaves absent keys untouched. */
 const changesOf = (profile: AdminProfileDto, draft: Draft): UpdateProfileBody => {
   const name = draft.name.trim()
   const accessChanged =
@@ -109,7 +107,6 @@ const DeleteProfileDialog = ({
     },
   })
   const failureCode = remove.isError ? toApiFailure(remove.error).code : undefined
-  // The server asks for the PIN of a locked profile of one's own account that is not the active one.
   const askPin =
     profile.hasPin &&
     ((session?.status === 'signed_in' &&
@@ -166,12 +163,6 @@ const DeleteProfileDialog = ({
   )
 }
 
-/**
- * A profile on its account's page (artboard `AdminAccounts`), in the flow of the page: name,
- * colour, libraries, maximum rating, autoplay, skip intros, PIN, delete. An admin editing another
- * account's profile needs no PIN; on their own PIN-protected profiles the server asks for it
- * (`profile/pin_required`).
- */
 export const ProfileCard = ({
   profile,
   libraries,

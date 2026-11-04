@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 
-/** What the controls render, read from `<video>` on its own events (no polling). */
 export type VideoState = {
   paused: boolean
   ended: boolean
@@ -75,7 +74,6 @@ export const createVideoStore = (video: HTMLVideoElement) => {
         if (event.type === 'playing' || event.type === 'canplay' || event.type === 'seeked')
           waiting = false
         if (event.type === 'pause') waiting = false
-        // A stall can resume without `playing` (hls.js nudging past a gap): time moving is proof.
         if (
           event.type === 'timeupdate' &&
           !video.paused &&
@@ -108,8 +106,6 @@ export const useVideoState = (video: HTMLVideoElement | undefined): VideoState =
   return useSyncExternalStore(store.subscribe, store.getSnapshot)
 }
 
-// ── Fullscreen ───────────────────────────────────────────────────────────────
-
 const subscribeFullscreen = (notify: () => void) => {
   document.addEventListener('fullscreenchange', notify)
   document.addEventListener('webkitfullscreenchange', notify)
@@ -127,19 +123,12 @@ const fullscreenElement = (): Element | undefined =>
 export const useIsFullscreen = (): boolean =>
   useSyncExternalStore(subscribeFullscreen, () => fullscreenElement() !== undefined)
 
-/** `lock` is Android only (and absent from the DOM types); iOS rotates its own fullscreen. */
 const orientation = () =>
   screen.orientation as
     (ScreenOrientation & { lock?: (orientation: 'landscape') => Promise<void> }) | undefined
 
 export type FullscreenAction = 'exit' | 'document' | 'video' | 'none'
 
-/**
- * What the fullscreen button does. The whole document goes fullscreen, not the player's
- * container: the next episode remounts the player (`<PlayerPage key={itemId}>`), and a removed
- * fullscreen element takes the browser out of fullscreen. iOS Safari has no element fullscreen:
- * the video's own player (`webkitEnterFullscreen`), which the next episode leaves.
- */
 export const fullscreenAction = ({
   active,
   documentFullscreen,
@@ -183,10 +172,6 @@ export const toggleFullscreen = (video: HTMLVideoElement): void => {
   }
 }
 
-/**
- * The players on screen: the next episode unmounts one and mounts the next in the same commit, so
- * the count only drops to 0 (checked a tick later) when the player is really left.
- */
 export const createFullscreenScope = ({
   exit,
   defer,
@@ -196,7 +181,6 @@ export const createFullscreenScope = ({
 }) => {
   let players = 0
   return {
-    /** A player mounted; the returned function is its unmount. */
     enter: () => {
       players += 1
       return () => {
@@ -210,19 +194,15 @@ export const createFullscreenScope = ({
 }
 
 const playerScope = createFullscreenScope({
-  // Only the document fullscreen the player asked for (`toggleFullscreen`).
   exit: () => {
     if (fullscreenElement() === document.documentElement) exitFullscreen()
   },
   defer: (callback) => void setTimeout(callback, 0),
 })
 
-/** Leaving the player ends its document fullscreen; the next episode keeps it. */
 export const usePlayerFullscreenScope = (): void => {
   useEffect(() => playerScope.enter(), [])
 }
-
-// ── Volume memory (§10.7: per device) ────────────────────────────────────────
 
 const volumeKey = 'projo.player.volume'
 
@@ -247,12 +227,8 @@ export const loadVolume = (): { volume: number; muted: boolean } => {
 export const saveVolume = (volume: number, muted: boolean): void => {
   try {
     localStorage.setItem(volumeKey, JSON.stringify({ volume, muted }))
-  } catch {
-    // Storage disabled (private mode): the volume is just not remembered.
-  }
+  } catch {}
 }
-
-// ── Commands (kept outside components: React Compiler forbids mutating hook values) ──
 
 export const togglePlayback = (video: HTMLVideoElement): void => {
   if (video.paused || video.ended) video.play().catch(() => undefined)
@@ -285,7 +261,6 @@ export const setPlaybackRate = (video: HTMLVideoElement, rate: number): void => 
   video.playbackRate = rate
 }
 
-/** iOS ignores `video.volume` (hardware buttons only): the volume UI is pointless there. */
 export const volumeSettable = (video: HTMLVideoElement): boolean => {
   const before = video.volume
   const probe = before === 0.5 ? 0.6 : 0.5
@@ -294,8 +269,6 @@ export const volumeSettable = (video: HTMLVideoElement): boolean => {
   video.volume = before
   return settable
 }
-
-// ── Picture-in-Picture (standard, and WebKit's presentation mode) ────────────
 
 type WebkitPresentation = {
   webkitSupportsPresentationMode?: (mode: string) => boolean
@@ -311,7 +284,6 @@ export const pictureInPictureSupported = (video: HTMLVideoElement | undefined): 
   return webkit(video).webkitSupportsPresentationMode?.('picture-in-picture') === true
 }
 
-/** WebKit draws a `showing` text track in its PiP window; Chromium's shows the video frames only. */
 export const pictureInPictureShowsTextTracks = (video: HTMLVideoElement | undefined): boolean =>
   video !== undefined && webkit(video).webkitPresentationMode === 'picture-in-picture'
 
@@ -355,11 +327,8 @@ export const usePictureInPicture = (video: HTMLVideoElement | undefined): boolea
   return useSyncExternalStore(store.subscribe, store.getSnapshot)
 }
 
-// ── AirPlay (Safari) ─────────────────────────────────────────────────────────
-
 type WebkitPlaybackTarget = { webkitShowPlaybackTargetPicker?: () => void }
 
-/** An AirPlay receiver is reachable (Safari's `webkitplaybacktargetavailabilitychanged`). */
 export const useAirPlayAvailable = (video: HTMLVideoElement | undefined): boolean => {
   const [available, setAvailable] = useState(false)
   useEffect(() => {
@@ -372,7 +341,6 @@ export const useAirPlayAvailable = (video: HTMLVideoElement | undefined): boolea
   return available
 }
 
-/** The system's list of AirPlay receivers. */
 export const showAirPlayPicker = (video: HTMLVideoElement): void => {
   ;(video as unknown as WebkitPlaybackTarget).webkitShowPlaybackTargetPicker?.()
 }

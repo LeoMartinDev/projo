@@ -53,7 +53,6 @@ import { buildSegmentSettingsAdmin } from './segments.ts'
 
 export const matchSourcePayloadSchema = z.object({ sourceId: z.string().min(1) })
 export const fetchImagesPayloadSchema = z.object({ itemId: z.string().min(1) })
-/** `refresh_metadata` (§9.4, `RefreshMetadataPayload`): one item, or a whole library. */
 export const refreshMetadataPayloadSchema = z.union([
   z.object({ itemId: z.string().min(1) }),
   z.object({ libraryId: z.string().min(1) }),
@@ -63,15 +62,10 @@ const hour = 60 * 60_000
 
 export type MetadataModuleOptions = {
   playbackSessions: PlaybackSessionTerminator
-  /** Who may load `GET /images/:id` (the catalog's `imageAccess.canView`, §6.3 and §14). */
   canViewImage: ImageAccess
-  /** §15 "Intros and credits", served by the same `/admin/settings` route; absent: built here (tests). */
   segmentSettings?: SegmentSettingsAdmin
-  /** §15 "Playback" and "Server", same route; absent: built here (tests). */
   operationsSettings?: OperationsSettings
-  /** Tests: an uploaded image re-encoder without ffmpeg. */
   imageReencoder?: ImageReencoder
-  /** Tests: a local server replaying recorded TMDB responses, no real waits. */
   tmdb?: {
     apiBaseUrl?: string
     imageBaseUrl?: string
@@ -79,11 +73,6 @@ export type MetadataModuleOptions = {
   }
 }
 
-/**
- * Wiring of TMDB identification and metadata (§9, §7.8): `match_source` and `fetch_images`
- * handlers, the requester the scanner calls once a source is ready, "To review" and
- * "Fix the match", metadata settings, `GET /images/:id`.
- */
 export const buildMetadataModule = (
   platform: Platform,
   {
@@ -226,8 +215,6 @@ export const buildMetadataModule = (
 
   const scheduledTasks: ScheduledTask[] = [
     {
-      // §9.4: in-production series a week after their last refresh; checked every 6 h so a
-      // restart never postpones it.
       name: 'metadata-in-production-refresh',
       initialDelayMs: 10 * 60_000,
       intervalMs: 6 * hour,
@@ -236,7 +223,6 @@ export const buildMetadataModule = (
       },
     },
     {
-      // §18 "Rules": what purged titles and old lookups leave behind.
       name: 'metadata-purge',
       initialDelayMs: 20 * 60_000,
       intervalMs: 24 * hour,
@@ -248,18 +234,12 @@ export const buildMetadataModule = (
   ]
 
   return {
-    /** Passed to the scanner module: ready sources go to `match_source`. */
     requestMatch,
-    /** Passed to the assistants module: the MCP tools of §27.4 run the web's use cases. */
     assistantPorts: {
       review,
       tmdbDetails: tmdbDetailsFactory({ tmdb }),
       metadataLanguage: settings.language,
     },
-    /**
-     * Passed to the libraries and operations modules: a new language or rating country, or files
-     * leaving that change the deciding library of a movie or series, refresh (§9.1, §9.4).
-     */
     libraryMetadataContext: {
       changed: (input) => {
         refresh.queueLibraryContextChange(input)
@@ -296,7 +276,6 @@ export const buildMetadataModule = (
     jobHandlers: {
       match_source: defineJobHandler({
         payload: matchSourcePayloadSchema,
-        // §18: 2, limited by TMDB (the client allows 4 requests at once).
         concurrency: 2,
         run: async ({ sourceId }) => {
           const result = await matchSource({ sourceId })
@@ -305,7 +284,6 @@ export const buildMetadataModule = (
       }),
       refresh_metadata: defineJobHandler({
         payload: refreshMetadataPayloadSchema,
-        // §18: 1, one item at a time.
         concurrency: 1,
         run: async (payload) => {
           if ('libraryId' in payload) {

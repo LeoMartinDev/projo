@@ -4,7 +4,6 @@ import type { TmdbSearchKind } from '@projo/shared/api/metadata'
 
 import { api, apiPrefix, request } from '../../../shared/api/client.ts'
 
-/** `GET /admin/tmdb/search` (§7.8): same search for "To review" and "Fix the match". */
 export const tmdbSearchQuery = (kind: TmdbSearchKind, q: string, year: number | undefined) =>
   queryOptions({
     queryKey: ['admin', 'tmdb', kind, q, year ?? ''],
@@ -18,11 +17,9 @@ export const tmdbSearchQuery = (kind: TmdbSearchKind, q: string, year: number | 
     enabled: q.trim().length > 0,
   })
 
-/** Search result posters go through the server proxy (w185), never TMDB directly (§9.1, CSP). */
 export const tmdbPosterUrl = (posterPath: string): string =>
   `${apiPrefix}/admin/tmdb/posters/${encodeURIComponent(posterPath.replace(/^\/+/u, ''))}`
 
-/** What prefills the search for an item: its title and year, an episode's series and numbers. */
 export type IdentifyItem = {
   title: string
   year?: number
@@ -33,7 +30,6 @@ export type IdentifyItem = {
 
 const fetchItem = (id: string) => request(() => api.items[':id'].$get({ param: { id } }))
 
-/** `GET /items/:id`, walking up to the series of an episode when the detail does not name it. */
 export const identifyItemQuery = (id: string) =>
   queryOptions({
     queryKey: ['admin', 'identify-item', id],
@@ -59,10 +55,6 @@ export const identifyItemQuery = (id: string) =>
 
 export const reviewQueryKey = ['admin', 'review'] as const
 
-/**
- * After an identification, everything a profile sees may have changed (titles, posters, merged or
- * vanished items): every viewer query is refetched, the session and the setup state are kept.
- */
 export const invalidateAfterIdentify = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({
     predicate: (query) => {

@@ -6,7 +6,6 @@ import type { Profile } from '../../core/profile/profile.ts'
 
 type Deps = {
   passwordHasher: PasswordHasher
-  /** §20: 5 checks per minute per profile. */
   rateLimiter: RateLimiter
   logger: Logger
 }
@@ -17,10 +16,6 @@ export type CheckPinError = AppError<
 
 export const pinRateLimitKey = (profileId: string) => `pin:profile:${profileId}`
 
-/**
- * Checks `pin` against a PIN-protected profile. Every check counts (the slot is taken before the
- * slow argon2 verification); a success clears the counter. A profile without PIN always passes.
- */
 export const checkPinFactory =
   ({ passwordHasher, rateLimiter, logger }: Deps) =>
   async (profile: Profile, pin: string | undefined): Promise<Result<void, CheckPinError>> => {

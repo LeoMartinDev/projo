@@ -23,7 +23,6 @@ import { deviceNameOf } from './device-name.ts'
 import { type SessionGate, sessionGate } from './session-gate.ts'
 import { secureSessionStore, type SessionStore, type StoredSession } from './session-store.ts'
 
-/** `deviceName` of the sign-in and of the pairing claim (§26.3). */
 const deviceName = deviceNameOf({
   modelName: modelName ?? undefined,
   isTablet: deviceType === DeviceType.TABLET,
@@ -36,7 +35,6 @@ const meKey = (url: string) => [sessionQueryPrefix, url, 'me'] as const
 const withoutToken = ({ profileId }: StoredSession): StoredSession =>
   profileId === undefined ? {} : { profileId }
 
-/** The device's session is gone (401, sign-out): back to the sign-in, server URL kept (§26.3). */
 const dropToken = async (queryClient: QueryClient, url: string, store: SessionStore) => {
   setCredentials(withoutToken(getCredentials()))
   queryClient.setQueryData(storedKey(url), (previous: StoredSession | undefined) =>
@@ -46,10 +44,6 @@ const dropToken = async (queryClient: QueryClient, url: string, store: SessionSt
   await store.clearToken()
 }
 
-/**
- * A fresh `MeResponse`: its active profile is sent from now on (`X-Profile-Id`), remembered on the
- * device (§13.6) and sets the interface language (§19).
- */
 const applyMe = async (me: MeResponse, store: SessionStore) => {
   const previous = getCredentials()
   const profile = me.profiles.find(({ id }) => id === me.activeProfileId)
@@ -71,17 +65,11 @@ type Action<Input> = {
 
 type Session = {
   gate: SessionGate
-  /** Authenticated client of the connected server. */
   api?: ApiClient
-  /** Username and password → a bearer token for this device (`POST /auth/login`, `token: true`). */
   signIn: Action<{ username: string; password: string }>
-  /** A pairing code of `serverUrl` → a bearer token (`POST /auth/pairings/claim`, §14). */
   pair: Action<{ serverUrl: string; code: string }>
-  /** `POST /profiles/:id/select`: the profile becomes this device's (§13.6), PIN checked. */
   selectProfile: Action<{ id: string; pin?: string }>
-  /** The account's profiles changed (created, deleted): `GET /auth/me` again. */
   refreshMe: () => Promise<void>
-  /** A profile was saved (`PATCH /profiles/:id`): the session shows it, in its language. */
   profileSaved: (profile: ProfileDto) => Promise<void>
   switchProfile: () => void
   cancelSwitch: () => void
@@ -89,7 +77,6 @@ type Session = {
   retrying: boolean
   signOut: () => void
   signingOut: boolean
-  /** Sign out, then forget the server: the connection screen (§26.5 device settings). */
   changeServer: () => void
 }
 
@@ -110,11 +97,6 @@ const action = <Input,>(mutation: {
   }
 }
 
-/**
- * The account of the connected server on this device (§26.3): the bearer token kept in the
- * Keychain, `GET /auth/me` at launch and on every return to the foreground, a 401 anywhere back to
- * the sign-in screen.
- */
 export const SessionProvider = ({
   children,
   store = secureSessionStore,
@@ -191,9 +173,7 @@ export const SessionProvider = ({
   const pair = useMutation({
     mutationFn: async ({ serverUrl, code }: { serverUrl: string; code: string }) => {
       const status = await unwrap(connection.check(serverUrl))
-      // Another server: the previous one's token and profile must never reach it.
       if (serverUrl !== url) await unwrap(store.clear())
-      // Too old for the app: its "Update your projo server" screen; the code stays unused.
       if (status.kind === 'outdated') return unwrap(connection.adopt(serverUrl, status))
       const claimed = await unwrap(
         requestApi(
@@ -231,7 +211,6 @@ export const SessionProvider = ({
   })
 
   const signOut = useMutation({
-    // The server forgets the token (`POST /auth/logout`); offline, the device forgets it anyway.
     mutationFn: async () => {
       if (api !== undefined) await requestApi(() => api.auth.logout.$post())
     },

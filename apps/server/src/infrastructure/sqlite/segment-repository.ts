@@ -26,13 +26,11 @@ const toSegment = (row: typeof segments.$inferSelect): Segment => {
 
 const toLookup = (row: typeof segmentLookups.$inferSelect): SegmentLookupRow => ({
   itemId: row.itemId,
-  // Written only through `saveLookup`: always a `SegmentLookupKey`.
   provider: row.provider as SegmentLookupKey,
   checkedAt: fromIso(row.checkedAt),
   outcome: row.outcome,
 })
 
-/** §6.4 `segments` and `segment_lookups`; the §12.1 priority rule is applied on `save`. */
 export const createSqliteSegmentRepository = ({
   db,
   ids,
@@ -69,8 +67,6 @@ export const createSqliteSegmentRepository = ({
           .where(and(eq(segments.itemId, itemId), eq(segments.type, candidate.type)))
           .get()
         if (!canReplace(existing?.origin, origin)) return undefined
-        // §12.1: a negative marker stops every source but the admin's own markers, even one
-        // set while a job was running (the job read the markers when it started).
         if (origin !== 'manual') {
           const marker = tx
             .select({ provider: segmentLookups.provider })
@@ -134,7 +130,6 @@ export const createSqliteSegmentRepository = ({
   }
 }
 
-/** §12.5 `segment_submissions`: the log of manual markers sent to TheIntroDB / SkipDB. */
 export const createSqliteSegmentSubmissionRepository = ({
   db,
   ids,

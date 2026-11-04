@@ -12,7 +12,6 @@ type RootRow = typeof libraryRoots.$inferSelect
 
 const toRoot = (row: RootRow): LibraryRoot => {
   const { lastScanAt, ...rest } = stripNulls(row)
-  // Versions before reason codes stored an English message: dropped, the next scan rewrites it.
   const lastError = rootErrorReasonSchema.safeParse(rest.lastError).data
   return {
     id: rest.id,

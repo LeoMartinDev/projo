@@ -7,41 +7,25 @@ import type { Logger } from '../../core/logger.ts'
 
 export type JobContext = {
   job: Job
-  /** Aborted when the job is cancelled or the server shuts down. */
   signal: AbortSignal
-  /** 0..100, persisted and published as `job.updated`. Rounded; unchanged values are skipped. */
   reportProgress: (progress: number) => void
-  /** Carries `jobId` and `jobType`. */
   logger: Logger
 }
 
 export type JobRunResult = Result<void, AppError>
 
-/**
- * Limits shared by several job types, on top of each type's own `concurrency` (§18): one
- * "heavy ffmpeg" job at a time across `fingerprint_season`, `trickplay` and `preview_clip`,
- * each ffmpeg already using every core.
- */
 export const concurrencyGroups = { heavy_ffmpeg: 1 } as const
 export type ConcurrencyGroup = keyof typeof concurrencyGroups
 
 export type JobHandler = {
-  /** Max jobs of this type running at once (§18 "Concurrence"). */
   concurrency: number
-  /** Shared limit with the other types of the group (`concurrencyGroups`). */
   group?: ConcurrencyGroup
-  /** Optional gate, e.g. "no heavy ffmpeg job while transcoding on < 4 cores" (§18). */
   isRunnable?: () => boolean
   run: (payload: unknown, context: JobContext) => Promise<JobRunResult>
 }
 
-/** What a domain module contributes: `{ [jobType]: handler }`. */
 export type JobHandlers = Partial<Record<JobType, JobHandler>>
 
-/**
- * Builds a handler whose payload is validated by `payload` (§5.3 "every job payload goes
- * through a Zod schema"). An invalid payload fails the attempt with `job/invalid_payload`.
- */
 export const defineJobHandler = <S extends z.ZodType>(definition: {
   payload: S
   concurrency: number
@@ -65,7 +49,6 @@ export const defineJobHandler = <S extends z.ZodType>(definition: {
   },
 })
 
-/** Composition root helper. Two modules registering the same type is a bug: it throws. */
 export const mergeJobHandlers = (...groups: (JobHandlers | undefined)[]): JobHandlers => {
   const merged: JobHandlers = {}
   for (const group of groups) {

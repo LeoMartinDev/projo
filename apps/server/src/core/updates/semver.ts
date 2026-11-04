@@ -1,8 +1,3 @@
-/**
- * Semantic versions (semver.org §11 precedence), for the updater (§16.4): is a release newer than
- * the running version, does the runtime satisfy a `runtimeMin`. Build metadata is ignored.
- */
-
 export type SemVer = {
   major: number
   minor: number
@@ -13,7 +8,6 @@ export type SemVer = {
 const SEMVER =
   /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/u
 
-/** Accepts an optional leading `v` (GitHub tags); `undefined` when not semver. */
 export const parseSemVer = (input: string): SemVer | undefined => {
   const match = SEMVER.exec(input.trim())
   if (!match) return undefined
@@ -54,21 +48,17 @@ const compareParsed = (a: SemVer, b: SemVer): number =>
   Math.sign(a.patch - b.patch) ||
   comparePrerelease(a.prerelease, b.prerelease)
 
-/** −1, 0 or 1; `undefined` when either side is not semver. */
 export const compareVersions = (a: string, b: string): number | undefined => {
   const left = parseSemVer(a)
   const right = parseSemVer(b)
   return left === undefined || right === undefined ? undefined : compareParsed(left, right)
 }
 
-/** `candidate` > `current`; `false` when either is not semver (a dev build is never "older"). */
 export const isNewerVersion = (candidate: string, current: string): boolean =>
   (compareVersions(candidate, current) ?? 0) > 0
 
-/** `actual` ≥ `minimum`; `false` when either is not semver (`dev` runtime). */
 export const satisfiesMinimum = (actual: string, minimum: string): boolean =>
   (compareVersions(actual, minimum) ?? -1) >= 0
 
-/** Newest first; non-semver strings last. */
 export const byVersionDescending = (a: string, b: string): number =>
   compareVersions(b, a) ?? (parseSemVer(a) === undefined ? 1 : -1)

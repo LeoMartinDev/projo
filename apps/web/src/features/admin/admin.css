@@ -1,17 +1,13 @@
-/* Administration, after artboards AdminLibraries and AdminAddLibrary. */
-
 @import '../../shared/styles/media.css';
 
 .admin {
   display: flex;
   flex-wrap: wrap;
-  /* Stacked (phone): the bar keeps its height on short pages. */
   align-content: flex-start;
   min-height: 100vh;
   min-height: 100dvh;
 }
 
-/* Always the window's height, whatever the page holds: "Retour au catalogue" stays at the bottom. */
 .admin__side {
   position: sticky;
   top: 0;
@@ -76,7 +72,6 @@
   white-space: nowrap;
 }
 
-/* Size of the "To review" queue. */
 .admin__count {
   flex: 0 0 auto;
   min-width: 22px;
@@ -91,14 +86,12 @@
   text-align: center;
 }
 
-/* Unread notifications: what asks for attention, brighter than a count. */
 .admin__count--strong {
   background: var(--color-text);
   color: var(--color-bg);
   font-weight: 600;
 }
 
-/* Between the groups of the sidebar (§15: content, people, operations, settings). */
 .admin__nav-separator {
   flex: 0 0 auto;
   height: 1px;
@@ -106,7 +99,6 @@
   background: var(--color-border-subtle);
 }
 
-/* No TMDB key (§9.1): above every admin page. */
 .admin-banner {
   display: flex;
   flex-wrap: wrap;
@@ -160,8 +152,6 @@
     padding: 0 16px;
     overflow-x: auto;
     scrollbar-width: none;
-    /* The edges fade within the padding: a link cut by the edge shows the row goes on, the first
-       and last ones stay sharp once scrolled to. */
     -webkit-mask-image: linear-gradient(
       90deg,
       transparent,
@@ -269,8 +259,6 @@
 .breadcrumb a:hover {
   color: var(--color-text-strong);
 }
-
-/* ── Library table ──────────────────────────────────────────────────────── */
 
 .lib-table {
   display: flex;
@@ -397,7 +385,6 @@
   font-size: 12px;
 }
 
-/* Row menu: anchored under its button (implicit popover anchor), centered where unsupported. */
 .menu--row {
   inset: 0;
   width: max-content;
@@ -468,8 +455,6 @@
     font-size: 12px;
   }
 }
-
-/* ── Activity ───────────────────────────────────────────────────────────── */
 
 .activity {
   display: flex;
@@ -558,8 +543,6 @@
     gap: 2px;
   }
 }
-
-/* ── Library form ───────────────────────────────────────────────────────── */
 
 .library-form {
   display: flex;
@@ -691,7 +674,6 @@
 }
 
 .root-item__path {
-  /* Ellipsis at the start: the end of a path is what tells folders apart. */
   direction: rtl;
   text-align: left;
   flex: 1 1 auto;
@@ -713,7 +695,6 @@
   align-self: flex-start;
 }
 
-/* "Updates": a newer release is available. */
 .admin__dot {
   flex: 0 0 auto;
   width: 8px;

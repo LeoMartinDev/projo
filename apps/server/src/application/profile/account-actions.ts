@@ -12,19 +12,11 @@ type Deps = { profileRepository: ProfileRepository }
 export type AccountActionError = AppError<'profile/restricted'>
 
 export type ActingProfile = {
-  /** The resolved active profile, when it belongs to the account. */
   active: Profile | undefined
-  /** What the actor acts as: `active`, else the account's most restricted profile. */
   effective: ProfileRestrictions
   restricted: boolean
 }
 
-/**
- * Who an actor acts as (§14). A restricted profile (selected libraries or a maximum rating) does
- * not act on the account: devices and sessions, bearer tokens, password, other profiles, PINs.
- * Without a resolved active profile (refused or missing `X-Profile-Id`, "Who's watching?" not
- * answered), the actor is the account's most restricted profile.
- */
 export const accountActionsFactory = ({ profileRepository }: Deps) => {
   const actingProfile = ({
     accountId,

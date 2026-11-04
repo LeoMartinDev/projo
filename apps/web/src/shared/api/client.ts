@@ -8,10 +8,6 @@ import { type ApiFailure, failureFromResponse, networkFailure } from './failure.
 
 export const apiPrefix = '/api/v1'
 
-/**
- * Typed RPC client on `/api/v1` (§17.1). Same origin: cookies are sent automatically. The active
- * profile travels in `X-Profile-Id`.
- */
 export const api = hc<AppType>(apiPrefix, {
   init: { credentials: 'same-origin' },
   headers: (): Record<string, string> => {
@@ -24,13 +20,8 @@ export type ApiClient = typeof api
 
 type AnyResponse = { ok: boolean; status: number; json: () => Promise<unknown> }
 
-/** Body type of the 2xx branch of a Hono RPC response union. */
 export type OkBody<R> = R extends { ok: true; json: () => Promise<infer T> } ? T : never
 
-/**
- * Runs an RPC call; resolves with the success body, rejects with an `ApiFailure` (the shape
- * TanStack Query expects from a `queryFn`). A 204 resolves with `undefined`.
- */
 export const request = async <R extends AnyResponse>(
   call: () => Promise<R>,
 ): Promise<OkBody<R>> => {

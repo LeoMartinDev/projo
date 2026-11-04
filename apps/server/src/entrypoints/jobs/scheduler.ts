@@ -2,11 +2,9 @@ import { fromPromise } from '@projo/shared'
 
 import type { Logger } from '../../core/logger.ts'
 
-/** A periodic task (§18: `watch_pending` every 30 s, `cleanup_cache` hourly…). Usually it enqueues a job. */
 export type ScheduledTask = {
   name: string
   intervalMs: number
-  /** Delay before the first run. Defaults to `intervalMs`. */
   initialDelayMs?: number
   run: () => void | Promise<void>
 }
@@ -17,7 +15,6 @@ export type Scheduler = {
   stop: () => void
 }
 
-/** Runs each task, then waits `intervalMs` before the next run: runs never overlap. */
 export const createScheduler = ({ logger }: { logger: Logger }): Scheduler => {
   const tasks: ScheduledTask[] = []
   const timers = new Map<string, ReturnType<typeof setTimeout>>()

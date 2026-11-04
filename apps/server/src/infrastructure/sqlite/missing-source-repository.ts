@@ -6,7 +6,6 @@ import { chunks, toIso } from './rows.ts'
 import { itemOverrides, items, manualMatches } from './schema/items.ts'
 import { sourceItems, sources } from './schema/libraries.ts'
 
-/** "Manquants" (§7.5, §15): the `missing` sources and their purge. */
 export const createSqliteMissingSourceRepository = ({
   db,
 }: {
@@ -44,7 +43,6 @@ export const createSqliteMissingSourceRepository = ({
               .map((row) => row.itemId),
           ),
         ]
-        // The identification of a purged file is a manual correction (§7.5): its items stay.
         const corrected = new Set(
           tx
             .select({ itemId: sourceItems.itemId })
@@ -60,7 +58,6 @@ export const createSqliteMissingSourceRepository = ({
           .returning({ id: sources.id })
           .all().length
 
-        // Items left without source and without child, unless corrected; then their parents.
         let level = linked.filter((id) => !corrected.has(id))
         while (level.length > 0) {
           const removable = tx

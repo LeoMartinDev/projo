@@ -5,10 +5,6 @@ import type { ExternalSubtitleRow, SourcePatch, SourceSnapshot } from '../source
 const isPresent = (source: SourceSnapshot): boolean =>
   source.state !== 'missing' && source.state !== 'rejected'
 
-/**
- * §7.7 parts: files of one folder with a part token and the same title share a
- * `stack_group_id` (root id + the deterministic group key), ordered by `part_index`.
- */
 export const planStacks = (
   snapshots: readonly SourceSnapshot[],
 ): { id: string; patch: SourcePatch }[] => {
@@ -37,7 +33,6 @@ export const planStacks = (
   return snapshots.flatMap((source): { id: string; patch: SourcePatch }[] => {
     const want = isPresent(source) ? desired.get(source.id) : undefined
     if (want === undefined) {
-      // A missing part keeps its group: it comes back as it was.
       if (!isPresent(source) || source.stackGroupId === undefined) return []
       return [{ id: source.id, patch: { stackGroupId: undefined, partIndex: undefined } }]
     }
@@ -66,10 +61,6 @@ const sameRows = (
   return b.every((row) => keys.has(rowKey(row)))
 }
 
-/**
- * §8.3 external subtitles of one root: what each present source should have in
- * `source_subtitles` (`kind = external`), as replacements for the sources that differ.
- */
 export const planExternalSubtitles = ({
   rootPath,
   sources,
@@ -77,7 +68,6 @@ export const planExternalSubtitles = ({
   current,
 }: {
   rootPath: string
-  /** Present video sources of the root. */
   sources: readonly SourceSnapshot[]
   subtitlePaths: readonly string[]
   current: ReadonlyMap<string, readonly ExternalSubtitleRow[]>
@@ -88,7 +78,6 @@ export const planExternalSubtitles = ({
     videoPaths: present.map((s) => s.relativePath),
     subtitlePaths,
   })
-  // The matcher works on NFC; the disk keeps its own bytes (Linux file names may be NFD).
   const onDisk = new Map(subtitlePaths.map((path) => [path.normalize('NFC'), path]))
   const wanted = new Map<string, ExternalSubtitleRow[]>()
   for (const subtitle of matched) {

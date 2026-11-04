@@ -6,12 +6,6 @@ import { createTestDatabase } from '../support/database.ts'
 
 setDefaultTimeout(120_000)
 
-/**
- * §21 indicative: the dashboard counters (`GET /admin/stats`) on 20 000 items, like the catalog
- * (`catalog-perf.test.ts`): 8 000 movies, 600 series × 2 seasons × 10 episodes, one source each,
- * a few hundred pending, missing and to review.
- */
-
 const MOVIES = 8_000
 const SERIES = 600
 const RUNS = 30

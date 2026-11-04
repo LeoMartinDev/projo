@@ -16,7 +16,6 @@ const documentSchema = z.object({
   redirect_uris: z.array(z.string()).max(50),
 })
 
-/** Loopback, private, link-local, CGNAT, unspecified, multicast: never fetched (SSRF, §27.3). */
 export const isPrivateAddress = (address: string): boolean => {
   const version = isIP(address)
   if (version === 4) {
@@ -52,16 +51,10 @@ export const isPrivateAddress = (address: string): boolean => {
 }
 
 type Options = {
-  /** Tests: a local document server is allowed (it is on a loopback address). */
   allowPrivateAddresses?: boolean
   fetch?: typeof fetch
 }
 
-/**
- * Client ID Metadata Documents (§27.3): HTTPS only (HTTP for tests on a private address), no
- * redirect, 5 s, 64 KB, never a host resolving to a private address; the document's `client_id`
- * must be its own URL.
- */
 export const createClientMetadataFetcher = ({
   allowPrivateAddresses = false,
   fetch: fetchImpl = fetch,

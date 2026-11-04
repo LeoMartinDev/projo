@@ -24,11 +24,8 @@ type FactsRow = {
 const optional = <K extends string, V>(key: K, value: V | null): { [P in K]?: V } =>
   (value === null ? {} : { [key]: value }) as { [P in K]?: V }
 
-/** §12.2 reads of the segment chain: an item and the ids of its movie or series. */
 export const createSqliteSegmentCatalog = ({ db }: { db: Db }): SegmentCatalog => ({
   findItem: (itemId) => {
-    // An episode is asked with its series' ids (§9.2 `/external_ids`), its season row holds the
-    // season number when the episode row does not.
     const [row] = db.all<FactsRow>(sql`SELECT i.id, i.kind, i.title, i.episode_number,
         coalesce(i.season_number, season.season_number) AS season_number,
         CASE i.kind WHEN 'episode' THEN season.id END AS season_id,
@@ -115,7 +112,6 @@ export const createSqliteSegmentCatalog = ({ db }: { db: Db }): SegmentCatalog =
             ),
             sql` OR `,
           )
-    // The movie, or the episode's series, holds the ids the databases are asked with.
     const owner = sql`CASE i.kind WHEN 'episode' THEN (SELECT se.parent_id FROM items se
       WHERE se.id = i.parent_id) ELSE i.id END`
     return db

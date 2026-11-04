@@ -8,10 +8,6 @@ export type SummaryLabels = {
   pin: string
 }
 
-/**
- * The one-line access summary of a profile (§15 Accounts): `Movies, Shows · 16 and over`,
- * `All libraries · no limit · PIN code`. Library names follow the libraries order.
- */
 export const profileSummary = (
   profile: Pick<ProfileDto, 'libraryAccess' | 'libraryIds' | 'maxContentRating' | 'hasPin'>,
   libraries: readonly { id: string; name: string }[],

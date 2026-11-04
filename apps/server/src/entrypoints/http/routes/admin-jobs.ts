@@ -31,10 +31,6 @@ export const toAdminJobDto = (job: JobView): AdminJobDto => ({
       }),
 })
 
-/**
- * §15 "Jobs", §17.2: `GET /admin/jobs`, `POST /admin/jobs/:id/retry`, `POST /admin/jobs/:id/cancel`.
- * Mounted at `/api/v1/admin`.
- */
 export const adminJobsRoutes = ({ jobs }: { jobs: JobsAdmin }) =>
   new Hono<AppEnv>()
     .get('/jobs', validate('query', adminJobsQuerySchema), (c) => {

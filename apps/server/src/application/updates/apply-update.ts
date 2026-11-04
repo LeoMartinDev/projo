@@ -19,10 +19,8 @@ import { disabledError } from './check-updates.ts'
 import { isUpdateBusy } from './state.ts'
 import type { RequestRollback, RequestUpdate } from './types.ts'
 
-/** One `apply_update` at a time (§18: singleton). */
 export const APPLY_UPDATE_DEDUPE_KEY = 'apply_update'
 
-/** An update is downloading, waiting for its switch, or a switch was requested. */
 const isBusy = (state: UpdateStateHolder, repository: UpdateRepository): boolean =>
   isUpdateBusy(state.current().state) || repository.pendingRun() !== undefined
 
@@ -34,7 +32,6 @@ const runtimeTooOld = (version: string, runtimeMin: string, runtimeVersion: stri
     context: { version, runtimeMin, runtimeVersion },
   })
 
-/** `POST /admin/updates/apply`: the version shown as available, then `apply_update`. */
 export const requestUpdateFactory =
   ({
     jobQueue,
@@ -93,11 +90,6 @@ export type ApplyUpdateError =
       | 'job/cancelled'
     >
 
-/**
- * `apply_update` (§16.4): download, `SHA256SUMS` and manifest checks, `versions/<v>`, `pending`,
- * then the exit 75. The job ends `done` (the runner completes it during the clean stop) and the
- * run stays `pending` until the restarted app reads the supervisor's report.
- */
 export const applyUpdateFactory =
   ({
     installer,
@@ -121,7 +113,6 @@ export const applyUpdateFactory =
   }): Promise<Result<void, ApplyUpdateError>> => {
     const { enabled, appVersion, runtimeVersion } = processControl
     if (!enabled) return err(disabledError())
-    // A retried old job: the version may be the running one (its folder is live) or older.
     if (version === appVersion) return err(alreadyCurrent(version))
     const release = checkStore.read()?.latest
     if (
@@ -152,7 +143,6 @@ export const applyUpdateFactory =
         error: { code: error.code, message: error.message },
       })
       state.set({ state: 'failed', version })
-      // Interrupted by a stop or a cancel: the job runs again or was cancelled on purpose.
       if (!signal.aborted)
         notifier.notify({
           kind: 'update/failed',
@@ -175,7 +165,6 @@ export const applyUpdateFactory =
       },
     })
     if (!installed.ok) return failRun(installed.error)
-    // Cancelled during the download: no switch.
     if (signal.aborted)
       return failRun(appError('job/cancelled', 'update cancelled', { context: { version } }))
     repository.upsertVersion({
@@ -195,10 +184,6 @@ export const applyUpdateFactory =
     return ok(undefined)
   }
 
-/**
- * `POST /admin/updates/rollback` (§16.4 "Go back to this version"): the same switch towards a
- * version already on the disk (checked against its manifest).
- */
 export const requestRollbackFactory =
   ({
     installer,

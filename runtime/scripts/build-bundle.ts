@@ -1,6 +1,3 @@
-// Assembles the app bundle (PRODUCT.md §16.2) into dist/app/:
-//   server.js (+ map, chunks), public/, drizzle/, [locales/], [avatars/], manifest.json
-// Usage: bun runtime/scripts/build-bundle.ts [--out dist/app] [--version x.y.z] [--runtime-min x.y.z]
 import { cp, mkdir, readFile, rename, rm, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -41,14 +38,12 @@ const bundleError = (
   ...(cause === undefined ? {} : { cause }),
 })
 
-/** Monorepo sources, relative to the repo root. */
 export const SOURCES = {
   serverEntry: 'apps/server/src/entrypoints/main.ts',
   webDist: 'apps/web/dist',
   migrations: 'apps/server/drizzle',
 } as const
 
-/** Copied when present: bundle dir -> repo path. */
 export const OPTIONAL_DIRS = {
   locales: 'apps/server/locales',
   avatars: 'apps/server/avatars',
@@ -205,7 +200,6 @@ if (import.meta.main) {
   const result = await buildBundle({
     rootDir,
     outDir,
-    // `||`: an empty PROJO_VERSION (unset Docker build arg) falls back to package.json.
     version: values.version || process.env.PROJO_VERSION || (await readRootVersion(rootDir)) || '',
     runtimeMin: values['runtime-min'] || readRuntimeVersion() || '',
   })

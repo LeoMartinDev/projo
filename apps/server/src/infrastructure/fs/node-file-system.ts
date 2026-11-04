@@ -11,7 +11,6 @@ const errnoOf = (cause: unknown): string | undefined => {
   return typeof code === 'string' ? code : undefined
 }
 
-/** Node errno → `fs/*` error. */
 export const toFsError = (path: string, cause: unknown): FsError => {
   const errno = errnoOf(cause)
   const context = { path, errno }
@@ -41,7 +40,6 @@ const DRIVE_LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
 const asDirectories = (names: string[]) =>
   names.map((name): DirectoryEntry => ({ name, kind: 'directory' }))
 
-/** The drives that answer (mapped network drives included): the folders of the virtual `/`. */
 const listDrives = async (): Promise<DirectoryEntry[]> => {
   const found = await Promise.all(
     DRIVE_LETTERS.map((letter) =>
@@ -54,14 +52,9 @@ const listDrives = async (): Promise<DirectoryEntry[]> => {
   return asDirectories(found.filter((letter) => letter !== undefined))
 }
 
-/** UNC servers and shares are not discovered: the path to a share is typed (`/UNC/nas/media`). */
 const listVirtual = async (directory: VirtualDirectory): Promise<DirectoryEntry[]> =>
   directory.kind === 'drives' ? listDrives() : []
 
-/**
- * `FileSystem` port over `node:fs/promises`. Read only. Takes and returns domain paths, translated
- * by `paths` (Windows drives and UNC shares, `host-paths.ts`).
- */
 export const createNodeFileSystem = ({
   paths = hostPaths,
 }: { paths?: HostPaths } = {}): FileSystem => {

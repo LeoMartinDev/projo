@@ -11,19 +11,13 @@ import { regularEpisodes } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
 import type { ProgressView, ProgressViews } from '../progress/progress-views.ts'
 
-/** An item as a card shows it, for the active profile. */
 export type CatalogEntry = {
   item: CatalogItem
   progress: ProgressView | undefined
-  /** Movies and series only. */
   inWatchlist?: boolean
-  /** Episodes in home rows: their series. */
   series?: CatalogItem
-  /** Episodes in home rows: their series is in "My list" (the card's Ma liste button). */
   seriesInWatchlist?: boolean
-  /** Movies, episodes, series: best quality of the ready files ("4K HDR", §13.5). */
   bestQuality?: VideoQuality
-  /** Series: visible seasons, specials left out when there are others ("Show · 2 seasons"). */
   seasonCount?: number
 }
 
@@ -39,10 +33,6 @@ export type CatalogEntries = (input: {
   scope: VisibilityScope
 }) => CatalogEntry[]
 
-/**
- * Progress, "My list" flags, best quality and season count of a list of items, in a fixed number
- * of queries.
- */
 export const catalogEntriesFactory =
   ({ catalogRepository, progressViews, watchlistRepository }: Deps): CatalogEntries =>
   ({ profileId, items, scope }) => {

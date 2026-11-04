@@ -17,31 +17,22 @@ import type { Platform } from './platform.ts'
 const seasonPayload = z.object({ seasonId: z.string().min(1) })
 
 export type FingerprintModuleOptions = {
-  /** Default: the machine's (§18 heavy jobs wait for transcodes below 4 cores). */
   cores?: number
-  /** Default: ffmpeg + fpcalc, temporary WAVs under `/data/cache/fingerprint`. */
   fingerprinter?: AudioFingerprinter
 }
 
-/**
- * §12.3 local fingerprinting: the `fingerprint_season` handler (ffmpeg audio extraction, `fpcalc`,
- * comparison of the episodes of a season), enqueued by `fetch_segments` for the episodes the
- * chain left without `intro` or `credits`.
- */
 export const buildFingerprintModule = (
   { db, ids, clock, logger, paths, jobQueue }: Platform,
   {
     cores = availableParallelism(),
     fingerprinter = createFpcalcFingerprinter({
       tempDir: `${paths.cache.dir}/fingerprint`,
-      // §18: `fingerprint_season` only, lowest CPU priority.
       processPriority: 'background',
     }),
   }: FingerprintModuleOptions = {},
 ) => {
   const moduleLogger = logger.child({ module: 'fingerprint' })
   const sessionRepository = createSqlitePlaybackSessionRepository({ db })
-  // §18: heavy ffmpeg jobs wait while a transcode runs on a server with fewer than 4 cores.
   const heavyJobsAllowed = () =>
     cores >= 4 ||
     !sessionRepository.listActive().some((session) => session.mode === 'hls_transcode')
@@ -60,7 +51,6 @@ export const buildFingerprintModule = (
     jobHandlers: {
       fingerprint_season: defineJobHandler({
         payload: seasonPayload,
-        // §18: one heavy ffmpeg job at a time (shared with trickplay, preview_clip), priority 10.
         concurrency: 1,
         group: 'heavy_ffmpeg',
         isRunnable: heavyJobsAllowed,

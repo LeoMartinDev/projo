@@ -37,7 +37,6 @@ export const toItemProgressDto = (progress: ItemProgress | undefined): ItemProgr
 
 export const toWatchStatusDto = (status: WatchStatus): WatchStatusDto => ({ ...status })
 
-/** `progress` on movies and episodes, `watchStatus` on seasons and series. */
 export const progressFields = (
   view: ProgressView | undefined,
 ): { progress?: ItemProgressDto; watchStatus?: WatchStatusDto } => {
@@ -51,16 +50,9 @@ type Deps = {
   recordProgress: RecordProgress
   setWatched: SetWatched
   hideFromContinue: HideFromContinue
-  /** What the active profile may see (§14: library access, content rating). */
   scopeFor: VisibilityScopeResolver
 }
 
-/**
- * §17.2 Progression: `/items/:id/progress`, `/items/:id/watched` (movie, episode, or every
- * visible episode of a season or a series), `/items/:id/hide-from-continue` ("My list" is in
- * `watchlist.ts`). Mounted at `/api/v1`. Middleware: per route or path-scoped, never `.use('*')`
- * (the sub-app is mounted at a shared prefix, a wildcard would leak to every other domain).
- */
 export const progressRoutes = ({
   recordProgress,
   setWatched,

@@ -3,8 +3,6 @@ import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from 'driz
 
 import { libraries } from './libraries.ts'
 
-// §6.1 Comptes et profils
-
 export const accounts = sqliteTable(
   'accounts',
   {
@@ -23,7 +21,6 @@ export const invitations = sqliteTable(
   {
     id: text().primaryKey(),
     tokenHash: text().notNull(),
-    /** Absent once the admin who created it is deleted: the history stays (§14). */
     createdBy: text().references(() => accounts.id, { onDelete: 'set null' }),
     expiresAt: text().notNull(),
     usedAt: text(),
@@ -101,10 +98,6 @@ export const sessions = sqliteTable(
   ],
 )
 
-/**
- * §27.3 OAuth clients of the MCP server: a Client ID Metadata Document (`client_id` is its HTTPS
- * URL, re-read after 24 h) or a Dynamic Client Registration (`client_id` generated here).
- */
 export const oauthClients = sqliteTable(
   'oauth_clients',
   {
@@ -120,11 +113,6 @@ export const oauthClients = sqliteTable(
   (t) => [uniqueIndex('oauth_clients_client_id_unique').on(t.clientId)],
 )
 
-/**
- * §27.3 assistants of the MCP server, the "AI assistants" rows: a token created in the admin
- * (`kind = token`, its hash here), or an OAuth connection (`kind = oauth`, its tokens in
- * `oauth_tokens`). Bound to an admin account and to the profile it acts as, until revoked.
- */
 export const assistantTokens = sqliteTable(
   'assistant_tokens',
   {
@@ -151,7 +139,6 @@ export const assistantTokens = sqliteTable(
   ],
 )
 
-/** §27.3 authorization codes: single use, 60 s, bound to the PKCE challenge and redirect URI. */
 export const oauthCodes = sqliteTable(
   'oauth_codes',
   {
@@ -174,10 +161,6 @@ export const oauthCodes = sqliteTable(
   (t) => [index('oauth_codes_expires_at_idx').on(t.expiresAt)],
 )
 
-/**
- * §27.3 access (1 h) and refresh (90 days, rotated) tokens of an OAuth assistant. A rotated
- * refresh token is kept until it expires: presenting it again revokes the assistant.
- */
 export const oauthTokens = sqliteTable(
   'oauth_tokens',
   {
@@ -195,7 +178,6 @@ export const oauthTokens = sqliteTable(
   ],
 )
 
-/** §14 "Pairing a device": a code shown by the web, claimed by the app. Only its hash is kept. */
 export const pairings = sqliteTable(
   'pairings',
   {

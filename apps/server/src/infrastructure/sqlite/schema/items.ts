@@ -11,13 +11,10 @@ import {
 
 import { libraries, sources } from './libraries.ts'
 
-// §6.3 Items and metadata
-
 export const images = sqliteTable(
   'images',
   {
     id: text().primaryKey(),
-    // `profile`: cast photos (`people.profile_image_id`), no CHECK constraint in SQLite.
     kind: text({ enum: ['poster', 'backdrop', 'logo', 'still', 'profile'] }).notNull(),
     origin: text({ enum: ['tmdb', 'custom'] }).notNull(),
     tmdbPath: text(),
@@ -49,17 +46,12 @@ export const items = sqliteTable(
     originalLanguage: text(),
     voteAverage: real(),
     contentRating: text(),
-    /**
-     * Country of `content_rating` (§9.1: the library's, or the US fallback); absent = the rating
-     * country of the library holding the source (rows enriched before this column).
-     */
     contentRatingCountry: text(),
     seriesStatus: text({ enum: ['in_production', 'ended', 'canceled'] }),
     seasonNumber: integer(),
     episodeNumber: integer(),
     airDate: text(),
     episodeCountTmdb: integer(),
-    /** Series: TMDB `last_air_date`, the end of "2023 – 2025" (§13.5). */
     lastAirDate: text(),
     posterImageId: text().references(() => images.id, { onDelete: 'set null' }),
     backdropImageId: text().references(() => images.id, { onDelete: 'set null' }),
@@ -67,10 +59,6 @@ export const items = sqliteTable(
     stillImageId: text().references(() => images.id, { onDelete: 'set null' }),
     addedAt: text(),
     metadataRefreshedAt: text(),
-    /**
-     * Language (BCP 47) the TMDB metadata was last written in (§9.1, §9.4); absent on local items.
-     * Compared with the language the item resolves to, it tells the stale rows after a change.
-     */
     metadataLanguage: text(),
     createdAt: text().notNull(),
     updatedAt: text().notNull(),
@@ -97,11 +85,6 @@ export const itemOverrides = sqliteTable(
   (t) => [primaryKey({ columns: [t.itemId, t.field] })],
 )
 
-/**
- * Memory of the corrections (§7.8, §9.2), keyed by the file and not by its `sources` row: a purged
- * source that comes back (new row, same path or same bytes) gets its correction again.
- * `source_id`: the source it was last applied to (a move the scan recognized keeps its row).
- */
 export const manualMatches = sqliteTable(
   'manual_matches',
   {

@@ -6,7 +6,6 @@ type Deps = {
   settingsRepository: SettingsRepository
 }
 
-/** `GET /setup/status`: whether the first-launch wizard is closed, and the server name. */
 export const getSetupStatusFactory =
   ({ setupRepository, settingsRepository }: Deps) =>
   (): { completed: boolean; serverName?: string } => {

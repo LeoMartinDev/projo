@@ -11,9 +11,7 @@ export const textStyles = StyleSheet.create({
   },
   body: { color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   error: { color: colors.errorSoft, fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
-  /** A pairing code: monospaced, spaced out. */
   code: { fontFamily: fonts.mono, fontSize: 22, letterSpacing: 4 },
-  /** Small uppercase heading of a settings group. */
   section: {
     color: colors.textMuted,
     fontFamily: fonts.medium,

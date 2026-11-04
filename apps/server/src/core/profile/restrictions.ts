@@ -2,12 +2,9 @@ import type { ContentRatingTier, LibraryAccess } from '@projo/shared/api/profile
 
 import { tierAge } from './content-rating.ts'
 
-/** What a profile may see (§14): library access and maximum rating. */
 export type ProfileRestrictions = {
   libraryAccess: LibraryAccess
-  /** Meaningful for `selected` only. */
   libraryIds: readonly string[]
-  /** Absent: no limit. */
   maxContentRating?: ContentRatingTier
 }
 
@@ -27,7 +24,6 @@ const librariesWithin = (
   (access.libraryAccess === 'selected' &&
     access.libraryIds.every((id) => ceiling.libraryIds.includes(id)))
 
-/** `restrictions` sees nothing that `ceiling` does not (equal or narrower). */
 export const isWithin = (
   restrictions: ProfileRestrictions,
   ceiling: ProfileRestrictions,
@@ -37,10 +33,6 @@ export const isWithin = (
 
 export const unrestricted: ProfileRestrictions = { libraryAccess: 'all', libraryIds: [] }
 
-/**
- * What only all of several profiles see: `selected` if one of them is, with the libraries they
- * all see; the strictest tier. With no profile: nothing.
- */
 export const intersectionOf = (list: readonly ProfileRestrictions[]): ProfileRestrictions => {
   if (list.length === 0) return { libraryAccess: 'selected', libraryIds: [], maxContentRating: '0' }
   const selected = list.filter((r) => r.libraryAccess === 'selected')
@@ -61,11 +53,6 @@ export const intersectionOf = (list: readonly ProfileRestrictions[]): ProfileRes
   }
 }
 
-/**
- * What an actor acts as (§14): its active profile once resolved; without one (a refused or
- * missing `X-Profile-Id`, "Who's watching?" not answered yet), the most restricted profile of the
- * account, so that a child cannot pass for an unrestricted profile.
- */
 export const effectiveRestrictions = ({
   active,
   accountProfiles,
@@ -74,17 +61,11 @@ export const effectiveRestrictions = ({
   accountProfiles: readonly ProfileRestrictions[]
 }): ProfileRestrictions => active ?? intersectionOf(accountProfiles)
 
-/**
- * §14: library access and maximum rating are the admin's. An admin may widen them only from a
- * resolved active profile without restrictions (never without an active profile, never from a
- * child using the admin's account); anyone may narrow them.
- */
 export const mayWiden = ({
   role,
   activeRestrictions,
 }: {
   role: 'admin' | 'user'
-  /** The resolved active profile; `undefined` when none could be resolved. */
   activeRestrictions: ProfileRestrictions | undefined
 }): boolean =>
   role === 'admin' && activeRestrictions !== undefined && !isRestricted(activeRestrictions)

@@ -29,7 +29,6 @@ const wallImages: readonly BackdropImage[] = [
   'forest',
 ]
 
-/** Seven drifting columns of four tiles, each column doubled so the loop is seamless. */
 const wallColumns = Array.from({ length: 7 }, (_, column) => {
   const tiles = [0, 1, 2, 3].map(
     (row) => wallImages[(column * 5 + row * 3) % wallImages.length] ?? 'ocean',
@@ -51,10 +50,6 @@ const Wall = () => (
   </div>
 )
 
-/**
- * The first analysis, live: the walk, then the files on their way to `ready` (quiet period,
- * verification) until none is left, unreadable files counted apart.
- */
 const FirstScan = ({ library }: { library: CreatedLibrary }) => {
   const { t } = useTranslation()
   const details = useQuery(libraryQuery(library.id))
@@ -62,7 +57,6 @@ const FirstScan = ({ library }: { library: CreatedLibrary }) => {
     analyzing: details.data !== undefined && hasAnalysisInProgress(details.data),
   })
 
-  // Creating the library queued its first scan: show it as started until the stream catches up.
   const showQueued = useEffectEvent(() => markQueued(library.id, library.requestedAt))
   useEffect(() => showQueued(), [library.id])
 
@@ -99,7 +93,6 @@ const FirstScan = ({ library }: { library: CreatedLibrary }) => {
   )
 }
 
-/** Artboard `OnbReady`: the server is set up; the first scan carries on in the background. */
 export const ReadyScreen = ({ name, library }: { name: string; library?: CreatedLibrary }) => {
   const { t } = useTranslation()
   return (

@@ -6,7 +6,6 @@ import type { Db } from './database.ts'
 import { items } from './schema/items.ts'
 import { libraries, sources, sourceSubtitles } from './schema/libraries.ts'
 
-/** SQLite `IN (…)` lists stay under the bound-parameter limit. */
 const chunkSize = 500
 
 const existing = (ids: readonly string[], lookup: (chunk: string[]) => { id: string }[]) => {

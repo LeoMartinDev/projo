@@ -20,11 +20,6 @@ import { DetailHead, HeadAction, ProgressLine } from './DetailHead.tsx'
 import { CastRow, Tracks } from './sections.tsx'
 import { SeriesEpisodes } from './SeriesEpisodes.tsx'
 
-/**
- * A movie or an episode (§13.5): "Play" or "Resume at 1:12", My list (movies), Mark as watched,
- * then the available tracks and the cast. "From the beginning" plays: it comes with playback (M6
- * slice 5).
- */
 const PlayableDetail = ({ item, regular, gutter }: { item: ItemDetailDto } & Layout) => {
   const { t } = useTranslation()
   const locale = useLocale()
@@ -98,10 +93,6 @@ const PlayableDetail = ({ item, regular, gutter }: { item: ItemDetailDto } & Lay
 
 type Layout = { regular: boolean; gutter: number }
 
-/**
- * A title page (§13.5), pushed in the current tab under a transparent native header: a movie, a
- * series or an episode; a season opens its series on that season.
- */
 export const ItemScreen = ({ id, season }: { id: string; season?: number | undefined }) => {
   const layout = useScreenLayout()
   const { height } = useWindowDimensions()
@@ -150,8 +141,6 @@ export const ItemScreen = ({ id, season }: { id: string; season?: number | undef
 
   return (
     <View onLayout={layout.onLayout} style={styles.root}>
-      {/* react-native-screens turns the first scroll view of a tab to automatic insets: the
-          backdrop must run under the transparent header, so this one is not the first. */}
       <View collapsable={false} />
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 96 }]}

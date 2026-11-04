@@ -6,13 +6,8 @@ import { isNewerVersion, satisfiesMinimum } from '../../core/updates/semver.ts'
 import type { UpdateCheckStore } from '../../core/updates/update.ts'
 import type { GetAdminStats } from './types.ts'
 
-/** "Failed jobs" of the dashboard: failed for good in the last 24 h. */
 export const FAILED_JOBS_WINDOW_MS = 24 * 60 * 60_000
 
-/**
- * `GET /admin/stats` (§15 "Dashboard"): counters, running scans, active sessions, unread
- * notifications, recent failed jobs, versions, the newer release from the last check.
- */
 export const getAdminStatsFactory =
   ({
     statsQueries,

@@ -1,10 +1,3 @@
-/**
- * Arrow-key moves through the search results laid out as grids (§13.5): one grid per group
- * (movies, then shows), `columns` wide, filled row by row. `sizes` are the groups' lengths in
- * order and `current` an index into their concatenation. Down goes to the item below, from a
- * group's last row to the next group's first row (same column, or its last item), from the last
- * group back to the first; up is the reverse.
- */
 export const moveInGrid = ({
   sizes,
   columns,

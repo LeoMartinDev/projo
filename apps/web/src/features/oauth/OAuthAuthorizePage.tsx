@@ -15,7 +15,6 @@ import { readAuthorizeQuery } from './authorize-query.ts'
 import '../auth/auth.css'
 import './oauth.css'
 
-/** The login's composition: the backdrop, the logo, one glass panel. */
 const Screen = ({ children }: { children: ReactNode }) => (
   <div className="auth">
     <Backdrop image="ocean" shade="split" />
@@ -28,7 +27,6 @@ const Screen = ({ children }: { children: ReactNode }) => (
   </div>
 )
 
-/** An unusable request: the reason, and the way home. Never a redirect to the client. */
 const Failed = ({ error }: { error: unknown }) => {
   const { t } = useTranslation()
   return (
@@ -42,7 +40,6 @@ const Failed = ({ error }: { error: unknown }) => {
   )
 }
 
-/** The decision, posted with the request; the answer says where the browser goes next. */
 const useDecision = (query: OAuthAuthorizeQuery) =>
   useMutation({
     mutationFn: (decision: 'allow' | 'deny') =>
@@ -53,7 +50,6 @@ const useDecision = (query: OAuthAuthorizeQuery) =>
 const Consent = ({ query, consent }: { query: OAuthAuthorizeQuery; consent: OAuthConsentDto }) => {
   const { t } = useTranslation()
   const decide = useDecision(query)
-  // Still disabled once answered: the browser is leaving for the client.
   const busy = decide.isPending || decide.isSuccess
   const spinner = (decision: 'allow' | 'deny') =>
     decide.isPending && decide.variables === decision ? (
@@ -138,16 +134,7 @@ const ConsentLoader = ({ query }: { query: OAuthAuthorizeQuery }) => {
   return <Consent query={query} consent={consent.data} />
 }
 
-/**
- * `/oauth/authorize` (§27.3): an assistant (ChatGPT, a Claude connector) asks to act as the
- * active profile. Behind the login and "Who's watching?" (the route comes back here with the same
- * query). Shows the client, the host the code goes back to, a warning when that is this computer,
- * and the profile; "Autoriser" / "Annuler" post the decision and follow `redirectTo`. Without the
- * right (not an admin, restricted profile): the reason and "Retour", which declines. An invalid
- * request is shown, never sent back.
- */
 export const OAuthAuthorizePage = () => {
-  // Read once, from the address bar as it came: the router's search parsing retypes values.
   const [query] = useState(() => readAuthorizeQuery(window.location.search))
   return (
     <Screen>

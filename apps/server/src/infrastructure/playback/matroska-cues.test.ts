@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test'
 
 import { matroskaKeyframes, type ReadAt } from './matroska-cues.ts'
 
-// A tiny Matroska writer: every size on 8 bytes, every uint on 4.
 const concat = (parts: readonly Uint8Array[]) => {
   const bytes = new Uint8Array(parts.reduce((total, part) => total + part.length, 0))
   let offset = 0
@@ -34,16 +33,12 @@ const blockData = (track: number, relative: number, flags: number) =>
   Uint8Array.of(0x80 | track, (relative >> 8) & 0xff, relative & 0xff, flags, 0xaa)
 const simpleBlock = (track: number, relative: number, keyframe: boolean) =>
   el(0xa3, blockData(track, relative, keyframe ? 0x80 : 0))
-/** A keyframe in a `BlockGroup`: a `Block` without `ReferenceBlock`. */
 const groupedKeyframe = (track: number, relative: number) =>
   el(0xa0, el(0xa1, blockData(track, relative, 0)))
 
 type Spec = {
-  /** Cluster start times (ticks): a video keyframe at each, then non-key frames. */
   clusters: number[]
-  /** Clusters (indexes) listed in the cues; all by default. */
   cued?: number[]
-  /** Clusters whose keyframe is a `BlockGroup`. */
   grouped?: number[]
   videoTracks?: number
   timecodeScale?: number

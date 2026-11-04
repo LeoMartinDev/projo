@@ -21,12 +21,6 @@ import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { useHeroPreview } from './hero-preview.ts'
 
-/**
- * Hero of the home (§13.3, artboards `Home`, `MobileHome`): backdrop, TMDB logo (title when
- * absent), metadata line, short overview, "Play" / "Resume S2 · E4", "More info", My list.
- * With a clip (`previewUrl`), on desktop, after 2 s without interaction: the clip loops muted over
- * the backdrop, with "Turn on preview sound". Keyed by item by the caller.
- */
 export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -74,7 +68,6 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
         ) : undefined}
         <span className="hero__shade" />
       </div>
-      {/* Phone: the whole card opens the details, in place of the info button. */}
       <Link
         to="/items/$itemId"
         params={{ itemId: item.id }}

@@ -22,7 +22,6 @@ const schemas = {
   hwAccel: z.enum(['off', 'vaapi']),
 } satisfies { [K in keyof PlaybackSettings]: z.ZodType<PlaybackSettings[K]> }
 
-/** §10 playback keys of the `settings` table; an unset or invalid value reads as its default. */
 export const createSqlitePlaybackSettings = ({ db }: { db: Db }): PlaybackSettingsReader => {
   const read = (key: SettingKey): unknown =>
     db.select().from(settings).where(eq(settings.key, key)).get()?.value
@@ -51,7 +50,6 @@ const editableKeys = [
   'hwAccel',
 ] as const satisfies readonly (keyof PlaybackSettings)[]
 
-/** §15 "Playback": writes the given keys, in one transaction; the reader sees them at once. */
 export const createSqlitePlaybackSettingsWriter = ({ db }: { db: Db }): PlaybackSettingsWriter => ({
   write: ({ values, at }) => {
     db.transaction((tx) => {

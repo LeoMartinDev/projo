@@ -5,14 +5,8 @@ import type { ItemSummaryDto, PlayTargetDto } from '@projo/shared/api/catalog'
 import { formatDuration } from './format.ts'
 import { episodeCode, episodeLine, itemTitle } from './item-titles.ts'
 
-/**
- * What the spectator cards show of an item (§13.3, §19 "Formats d'images"), pure so the rules
- * are tested in Bun: which picture, which progress, where a click leads.
- */
-
 const toneCount = 6
 
-/** Stable tone per item: the colour of a card whose picture is missing (§13.5 "repli"). */
 export const toneOf = (id: string): number => {
   let hash = 0
   for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0
@@ -21,18 +15,12 @@ export const toneOf = (id: string): number => {
 
 type Pictured = Pick<ItemSummaryDto, 'images' | 'series'>
 
-/** 2:3 poster: the item's, or its series' for an episode. */
 export const posterOf = (item: Pictured): string | undefined =>
   item.images.poster ?? item.series?.images?.poster
 
-/** 16:9 picture: an episode's still, else the backdrop, else the series' backdrop. */
 export const wideArtOf = (item: Pictured): string | undefined =>
   item.images.still ?? item.images.backdrop ?? item.series?.images?.backdrop
 
-/**
- * Big title of a card: an episode shows its series (artboard `Home`). Undefined for an item
- * without a title of its own (§6.3): the caller labels it from its number (`itemTitle`).
- */
 export const cardTitleOf = (
   item: Pick<ItemSummaryDto, 'title' | 'kind' | 'series'>,
 ): string | undefined =>
@@ -40,7 +28,6 @@ export const cardTitleOf = (
 
 export type EpisodeLabels = { season: string; episode: string }
 
-/** `S2 · E4`, or nothing for an item outside a series. */
 export const episodeLabelOf = (
   item: Pick<ItemSummaryDto, 'kind' | 'seasonNumber' | 'episodeNumber'>,
   labels: EpisodeLabels,
@@ -49,31 +36,26 @@ export const episodeLabelOf = (
     ? episodeCode(item.seasonNumber, item.episodeNumber, labels) || undefined
     : undefined
 
-/** Movies and episodes: the position as a 0..1 ratio while "en cours" (§13.1). */
 export const progressRatioOf = (item: Pick<ItemSummaryDto, 'progress'>): number | undefined => {
   const progress = item.progress
   if (progress?.state !== 'in_progress' || progress.durationMs <= 0) return undefined
   return Math.min(1, Math.max(0, progress.positionMs / progress.durationMs))
 }
 
-/** Time left of an item in progress. */
 export const remainingMsOf = (item: Pick<ItemSummaryDto, 'progress'>): number | undefined => {
   const progress = item.progress
   if (progress?.state !== 'in_progress' || progress.durationMs <= 0) return undefined
   return Math.max(0, progress.durationMs - progress.positionMs)
 }
 
-/** Running time: the probed file first, TMDB's runtime otherwise. */
 export const durationMsOf = (
   item: Pick<ItemSummaryDto, 'durationMs' | 'runtimeMinutes'>,
 ): number | undefined =>
   item.durationMs ?? (item.runtimeMinutes === undefined ? undefined : item.runtimeMinutes * 60_000)
 
-/** Watched as a whole: a movie or episode seen, a series or season with every episode seen. */
 export const isWatched = (item: Pick<ItemSummaryDto, 'progress' | 'watchStatus'>): boolean =>
   item.progress?.watched === true || item.watchStatus?.state === 'watched'
 
-/** Partly watched series or season: "x / n vus". */
 export const partialCountOf = (
   item: Pick<ItemSummaryDto, 'watchStatus'>,
 ): { watched: number; total: number } | undefined =>
@@ -81,14 +63,9 @@ export const partialCountOf = (
     ? { watched: item.watchStatus.watchedCount, total: item.watchStatus.totalCount }
     : undefined
 
-/** "My list" holds movies and series only; an episode has no toggle of its own. */
 export const canListItem = (item: Pick<ItemSummaryDto, 'kind'>): boolean =>
   item.kind === 'movie' || item.kind === 'series'
 
-/**
- * Detail page of an item: an episode or a season opens its series on the right season tab, so
- * "More info" on an "Up next" card lands on the episode list.
- */
 export const detailTargetOf = (
   item: Pick<ItemSummaryDto, 'id' | 'kind' | 'seasonNumber' | 'series'>,
 ): { itemId: string; season?: number } => {
@@ -100,11 +77,9 @@ export const detailTargetOf = (
   return { itemId: item.id }
 }
 
-/** Movies and episodes play directly; a series needs its "Lire / Reprendre" target first. */
 export const isDirectlyPlayable = (item: Pick<ItemSummaryDto, 'kind'>): boolean =>
   item.kind === 'movie' || item.kind === 'episode'
 
-/** Badge of the best file (§13.5 "4K HDR"): `4K`, `HD`, `SD`, with `HDR` or `Dolby Vision`. */
 export const qualityLabel = (
   quality:
     | { resolution: '2160p' | '1080p' | '720p' | 'SD'; dynamicRange: 'sdr' | 'hdr' | 'dv' }
@@ -122,7 +97,6 @@ export const qualityLabel = (
   return range === undefined ? resolution : `${resolution} ${range}`
 }
 
-/** Years of an item: "2023", or "2023 – 2025" for a series aired over several years (§13.5). */
 export const yearsLabel = (item: Pick<ItemSummaryDto, 'year' | 'endYear'>): string | undefined => {
   if (item.year === undefined) return undefined
   return item.endYear === undefined || item.endYear <= item.year
@@ -130,10 +104,6 @@ export const yearsLabel = (item: Pick<ItemSummaryDto, 'year' | 'endYear'>): stri
     : `${item.year} – ${item.endYear}`
 }
 
-/**
- * What the "My list" button of a card acts on: a movie or a series itself; an episode of a home
- * row, its series (§13.3). `undefined` when nothing can be listed.
- */
 export const listTargetOf = (
   item: Pick<ItemSummaryDto, 'id' | 'kind' | 'inWatchlist' | 'series'>,
 ): { id: string; inWatchlist?: boolean } | undefined => {
@@ -147,25 +117,15 @@ export const listTargetOf = (
   return { id: item.series.id, inWatchlist: item.series.inWatchlist }
 }
 
-/**
- * Where a card is shown: the home rows of §13.3 (`category`: Anime, genres), a grid, search (the
- * web's results; the mobile app shows none there yet).
- */
 export type CardPlace =
   'continue_watching' | 'up_next' | 'recently_added' | 'watchlist' | 'category' | 'grid' | 'search'
 
-/** 2:3 posters on the home (§19): Recently added and the category rows. */
 export const isPosterPlace = (place: CardPlace): boolean =>
   place === 'recently_added' || place === 'category'
 
-/** Time left rounded up to the minute: "1 min" rather than "0 min" near the end. */
 export const formatRemaining = (ms: number, locale: string) =>
   formatDuration(Math.ceil(Math.max(ms, 1) / 60_000) * 60_000, locale)
 
-/**
- * The main button of a series (hero, title page, §13.5): "Resume S2 · E4", "Play S1 · E3" once
- * started, "Resume" or "Play" otherwise.
- */
 export const playLabelOf = (
   t: TFunction,
   item: Pick<ItemSummaryDto, 'kind' | 'watchStatus'>,
@@ -182,25 +142,15 @@ export const playLabelOf = (
 }
 
 export type CardText = {
-  /** Big title on the picture (an episode shows its series). */
   title: string
-  /** `S2 · E4` of an episode. */
   code?: string
-  /** Line under the picture, left: "S2 · E4 · Coefficient 112", "Movie · 2024". */
   sub: string
-  /** Line under the picture, right: time left, running time, "3 / 9 vus". */
   right?: string
-  /**
-   * Preview and sheet line: "S2 · E4 “Coefficient 112”", "Movie · 2024",
-   * "Show · 2 seasons · 2023 – 2025".
-   */
   line: string
   duration?: string
-  /** "18 min restantes". */
   remaining?: string
 }
 
-/** The words of a card (artboards `Home`, `MobileHome`), in the interface language. */
 export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): CardText => {
   const labels = { season: t('item.seasonShort'), episode: t('item.episodeShort') }
   const code = episodeLabelOf(item, labels)
@@ -218,7 +168,6 @@ export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): 
     .filter((part) => part !== undefined)
     .join(' · ')
   const partial = partialCountOf(item)
-  // Wherever the card shows a progress bar, its time is the time left, and says so (§13.3).
   const right =
     remaining !== undefined
       ? t('item.remaining', { duration: remaining })

@@ -5,13 +5,11 @@ import type { CreateProfileBody, ProfileDto, UpdateProfileBody } from '@projo/sh
 import { api, request } from '../../shared/api/client.ts'
 import { profileSelected, profileUpdated, sessionQuery } from '../../shared/session/session.ts'
 
-/** `GET /profiles`: the account's profiles, oldest first (§13.6). */
 export const profilesQuery = queryOptions({
   queryKey: ['profiles'],
   queryFn: () => request(() => api.profiles.$get()),
 })
 
-/** The profiles changed: the list and the session (`GET /auth/me` carries them too). */
 const useRefreshProfiles = () => {
   const queryClient = useQueryClient()
   return async () => {
@@ -20,10 +18,6 @@ const useRefreshProfiles = () => {
   }
 }
 
-/**
- * `POST /profiles/:id/select` (§13.6): the profile becomes the session's, PIN checked by the
- * server. The previous profile's cache is dropped.
- */
 export const useSelectProfile = () => {
   const queryClient = useQueryClient()
   return useMutation({
@@ -35,7 +29,6 @@ export const useSelectProfile = () => {
   })
 }
 
-/** `POST /profiles/:id/verify-pin`: unlocks the editor of a protected profile. */
 export const useVerifyPin = () =>
   useMutation({
     mutationFn: ({ id, pin }: { id: string; pin: string }) =>

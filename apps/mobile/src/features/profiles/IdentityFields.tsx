@@ -15,7 +15,6 @@ import {
 import { avatarColors, colors, fonts } from '../../shared/styles/tokens.ts'
 import { TextField } from '../../shared/ui/TextField.tsx'
 
-/** Draft of a profile's name, colour and PIN, as the web's editor and settings keep it. */
 export const useIdentityDraft = (profile: ProfileDto | undefined) => {
   const [name, setName] = useState(profile?.name ?? '')
   const [color, setColor] = useState<AvatarColor | undefined>(profile?.avatarColor)
@@ -26,7 +25,6 @@ export const useIdentityDraft = (profile: ProfileDto | undefined) => {
   const needsNewPin = pinOn && (profile?.hasPin !== true || changingPin)
   const pinValid = !needsNewPin || pinSchema.safeParse(pin).success
   const removesPin = profile?.hasPin === true && !pinOn
-  /** What `PATCH /profiles/:id` must change (`pin: ""` removes it). */
   const changes = (editing: ProfileDto): UpdateProfileBody => ({
     ...(name.trim() === editing.name ? {} : { name: name.trim() }),
     ...(color === undefined || color === editing.avatarColor ? {} : { avatarColor: color }),
@@ -63,10 +61,6 @@ export const useIdentityDraft = (profile: ProfileDto | undefined) => {
 
 export type IdentityDraft = ReturnType<typeof useIdentityDraft>
 
-/**
- * Name, colour among six and optional 4-digit PIN of a profile (§13.6). `canEditPin`: a restricted
- * profile does not set or remove a PIN (§14).
- */
 export const IdentityFields = ({
   draft,
   hasPin,
@@ -130,7 +124,6 @@ export const IdentityFields = ({
               value={draft.pinOn}
             />
           </View>
-          {/* Always there, off until a new PIN is needed: the form keeps its size (AGENTS.md). */}
           <TextField
             autoComplete="off"
             editable={draft.needsNewPin}

@@ -37,7 +37,6 @@ import { type CatalogKind, useCatalogQueries } from './queries.ts'
 const sorts: readonly CatalogSort[] = ['added', 'title', 'year', 'rating']
 const watchFilters: readonly WatchFilter[] = ['unwatched', 'in_progress', 'watched']
 
-/** The "Filters" sheet of a phone (§13.4): genre, years then year, watched or not. */
 const FiltersSheet = ({
   kind,
   open,
@@ -133,11 +132,6 @@ const FiltersSheet = ({
   )
 }
 
-/**
- * Movies and Shows (§13.4): the poster grid, the sort above it, the filters in a sheet behind the
- * header's button; the whole state kept per profile and per device. "See all ›" of Recently added
- * arrives with `?sort=added`, which becomes the remembered sort.
- */
 export const CatalogScreen = ({ kind }: { kind: CatalogKind }) => {
   const { t } = useTranslation()
   const router = useRouter()
@@ -154,7 +148,6 @@ export const CatalogScreen = ({ kind }: { kind: CatalogKind }) => {
   const { gate } = useSession()
   const { gate: connection } = useServerConnection()
 
-  // The link's sort becomes the remembered one, and leaves the route.
   const arrivalSort = arrival.sort
   useEffect(() => {
     if (arrivalSort === undefined || state === undefined) return

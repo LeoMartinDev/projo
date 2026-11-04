@@ -5,7 +5,6 @@ import type { Db } from './database.ts'
 import { fromIso, toIso } from './rows.ts'
 import { tmdbResponses } from './schema/metadata.ts'
 
-/** `tmdb_responses`: TMDB detail responses cached in the database (§9.2). */
 export const createSqliteTmdbResponseStore = ({
   db,
 }: {

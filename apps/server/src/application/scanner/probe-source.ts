@@ -25,23 +25,13 @@ import type {
 } from '../../core/source/source.ts'
 import type { LinkSourceItems } from './link-source-items.ts'
 
-/**
- * - `quarantine`: a pending source whose quiet period is over (§7.3 step 4);
- * - `verify`: full scan, a ready source whose signature is checked again (§7.4);
- * - `recheck`: admin, the whole check again whatever the state.
- */
 export type ProbeMode = 'quarantine' | 'verify' | 'recheck'
 
-/**
- * A request merged into a queued probe of the same file never weakens it: `verify` may skip the
- * decodes, `quarantine` decodes, `recheck` decodes whatever the state.
- */
 const probeStrength: Record<ProbeMode, number> = { verify: 0, quarantine: 1, recheck: 2 }
 
 const isProbeMode = (value: unknown): value is ProbeMode =>
   typeof value === 'string' && Object.hasOwn(probeStrength, value)
 
-/** The `probe_source` job of a source (one per source, `source:<id>`): the stronger mode wins. */
 export const probeJob = (sourceId: string, mode: ProbeMode) => ({
   type: 'probe_source' as const,
   payload: { sourceId, mode },
@@ -64,7 +54,6 @@ type Deps = {
   prober: MediaProber
   decoder: MediaDecoder
   linkSourceItems: LinkSourceItems
-  /** §7.2: ready → matching (job `match_source`). */
   requestMatch: MatchRequester
   notifier: AdminNotifier
   eventBus: EventBus
@@ -72,10 +61,6 @@ type Deps = {
   logger: Logger
 }
 
-/**
- * Failures that say nothing about the file, nothing written: retried (ffmpeg not installed, too
- * slow) or interrupted (cancel, clean stop: released by the runner, §18).
- */
 export type ProbeSourceError = AppError<'media/binary_missing' | 'media/timeout' | 'job/cancelled'>
 
 const isToolFailure = (
@@ -83,12 +68,6 @@ const isToolFailure = (
 ): error is AppError<'media/binary_missing' | 'media/timeout'> =>
   error.code === 'media/binary_missing' || error.code === 'media/timeout'
 
-/**
- * Job `probe_source` (§7.3 step 4–5): ffprobe (duration > 0, a video stream), then three 2 s
- * decodes at 10/50/90 %. Success: `ready`, probe and signature stored, embedded subtitles listed,
- * items linked, `source.ready` published. Failure: back to `pending` with the reason. Nothing is
- * written when the row changed during the run (hidden, missing, moved).
- */
 export const probeSourceFactory = ({
   sourceRepository,
   fileSystem,
@@ -101,7 +80,6 @@ export const probeSourceFactory = ({
   clock,
   logger,
 }: Deps) => {
-  /** A scan or the admin may have moved, hidden or marked the source missing while ffmpeg ran. */
   const changedMeanwhile = (source: Source): boolean => {
     const fresh = sourceRepository.findById(source.id)
     return (
@@ -154,14 +132,12 @@ export const probeSourceFactory = ({
     const path = sourceRepository.absolutePathOf(sourceId)
     if (source === undefined || path === undefined || !runnable(source, mode)) return ok('skipped')
     const withSignal = signal === undefined ? {} : { signal }
-    // An abort reaches here as `media/ffmpeg_failed`: the signal tells it apart.
     const notTheFile = (error: MediaError): ProbeSourceError | undefined => {
       if (signal?.aborted === true)
         return appError('job/cancelled', 'probe interrupted', { context: { sourceId } })
       return isToolFailure(error) ? error : undefined
     }
 
-    // Bytes must be the ones the quiet period vouched for.
     const before = await fileSystem.stat(path)
     if (!before.ok || before.value.kind !== 'file') return ok('skipped')
     const quarantine = (sizeBytes: number, mtimeMs: number): ProbeOutcome => {
@@ -231,7 +207,6 @@ export const probeSourceFactory = ({
     sourceRepository.replaceEmbeddedSubtitles(source.id, embeddedSubtitlesOf(probe.value))
     const readyAt = becameReady ? now : (source.readyAt ?? now)
     linkSourceItems({ ...source, readyAt })
-    // An identified source keeps its items (§7.3: a replaced file takes its place back).
     if (source.matchState !== 'matched' && source.matchState !== 'manual') {
       requestMatch({ sourceId: source.id })
     }

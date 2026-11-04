@@ -5,7 +5,6 @@ import type { RatingBadge } from '@projo/i18n/content-ratings'
 
 import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 
-/** The kit's progress bar (`.bar`): a track and the accent up to `ratio` (0..1). */
 export const ProgressBar = ({
   ratio,
   height = 3,
@@ -26,17 +25,12 @@ export const ProgressBar = ({
   </View>
 )
 
-/** An outlined badge: the rating (§13.5, its full label for VoiceOver) or the quality ("4K HDR"). */
 export const OutlineBadge = ({ text, label }: { text: string; label?: string }) => (
   <View accessibilityLabel={label ?? text} accessible style={styles.badge}>
     <Text style={styles.badgeText}>{text}</Text>
   </View>
 )
 
-/**
- * A metadata line (artboard `MobileSeries`): its parts separated by "·", the rating and the
- * quality as outlined badges.
- */
 export const MetaLine = ({
   parts,
   rating,

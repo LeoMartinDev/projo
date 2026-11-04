@@ -1,4 +1,3 @@
-/** Layout of the data volume (§5.4). Pure path computation; directories are created at startup. */
 export type DataPaths = {
   root: string
   db: { dir: string; file: string; backups: string }
@@ -16,7 +15,6 @@ export type DataPaths = {
     trickplay: string
     subtitles: string
     keyframes: string
-    /** Hero video previews (§13.3), `<item>.mp4`. */
     previews: string
   }
   app: {
@@ -24,11 +22,8 @@ export type DataPaths = {
     versions: string
     staging: string
     current: string
-    /** Last known good version, written by the supervisor (§16.3). */
     previous: string
-    /** The version to switch to, written by the app before the exit 75 (§16.3, §16.4). */
     pending: string
-    /** The supervisor's report of the last switch, read once at startup (`SwitchReport`). */
     switchResult: string
   }
   logs: string
@@ -73,7 +68,6 @@ export const dataPathsFor = (root: string): DataPaths => {
   }
 }
 
-/** Directories that must exist (`app/current` is a symlink owned by the supervisor). */
 export const requiredDirectories = (paths: DataPaths): string[] => [
   paths.db.dir,
   paths.db.backups,

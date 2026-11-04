@@ -74,10 +74,8 @@ const part = (id: string, partIndex: number, durationMs: number): PlayableSource
   partIndex,
   media: { durationMs, video: [], audio: [], subtitles: [] },
 })
-/** A movie in two parts (§7.7) and a two-episode file (§8.4). */
 const parts = [part('cd1', 1, 1_000_000), part('cd2', 2, 2_000_000)]
 const double: PlayableSource = { ...source, id: 'e01-e02' }
-/** A longer cut of `movie-2` (§7.7): 90 min against 60. */
 const extended: PlayableSource = {
   ...source,
   id: 'extended',
@@ -88,7 +86,6 @@ const catalog = {
   findSource: (id: string) => sourcesById.get(id),
   listReadySources: ({ itemId }: { itemId: string }) => (itemId === 'movie-2' ? [source] : parts),
   listSourceItemIds: (id: string) => (id === double.id ? ['e1', 'e2'] : []),
-  // §12.4: `movie-2` has end credits from 50 min.
   listMediaSegments: (itemId: string) =>
     itemId === 'movie-2' ? [{ type: 'credits', startMs: 3_000_000, endMs: 3_600_000 }] : [],
 } as unknown as CatalogRepository
@@ -99,7 +96,6 @@ let progress: ReturnType<typeof inMemoryProgress>
 let events: ServerEvent[]
 let stopped: string[]
 let cacheDirs: Set<string>
-/** Sessions the segmenter / HLS stream still hold state for. */
 let streaming: Set<string>
 let released: string[]
 let lifecycle: ReturnType<typeof build>
@@ -126,7 +122,6 @@ const build = () => {
     clock,
     logger: silentLogger,
   })
-  // The child's profile sees nothing; the others see everything.
   const isItemVisible = ({ profileId }: { profileId: string }) => profileId !== 'profile-kid'
   const authorize = authorizePlaybackFactory({
     sessionRepository: sessions,
@@ -229,7 +224,6 @@ describe('heartbeat', () => {
       ok: true,
       value: { progress: { watched: true, playCount: 1, positionMs: 3_600_000 } },
     })
-    // The session keeps the real position (the player's), the progress says "vu".
     expect(sessions.rows.get('s1')?.positionMs).toBe(3_010_000)
   })
 
@@ -357,7 +351,6 @@ describe('sweep', () => {
     expect([...cacheDirs]).toEqual(['active', 'ended'])
 
     clock.advance(5 * 60_000 - 1)
-    // Keep "active" alive meanwhile.
     sessions.heartbeat({ id: 'active', at: clock.now(), positionMs: 0 })
     lifecycle.sweep()
     expect([...cacheDirs]).toEqual(['active', 'ended'])
@@ -376,7 +369,6 @@ describe('sweep: safety net for sessions gone without `endSession` (SQL cascade)
     cacheDirs = new Set(['live', 'ghost'])
     lifecycle.sweep()
     expect(released.sort()).toEqual(['ended', 'ghost'])
-    // ffmpeg may still be dying: the folder goes on the next pass.
     expect([...cacheDirs].sort()).toEqual(['ghost', 'live'])
     lifecycle.sweep()
     expect([...cacheDirs]).toEqual(['live'])
@@ -442,7 +434,6 @@ describe('stop', () => {
     }
     expect(sessions.rows.get('s1')?.endedAt).toBeUndefined()
     expect(stopped).toEqual([])
-    // Another profile of the account that sees the title may stop it (the TV left playing).
     expect(
       await lifecycle.stop({ sessionId: 's1', accountId: 'account-1', profileId: 'profile-2' }),
     ).toMatchObject({ ok: true })

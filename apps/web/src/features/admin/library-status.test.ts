@@ -46,7 +46,6 @@ const finishedScan = (finishedAt: string, error?: string) => ({
 const lastScan = finishedScan('2026-10-23T12:00:00Z')
 const { finishedAt: _, ...runningScan } = lastScan
 
-/** 78 files found by the first scan of a NAS share (the case that read "up to date" too early). */
 const nas = (
   ready: number,
   analysis: LibraryDto['analysis'],
@@ -97,7 +96,6 @@ describe('libraryState', () => {
     const over = libraryState(library({ lastScan: finishedScan('2026-10-23T12:00:00Z') }), live)
     expect(over).toEqual({ kind: 'ok', failed: 0 })
     expect(isScanning(over)).toBe(false)
-    // Another run finished: this one is still live.
     const older = { ...finishedScan('2026-10-23T12:00:00Z'), id: 'older-run' }
     expect(isScanning(libraryState(library({ lastScan: older }), live))).toBe(true)
   })
@@ -210,7 +208,6 @@ describe('createThrottle', () => {
     expect(runs).toBe(1)
     elapse()
     expect(runs).toBe(2)
-    // Quiet window: nothing more, and the next trigger runs at once again.
     elapse()
     expect(runs).toBe(2)
     throttle.trigger()

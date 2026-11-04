@@ -25,10 +25,6 @@ export const toNotificationDto = (notification: Notification): NotificationDto =
     : { resolvedAt: notification.resolvedAt.toISOString() }),
 })
 
-/**
- * §15 "Notifications", §17.2: `GET /admin/notifications`, `POST /admin/notifications/:id/read`.
- * Mounted at `/api/v1/admin`.
- */
 export const adminNotificationsRoutes = ({
   notifications,
 }: {

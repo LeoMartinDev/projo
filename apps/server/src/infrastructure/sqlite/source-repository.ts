@@ -77,7 +77,6 @@ const toSource = (row: SourceRow): Source => {
 const isoOrNull = (value: Date | undefined): string | null =>
   value === undefined ? null : toIso(value)
 
-/** `SourcePatch` → Drizzle `set`. A present key with `undefined` becomes NULL. */
 const toSet = (patch: SourcePatch): Partial<SourceInsert> => {
   const set: Partial<SourceInsert> = {}
   if ('rootId' in patch && patch.rootId !== undefined) set.rootId = patch.rootId
@@ -128,7 +127,6 @@ const toInsert = (source: NewSource): SourceInsert => ({
 
 const INSERT_CHUNK = 500
 
-/** Titles of linked items ("attached item", §15), episodes with their series. */
 const itemLabels = (db: Db, itemIds: string[]): Map<string, LinkedItemLabel> => {
   if (itemIds.length === 0) return new Map()
   const rows = db
@@ -189,7 +187,6 @@ export const createSqliteSourceRepository = ({
 
   applyChanges: ({ inserts, patches }) => {
     db.transaction((tx) => {
-      // Moves first free their old paths; a move onto a path freed in the same scan is then safe.
       for (const { id, patch } of patches) {
         const set = toSet(patch)
         if (Object.keys(set).length > 0) tx.update(sources).set(set).where(eq(sources.id, id)).run()
@@ -264,7 +261,6 @@ export const createSqliteSourceRepository = ({
   },
 
   pendingBreakdownByLibrary: (libraryId) => {
-    // Same reading as `watch_pending` / `decideStability`: a NULL reason is `growing`.
     const growing = sql`coalesce(${sources.pendingReason}, 'growing') = 'growing'`
     const waiting = sql`${growing} and ${sources.stableSince} is null`
     const row = db

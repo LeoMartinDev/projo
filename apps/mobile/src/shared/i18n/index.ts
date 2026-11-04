@@ -4,7 +4,6 @@ import { initReactI18next } from 'react-i18next'
 
 import { type Locale, matchLocale, resources } from '@projo/i18n'
 
-/** Device language by default (§19); the active profile's `ui_locale` overrides it. */
 export const setupI18n = (
   locale: Locale = matchLocale(getLocales().map(({ languageTag }) => languageTag)),
 ) => {

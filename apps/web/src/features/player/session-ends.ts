@@ -1,29 +1,11 @@
 import type { PlaybackHeartbeatBody } from '@projo/shared/api/playback'
 
-/**
- * Bookkeeping of the sessions being let go (§10.6), so a new `POST /playback/sessions` never
- * overlaps the `DELETE` of the previous one (a transcode counted twice, `transcode_limit_reached`
- * with a limit of 1): a track change, a part, and the next episode, whose player mounts before
- * the previous one's end has even started.
- */
 export type SessionEnds = {
-  /** Last heartbeat then `DELETE`, once per session whoever asks; settles when it is let go. */
   endOnce: (sessionId: string, last: PlaybackHeartbeatBody) => Promise<void>
-  /** The session is gone server side (stopped by the admin, expired): nothing to end. */
   forget: (sessionId: string) => void
-  /**
-   * The page already ended (or forgot) the session: a `playback.session_terminated` for it is the
-   * echo of its own `DELETE`, which can arrive before the next session replaces it on screen.
-   */
   isLetGo: (sessionId: string) => boolean
-  /** A (re)mounted player owns the session again: cancels a pending release (StrictMode). */
   retain: (sessionId: string) => void
-  /**
-   * Ends the session on the next tick unless a player retains it meanwhile. The end is pending
-   * from this call on, synchronously: `settled` waits for it.
-   */
   release: (sessionId: string, end: () => Promise<unknown>) => void
-  /** Resolves once every session being ended or released is let go (or retained). */
   settled: () => Promise<void>
 }
 
@@ -32,7 +14,6 @@ export const createSessionEnds = ({
   defer,
 }: {
   end: (sessionId: string, last: PlaybackHeartbeatBody) => Promise<void>
-  /** Runs `callback` on a later tick; returns its cancellation. */
   defer: (callback: () => void) => () => void
 }): SessionEnds => {
   const ending = new Map<string, Promise<void>>()
@@ -72,7 +53,6 @@ export const createSessionEnds = ({
     })
     releasing.set(sessionId, {
       done,
-      // Once the end has started, retaining no longer stops it: `settled` waits for it.
       cancel: () => {
         if (started) return
         cancelTick()

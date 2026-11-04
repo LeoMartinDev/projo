@@ -21,11 +21,6 @@ import {
   toCandidate,
 } from './http.ts'
 
-/**
- * IntroDB (https://introdb.app/docs, OpenAPI 1.0.0): `GET /segments`, read without a key, one
- * episode (or one movie) per request, never in bulk (§12.2). One aggregated segment per type:
- * `intro`, `recap`, `outro` (→ `credits`); `post_credits` is ignored.
- */
 export const INTRODB_BASE_URL = 'https://api.introdb.app'
 
 const PROVIDER = 'introdb'
@@ -42,7 +37,6 @@ const segmentsSchema = z.object({
   intro: nullish(segmentSchema),
   recap: nullish(segmentSchema),
   outro: nullish(segmentSchema),
-  /** Community-confirmed absence of the segment (not in the OpenAPI, documented and served). */
   no_intro: nullish(z.boolean()),
   no_recap: nullish(z.boolean()),
   no_outro: nullish(z.boolean()),
@@ -54,7 +48,6 @@ const typeMap = [
   { field: 'outro', absence: 'no_outro', type: 'credits' },
 ] as const satisfies readonly { field: string; absence: string; type: SegmentType }[]
 
-/** The OpenAPI pattern of `imdb_id`, and `season`/`episode` ≥ 1 (no specials). */
 const queryOf = (item: SegmentItemRef): Record<string, string | number | boolean> | undefined => {
   if (item.imdbId === undefined || !/^tt\d{7,8}$/u.test(item.imdbId)) return undefined
   if (item.kind === 'movie') return { imdb_id: item.imdbId, is_movie: true }

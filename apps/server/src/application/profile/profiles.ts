@@ -31,7 +31,6 @@ import {
 import { type AccountActionError, accountActionsFactory } from './account-actions.ts'
 import type { CheckPin, CheckPinError } from './pin.ts'
 
-/** Who acts: the authenticated account, its session and the request's active profile. */
 export type ProfileActor = {
   accountId: string
   role: AccountRole
@@ -45,9 +44,7 @@ type Deps = {
   passwordHasher: PasswordHasher
   checkPin: CheckPin
   playbackSessions: PlaybackSessionTerminator
-  /** The role of an account, `undefined` when it does not exist. */
   accountRole: (accountId: string) => AccountRole | undefined
-  /** Called after any change of a profile (cached visibility scopes). */
   profileChanged: (profileId: string) => void
   clock: Clock
   ids: IdGenerator
@@ -65,7 +62,6 @@ type ProfileSettings = {
   autoSkipCredits: boolean
 }
 
-/** Every key optional, `undefined` accepted (validated request bodies). */
 type Optional<T> = { [K in keyof T]?: T[K] | undefined }
 
 export type CreateProfileInput = Optional<
@@ -82,13 +78,10 @@ export type UpdateProfileInput = Optional<
   ProfileSettings & {
     name: string
     avatarColor: AvatarColor
-    /** `''` removes the PIN. */
     pin: string
-    /** Proves the PIN of a locked profile that is not the active one. */
     currentPin: string
     libraryAccess: LibraryAccess
     libraryIds: readonly string[]
-    /** `''` removes the limit. */
     maxContentRating: ContentRatingTier | ''
   }
 >
@@ -149,7 +142,6 @@ const restrictedActor = () =>
     ),
   )
 
-/** Use cases of `/profiles` (§13.6, §14). */
 export const profilesFactory = ({
   profileRepository,
   sessionRepository,
@@ -163,25 +155,18 @@ export const profilesFactory = ({
   logger,
 }: Deps) => {
   const accountActions = accountActionsFactory({ profileRepository })
-  /** §14: the resolved active profile, and whether the actor is restricted (none resolved: the
-   * account's most restricted profile). */
   const actingAs = (actor: ProfileActor) =>
     accountActions.actingProfile({
       accountId: actor.accountId,
       activeProfileId: actor.activeProfileId,
     })
 
-  /** The profiles of the actor's account; an admin reaches every profile. */
   const reachable = (actor: ProfileActor, profileId: string): Profile | undefined => {
     const profile = profileRepository.findById(profileId)
     if (profile === undefined) return undefined
     return profile.accountId === actor.accountId || actor.role === 'admin' ? profile : undefined
   }
 
-  /**
-   * A PIN-protected profile is edited from itself (it was unlocked to become active), by an admin
-   * managing another account, or with its PIN.
-   */
   const unlock = (actor: ProfileActor, profile: Profile, currentPin: string | undefined) => {
     const exempt =
       profile.id === actor.activeProfileId ||
@@ -204,8 +189,6 @@ export const profilesFactory = ({
   const hashPin = (pin: string | undefined) =>
     pin === undefined || pin === '' ? Promise.resolve(undefined) : passwordHasher.hash(pin)
 
-  /** §14: the change (`after` maps the account's profiles) leaves an admin account unable to
-   * administer. */
   const locksOutAdmin = (
     accountId: string,
     after: (profiles: Profile[]) => ProfileRestrictions[],
@@ -245,8 +228,6 @@ export const profilesFactory = ({
     const unknown = unknownLibraries(restrictions)
     if (unknown !== undefined) return err(unknown)
 
-    // Hashed before counting: the count and the insert must not be separated by an `await`
-    // (parallel requests would all pass the limit, §14).
     const pinHash = await hashPin(input.pin)
     const existing = profileRepository.listByAccount(accountId)
     const uiLocale = input.uiLocale ?? 'fr'
@@ -290,17 +271,11 @@ export const profilesFactory = ({
       actor: ProfileActor
       input: CreateProfileInput
     }): Promise<Result<Profile, CreateProfileError>> => {
-      // §14: a restricted profile (or no resolved profile on an account that has restricted
-      // ones) does not create profiles. Otherwise the actor sees everything, so may the new one.
       const acting = actingAs(actor)
       if (acting.restricted) return Promise.resolve(restrictedActor())
       return createIn({ accountId: actor.accountId, ceiling: acting.effective, input })
     },
 
-    /**
-     * `POST /admin/accounts/:id/profiles` (§15 Accounts): an admin (acting from an unrestricted
-     * profile, `requireAdmin`) adds a profile to any account, within the limit of 5.
-     */
     createForAccount: ({
       accountId,
       input,
@@ -326,7 +301,6 @@ export const profilesFactory = ({
       const profile = reachable(actor, profileId)
       if (profile === undefined) return notFound(profileId)
       const acting = actingAs(actor)
-      // §14: a restricted profile edits only itself, and not its PIN.
       if (acting.restricted && (profile.id !== acting.active?.id || input.pin !== undefined)) {
         return restrictedActor()
       }
@@ -408,7 +382,6 @@ export const profilesFactory = ({
       if (locksOutAdmin(profile.accountId, (all) => all.filter((p) => p.id !== profile.id))) {
         return lastUnrestricted(profile.accountId)
       }
-      // Its playback stops first (ffmpeg, player told): the cascade drops the session rows.
       playbackSessions.endWithin({ profileIds: [profile.id] })
       profileRepository.delete(profile.id)
       profileChanged(profile.id)
@@ -416,7 +389,6 @@ export const profilesFactory = ({
       return ok()
     },
 
-    /** `POST /profiles/:id/verify-pin`: a check only, on a profile of the account. */
     verifyPin: async ({
       actor,
       profileId,
@@ -431,10 +403,6 @@ export const profilesFactory = ({
       return checkPin(profile, pin)
     },
 
-    /**
-     * `POST /profiles/:id/select` (§13.6): the PIN if any, then the profile becomes this
-     * session's last profile, restored on the next visit and accepted in `X-Profile-Id`.
-     */
     select: async ({
       actor,
       profileId,

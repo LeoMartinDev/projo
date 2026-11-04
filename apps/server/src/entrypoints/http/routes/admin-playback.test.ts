@@ -197,7 +197,6 @@ describe('admin playback sessions (§10.6)', () => {
     ])
     const left = (await (await app.request('/admin/playback/sessions')).json()) as { id: string }[]
     expect(left.map((session) => session.id)).toEqual(['ps-episode'])
-    // Already ended, or unknown: 404.
     for (const id of ['ps-movie', 'nope']) {
       const again = await app.request(`/admin/playback/sessions/${id}`, { method: 'DELETE' })
       expect(again.status).toBe(404)

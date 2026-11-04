@@ -17,7 +17,6 @@ describe('isAnime (§11.1)', () => {
   })
 
   test('an animated film in another language is not an anime', () => {
-    // Mars Express (2023), French.
     expect(isAnime({ genres: ['animation', 'science_fiction'], originalLanguage: 'fr' })).toBe(
       false,
     )

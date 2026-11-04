@@ -18,7 +18,6 @@ const names = (people: readonly PersonDto[], max: number) =>
     .map((person) => person.name)
     .join(', ')
 
-/** "With A, B, C · Created by X" (artboard `Series`), "Directed by X" for a movie. */
 export const CreditsLine = ({ item }: { item: ItemDetailDto }) => {
   const { t } = useTranslation()
   const cast = item.cast.filter((person) => person.role === 'cast')
@@ -43,7 +42,6 @@ export const CreditsLine = ({ item }: { item: ItemDetailDto }) => {
   )
 }
 
-/** Year, classification, length or seasons, genres, best quality, TMDB rating. */
 export const MetaLine = ({ item, extra }: { item: ItemDetailDto; extra?: string }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
@@ -76,11 +74,6 @@ export const MetaLine = ({ item, extra }: { item: ItemDetailDto; extra?: string 
   )
 }
 
-/**
- * Head of a detail page (§13.5, artboards `Series`, `MobileSeries`): the backdrop full width
- * (the series' for an episode), the TMDB logo or the title, the lines and the actions. Without
- * any picture the tone of the item fills the space: nothing looks broken.
- */
 export const DetailHero = ({
   item,
   backdrop,

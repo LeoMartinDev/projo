@@ -41,13 +41,6 @@ const Credits = ({ detail }: { detail: ItemDetailDto | undefined }) => {
 
 export type NextUpCountdownView = { seconds: number; ratio: number } | undefined
 
-/**
- * Screen "Next episode" (§10.7, §12.4, artboard `PlayerNext`): the video shrunk into a
- * thumbnail ("Enlarge and watch the credits"), the card bottom right with the next episode
- * (number, duration, title, overview, cast and crew when known), "Next episode" with its ring
- * and "Watch the credits". Without a next episode (a movie, the last episode): "Back to the
- * title page". At the end of the file there are no credits left to watch.
- */
 export const NextUpCard = ({
   next,
   detail,

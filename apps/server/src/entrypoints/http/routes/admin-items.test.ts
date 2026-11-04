@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { createAuthTestApp, sessionCookieOf } from '../../../../test/support/auth-app.ts'
 
-/** Editing, images and refresh (§9.3, §9.4, §17.2); behaviour in `test/integration/`. */
 const editingRoutes: [string, string, unknown?][] = [
   ['GET', '/api/v1/admin/items/item-1'],
   ['PATCH', '/api/v1/admin/items/item-1', { title: 'Titre' }],

@@ -67,10 +67,6 @@ const toDto = (status: UpdatesStatus): UpdatesStatusDto => {
   }
 }
 
-/**
- * §16.4, §17.2 Admin exploitation: `GET /admin/updates`, `POST /admin/updates/check`,
- * `POST /admin/updates/apply`, `POST /admin/updates/rollback`. Mounted at `/api/v1/admin`.
- */
 export const adminUpdatesRoutes = ({
   getStatus,
   requestCheck,

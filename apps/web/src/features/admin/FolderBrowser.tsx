@@ -18,7 +18,6 @@ const browseQuery = (path: string) => ({
   retry: false,
 })
 
-/** `/a/b/c` → [`/`, `/a`, `/a/b`, `/a/b/c`] with their labels, for the breadcrumb. */
 const crumbs = (path: string) => {
   const parts = path.split('/').filter((part) => part.length > 0)
   return [
@@ -30,10 +29,6 @@ const crumbs = (path: string) => {
   ]
 }
 
-/**
- * Folder explorer (§15, §20): `GET /admin/fs/browse`, directories only, read only. The admin
- * walks the server's tree and picks the current folder.
- */
 export const FolderBrowser = ({
   open,
   initialPath,
@@ -63,12 +58,10 @@ export const FolderBrowser = ({
   }
 
   const current = listing.data?.path ?? path
-  // While loading or after an error there is no listing: the way up must stay reachable.
   const up = parentOf(current)
   const parent =
     listing.data === undefined ? (up === current ? undefined : up) : listing.data.parent
 
-  // The breadcrumb stays on one line (stable dialog height): keep its deepest part in view.
   const [crumbsElement, crumbsRef] = useElement<HTMLElement>()
   useEffect(() => {
     crumbsElement?.scrollTo({ left: crumbsElement.scrollWidth })

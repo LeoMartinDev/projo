@@ -22,10 +22,8 @@ import {
 import { fromIso, parseJsonColumn, stripNulls, toIso, toNullable } from './rows.ts'
 import { itemOverrides, items } from './schema/items.ts'
 
-/** `items.genres` and the `genres` override: projo genre ids (§9.1). */
 const genresSchema = z.array(genreIdSchema)
 
-/** `item_overrides.value` per field (JSON). */
 const valueSchemas = {
   title: z.string(),
   year: z.number().int(),
@@ -48,13 +46,11 @@ const lockableFields = Object.keys(overrideKeys) as LockableField[]
 
 type ItemsSet = Partial<typeof items.$inferInsert>
 
-/** The `items` columns an override (or a restored TMDB value) writes. */
 const columnsOf = (values: {
   [K in keyof ItemOverrides]?: ItemOverrides[K] | undefined
 }): ItemsSet => {
   const set: ItemsSet = {}
   if ('title' in values) {
-    // A restored `undefined`: TMDB gives no name of its own (§6.3), '' in the NOT NULL column.
     set.title = values.title ?? ''
     set.sortTitle = sortTitleOf(values.title ?? '')
   }
@@ -66,7 +62,6 @@ const columnsOf = (values: {
   return set
 }
 
-/** Edits and locks (§9.3): `item_overrides` and the `items` columns they write. */
 export const createSqliteItemOverrideRepository = ({ db }: { db: Db }): ItemOverrideRepository => ({
   item: (itemId) => {
     const row = db
@@ -151,7 +146,6 @@ export const createSqliteItemOverrideRepository = ({ db }: { db: Db }): ItemOver
   },
 })
 
-/** What a refresh walks (§9.4). */
 export const createSqliteMetadataRefreshRepository = ({
   db,
 }: {
@@ -221,7 +215,6 @@ export const createSqliteMetadataRefreshRepository = ({
           isNotNull(items.tmdbId),
           eq(items.seriesStatus, 'in_production'),
           or(isNull(items.metadataRefreshedAt), lt(items.metadataRefreshedAt, toIso(before))),
-          // A show without any file left is not worth the TMDB quota.
           sql`EXISTS (SELECT 1 FROM source_items si
             JOIN items e ON e.id = si.item_id
             JOIN items season ON season.id = e.parent_id

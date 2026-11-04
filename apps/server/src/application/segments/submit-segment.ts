@@ -23,13 +23,6 @@ type Deps = {
 
 export type SubmitSegmentOutcome = 'skipped' | 'submitted'
 
-/**
- * Job `submit_segment` (§12.5, by item and type): a manual marker sent to TheIntroDB (only with
- * the admin key) and SkipDB (anonymous key created on first use), each provider once per exact
- * marker. Never a chapter or fingerprint segment: the marker must still be manual when the job
- * runs. Every attempt is logged in `segment_submissions`. A provider out of reach fails the job
- * (retried with backoff, §18); a refused marker does not.
- */
 export const submitSegmentFactory =
   ({
     segmentTarget,
@@ -52,8 +45,6 @@ export const submitSegmentFactory =
     const segment = segmentRepository.find({ itemId, type })
     if (segment === undefined || segment.origin !== 'manual') return ok('skipped')
     const target = segmentTarget(itemId)
-    // A file holding several episodes (§8.4): the marker is on the file's timeline, not the
-    // episode's, so the databases would get E02's intro minutes in (same rule as fetch_segments).
     if (!target.ok || target.value.sharesFile) return ok('skipped')
     const { startMs, endMs } = segment
     const log = logger.child({ itemId, type })

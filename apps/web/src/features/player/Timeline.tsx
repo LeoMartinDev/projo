@@ -10,7 +10,6 @@ import { displayScale, type Thumbnail } from './trickplay.ts'
 
 const percent = (ratio: number) => `${(ratio * 100).toFixed(3)}%`
 
-/** Thumbnails are shown 192 px wide at most (`--thumb-width` in CSS for small screens). */
 const thumbnailMaxWidth = 192
 
 type Hover = { ratio: number; x: number; width: number }
@@ -31,11 +30,6 @@ const ThumbnailFrame = ({ thumbnail }: { thumbnail: Thumbnail }) => {
   )
 }
 
-/**
- * Playback bar (artboard `Player`): buffer, segment zones, played part, knob; on hover (or while
- * dragging) the time, the chapter and the trickplay thumbnail of that position (§10.5). All
- * positions are on the item timeline. Keyboard: the page's arrows (±10 s), Home / End here.
- */
 export const Timeline = ({
   positionMs,
   bufferedMs,

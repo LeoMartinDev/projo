@@ -12,11 +12,6 @@ import { textStyles } from '../../shared/ui/text.ts'
 import { useSession } from '../session/Session.tsx'
 import { parsePairingLink } from './pairing-input.ts'
 
-/**
- * Scans the QR code of "Connect a device" (§14): its origin becomes the server, its code is
- * claimed. A code that failed is not retried until another one is in view (the claim is limited
- * to 10 attempts per 15 minutes).
- */
 export const ScanScreen = () => {
   const { t } = useTranslation()
   const { pair } = useSession()
@@ -42,7 +37,6 @@ export const ScanScreen = () => {
 
   return (
     <EntryScreen image="forest" pushed title={t('mobile.scan.title')}>
-      {/* Fixed square: the same frame before, during and after the permission (AGENTS.md). */}
       <View style={styles.frame}>
         {granted ? (
           <CameraView

@@ -36,20 +36,12 @@ import './catalog.css'
 const sorts: readonly CatalogSort[] = ['added', 'title', 'year', 'rating']
 const watchFilters: readonly WatchFilter[] = ['unwatched', 'in_progress', 'watched']
 
-/**
- * What a tablet chip shows: its select's chosen option. The select itself lies invisible over the
- * whole chip (catalog.css), since Safari sizes a select to its longest option.
- */
 const ChipValue = ({ children }: { children: string }) => (
   <span className="chip__value" aria-hidden="true">
     {children}
   </span>
 )
 
-/**
- * Genre, years (one menu: a decade, or a year grouped under its decade), watch state: the same
- * controls inline (desktop), in the sheet (phone) or as chips (tablet, `chips`).
- */
 const Filters = ({
   kind,
   state,
@@ -122,7 +114,6 @@ const Filters = ({
           </ChipValue>
         ) : undefined}
       </Field>
-      {/* One menu, the years grouped under their decade: no second field waiting, greyed out. */}
       <Field
         id={`${idPrefix}-years`}
         label={t('catalog.filters.decade')}
@@ -146,7 +137,6 @@ const Filters = ({
           <option value="">{t('catalog.filters.allYears')}</option>
           {decades.map((decade) => (
             <optgroup key={decade} label={t('catalog.filters.decadeOf', { decade })}>
-              {/* Inline, the closed menu shows this text: it names the decade. */}
               <option value={`d${decade}`}>
                 {chips
                   ? t('catalog.filters.wholeDecade')
@@ -189,7 +179,6 @@ const Filters = ({
   )
 }
 
-/** Tablet: the sort as one chip beside the filters' chips, a native menu. */
 const SortChip = ({
   id,
   value,
@@ -227,11 +216,6 @@ const SortChip = ({
   )
 }
 
-/**
- * Movies and Shows (§13.4): poster grid (virtualized, cursor pages), sort, filters inline (chips
- * on a tablet) or in the "Filtres" sheet on a phone, the whole state kept per profile and per
- * device.
- */
 export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: CatalogSearch }) => {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -252,8 +236,6 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
     saveCatalogState(profileId, kind, next)
   }
 
-  // "See all ›" arrives with `?sort=added`: the state it opened with (`arrivalState`) becomes the
-  // remembered one, the URL is cleaned.
   const { sort } = search
   useEffect(() => {
     if (sort === undefined) return

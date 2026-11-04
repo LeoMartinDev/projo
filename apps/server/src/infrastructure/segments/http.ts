@@ -11,18 +11,11 @@ import type {
 } from '../../core/segments/segment.ts'
 import { type LimiterError, pauseAfter429, type ProviderLimiter } from './rate-limit.ts'
 
-/**
- * The small HTTP layer shared by the three community providers (§12.2): one exchange with a
- * timeout, JSON decoding, Zod validation and the mapping of HTTP failures to `segment/*` codes.
- */
-
-/** §12.2: a provider that does not answer within 10 s counts as unavailable. */
 export const DEFAULT_PROVIDER_TIMEOUT_MS = 10_000
 
 export type HttpResponse = {
   status: number
   headers: Headers
-  /** The decoded JSON body, `undefined` when it is empty or not JSON. */
   json: unknown
 }
 
@@ -34,7 +27,6 @@ export type ProviderHttp = {
     headers?: Record<string, string>
     body?: unknown
     signal?: AbortSignal
-    /** A separately limited endpoint group of the provider (`limiters` key). */
     scope?: string
   }) => Promise<Result<HttpResponse, HttpError>>
 }
@@ -65,10 +57,6 @@ export const withQuery = (
   return search === '' ? url : `${url}?${search}`
 }
 
-/**
- * Every request first takes a slot of its limiter (waiting for it, §12.2 published limits); a 429
- * pauses that limiter until the provider's reset, during which requests fail at once.
- */
 export const createProviderHttp = ({
   provider,
   fetch: doFetch = fetch,
@@ -115,7 +103,6 @@ export const createProviderHttp = ({
   },
 })
 
-/** The error of a non-2xx answer that the adapter does not handle itself. */
 export const failureOf = (
   provider: SegmentProviderId,
   response: HttpResponse,
@@ -137,7 +124,6 @@ export const failureOf = (
   })
 }
 
-/** Validates a provider answer: anything off its documented schema is an invalid response. */
 export const parseBody = <S extends z.ZodType>(
   provider: SegmentProviderId,
   schema: S,
@@ -157,22 +143,15 @@ export const parseBody = <S extends z.ZodType>(
       )
 }
 
-/** A field the provider sends as `null` (or omits): `undefined` in projo (no `null`, §5.3). */
 export const nullish = <S extends z.ZodType>(schema: S) =>
   schema.nullish().transform((value) => value ?? undefined)
 
-/** Message of a provider error body (`{ "error": "..." }` for the three of them), for logs. */
 export const errorMessageOf = (json: unknown): string | undefined => {
   if (typeof json !== 'object' || !json || !('error' in json)) return undefined
   const message = json.error
   return typeof message === 'string' ? message.slice(0, 300) : undefined
 }
 
-/**
- * A provider's range as a projo candidate, or `undefined` when it makes no sense: not finite,
- * negative, `end <= start`, or starting past the end of the file. An end past the file is
- * clamped to it (releases differ by a few seconds).
- */
 export const toCandidate = ({
   type,
   startMs,
@@ -201,7 +180,6 @@ export const toCandidate = ({
   }
 }
 
-/** The duration used for the request and for open-ended ranges. */
 export const durationOf = (
   item: { durationMs?: number },
   fileDurationMs: number | undefined,
@@ -214,7 +192,6 @@ export type ContributionError = AppError<
   'segment/submission_failed' | 'segment/provider_unavailable'
 >
 
-/** A contribution cannot report a rate limit: it is worth a retry later, like an outage. */
 export const toContributionError = (error: HttpError): ContributionError =>
   appError('segment/provider_unavailable', error.message, {
     context: {
@@ -224,7 +201,6 @@ export const toContributionError = (error: HttpError): ContributionError =>
     ...(error.cause === undefined ? {} : { cause: error.cause }),
   })
 
-/** A refused submission: 429 and 5xx are worth retrying later, any other refusal is final. */
 export const submissionFailureOf = (
   provider: SegmentProviderId,
   response: HttpResponse,
@@ -253,5 +229,4 @@ export const submissionFailed = (
 export const isSuccess = (response: HttpResponse): boolean =>
   response.status >= 200 && response.status < 300
 
-/** An empty answer: the provider has nothing for the work (outcome `none`). */
 export const emptyLookup = (): SegmentLookup => ({ segments: [], absent: [] })

@@ -32,7 +32,6 @@ const closePopover = (event: MouseEvent<HTMLElement>) => {
   event.currentTarget.closest<HTMLElement>('[popover]')?.hidePopover()
 }
 
-/** Logout: revokes the cookie session, forgets the cache, back to the login screen. */
 export const useLogout = () => {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -45,7 +44,6 @@ export const useLogout = () => {
   })
 }
 
-/** Unread admin notifications on "Administration" (§15 "Badge in the menu"). */
 const AdminBadge = () => {
   const { t } = useTranslation()
   const count = useQuery(unreadNotificationsQuery)
@@ -60,10 +58,6 @@ const AdminBadge = () => {
   )
 }
 
-/**
- * Avatar menu (§13.2): switch profile, profile settings, account and devices,
- * administration (admins, from an unrestricted profile, §14), sign out.
- */
 const AccountMenu = ({ me }: { me: MeResponse }) => {
   const { t } = useTranslation()
   const logout = useLogout()
@@ -131,7 +125,6 @@ const subscribeScroll = (notify: () => void) => {
   return () => window.removeEventListener('scroll', notify)
 }
 
-/** The header turns into glass (phone) or one pill (wider) once the page scrolls under it. */
 const useScrolled = () =>
   useSyncExternalStore(
     subscribeScroll,
@@ -143,14 +136,8 @@ const isTyping = (target: unknown) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
-/**
- * Spectator layout (§13.2, artboards `Home`, `MobileHome`): `projo.`, the pill navigation
- * Home · Shows · Movies · My list, Search (`/`), the avatar menu. On a phone (`--compact`) the
- * navigation becomes the floating bottom bar, with Recherche as its fifth entry.
- */
 export const AppShell = ({ me: initial }: { me: MeResponse }) => {
   const { t } = useTranslation()
-  // Live session: a renamed or recoloured profile shows at once in the avatar.
   const session = useQuery(sessionQuery)
   const me = session.data?.status === 'signed_in' ? session.data.me : initial
   const scrolled = useScrolled()
@@ -178,7 +165,6 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
         <svg className="pill-merge__paint" aria-hidden="true">
           <defs>
             <path id="pill-merge-shape" />
-            {/* Room for the whole blur (3σ + the offset), or the shadow ends on a hard edge. */}
             <filter id="pill-merge-shadow" x="-20%" y="-150%" width="140%" height="400%">
               <feGaussianBlur stdDeviation="14" />
             </filter>
@@ -186,7 +172,6 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
               <feMorphology in="SourceGraphic" operator="erode" radius="1" result="inner" />
               <feComposite in="SourceGraphic" in2="inner" operator="out" />
             </filter>
-            {/* The top lip of light the glass buttons have (--shadow-glass). */}
             <filter id="pill-merge-highlight">
               <feOffset in="SourceGraphic" dy="1" result="lowered" />
               <feComposite in="SourceGraphic" in2="lowered" operator="out" />
@@ -197,7 +182,6 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
             <filter id="pill-merge-blur-actions" x="-20%" width="140%">
               <feGaussianBlur stdDeviation="0 0" />
             </filter>
-            {/* Wider than the header: the shadow falls below its bottom edge. */}
             <mask
               id="pill-merge-outside"
               maskUnits="userSpaceOnUse"

@@ -14,7 +14,6 @@ import {
 } from './switch'
 import type { InstalledVersion } from './version-state'
 
-/** Exit code by which the app asks for a version switch (PRODUCT.md §16.3). */
 export const SWITCH_EXIT_CODE = 75
 
 export type WaitForHealth = (input: {
@@ -28,9 +27,7 @@ export type SupervisorDeps = {
   launch: Launcher
   bunPath: string
   appEnv: Readonly<Record<string, string>>
-  /** Exit 75 (§16.3): `pending`, backup, `current`, then confirm or roll back. */
   switchHandler: SwitchHandler
-  /** Polls the app's `/health` (60 s window after a switch). */
   waitForHealth: WaitForHealth
   restartPolicy: RestartPolicy
   shutdownGraceMs: number
@@ -39,9 +36,7 @@ export type SupervisorDeps = {
 }
 
 export type Supervisor = {
-  /** Resolves with the supervisor's exit code. */
   run: () => Promise<number>
-  /** First call: graceful stop. Second call: kill the app immediately. */
   stop: (signal: Exclude<Signal, 'SIGKILL'>) => void
 }
 
@@ -73,7 +68,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
     child.kill('SIGKILL')
   }
 
-  /** SIGTERM (or the given signal), then SIGKILL past the grace period. */
   const terminate = (target: ChildProcess, signal: Exclude<Signal, 'SIGKILL'>) => {
     target.kill(signal)
     const graceController = new AbortController()
@@ -93,7 +87,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
     if (child !== undefined) terminate(child, signal)
   }
 
-  /** After a switch: healthy within the window, or not (timeout, or the process ended first). */
   const watchSwitch = async (
     running: ChildProcess,
   ): Promise<'healthy' | 'health_timeout' | 'exited'> => {
@@ -110,10 +103,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
     return outcome
   }
 
-  /**
-   * Runs the app until it exits. With a switch in flight, the new version must answer `/health`
-   * first: otherwise it is stopped and the switch rolled back (`rolledBack`).
-   */
   const runOnce = async (
     app: InstalledVersion,
     switching: PendingSwitch | undefined,
@@ -164,7 +153,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
       if (!prepared.ok) {
         logger.error('cannot prepare app', errorFields(prepared.error))
         if (switching !== undefined) {
-          // `current` points to a version that cannot even be prepared: back to the old one.
           await switchHandler.rollback(switching, 'exited')
           switching = undefined
           continue
@@ -185,7 +173,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
         })
         break
       }
-      // The old version, which was running fine, is relaunched at once.
       if (rolledBack !== undefined) {
         restartState = initialRestartState
         continue
@@ -193,7 +180,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
 
       if (status?.kind === 'code' && status.code === SWITCH_EXIT_CODE) {
         switching = await switchHandler.begin(app)
-        // The new version is launched at once; its health decides (no backoff).
         if (switching !== undefined) {
           restartState = initialRestartState
           continue
@@ -215,8 +201,6 @@ export const supervisorFactory = (deps: SupervisorDeps): Supervisor => {
       })
       if ((await clock.sleep(next.delayMs, stopController.signal)) === 'aborted') break
     }
-    // Stopped once `current` points to the new version, before it ran: a later boot must not take
-    // it for a confirmed one (no `pending` left, so no health window, no rollback).
     if (switching !== undefined) await switchHandler.rollback(switching, 'stopped')
     return 0
   }

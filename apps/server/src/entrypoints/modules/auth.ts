@@ -29,14 +29,10 @@ import { authRoutes } from '../http/routes/auth.ts'
 import { invitationsRoutes } from '../http/routes/invitations.ts'
 import type { Platform } from './platform.ts'
 
-/** §20: 10 login attempts per 15 min, per IP and per username (also: password changes). */
 const loginRateLimit = { limit: 10, windowMs: 15 * 60_000 }
-/** §14: 10 pairing claims per 15 min per IP. */
 const pairingClaimRateLimit = { limit: 10, windowMs: 15 * 60_000 }
-/** §20: 20 invitation acceptances per hour per IP. */
 const invitationRateLimit = { limit: 20, windowMs: 60 * 60_000 }
 
-/** Repositories and use cases shared by the auth, setup and profiles modules. */
 export const buildAuthServices = ({ db, clock, ids }: Platform) => {
   const accountRepository = createSqliteAccountRepository({ db })
   const profileRepository = createSqliteProfileRepository({ db })
@@ -51,12 +47,6 @@ export const buildAuthServices = ({ db, clock, ids }: Platform) => {
   }
 }
 
-/**
- * Wiring of auth: accounts, sessions, invitations (§14) and the admin account pages (§15).
- * `playbackSessions`: a deleted or disabled account's playback ends first (§10.6).
- * Also provides the API middleware that sets the `account` / `session` / `profileId` context
- * variables and closes non-public routes.
- */
 export const buildAuthModule = (
   platform: Platform,
   { playbackSessions }: { playbackSessions: PlaybackSessionTerminator },

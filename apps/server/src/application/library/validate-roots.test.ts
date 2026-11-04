@@ -5,7 +5,6 @@ import { appError, err, ok } from '@projo/shared'
 import type { FileSystem } from '../../core/fs/file-system.ts'
 import { validateRootsFactory } from './validate-roots.ts'
 
-/** `/alias` is a symbolic link to `/mnt/media`. */
 const fileSystem: FileSystem = {
   stat: async () => ok({ kind: 'directory', sizeBytes: 0, mtimeMs: 0, inode: '1:1' }),
   readDirectory: async () => ok([]),

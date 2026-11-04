@@ -21,10 +21,6 @@ const openFor = (db: Db, kind: NotificationKind, key: string) =>
     )
     .get()
 
-/**
- * Scanner notifications in `notifications` (§7.3, §7.5), one open row per (kind, key). The
- * `title_key` is the kind itself: the web translates it like an error code.
- */
 export const createSqliteAdminNotifier = ({
   db,
   ids,

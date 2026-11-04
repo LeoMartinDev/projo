@@ -16,11 +16,6 @@ export type CreatedLibrary = { id: string; requestedAt: string }
 
 type Folder = { path: string; checked: boolean }
 
-/**
- * Step 2, artboard `OnbLibrary`: the first library's folders, picked with the explorer, and its
- * name, suggested by the first folder. No settings (§15 "Premier lancement"): content type
- * `auto` and the defaults of §6.2, changed later in the admin. Creating it starts the first scan.
- */
 export const LibraryStep = ({ onDone }: { onDone: (library?: CreatedLibrary) => void }) => {
   const { t } = useTranslation()
   const locale = currentLocale()

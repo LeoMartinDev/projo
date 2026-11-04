@@ -33,7 +33,6 @@ import './editing.css'
 type Tab = 'details' | EditableImageKind
 const tabs: readonly Tab[] = ['details', 'poster', 'backdrop']
 
-/** "Back to the TMDB value" (or, on a local item, the lock alone) at the end of a locked field. */
 const LockTrail = ({
   item,
   field,
@@ -67,7 +66,6 @@ const LockTrail = ({
   )
 }
 
-/** §9.3: genres picked from the fixed list (§9.1), sorted by label; a pressed toggle = picked. */
 const GenrePicker = ({
   id,
   selected,
@@ -217,7 +215,6 @@ const DetailsForm = ({
   )
 }
 
-/** Grid of TMDB alternatives (stable size, scrolls inside) and the upload of an image. */
 const ImagePicker = ({ item, kind }: { item: ItemMetadataDto; kind: EditableImageKind }) => {
   const { t } = useTranslation()
   const alternatives = useQuery(imageAlternativesQuery(item.id, kind))
@@ -265,7 +262,6 @@ const ImagePicker = ({ item, kind }: { item: ItemMetadataDto; kind: EditableImag
   return (
     <div className="edit-item__images">
       <div className="edit-item__image-actions">
-        {/* The label is the button: no ref needed to open the file chooser. */}
         <label
           className="button button--glass button--small edit-item__upload"
           data-disabled={busy}
@@ -357,7 +353,6 @@ const ImagePicker = ({ item, kind }: { item: ItemMetadataDto; kind: EditableImag
   )
 }
 
-/** "Refresh" (§9.4): a job; the page follows when it ends (`catalog.changed`). */
 const RefreshButton = ({ itemId }: { itemId: string }) => {
   const { t } = useTranslation()
   const refresh = useRefreshItem()
@@ -374,11 +369,6 @@ const RefreshButton = ({ itemId }: { itemId: string }) => {
   )
 }
 
-/**
- * Metadata editor of an item (§9.3, admin): title, year, genres, overview, poster, backdrop.
- * Each saved field is locked against refreshes; "Back to the TMDB value" removes the lock. Images apply
- * as soon as they are picked. A fixed-height dialog: each tab scrolls inside.
- */
 export const EditItemDialog = ({
   itemId,
   name,
@@ -386,7 +376,6 @@ export const EditItemDialog = ({
   onClose,
 }: {
   itemId: string
-  /** Season or episode label, in the title. */
   name?: string
   open: boolean
   onClose: () => void

@@ -1,4 +1,3 @@
-// Global styles first: feature stylesheets imported by the routes must come after them.
 import './shared/styles/fonts.css'
 import './shared/styles/tokens.css'
 import './shared/styles/base.css'
@@ -18,8 +17,6 @@ import { trackScrollbarWidth } from './shared/styles/scrollbar.ts'
 setupI18n()
 trackScrollbarWidth()
 
-// A tab opened before an update still asks for the old build's chunks, gone from the server: load
-// the new index.html, once per chunk. TanStack's own reload misses it: Vite fails on the CSS first.
 window.addEventListener('vite:preloadError', (event) => {
   const key = `projo:preload-reload:${event.payload.message}`
   if (sessionStorage.getItem(key)) return
@@ -41,7 +38,6 @@ const queryClient = createAppQueryClient({
     if (router.state.location.pathname === '/profiles') return
     const redirect = router.state.location.href
     setActiveProfileId(undefined)
-    // Fresh /auth/me (without the refused profile) before the guard reads it.
     void queryClient
       .invalidateQueries({ queryKey: sessionQuery.queryKey, refetchType: 'all' })
       .then(() => router.navigate({ to: '/profiles', search: { redirect }, replace: true }))

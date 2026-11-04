@@ -16,12 +16,6 @@ import { Artwork } from './Artwork.tsx'
 import { useCardText } from './card-text.ts'
 import { ProgressBar } from './parts.tsx'
 
-/**
- * A card of a home row (§13.3, artboard `MobileHome`): 16:9 with a still or a backdrop (Continue
- * watching, Up next, My list) or a 2:3 poster (Recently added, categories), the title on the
- * picture, a progress bar, the "New episode" badge. A tap opens the title page, a long press the
- * sheet of its actions.
- */
 export const MediaCard = ({
   item,
   place,
@@ -59,7 +53,6 @@ export const MediaCard = ({
         toneId={item.id}
       />
       {resumeFrame === undefined ? undefined : (
-        // The frame it stopped at (§10.5), over the metadata picture until it loads.
         <Artwork
           path={resumeFrame.url}
           style={[styles.art, styles.wide, styles.overlay]}

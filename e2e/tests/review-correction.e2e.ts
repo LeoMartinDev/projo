@@ -10,17 +10,10 @@ import { fr, matching, startsWith } from '../support/i18n.ts'
 import { unidentifiedFile } from '../support/library.ts'
 import { expectPoster } from '../support/media.ts'
 
-/**
- * §4 journey 5: a file TMDB cannot identify shows up in "To review", the admin searches the
- * right TMDB title and assigns it, the movie shows up for the household, and a full scan does
- * not undo the correction (§7.8: `item_manual_matches` wins over the automatic matching).
- */
 const sam = { username: 'sam', password: 'sam-e2e-password', profileName: 'Sam' }
 const rightTitle = "Le Fabuleux Destin d'Amélie Poulain"
-/** What the parser makes of the file name (title case): what TMDB is first asked for. */
 const parsedTitle = 'Lfddap'
 
-/** Relative paths of the "To review" queue (`match_state = needs_review`), every library. */
 const reviewQueuePaths = async (api: APIRequestContext): Promise<string[]> => {
   const response = await api.get('/api/v1/admin/sources', {
     params: { matchState: 'needs_review', limit: 200 },
@@ -59,7 +52,6 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
       .getByRole('link', { name: startsWith(fr.admin.review.title) })
       .click()
     await expect(page.getByRole('heading', { name: fr.admin.review.title, level: 1 })).toBeVisible()
-    // Watcher, probe, then TMDB: it arrives live.
     await expect(entry).toBeVisible({ timeout: 60_000 })
     await expect(entry).toContainText(fr.admin.review.reason.no_match)
     await expect(entry).toContainText(fr.admin.review.classification.movie)
@@ -72,7 +64,6 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     await expect(
       dialog.getByRole('radio', { name: fr.admin.identify.mode.movie, exact: true }),
     ).toHaveAttribute('aria-checked', 'true')
-    // Prefilled from the file name.
     const query = dialog.getByLabel(fr.admin.identify.movieTitle)
     await expect(query).toHaveValue(parsedTitle)
     await expect(dialog.getByLabel(fr.admin.identify.year)).toHaveValue('2001')
@@ -110,7 +101,6 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     const fullScans = history.filter({ hasText: fr.admin.scanKind.manual_full })
     await expect(fullScans).toHaveCount(0)
     await page.getByRole('button', { name: fr.admin.libraries.fullScan }).click()
-    // Finished: its line shows the counts instead of "Analyse en cours".
     await expect(fullScans).toHaveCount(1)
     await expect(fullScans).toContainText(matching(fr.admin.history.stats), { timeout: 60_000 })
   })
@@ -121,7 +111,6 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     await expect(tile).toHaveText(new RegExp(`${rightTitle}\\s*2001$`))
     await expectPoster(tile)
     await expect(memberMovies.filter({ hasText: parsedTitle })).toHaveCount(0)
-    // A manual match is never offered to TMDB again: once the scan is over, its state is final.
     expect(await reviewQueuePaths(request)).not.toContain(unidentifiedFile.path)
   })
 

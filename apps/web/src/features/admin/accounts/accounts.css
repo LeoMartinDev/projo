@@ -1,6 +1,3 @@
-/* Accounts and profiles (§14, §15), after artboard AdminAccounts: a table of the accounts; a row
-   opens the account's detail (settings, profiles) in a dialog of stable size whose body scrolls. */
-
 @import '../../../shared/styles/media.css';
 
 .acc-page {
@@ -63,7 +60,6 @@
   min-width: 0;
 }
 
-/* The whole row opens the account page. */
 .acc-tr__link {
   min-width: 0;
   padding: 0;
@@ -162,8 +158,6 @@
   color: var(--color-text-muted);
 }
 
-/* ── Avatars and swatches ───────────────────────────────────────────────── */
-
 .acc-avatar {
   display: flex;
   flex: 0 0 auto;
@@ -246,15 +240,12 @@
     0 0 0 4px var(--color-text);
 }
 
-/* ── Account detail (dialog) ─────────────────────────────────────────── */
-
 .dialog:has(.acc-detail) {
   width: min(960px, calc(100vw - 32px));
   height: min(860px, calc(100dvh - 32px));
   max-height: none;
 }
 
-/* The scrolling region of the dialog (its body itself does not scroll with `fill`). */
 .acc-detail {
   display: flex;
   flex: 1 1 auto;
@@ -461,8 +452,6 @@
   flex-direction: column;
   gap: 16px;
 }
-
-/* ── Invitations ────────────────────────────────────────────────────────── */
 
 .invites {
   display: flex;

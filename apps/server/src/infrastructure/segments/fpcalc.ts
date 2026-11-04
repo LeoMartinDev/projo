@@ -43,12 +43,6 @@ const fromProcessError = (binary: string, error: ProcessError): FingerprintError
     error,
   )
 
-/**
- * `AudioFingerprinter` over ffmpeg + `fpcalc` (Chromaprint, `libchromaprint-tools` in the image):
- * the window is decoded to a temporary WAV (first audio track, mono, 16 kHz, §12.3) under
- * `tempDir`, then `fpcalc -raw -json -length <s>` reads it. The WAV is removed in every case.
- * A missing binary is reported with `reason: 'binary_missing'` and an install hint.
- */
 export const createFpcalcFingerprinter = ({
   tempDir,
   ffmpegBinary = 'ffmpeg',
@@ -62,7 +56,6 @@ export const createFpcalcFingerprinter = ({
   fpcalcBinary?: string
   extractTimeoutMs?: number
   fpcalcTimeoutMs?: number
-  /** Of both ffmpeg and fpcalc. */
   processPriority?: ProcessPriority
 }): AudioFingerprinter => ({
   fingerprint: async ({ path, startSeconds, durationSeconds, signal }) => {
@@ -99,7 +92,6 @@ export const createFpcalcFingerprinter = ({
           '-y',
           '-ss',
           startSeconds.toFixed(3),
-          // `file:` stops ffmpeg from reading a protocol or option in the name (§20).
           '-i',
           `file:${toHostPath(path)}`,
           '-t',

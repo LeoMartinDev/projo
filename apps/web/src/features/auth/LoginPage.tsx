@@ -13,7 +13,6 @@ import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { Logo } from '../shell/Logo.tsx'
 import './auth.css'
 
-/** Login (§14). Not drawn: built like the first-launch steps, a glass panel over an illustration. */
 export const LoginPage = ({ redirectTo }: { redirectTo?: string }) => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()

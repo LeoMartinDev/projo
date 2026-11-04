@@ -15,11 +15,6 @@ import { silentLogger } from './logger.ts'
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
-/**
- * The spectator API (catalog, home, search, progress, watchlist) over a fresh in-memory database.
- * Authentication is stubbed: `x-account` selects the account, whose profile is
- * `profile-of-<account>` (see `seedViewer`); `scopes` gives a profile its §14 scope.
- */
 export const createCatalogTestApp = ({
   scopes = {},
   homeResumeFrames,

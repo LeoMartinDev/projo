@@ -45,43 +45,30 @@ import {
 } from './fmp4.ts'
 
 type Deps = {
-  /** `/data/cache/transcode`: one folder per session. */
   transcodeDir: string
   logger: Logger
   ffmpegBinary?: string
-  /** Optional filters of the binary (HDR tonemapping); detected on the first transcode if absent. */
   filters?: FfmpegFilters
-  /** §10.3 `hw_accel = vaapi`: the render node the container was given. */
   renderNode?: string
-  /** `playback/hw_accel_failed`, resolved by the next working VAAPI run. */
   notifier?: AdminNotifier
-  /** §10.3: a segment not yet written is awaited this long before 503. */
   waitTimeoutMs?: number
-  /** §10.3 production window: a request beyond `current + windowAhead` restarts ffmpeg. */
   windowAhead?: number
-  /** ffmpeg is paused (stdout no longer read) this many segments ahead of the last request. */
   bufferAhead?: number
-  /** Segments older than this behind the last request are deleted while playing. */
   keepBehind?: number
-  /** Ids of stopped sessions remembered (oldest forgotten first) so a late request is refused. */
   rememberStopped?: number
 }
 
 type Run = {
-  /** Unique per segmenter: names the run's temporary files. */
   id: number
   proc: Bun.Subprocess<'ignore', 'pipe', 'pipe'>
   fromSegment: number
-  /** Segment being accumulated (or about to be). */
   producing: number
   killed: boolean
   finished: boolean
   failed: boolean
-  /** ffmpeg reached the end of the file (exit 0, not killed): nothing after `producing` will come. */
   endedCleanly: boolean
   resume: (() => void) | undefined
   vaapi: boolean
-  /** A VAAPI run that failed before writing anything: the session goes on in software. */
   fallback: boolean
 }
 
@@ -91,16 +78,12 @@ type SessionState = {
   run: Run | undefined
   lastRequested: number
   listeners: Set<() => void>
-  /** Set by `stop`: pending requests give up instead of restarting ffmpeg. */
   stopped: boolean
-  /** Decided by the session's first run (`wantsVaapi` + render node); off after a fallback. */
   vaapi: boolean | undefined
 }
 
-/** Segment being written box by box to `temp` (§21); no sink for an incomplete segment. */
 type Pending = { segment: number; temp: string; sink: Bun.FileSink | undefined }
 
-/** `ffmpeg -filters`: is `name` listed? */
 const hasFilter = (listing: string, name: string): boolean =>
   new RegExp(`^\\s*\\S+\\s+${name}\\s`, 'm').test(listing)
 
@@ -116,14 +99,9 @@ export const detectFfmpegFilters = (ffmpegBinary = 'ffmpeg'): FfmpegFilters => {
   }
 }
 
-/** §10.3: VAAPI is only tried for a transcode without burn-in, when the admin turned it on. */
 export const wantsVaapi = (job: HlsJob): boolean =>
   job.mode === 'hls_transcode' && job.hwAccel === 'vaapi' && job.transcode.burnIn === undefined
 
-/**
- * §10.3 fallback: a failed VAAPI run that wrote no `init.mp4` (device, driver or codec refused at
- * start) is retried in software; once an init exists, the session's encoder cannot change.
- */
 export const fallsBackToSoftware = (run: {
   vaapi: boolean
   exitCode: number
@@ -140,13 +118,11 @@ const usable = (path: string): boolean => {
   }
 }
 
-/** Where a fragment starting at `time` goes, and its `mfhd` number (stable across runs). */
 const placeFragment = (
   job: HlsJob,
   time: number,
 ): { segment: number; sequence: number; complete: boolean } => {
   if (job.mode === 'hls_transcode') {
-    // A run starts on a segment start and the encoder only cuts there: always complete.
     const segment = segmentAt(job.segments, time)
     return { segment, sequence: segment + 1, complete: true }
   }
@@ -154,20 +130,12 @@ const placeFragment = (
   const keyframeTime = job.keyframes[keyframe] ?? time
   const segment = segmentAt(job.segments, keyframeTime)
   const segmentStart = job.segments[segment]?.startS ?? 0
-  // Complete only if no earlier keyframe of this segment was missed (imprecise seek).
   const previousKeyframe = job.keyframes[keyframe - 1]
   const complete =
     keyframe === 0 || previousKeyframe === undefined || previousKeyframe < segmentStart - 1e-3
   return { segment, sequence: keyframe + 1, complete }
 }
 
-/**
- * §10.3 HLS producer (remux and transcode). One ffmpeg per session writes a fragmented MP4 (a
- * fragment per video keyframe) on stdout; fragments are placed by their `tfdt` (remux: matched
- * to the source keyframes; transcode: one forced keyframe per 4 s segment) and grouped into the
- * planned segments (`seg-%05d.m4s`), the `ftyp`+`moov` head becomes `init.mp4`. Reading stdout is
- * paused when production runs too far ahead of the player: the pipe applies back-pressure.
- */
 export const createHlsSegmenter = ({
   transcodeDir,
   logger,
@@ -188,7 +156,6 @@ export const createHlsSegmenter = ({
   }
   const sessions = new Map<string, SessionState>()
   let runCount = 0
-  /** Insertion-ordered: a request in flight when its session stopped must not revive it. */
   const stoppedIds = new Set<string>()
   const markStopped = (sessionId: string): void => {
     stoppedIds.delete(sessionId)
@@ -240,7 +207,6 @@ export const createHlsSegmenter = ({
     segment: number,
     complete: boolean,
   ): Pending => {
-    // Per run: a killed run still closing its file must not share it with the next one.
     const temp = `${fileFor(state, segment)}.${run.id}.tmp`
     return { segment, temp, sink: complete ? Bun.file(temp).writer() : undefined }
   }
@@ -251,15 +217,12 @@ export const createHlsSegmenter = ({
     await pending.sink.flush()
   }
 
-  /** A killed or failed run: its unfinished segment never becomes visible. */
   const discard = async (pending: Pending | undefined): Promise<void> => {
     if (pending === undefined) return
     try {
       await pending.sink?.end()
       rmSync(pending.temp, { force: true })
-    } catch {
-      // The session folder may already be gone (cache removal).
-    }
+    } catch {}
   }
 
   const finalize = async (state: SessionState, pending: Pending): Promise<void> => {
@@ -300,7 +263,6 @@ export const createHlsSegmenter = ({
             if (video === undefined) throw new Error('fragment before moov')
             const ticks = fragmentStartTicks(box.bytes, video.trackId)
             if (ticks === undefined) {
-              // A fragment without video: continuation of the current segment.
               if (!skipping) await append(current, box.bytes)
               continue
             }
@@ -331,7 +293,6 @@ export const createHlsSegmenter = ({
               wakeAll(state)
             }
           }
-          // Anything after the fragments (mfra trailer) is ignored.
         }
       }
       const code = await run.proc.exited
@@ -449,7 +410,6 @@ export const createHlsSegmenter = ({
         vaapi,
       })
       if (job.mode === 'hls_transcode' && (job.transcode.dynamicRange ?? 'sdr') !== 'sdr') {
-        // §10.3: CPU tone mapping is the costliest transcode; the admin sees why the CPU is busy.
         logger.info('HDR source transcoded to SDR', {
           code: 'playback/hdr_tonemap',
           sessionId: job.sessionId,
@@ -497,13 +457,6 @@ export const createHlsSegmenter = ({
     })
 
   return {
-    /**
-     * Waits for `which` only while the live run will produce it (at or after the segment being
-     * accumulated, within the window); otherwise restarts ffmpeg there, but only for the latest
-     * segment asked for (an older request still waiting must not take the run back from it). A
-     * run that ends without writing `which` (a tail with no video frame) is an error, never a
-     * restart; a request whose client went away (`signal`) gives up.
-     */
     segment: async (job, which, signal): Promise<Result<string, SegmentError>> => {
       if (which !== 'init' && (which < 0 || which >= job.segments.length)) {
         return err(
@@ -535,7 +488,6 @@ export const createHlsSegmenter = ({
             }),
           )
         }
-        // Retried in software below, like a run that ended without the segment.
         if (started?.fallback === true) started = undefined
         if (started !== undefined && started.finished && !started.killed) {
           return err(
@@ -545,8 +497,6 @@ export const createHlsSegmenter = ({
           )
         }
         const run = state.run
-        // The run read the file to its end without writing `which` (its last segment, finalized
-        // last, cannot have been deleted since): no run ever will.
         if (which !== 'init' && run?.endedCleanly === true && which >= run.producing) {
           return err(neverProduced(job, which))
         }
@@ -557,8 +507,6 @@ export const createHlsSegmenter = ({
         const mayRestart =
           which === 'init' ? run === undefined || run.finished : which === state.lastRequested
         if (!inWindow && mayRestart) {
-          // hls.js asks for init first: start where it resumes, not at 0 (a run it would kill);
-          // counted as requested, or the run would pause ahead of the player before its moov.
           if (which === 'init' && state.lastRequested < 0) {
             state.lastRequested = segmentAt(job.segments, job.startS ?? 0)
           }
@@ -606,7 +554,6 @@ export const createHlsSegmenter = ({
   }
 }
 
-/** Bytes of the files of a folder and its subfolders (vanishing files count 0). */
 const folderSize = (dir: string): number => {
   try {
     return readdirSync(dir, { withFileTypes: true }).reduce((total, entry) => {
@@ -623,7 +570,6 @@ const folderSize = (dir: string): number => {
   }
 }
 
-/** `/data/cache/transcode/<session>` folders (§5.4). */
 export const createTranscodeCache = ({
   transcodeDir,
 }: {

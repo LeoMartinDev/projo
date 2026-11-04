@@ -12,7 +12,6 @@ export const resources = {
 export const isLocale = (value: string): value is Locale =>
   locales.some((locale) => locale === value)
 
-/** The first supported language of a preference list (`['en-GB', 'fr']` → `en`), else `fr` (§19). */
 export const matchLocale = (languages: readonly string[]): Locale => {
   for (const language of languages) {
     const base = language.toLowerCase().split('-')[0] ?? ''
@@ -21,8 +20,6 @@ export const matchLocale = (languages: readonly string[]): Locale => {
   return 'fr'
 }
 
-// Typed keys: `t('home.title')` is checked against fr.json (the reference locale), in every
-// program that imports this package.
 declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'translation'

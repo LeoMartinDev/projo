@@ -3,16 +3,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
 
-/**
- * "Play", "Resume S2 · E4" (hero, card sheet, title pages). Playback comes with M6 slice 5 (§23):
- * until then the button is shown, inert.
- */
 export const PlayButton = ({
   label,
   size = 'regular',
 }: {
   label: string
-  /** `large`: the iPad hero's; `block`: full width (card sheet, iPhone title page). */
   size?: 'regular' | 'large' | 'block'
 }) => (
   <View
@@ -29,10 +24,6 @@ export const PlayButton = ({
   </View>
 )
 
-/**
- * A glass button of the hero and the iPad title pages (`.button--glass`): an icon, with its label
- * (`showLabel`) or as a square or round icon button.
- */
 export const GlassButton = ({
   label,
   icon,
@@ -68,7 +59,6 @@ export const GlassButton = ({
   </Pressable>
 )
 
-/** An action of an iPhone title page (artboard `MobileSeries`): its icon over its label. */
 export const ActionButton = ({
   label,
   icon,

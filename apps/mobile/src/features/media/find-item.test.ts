@@ -25,7 +25,6 @@ describe('the card sheet reads its item in the cached data', () => {
       ],
     }
     expect(findItem(home, 'e2')?.kind).toBe('episode')
-    // The series of an episode is a reference, not the series' card.
     expect(findItem(home, 's1')?.inWatchlist).toBe(true)
     expect(findItem({ pages: [{ items: [item('a')] }, { items: [item('b')] }] }, 'b')?.id).toBe('b')
   })

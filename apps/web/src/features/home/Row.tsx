@@ -25,11 +25,6 @@ const subscribePointer = (notify: () => void) => {
   return () => query.removeEventListener('change', notify)
 }
 
-/**
- * Mouse and trackpad: rows page with the arrows (artboard `Home`) so the card previews can grow
- * over their neighbours. Touch screens and phone widths (a touch laptop reports a fine pointer)
- * scroll the row natively, without previews.
- */
 const useFinePointer = () =>
   useSyncExternalStore(
     subscribePointer,
@@ -40,10 +35,6 @@ const useFinePointer = () =>
 const wideCards = [0, 1, 2, 3, 4]
 const posterCards = [0, 1, 2, 3, 4, 5, 6, 7]
 
-/**
- * A row while it loads: the same boxes as a row of wide cards, or of 2:3 posters (`poster`, the
- * category rows), so nothing moves after.
- */
 export const RowSkeleton = ({ poster = false }: { poster?: boolean }) => {
   const paged = useFinePointer()
   return (
@@ -71,13 +62,11 @@ export const RowSkeleton = ({ poster = false }: { poster?: boolean }) => {
   )
 }
 
-/** "See all ›": Movies / Shows sorted by addition, My list, or the page of a category row. */
 export type SeeAll =
   | { to: '/movies' | '/series'; sort: 'added' }
   | { to: '/watchlist' }
   | { to: '/categories/$category'; category: HomeCategorySlug }
 
-/** A home row (§13.3): title, "See all ›", previous / next, the cards. */
 export const Row = ({
   id,
   title,
@@ -120,7 +109,6 @@ export const Row = ({
 
   const goTo = (next: number) => setPage(Math.max(0, Math.min(lastPage, next)))
 
-  /** Keyboard: a card reached with Tab brings its page into view. */
   const reveal = (event: FocusEvent<HTMLDivElement>) => {
     if (!paged || step <= 0) return
     const card = (event.target as HTMLElement).closest<HTMLElement>('.cw')
@@ -130,7 +118,6 @@ export const Row = ({
       goTo(Math.floor(start / step))
   }
 
-  /** Horizontal trackpad swipes turn the pages. */
   const onWheel = (event: WheelEvent<HTMLDivElement>) => {
     if (!paged || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return
     const now = event.timeStamp

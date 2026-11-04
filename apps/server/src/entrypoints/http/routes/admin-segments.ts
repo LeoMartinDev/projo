@@ -17,10 +17,6 @@ import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'
 import { toItemSegmentsDto } from './segments-dto.ts'
 
-/**
- * Manual markers (§12.5, §17.2 Admin items): `PUT/DELETE /admin/items/:id/segments/:type`,
- * `POST /admin/items/:id/segments/apply-to-season`. Mounted at `/api/v1/admin`.
- */
 export const adminSegmentsRoutes = ({
   setManualSegment,
   removeSegment,
@@ -31,7 +27,6 @@ export const adminSegmentsRoutes = ({
   applyToSeason: ApplySegmentsToSeason
 }) =>
   new Hono<AppEnv>()
-    // Registered before `/:type`, which would also match.
     .post('/items/:id/segments/apply-to-season', validate('json', applyToSeasonBodySchema), (c) => {
       const { types } = c.req.valid('json')
       const result = applyToSeason({

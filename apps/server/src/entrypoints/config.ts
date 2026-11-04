@@ -4,7 +4,6 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import { logLevels, type LogLevel } from '../core/logger.ts'
 
-/** The four environment variables of §5.4, and nothing else. Everything else lives in `settings`. */
 export type Config = {
   port: number
   dataDir: string

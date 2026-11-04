@@ -12,7 +12,6 @@ describe('playback ffprobe', () => {
   test('a live probe that hangs is killed at its timeout, like the scanner one', async () => {
     temp = createTempDir()
     const binary = join(temp.path, 'ffprobe')
-    // `exec`: the killed process is the one holding the pipes, as the real ffprobe.
     writeFileSync(binary, '#!/bin/sh\nexec sleep 30\n')
     chmodSync(binary, 0o755)
     const started = Date.now()

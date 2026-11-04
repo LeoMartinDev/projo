@@ -8,20 +8,8 @@ import type {
 } from '../../core/playback/media-assets.ts'
 import type { KeyframeCleanup } from '../../core/playback/ports.ts'
 
-/**
- * Temporary files older than this are left by a crash: twice the longest generation (trickplay,
- * 3 h timeout), so a conversion still running is never touched.
- */
 const staleTemporaryMs = 6 * 60 * 60_000
 
-/**
- * Derived files of what no longer exists (§10.4, §10.5 "deleted with the source", §13.3): the
- * subtitles, sprites and keyframe indexes of deleted sources (purged, library or root removed, cascade), WebVTT of
- * tracks a rescan replaced, clips of deleted items or cut from a deleted source, and the
- * temporary files a crash left behind. Periodic: sources leave the database through several paths
- * (SQL cascades), the cache folders are the truth here. Entries whose name is not an id are not
- * the cache's: listed by none of the stores, left alone.
- */
 export const cleanupMediaAssetsFactory =
   ({
     mediaCatalog,

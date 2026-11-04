@@ -6,7 +6,6 @@ import type { Profile, ProfileRepository } from '../../src/core/profile/profile.
 import { newProfile } from '../../src/core/profile/profile.ts'
 import type { SetupRepository } from '../../src/core/setup/setup.ts'
 
-/** Reversible "hash": `hashed:<plain>`. Records how many verifications ran (timing parity). */
 export const createFakePasswordHasher = () => {
   const calls = { hash: 0, verify: 0 }
   const hasher: PasswordHasher = {
@@ -22,7 +21,6 @@ export const createFakePasswordHasher = () => {
   return { hasher, calls }
 }
 
-/** Tokens `token-1`, `token-2`…, hashed as `h(<token>)`. */
 export const createFakeSessionTokens = (): SessionTokens => {
   let counter = 0
   return {
@@ -34,7 +32,6 @@ export const createFakeSessionTokens = (): SessionTokens => {
   }
 }
 
-/** Counts hits per key and blocks at `limit`, without time. */
 export const createCountingRateLimiter = (limit = 10) => {
   const hits = new Map<string, number>()
   const limiter: RateLimiter = {
@@ -70,7 +67,6 @@ export const sampleProfile = (overrides: Partial<Profile> = {}): Profile => ({
   ...overrides,
 })
 
-/** Accounts in memory; `create` also pushes the first profile into `profiles` when given. */
 export const createInMemoryAccounts = (initial: Account[] = [], profiles: Profile[] = []) => {
   const accounts = [...initial]
   const findByUsername = (username: string) =>
@@ -111,7 +107,6 @@ export const createInMemoryAccounts = (initial: Account[] = [], profiles: Profil
   return { repository, accounts }
 }
 
-/** Profiles in memory. `libraryIds` lists the libraries that exist (`unknownLibraryIds`). */
 export const createInMemoryProfiles = (
   initial: Profile[] = [],
   { libraryIds = [] }: { libraryIds?: readonly string[] } = {},
@@ -182,7 +177,6 @@ export const createInMemorySessions = (initial: Session[] = []) => {
   return { repository, sessions }
 }
 
-/** Codes from `codes` in turn (then `ZZZZZ<n>`), hashed as `h(<code>)`. */
 export const createFakePairingCodes = (codes: string[] = []): PairingCodes => {
   const queue = [...codes]
   let counter = 0

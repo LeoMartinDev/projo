@@ -39,7 +39,6 @@ const { tvdbId: _tvdb, tmdbId: _tmdb, ...simpsonsByImdb } = items.simpsons
 describe('TheIntroDB lookup (§12.2)', () => {
   test('addresses an episode by tvdb_id with season, episode, duration and details', async () => {
     const result = await lookup(items.simpsons)
-    // Recorded: intro `{ start_ms: null, end_ms: 24716 }`: a null start is the beginning.
     expect(result).toEqual({
       ok: true,
       value: {
@@ -381,7 +380,6 @@ describe('TheIntroDB key check', () => {
       ok: false,
       error: { code: 'segment/provider_rate_limited', context: { retryAfterSeconds: 60 } },
     })
-    // A 429 without headers pauses one minute, without calling the network.
     expect(await validateTheintrodbKey(TEST_THEINTRODB_KEY)).toMatchObject({
       ok: false,
       error: { code: 'segment/provider_rate_limited' },

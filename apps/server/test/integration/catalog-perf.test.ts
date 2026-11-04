@@ -5,19 +5,11 @@ import { insertLibrary, seedViewer } from '../support/catalog-fixtures.ts'
 
 setDefaultTimeout(120_000)
 
-/**
- * §21 indicative: p95 < 100 ms for `/home`, each batch of `/home/categories`, each page of
- * `/home/categories/:category`, `/movies`, `/search` on 20 000 items. 8 000 movies,
- * 600 series × 2 seasons × 10 episodes (= 20 600 items, 20 000 ready sources), a profile with
- * history on 30 series and 60 movies, 50 items in its list.
- */
-
 const MOVIES = 8_000
 const SERIES = 600
 const RUNS = 40
 const TARGET_P95_MS = 100
 
-// `kid`: a §14 kids profile (selected libraries and a maximum rating), the slowest scope.
 const app = createCatalogTestApp({
   scopes: { 'profile-of-kid': { libraryIds: ['library-1'], allowedRatings: { FR: ['TP', '12'] } } },
 })
@@ -31,7 +23,6 @@ const seed = () => {
   insertLibrary(app.db)
   const base = Date.parse('2025-01-01T00:00:00.000Z')
   const iso = (minutes: number) => new Date(base + minutes * 60_000).toISOString()
-  // Columns absent for a kind are left to their default (NULL).
   const topLevel = client.prepare(
     `INSERT INTO items (id, kind, title, sort_title, year, genres, vote_average, content_rating,
       original_language, added_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -77,7 +68,6 @@ const seed = () => {
         JSON.stringify([genres[i % genres.length], genres[(i + 2) % genres.length]]),
         (i % 90) / 10,
         i % 3 === 0 ? '12' : 'TP',
-        // A fifth Japanese: the animated ones are anime (§13.3 "Anime").
         i % 5 === 0 ? 'ja' : 'en',
         iso(i),
         iso(i),
@@ -188,7 +178,6 @@ describe('§21 catalog API performance (indicative)', () => {
         expect(found.movies.length + found.series.length).toBeGreaterThan(0)
       }
       if (path.startsWith('/home/categories')) {
-        // A real batch or page, not an empty one past the end.
         const found = (await (await app.call(path, { as })).json()) as {
           rows?: unknown[]
           items?: unknown[]

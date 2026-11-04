@@ -12,12 +12,6 @@ import { unwrap } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 import { catalogPrefix } from './queries.ts'
 
-/**
- * Card and title page actions (§13.1, §13.3), the web's `media/actions.ts`: My list, Mark as
- * watched / unwatched, Remove. Each one refreshes every catalogue query (home rows, grids, pages,
- * search). While a toggle runs, the button shows the value it is moving to; a failure is told
- * in an alert, translated from its code, the screens keep their size.
- */
 const useActionApi = () => {
   const { t } = useTranslation()
   const { api } = useSession()
@@ -82,7 +76,6 @@ export const useWatchedToggle = () => {
   }
 }
 
-/** "Remove" from Continue watching / Up next (§13.1 `hidden_from_continue`). */
 export const useHideFromContinue = () => {
   const { api, refresh, onError } = useActionApi()
   return useMutation({

@@ -27,34 +27,18 @@ import { defineJobHandler } from '../jobs/handler.ts'
 import type { ScheduledTask } from '../jobs/scheduler.ts'
 import type { Platform } from './platform.ts'
 
-/** §16.4: a check a day, whatever the restarts (the hourly task skips a recent check). */
 const CHECK_INTERVAL_MS = 24 * 60 * 60_000
 const CHECK_TICK_MS = 60 * 60_000
 const FIRST_CHECK_DELAY_MS = 2 * 60_000
 
 export type UpdatesModuleOptions = {
-  /**
-   * Stops the server cleanly then exits 75 (`ProcessControl.exitForSwitch`), from `main.ts`;
-   * absent in tests (no exit).
-   */
   exitForSwitch?: () => void
-  /** Tests: a local server standing for the GitHub API (`/repos/…/releases/latest`). */
   releasesBaseUrl?: string
-  /** Tests: the allowed prefix of the release files (§20: github.com otherwise). */
   releasesDownloadPrefix?: string
-  /**
-   * Tests: forces the updater on or off. Otherwise on only from the bundle under the supervisor
-   * (`PROJO_RUNTIME_VERSION` set), off in `bun run dev` (§16.4).
-   */
   enabled?: boolean
   fetch?: FetchLike
 }
 
-/**
- * Wiring of §16 on the app side: `check_updates` (daily, and the button), `apply_update`
- * (download, checks, `versions/<v>`, `pending`, exit 75), rollback to a version on the disk,
- * startup reconciliation of the supervisor's switch report, `GET/POST /admin/updates*`.
- */
 export const buildUpdatesModule = (platform: Platform, options: UpdatesModuleOptions = {}) => {
   const { db, ids, clock, eventBus, jobQueue, logger, paths, appPaths, version, runtime } = platform
   const log = logger.child({ module: 'updates' })
@@ -178,10 +162,6 @@ export const buildUpdatesModule = (platform: Platform, options: UpdatesModuleOpt
       }),
     },
     scheduledTasks,
-    /**
-     * Startup (§16.3): the supervisor's report of the last switch, `app_versions`, the live
-     * state. Called by `main.ts` before the job runner starts. A no-op when disabled.
-     */
     reconcile: async (): Promise<void> => {
       if (processControl.enabled) await reconcile()
     },

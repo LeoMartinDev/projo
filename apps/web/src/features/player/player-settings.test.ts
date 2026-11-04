@@ -28,7 +28,6 @@ describe('speed slider', () => {
     const pulled = thumbRatioWhileDragging(ratioOfRate(1.2))
     expect(pulled).toBeGreaterThan(ratioOfRate(1))
     expect(pulled).toBeLessThan(ratioOfRate(1.1))
-    // Past halfway, it is on the next step's side.
     expect(thumbRatioWhileDragging(ratioOfRate(1.3))).toBeGreaterThan(ratioOfRate(1.4))
   })
 

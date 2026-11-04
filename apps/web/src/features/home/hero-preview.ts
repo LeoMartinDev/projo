@@ -3,7 +3,6 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { media } from '../../shared/styles/media.ts'
 import { useElement } from '../../shared/ui/use-element.ts'
 
-/** §13.3: desktop only (a mouse, a wide window), never with `prefers-reduced-motion`. */
 const previewQuery = `${media.finePointer} and (not ${media.compact}) and (prefers-reduced-motion: no-preference)`
 
 const subscribe = (notify: () => void) => {
@@ -19,28 +18,16 @@ const usePreviewAllowed = () =>
     () => false,
   )
 
-/** "After 2 s without interaction" (§13.3): a click, a key, a scroll restarts the wait. */
 export const previewDelayMs = 2000
 const interactions = ['pointerdown', 'keydown', 'wheel', 'touchstart', 'scroll'] as const
 
-/**
- * `muted` as a property before `play()`: the autoplay policy only lets a muted video start on its
- * own; the sound is turned on by the viewer's click.
- */
 const playWithSound = (video: HTMLVideoElement, sound: boolean): void => {
   video.muted = !sound
   if (video.paused) {
-    video.play().catch(() => {
-      // Refused (autoplay policy, decoding): the backdrop stays.
-    })
+    video.play().catch(() => {})
   }
 }
 
-/**
- * The hero's video preview: `started` after 2 s without interaction (then it stays), `visible`
- * once the clip actually plays (it fades in over the backdrop; a clip that fails to load leaves
- * the hero still). Muted until the viewer turns the sound on. The Hero is keyed by item.
- */
 export const useHeroPreview = (url: string | undefined) => {
   const allowed = usePreviewAllowed() && url !== undefined
   const [started, setStarted] = useState(false)
@@ -68,7 +55,6 @@ export const useHeroPreview = (url: string | undefined) => {
   }, [video, muted])
 
   return {
-    /** Render the `<video>` (it starts loading the clip). */
     active: allowed && started && !failed,
     visible: allowed && started && !failed && visible,
     muted,

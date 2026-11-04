@@ -1,5 +1,3 @@
-/* Geist, self-hosted from the `geist` npm package (§20: strict CSP, no external domain). Preloaded
-   by index.html. */
 @font-face {
   font-family: 'Geist';
   src: url('../../../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
@@ -17,9 +15,6 @@
   font-display: swap;
 }
 
-/* Fallbacks drawn to Geist's measurements (advance widths of French UI text per weight, ascent
-   1005 / descent 295 per 1000): while the font loads the text already takes its final room, so the
-   swap moves nothing. Arial Bold is the closer base from 550 up. */
 @font-face {
   font-family: 'Geist Fallback';
   src: local('Arial'), local('ArialMT');

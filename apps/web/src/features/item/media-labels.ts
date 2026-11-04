@@ -1,5 +1,3 @@
-/** Human labels for the technical info of a source (§13.5 "pistes disponibles"). Pure. */
-
 export { videoCodecLabel } from '@projo/i18n/versions'
 
 const audioCodecs: Record<string, string> = {
@@ -17,7 +15,6 @@ const audioCodecs: Record<string, string> = {
 export const audioCodecLabel = (codec: string): string =>
   audioCodecs[codec.toLowerCase()] ?? codec.toUpperCase()
 
-/** `4K`, `1080p`, `720p`, `480p`… from the frame height (width covers cropped scope films). */
 export const resolutionLabel = (width: number | undefined, height: number | undefined) => {
   if (height === undefined) return undefined
   const w = width ?? 0
@@ -44,7 +41,6 @@ export const channelsLabel = (channels: number | undefined): string | undefined 
   }
 }
 
-/** ffprobe uses ISO 639-2, sometimes in its bibliographic form (`fre`, `ger`). */
 const bibliographic: Record<string, string> = {
   fre: 'fra',
   ger: 'deu',
@@ -66,7 +62,6 @@ const bibliographic: Record<string, string> = {
   wel: 'cym',
 }
 
-/** `eng` → `anglais` (fr) / `English` (en); the code itself when unknown. */
 export const languageName = (code: string | undefined, locale: string): string | undefined => {
   if (code === undefined || code === 'und') return undefined
   const normalized = bibliographic[code.toLowerCase()] ?? code.toLowerCase()

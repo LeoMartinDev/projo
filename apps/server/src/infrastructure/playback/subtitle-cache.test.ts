@@ -15,7 +15,6 @@ let cache: ReturnType<typeof createSubtitleCache>
 
 beforeEach(() => {
   dir = createTempDir('projo-subtitle-cache-')
-  // ffmpeg behind a wrapper that counts its runs.
   const log = join(dir.path, 'runs.log')
   writeFileSync(log, '')
   const wrapper = join(dir.path, 'ffmpeg.sh')
@@ -40,7 +39,6 @@ describe.skipIf(!hasFfmpeg())('subtitle cache (§10.4)', () => {
     expect(vtt).toContain('Été à la plage, déjà vu')
     expect(ffmpegRuns()).toBe(1)
 
-    // Served from the cache, then rebuilt once the file changed.
     await cache.ensure({ sourceId: 'source-1', trackId: 'track-1', input })
     expect(ffmpegRuns()).toBe(1)
     writeFileSync(srt, latin1('1\r\n00:00:01,000 --> 00:00:02,500\r\nÇa change\r\n'))
@@ -92,7 +90,6 @@ describe.skipIf(!hasFfmpeg())('subtitle cache (§10.4)', () => {
     ).toEqual({ ok: true, value: undefined })
     expect(ffmpegRuns()).toBe(runs + 1)
     expect(cache.listTrackIds('video').toSorted()).toEqual(['a', 'b'])
-    // Already extracted: nothing to run.
     await cache.ensureEmbedded({
       sourceId: 'video',
       path: video,
@@ -104,7 +101,6 @@ describe.skipIf(!hasFfmpeg())('subtitle cache (§10.4)', () => {
   test('a pre-extraction pass that fails or is cancelled: the requested track alone', async () => {
     const video = videoWithEmbeddedSubtitles()
     const embedded = { kind: 'embedded', path: video, streamIndex: 2 } as const
-    // Stream 9 does not exist: the whole pass fails.
     const failing = cache.ensureEmbedded({
       sourceId: 'video',
       path: video,
@@ -118,7 +114,6 @@ describe.skipIf(!hasFfmpeg())('subtitle cache (§10.4)', () => {
     expect(await requested).toMatchObject({ ok: true })
     expect(readFileSync(join(dir.path, 'subtitles/video/good.vtt'), 'utf8')).toContain('Hello')
 
-    // The pre-extraction job is cancelled: a player asking meanwhile still gets its track.
     const controller = new AbortController()
     const cancelled = cache.ensureEmbedded({
       sourceId: 'video',

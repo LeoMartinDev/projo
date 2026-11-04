@@ -11,10 +11,6 @@ import { TextField, type TextFieldInstance } from '../../shared/ui/TextField.tsx
 import { useServerConnection } from '../server-connection/ServerConnection.tsx'
 import { useSession } from '../session/Session.tsx'
 
-/**
- * The two ways in (§26.3) once the server is known: username and password, or a code of "Connect a
- * device" (scanned or typed, §14).
- */
 export const SignInScreen = () => {
   const { t } = useTranslation()
   const router = useRouter()

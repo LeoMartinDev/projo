@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 
 import { useErrorMessage } from '../i18n/errors.ts'
 
-/** Empty state: a title, an optional sentence and an optional action. */
 export const EmptyState = ({
   title,
   text,
@@ -20,7 +19,6 @@ export const EmptyState = ({
   </div>
 )
 
-/** Error state: the translated API error and a retry button (§19 "States"). */
 export const ErrorState = ({ error, onRetry }: { error: unknown; onRetry?: () => void }) => {
   const { t } = useTranslation()
   const message = useErrorMessage()
@@ -37,7 +35,6 @@ export const ErrorState = ({ error, onRetry }: { error: unknown; onRetry?: () =>
   )
 }
 
-/** Inline error for forms. */
 export const ErrorAlert = ({ error }: { error: unknown }) => {
   const message = useErrorMessage()
   return (

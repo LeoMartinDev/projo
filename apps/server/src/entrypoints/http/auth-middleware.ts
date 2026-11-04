@@ -15,10 +15,6 @@ import { clearSessionCookie, readSessionCredential, setSessionCookie } from './s
 
 const apiPrefix = '/api/v1'
 
-/**
- * Routes reachable without an account (§17.2): wizard, login, logout, pairing claim, invitations,
- * and the stream URLs of a playback session, whose secret is the credential (§20).
- */
 const streamPath = /^\/stream\/[^/]+\/[^/]+\/.+$/
 const publicRoutes: { method: string; path: RegExp }[] = [
   { method: 'GET', path: streamPath },
@@ -40,22 +36,10 @@ const isPublic = (c: Context): boolean => {
   return publicRoutes.some((route) => route.method === c.req.method && route.path.test(path))
 }
 
-/**
- * Routes that work without an active profile: an `X-Profile-Id` they cannot honour (foreign, or
- * PIN-locked for this session) leaves `profileId` unset instead of failing, so `GET /auth/me`
- * reports `needsProfileSelection` and `POST /profiles/:id/select` can unlock a profile.
- */
 const isProfileAgnostic = (c: Context): boolean => /^\/(auth|profiles)(\/|$)/.test(apiPath(c))
 
 const mutatingMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
-/**
- * §20 "check of the `Origin` header on every mutating request". Browsers send `Origin` on
- * every cross-origin and same-origin mutating fetch; when it is absent (native clients), a
- * `Sec-Fetch-Site: cross-site` still betrays a cross-site browser request. `Origin: null` (WebKit's
- * `sendBeacon` under some referrer policies, but also sandboxed or opaque documents) passes only
- * with `Sec-Fetch-Site: same-origin`, which a page cannot set.
- */
 const originAllowed = (c: Context, expectedOrigin: string): boolean => {
   if (!mutatingMethods.has(c.req.method)) return true
   const origin = c.req.header('origin')
@@ -68,9 +52,7 @@ const originAllowed = (c: Context, expectedOrigin: string): boolean => {
 type Deps = {
   authenticate: Authenticate
   resolveProfile: ResolveProfile
-  /** The profile has library or rating restrictions (§14): no administration from it. */
   isRestrictedProfile: (profileId: string) => boolean
-  /** §14: account actions are refused to a restricted profile (`profile/restricted`). */
   ensureAccountActions: (actor: {
     accountId: string
     activeProfileId: string | undefined
@@ -79,17 +61,6 @@ type Deps = {
   trustProxy: boolean
 }
 
-/**
- * `authenticate`: Origin check on mutating requests, then cookie / bearer → `account`,
- * `session`, `profileId`. Closed by default: a non-public route without a valid session gets 401
- * (`auth/unauthenticated`, `auth/session_expired`, `auth/session_revoked`) or 403
- * (`auth/account_disabled`). A foreign `X-Profile-Id` gets 403 `profile/forbidden`, a PIN-locked
- * one not unlocked by this session 403 `profile/pin_required` (except on `/auth/*`, `/profiles*`).
- *
- * `requireAdmin` (on `/admin/*`): 401 without account, 403 `auth/forbidden` without the role,
- * 403 `auth/restricted_profile` without an active profile, or from a restricted one (a child using
- * the admin's account).
- */
 export const createAuthMiddleware = ({
   authenticate,
   resolveProfile,
@@ -152,8 +123,6 @@ export const createAuthMiddleware = ({
     if (account.role !== 'admin') {
       return respondError(c, appError('auth/forbidden', 'admin role required'))
     }
-    // An active profile, resolved and unrestricted: none resolved is refused too (a refused
-    // `X-Profile-Id` must not pass for an unrestricted profile).
     const profileId = c.get('profileId')
     if (profileId === undefined || isRestrictedProfile(profileId)) {
       return respondError(
@@ -169,10 +138,6 @@ export const createAuthMiddleware = ({
     return undefined
   }
 
-  /**
-   * Account actions (§14: devices, bearer tokens, password): refused from a restricted profile,
-   * or without a resolved one on an account that has restricted profiles.
-   */
   const requireAccountActions: MiddlewareHandler<AppEnv> = async (c, next) => {
     const account = c.get('account')
     if (account === undefined) {
