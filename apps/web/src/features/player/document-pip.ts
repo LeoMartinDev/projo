@@ -51,7 +51,7 @@ export const showInDocumentPictureInPicture = (
   const back = () => {
     video.controls = false
     video.disablePictureInPicture = false
-    home?.prepend(video)
+    if (video.parentElement === stage) home?.prepend(video)
   }
   const closed = () => {
     back()

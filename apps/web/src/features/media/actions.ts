@@ -5,6 +5,7 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { api, request } from '../../shared/api/client.ts'
 import { itemQuery } from '../catalog/queries.ts'
+import { primePlayback } from '../player/player-element.ts'
 import { type CardPlace, isWatched, listTargetOf } from './media.ts'
 
 const useRefreshCatalog = () => {
@@ -98,7 +99,10 @@ export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
     remove: (onRemoved?: () => void) =>
       hide.mutate(item.id, onRemoved === undefined ? {} : { onSuccess: onRemoved }),
     playing: play.isPending,
-    play: () => play.mutate(item),
+    play: () => {
+      primePlayback({ fullscreen: item.kind === 'movie' || item.kind === 'episode' })
+      play.mutate(item)
+    },
     error: watchlist.mutation.error ?? watched.mutation.error ?? hide.error ?? play.error,
   }
 }

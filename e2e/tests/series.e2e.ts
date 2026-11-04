@@ -111,6 +111,7 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
 
   await test.step('into the credits: "Épisode suivant" counts down, then episode 2 starts', async () => {
     const next = nextSessionFor(page, second, 45_000)
+    await video.evaluate((element) => element.setAttribute('data-e2e-episode', 'first'))
     await clickBarAt(page, (credits.startS + 0.5) / durationS)
     const countdown = page.getByRole('button', { name: startsWith(fr.player.next.playIn) })
     await expect(countdown).toBeVisible({ timeout: 15_000 })
@@ -127,6 +128,10 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
       expect(selectedAudio(session)?.language).toBe('en')
       expect(selectedSubtitle(session)).toMatchObject({ language: 'en', origin: 'embedded' })
       await expectPlayingPast(video, 0.5)
+      await expect(
+        video,
+        'the same <video> plays on, so WebKit lets it start without a tap',
+      ).toHaveAttribute('data-e2e-episode', 'first')
       await expect(captions(page)).toHaveText('Brackenmoor English line 2', { timeout: 20_000 })
     })
   })
