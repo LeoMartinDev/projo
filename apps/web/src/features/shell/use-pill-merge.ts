@@ -65,8 +65,10 @@ export const usePillMerge = (merged: boolean) => {
     const start = performance.now()
     let last = start
     let frame = 0
-    const step = (now: number) => {
-      const dt = Math.min(now - last, 32) / 1000
+    /* The frame timestamp can be older than the effect's clock by a whole delayed frame after a scroll: time the spring on the real clock. */
+    const step = () => {
+      const now = performance.now()
+      const dt = Math.min(Math.max(now - last, 0), 32) / 1000
       last = now
       const skip = window.matchMedia(instant).matches
       if (skip || now - start >= lag) actionsTarget.current = target
