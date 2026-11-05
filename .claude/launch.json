@@ -16,6 +16,13 @@
       "autoPort": false
     },
     {
+      "name": "web-alt",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/web", "dev", "--port", "5174", "--strictPort"],
+      "port": 5174,
+      "autoPort": false
+    },
+    {
       "name": "web-lan",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "dev:web:lan"],
