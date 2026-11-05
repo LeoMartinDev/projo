@@ -34,6 +34,13 @@
     "account": "Compte et appareils",
     "admin": "Administration",
     "home": "Accueil projo",
+    "installApp": "Installer l’app",
+    "install": {
+      "title": "Installer projo",
+      "share": "Touchez Partager, parfois dans le menu ⋯",
+      "addToHomeScreen": "Choisissez « Sur l’écran d’accueil »",
+      "add": "Touchez « Ajouter »"
+    },
     "logout": "Se déconnecter",
     "mainNavigation": "Navigation principale",
     "profileSettings": "Réglages du profil",

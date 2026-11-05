@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client'
 import { createAppQueryClient } from './app/query-client.ts'
 import { createAppRouter } from './app/router.tsx'
 import { installPlaybackPriming } from './features/player/player-element.ts'
+import { trackInstallPrompt } from './shared/app-install/install-prompt.ts'
 import { registerServiceWorker, reloadToLatest } from './shared/app-update/service-worker.ts'
 import { setupI18n } from './shared/i18n/index.ts'
 import { setActiveProfileId } from './shared/session/active-profile.ts'
@@ -18,6 +19,7 @@ import { trackScrollbarWidth } from './shared/styles/scrollbar.ts'
 
 setupI18n()
 trackScrollbarWidth()
+trackInstallPrompt()
 
 window.addEventListener('vite:preloadError', (event) => {
   const key = `projo:preload-reload:${event.payload.message}`

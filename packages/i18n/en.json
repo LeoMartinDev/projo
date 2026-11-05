@@ -34,6 +34,13 @@
     "account": "Account and devices",
     "admin": "Administration",
     "home": "projo home",
+    "installApp": "Install the app",
+    "install": {
+      "title": "Install projo",
+      "share": "Tap Share, sometimes in the ⋯ menu",
+      "addToHomeScreen": "Choose “Add to Home Screen”",
+      "add": "Tap “Add”"
+    },
     "logout": "Sign out",
     "mainNavigation": "Main navigation",
     "profileSettings": "Profile settings",

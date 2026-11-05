@@ -173,6 +173,20 @@ export const StarIcon = ({ size = 14 }: IconProps) => (
   </Icon>
 )
 
+export const ShareIcon = ({ size = 18 }: IconProps) => (
+  <Icon size={size}>
+    <path d="M12 3v12M8 7l4-4 4 4" />
+    <path d="M8 10H6.5A1.5 1.5 0 0 0 5 11.5v8A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-8a1.5 1.5 0 0 0-1.5-1.5H16" />
+  </Icon>
+)
+
+export const AddToHomeIcon = ({ size = 18 }: IconProps) => (
+  <Icon size={size}>
+    <rect x="4" y="4" width="16" height="16" rx="4" />
+    <path d="M12 8.5v7M8.5 12h7" />
+  </Icon>
+)
+
 export const LockSmallIcon = ({ size = 14 }: IconProps) => (
   <Icon size={size} stroke={2}>
     <rect x="5" y="11" width="14" height="9" rx="2" />

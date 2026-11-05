@@ -6,6 +6,9 @@ import { useTranslation } from 'react-i18next'
 import type { MeResponse } from '@projo/shared/api/auth'
 
 import { api, request } from '../../shared/api/client.ts'
+import { InstallAppDialog } from '../../shared/app-install/InstallAppDialog.tsx'
+import { promptInstall } from '../../shared/app-install/install-prompt.ts'
+import { useAppInstall } from '../../shared/app-install/use-app-install.ts'
 import {
   canAdminister,
   canManageAccount,
@@ -15,6 +18,7 @@ import { sessionQuery, signedOut } from '../../shared/session/session.ts'
 import { reducedMotion } from '../../shared/styles/media.ts'
 import { FilmIcon, LogoutIcon, SettingsIcon, TvIcon } from '../../shared/ui/icons.tsx'
 import {
+  AddToHomeIcon,
   BookmarkIcon,
   DevicesIcon,
   HomeIcon,
@@ -65,6 +69,8 @@ const AccountMenu = ({ me }: { me: MeResponse }) => {
   const logout = useLogout()
   const profile = pickActiveProfile(me)
   const name = profile?.name ?? me.account.username
+  const install = useAppInstall()
+  const [installSteps, setInstallSteps] = useState(false)
   return (
     <>
       <button
@@ -104,6 +110,20 @@ const AccountMenu = ({ me }: { me: MeResponse }) => {
             <AdminBadge />
           </Link>
         ) : undefined}
+        {install === undefined ? undefined : (
+          <button
+            type="button"
+            className="menu__item"
+            onClick={(event) => {
+              closePopover(event)
+              if (install === 'prompt') void promptInstall()
+              else setInstallSteps(true)
+            }}
+          >
+            <AddToHomeIcon />
+            {t('shell.installApp')}
+          </button>
+        )}
         <span className="menu__separator" aria-hidden="true" />
         <button
           type="button"
@@ -118,6 +138,7 @@ const AccountMenu = ({ me }: { me: MeResponse }) => {
           {t('shell.logout')}
         </button>
       </div>
+      <InstallAppDialog open={installSteps} onClose={() => setInstallSteps(false)} />
     </>
   )
 }
