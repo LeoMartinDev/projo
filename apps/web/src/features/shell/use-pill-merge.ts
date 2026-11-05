@@ -7,7 +7,7 @@ import { pillMerge, type SideMotion } from './pill-merge.ts'
 const stiffness = 380
 const damping = 25
 const lag = 45
-const instant = `${media.phone}, ${reducedMotion}`
+const instant = `${media.compact}, ${reducedMotion}`
 
 const box = (element: HTMLElement) => ({ left: element.offsetLeft, width: element.offsetWidth })
 

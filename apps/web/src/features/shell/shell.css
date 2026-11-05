@@ -124,7 +124,7 @@ html:has(dialog:modal) .shell__header {
   filter: url(#pill-merge-highlight);
 }
 
-@media not (--phone) {
+@media not (--compact) {
   .shell__logo,
   .pill-nav,
   .shell__actions {
@@ -182,7 +182,7 @@ html:has(dialog:modal) .shell__header {
   color: var(--color-text);
 }
 
-@media not (--phone) {
+@media not (--compact) {
   .shell__header[data-scrolled='true'] .shell__search {
     border-color: transparent;
     -webkit-backdrop-filter: none;
@@ -301,6 +301,10 @@ html:has(dialog:modal) .shell__header {
   font-weight: 600;
 }
 
+.pill-nav__tabs {
+  display: contents;
+}
+
 .pill-nav__icon,
 .pill-nav__search {
   display: none;
@@ -314,8 +318,26 @@ html:has(dialog:modal) .shell__header {
 
 @media (--phone) {
   .shell {
-    --header-height: calc(66px + env(safe-area-inset-top));
     --nav-room: 48px;
+  }
+
+  .page {
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: var(--nav-room);
+    padding-left: max(16px, env(safe-area-inset-left));
+  }
+}
+
+/* A phone on its side: the tablet's header, lower, so the short screen keeps its height. */
+@media (--phone) and (not (--compact)) {
+  .shell {
+    --header-height: calc(64px + env(safe-area-inset-top));
+  }
+}
+
+@media (--compact) {
+  .shell {
+    --header-height: calc(66px + env(safe-area-inset-top));
   }
 
   .shell__header {
@@ -340,12 +362,6 @@ html:has(dialog:modal) .shell__header {
     display: none;
   }
 
-  .page {
-    padding-right: max(16px, env(safe-area-inset-right));
-    padding-bottom: var(--nav-room);
-    padding-left: max(16px, env(safe-area-inset-left));
-  }
-
   .shell__header .pill-nav {
     min-width: 0;
     padding: 4px;
@@ -363,80 +379,146 @@ html:has(dialog:modal) .shell__header {
   }
 }
 
-/* Installed, upright phone: a tab bar at the bottom, within thumb reach. */
-@media (--phone) and (--compact) and (not (--in-browser)) {
+/* Installed on a touch screen: a scroll edge keeps the status bar and the header legible over the page. */
+@media (--touch) and (not (--in-browser)) {
+  .shell__header::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 -24px;
+    z-index: -1;
+    background: linear-gradient(180deg, var(--shade-3) 0%, var(--shade-2) 45%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    pointer-events: none;
+  }
+
+  .shell__header[data-scrolled='true'] {
+    background: none;
+  }
+
+  .shell__header[data-scrolled='true']::before {
+    opacity: 1;
+  }
+}
+
+/* Installed, upright phone: a floating tab bar within thumb reach, search on its own beside it. */
+@media (--compact) and (not (--in-browser)) {
   .shell {
-    --nav-room: calc(112px + env(safe-area-inset-bottom));
+    --tab-bar-bottom: max(10px, calc(env(safe-area-inset-bottom) - 16px));
+    --nav-room: calc(96px + env(safe-area-inset-bottom));
   }
 
   .shell__search {
     display: none;
   }
 
+  .shell::after {
+    content: '';
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 44;
+    height: calc(var(--tab-bar-bottom) + 72px);
+    background: linear-gradient(0deg, var(--shade-2) 0%, transparent 100%);
+    pointer-events: none;
+  }
+
   .shell__header .pill-nav {
     position: fixed;
-    right: 16px;
-    bottom: max(12px, calc(env(safe-area-inset-bottom) - 14px));
-    left: 16px;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: var(--tab-bar-bottom);
+    left: max(16px, env(safe-area-inset-left));
     z-index: 45;
-    justify-content: space-around;
-    padding: 6px;
-    border-radius: 26px;
-    background: var(--material-glass);
-    -webkit-backdrop-filter: var(--blur-glass-dim);
-    backdrop-filter: var(--blur-glass-dim);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 12px 36px -14px rgba(0, 0, 0, 0.45);
+    align-items: stretch;
+    gap: 10px;
+    padding: 0;
+    border: 0;
+    background: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
     overflow: visible;
   }
 
   html:has(dialog:modal) .pill-nav {
-    right: calc(16px + var(--scrollbar-width, 0px));
+    right: calc(max(16px, env(safe-area-inset-right)) + var(--scrollbar-width, 0px));
+  }
+
+  .pill-nav__tabs,
+  .pill-nav__search {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--material-glass);
+    -webkit-backdrop-filter: var(--blur-glass-dim);
+    backdrop-filter: var(--blur-glass-dim);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 14px 34px -12px rgba(0, 0, 0, 0.6);
+  }
+
+  .pill-nav__tabs {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 2px;
+    min-width: 0;
+    padding: 4px;
+    border-radius: var(--radius-pill);
   }
 
   .pill-nav__link {
     flex: 1 1 0;
     flex-direction: column;
-    gap: 3px;
+    gap: 2px;
     min-width: 0;
-    height: 56px;
+    height: 52px;
     padding: 0;
-    border-radius: 20px;
-    color: var(--color-text-secondary);
-    font-size: 11px;
+    color: var(--color-text-soft);
+    font-size: 10.5px;
     font-weight: 500;
+    letter-spacing: 0.01em;
+    transition:
+      color 0.2s ease,
+      background-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .pill-nav__link:active {
+    transform: scale(0.94);
   }
 
   .pill-nav__link[aria-current='page'] {
     background: var(--fill-3);
-    color: var(--color-text);
-    font-weight: 500;
+    color: var(--color-text-strong);
+    font-weight: 600;
   }
 
-  .pill-nav__icon,
-  .pill-nav__search {
+  .pill-nav__icon {
     display: flex;
   }
-}
 
-/* Phone on its side: the screen is short, the navigation stays a compact pill in the header. */
-@media (--phone) and (not (--compact)) {
-  .shell__header {
-    grid-template-columns: 1fr auto 1fr;
-  }
-
-  .shell__header .pill-nav {
-    justify-self: center;
-  }
-
-  .pill-nav__link {
+  .pill-nav__search {
+    display: flex;
     flex: 0 0 auto;
-    padding: 0 16px;
+    width: 62px;
+    height: auto;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-strong);
+  }
+
+  .pill-nav__search[aria-expanded='true'] {
+    background: var(--material-glass-hover);
+  }
+
+  .pill-nav__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }
 
-@media (--phone) and (--in-browser) {
+@media (--compact) and (--in-browser) {
   .shell {
     --header-height: calc(64px + env(safe-area-inset-top));
   }
@@ -457,13 +539,6 @@ html:has(dialog:modal) .shell__header {
   .shell__header .pill-nav {
     grid-row: 1;
     grid-column: 1;
-    justify-self: stretch;
-  }
-}
-
-@media (--phone) and (not (--compact)) and (--in-browser) {
-  .shell__header .pill-nav {
-    justify-self: start;
   }
 }
 
@@ -578,7 +653,7 @@ html:has(dialog:modal) .shell__header {
   background: var(--color-border-subtle);
 }
 
-@media (--phone) {
+@media (--compact) {
   .menu {
     inset: 60px 16px auto auto;
   }

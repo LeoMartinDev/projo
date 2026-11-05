@@ -239,51 +239,53 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
           <Logo />
         </Link>
         <nav className="pill-nav" aria-label={t('shell.mainNavigation')}>
-          <Link
-            to="/"
-            className="pill-nav__link"
-            activeOptions={{ exact: true }}
-            activeProps={{ 'aria-current': 'page' }}
-            onClick={backToTop('/')}
-          >
-            <span className="pill-nav__icon" aria-hidden="true">
-              <HomeIcon />
-            </span>
-            {t('nav.home')}
-          </Link>
-          <Link
-            to="/series"
-            className="pill-nav__link"
-            activeProps={{ 'aria-current': 'page' }}
-            onClick={backToTop('/series')}
-          >
-            <span className="pill-nav__icon" aria-hidden="true">
-              <TvIcon size={22} />
-            </span>
-            {t('nav.series')}
-          </Link>
-          <Link
-            to="/movies"
-            className="pill-nav__link"
-            activeProps={{ 'aria-current': 'page' }}
-            onClick={backToTop('/movies')}
-          >
-            <span className="pill-nav__icon" aria-hidden="true">
-              <FilmIcon size={22} />
-            </span>
-            {t('nav.movies')}
-          </Link>
-          <Link
-            to="/watchlist"
-            className="pill-nav__link"
-            activeProps={{ 'aria-current': 'page' }}
-            onClick={backToTop('/watchlist')}
-          >
-            <span className="pill-nav__icon" aria-hidden="true">
-              <BookmarkIcon />
-            </span>
-            {t('nav.watchlist')}
-          </Link>
+          <div className="pill-nav__tabs">
+            <Link
+              to="/"
+              className="pill-nav__link"
+              activeOptions={{ exact: true }}
+              activeProps={{ 'aria-current': 'page' }}
+              onClick={backToTop('/')}
+            >
+              <span className="pill-nav__icon" aria-hidden="true">
+                <HomeIcon />
+              </span>
+              {t('nav.home')}
+            </Link>
+            <Link
+              to="/series"
+              className="pill-nav__link"
+              activeProps={{ 'aria-current': 'page' }}
+              onClick={backToTop('/series')}
+            >
+              <span className="pill-nav__icon" aria-hidden="true">
+                <TvIcon size={22} />
+              </span>
+              {t('nav.series')}
+            </Link>
+            <Link
+              to="/movies"
+              className="pill-nav__link"
+              activeProps={{ 'aria-current': 'page' }}
+              onClick={backToTop('/movies')}
+            >
+              <span className="pill-nav__icon" aria-hidden="true">
+                <FilmIcon size={22} />
+              </span>
+              {t('nav.movies')}
+            </Link>
+            <Link
+              to="/watchlist"
+              className="pill-nav__link"
+              activeProps={{ 'aria-current': 'page' }}
+              onClick={backToTop('/watchlist')}
+            >
+              <span className="pill-nav__icon" aria-hidden="true">
+                <BookmarkIcon />
+              </span>
+              {t('nav.watchlist')}
+            </Link>
+          </div>
           <button
             type="button"
             className="pill-nav__link pill-nav__search"
@@ -293,7 +295,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
             <span className="pill-nav__icon" aria-hidden="true">
               <SearchIcon size={22} />
             </span>
-            {t('nav.search')}
+            <span className="pill-nav__label">{t('nav.search')}</span>
           </button>
         </nav>
         <div className="shell__actions">
