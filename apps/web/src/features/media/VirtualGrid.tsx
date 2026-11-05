@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 import { useElement } from '../../shared/ui/use-element.ts'
 import { PosterSkeleton } from './PosterTile.tsx'
@@ -6,14 +7,27 @@ import { PosterSkeleton } from './PosterTile.tsx'
 const minCellPx = 168
 const overscanRows = 3
 
-type Layout = { columns: number; rowHeight: number; gap: number; columnGap: number }
+type Layout = { columns: number; cell: number; rowHeight: number; gap: number; columnGap: number }
 
 export const gridLayoutOf = (width: number): Layout => {
   const gap = width < 480 ? 12 : 16
   const rowGap = width < 480 ? 12 : 24
   const columns = Math.max(2, Math.floor((width + gap) / (minCellPx + gap)))
   const cell = (width - gap * (columns - 1)) / columns
-  return { columns, rowHeight: cell * 1.5 + rowGap, gap: rowGap, columnGap: gap }
+  return { columns, cell, rowHeight: cell * 1.5 + rowGap, gap: rowGap, columnGap: gap }
+}
+
+export const gridSizesOf = (layout: Layout): string => `${Math.round(layout.cell)}px`
+
+let lastGridWidth: number | undefined
+
+const expectedLayout = (): Layout =>
+  gridLayoutOf(lastGridWidth ?? document.documentElement.clientWidth)
+
+export const firstScreenOfGrid = (): { count: number; sizes: string } => {
+  const layout = expectedLayout()
+  const rows = Math.ceil(window.innerHeight / layout.rowHeight)
+  return { count: rows * layout.columns, sizes: gridSizesOf(layout) }
 }
 
 export const visibleRowsOf = ({
@@ -53,16 +67,17 @@ export const VirtualGrid = <T extends { id: string }>({
   fetchingMore: boolean
   hasMore: boolean
   onMore: () => void
-  renderItem: (item: T) => ReactNode
+  renderItem: (item: T, sizes: string) => ReactNode
 }) => {
   const [list, listRef] = useElement<HTMLUListElement>()
-  const [layout, setLayout] = useState<Layout>({ columns: 6, rowHeight: 0, gap: 24, columnGap: 16 })
+  const [layout, setLayout] = useState(expectedLayout)
   const [range, setRange] = useState({ first: 0, last: 3 })
   const rowCount = Math.ceil(items.length / layout.columns)
 
   useLayoutEffect(() => {
     if (list === undefined) return
     const update = () => {
+      lastGridWidth = list.clientWidth
       const next = gridLayoutOf(list.clientWidth)
       setLayout((previous) =>
         previous.columns === next.columns &&
@@ -82,7 +97,7 @@ export const VirtualGrid = <T extends { id: string }>({
         previous.first === rows.first && previous.last === rows.last ? previous : rows,
       )
     }
-    const observer = new ResizeObserver(update)
+    const observer = new ResizeObserver(() => flushSync(update))
     observer.observe(list)
     window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', update)
@@ -120,9 +135,9 @@ export const VirtualGrid = <T extends { id: string }>({
       </ul>
     )
 
-  const measured = layout.rowHeight > 0
-  const first = measured ? range.first : 0
-  const last = measured ? range.last : Math.min(rowCount - 1, 5)
+  const first = Math.min(range.first, Math.max(0, rowCount - 1))
+  const last = Math.min(range.last, rowCount - 1)
+  const sizes = gridSizesOf(layout)
   const visible = items.slice(first * layout.columns, (last + 1) * layout.columns)
   const before = first * layout.rowHeight
   const after = Math.max(0, (rowCount - last - 1) * layout.rowHeight)
@@ -137,7 +152,7 @@ export const VirtualGrid = <T extends { id: string }>({
     >
       {visible.map((item) => (
         <li key={item.id} className="poster-grid__cell">
-          {renderItem(item)}
+          {renderItem(item, sizes)}
         </li>
       ))}
       {fetchingMore

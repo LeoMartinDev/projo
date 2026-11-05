@@ -40,7 +40,9 @@ export const WatchlistPage = () => {
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !watchlist.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
+          renderItem={(item, sizes) => (
+            <PosterTile item={item} sizes={sizes} onLongPress={cardSheet.onLongPress} />
+          )}
         />
       )}
       {watchlist.isFetchNextPageError ? (

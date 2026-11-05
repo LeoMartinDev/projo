@@ -21,6 +21,7 @@ export const createAppQueryClient = ({
     defaultOptions: {
       queries: {
         staleTime: 30_000,
+        gcTime: 30 * 60_000,
         retry: (count, error) => count < 2 && (error.code === 'network' || error.status >= 500),
       },
     },

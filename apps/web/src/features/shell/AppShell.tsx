@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, Outlet, useNavigate } from '@tanstack/react-router'
+import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
 import { type MouseEvent, useEffect, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -12,6 +12,7 @@ import {
   pickActiveProfile,
 } from '../../shared/session/active-profile.ts'
 import { sessionQuery, signedOut } from '../../shared/session/session.ts'
+import { reducedMotion } from '../../shared/styles/media.ts'
 import { FilmIcon, LogoutIcon, SettingsIcon, TvIcon } from '../../shared/ui/icons.tsx'
 import {
   BookmarkIcon,
@@ -24,6 +25,7 @@ import {
 import { unreadNotificationsQuery } from '../admin/operations/unread.ts'
 import { SearchOverlay } from '../search/SearchOverlay.tsx'
 import { Avatar } from './Avatar.tsx'
+import { KeptTabs } from './KeptTabs.tsx'
 import { Logo } from './Logo.tsx'
 import './shell.css'
 import { usePillMerge } from './use-pill-merge.ts'
@@ -132,6 +134,16 @@ const useScrolled = () =>
     () => false,
   )
 
+const useBackToTop = () => {
+  const pathname = useLocation({ select: (location) => location.pathname })
+  return (to: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== to) return
+    event.preventDefault()
+    const smooth = !window.matchMedia(reducedMotion).matches
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
+  }
+}
+
 const isTyping = (target: unknown) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
@@ -143,6 +155,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
   const scrolled = useScrolled()
   const headerRef = usePillMerge(scrolled)
   const [searching, setSearching] = useState(false)
+  const backToTop = useBackToTop()
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -210,25 +223,41 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
             className="pill-nav__link"
             activeOptions={{ exact: true }}
             activeProps={{ 'aria-current': 'page' }}
+            onClick={backToTop('/')}
           >
             <span className="pill-nav__icon" aria-hidden="true">
               <HomeIcon />
             </span>
             {t('nav.home')}
           </Link>
-          <Link to="/series" className="pill-nav__link" activeProps={{ 'aria-current': 'page' }}>
+          <Link
+            to="/series"
+            className="pill-nav__link"
+            activeProps={{ 'aria-current': 'page' }}
+            onClick={backToTop('/series')}
+          >
             <span className="pill-nav__icon" aria-hidden="true">
               <TvIcon size={22} />
             </span>
             {t('nav.series')}
           </Link>
-          <Link to="/movies" className="pill-nav__link" activeProps={{ 'aria-current': 'page' }}>
+          <Link
+            to="/movies"
+            className="pill-nav__link"
+            activeProps={{ 'aria-current': 'page' }}
+            onClick={backToTop('/movies')}
+          >
             <span className="pill-nav__icon" aria-hidden="true">
               <FilmIcon size={22} />
             </span>
             {t('nav.movies')}
           </Link>
-          <Link to="/watchlist" className="pill-nav__link" activeProps={{ 'aria-current': 'page' }}>
+          <Link
+            to="/watchlist"
+            className="pill-nav__link"
+            activeProps={{ 'aria-current': 'page' }}
+            onClick={backToTop('/watchlist')}
+          >
             <span className="pill-nav__icon" aria-hidden="true">
               <BookmarkIcon />
             </span>
@@ -261,6 +290,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
         </div>
       </header>
       <main id="main" className="shell__main">
+        <KeptTabs />
         <Outlet />
       </main>
       <SearchOverlay open={searching} onClose={() => setSearching(false)} />

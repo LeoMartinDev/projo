@@ -54,6 +54,8 @@ export const useHeroPreview = (url: string | undefined) => {
     if (video !== undefined) playWithSound(video, !muted)
   }, [video, muted])
 
+  useEffect(() => () => video?.pause(), [video])
+
   return {
     active: allowed && started && !failed,
     visible: allowed && started && !failed && visible,

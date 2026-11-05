@@ -171,7 +171,6 @@
   text-decoration: none;
   -webkit-touch-callout: none;
   transition: transform 0.45s var(--ease);
-  will-change: transform;
 }
 
 .card::before {
@@ -532,6 +531,13 @@
   }
 }
 
+@media (--fine-pointer) {
+  .card,
+  .poster {
+    will-change: transform;
+  }
+}
+
 .poster {
   position: relative;
   display: flex;
@@ -548,7 +554,6 @@
   isolation: isolate;
   -webkit-touch-callout: none;
   transition: transform 0.45s var(--ease);
-  will-change: transform;
 }
 
 .poster::after {

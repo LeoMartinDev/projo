@@ -19,11 +19,13 @@ import './media.css'
 
 export const PosterTile = ({
   item,
+  sizes,
   onLongPress,
   tabIndex,
   id,
 }: {
   item: ItemSummaryDto
+  sizes: string
   onLongPress?: (item: ItemSummaryDto, anchor: HTMLElement) => void
   tabIndex?: number
   id?: string
@@ -42,7 +44,7 @@ export const PosterTile = ({
       {...(id === undefined ? {} : { id })}
       {...(onLongPress === undefined ? {} : press)}
     >
-      <Artwork src={posterOf(item)} className="cover-img poster__img" />
+      <Artwork src={posterOf(item)} className="cover-img poster__img" sizes={sizes} eager />
       <span className="poster__caption">
         <span className="poster__title">{itemTitle(t, item)}</span>
         {item.year === undefined ? undefined : (

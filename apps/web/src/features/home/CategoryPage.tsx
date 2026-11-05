@@ -50,7 +50,9 @@ export const CategoryPage = ({ category }: { category: HomeCategorySlug }) => {
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !page.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
+          renderItem={(item, sizes) => (
+            <PosterTile item={item} sizes={sizes} onLongPress={cardSheet.onLongPress} />
+          )}
         />
       )}
       {page.isFetchNextPageError ? (

@@ -10,6 +10,8 @@ export type { CatalogQueryState }
 
 const pageSize = 60
 
+const gridStaleTime = 5 * 60_000
+
 export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
   infiniteQueryOptions({
     queryKey: ['catalog', kind, state],
@@ -21,6 +23,7 @@ export const catalogQuery = (kind: CatalogKind, state: CatalogQueryState) =>
         : request(() => api.series.$get({ query }))
     },
     getNextPageParam: (page) => page.nextCursor,
+    staleTime: gridStaleTime,
   })
 
 export const genresQuery = (kind: CatalogKind) =>
@@ -41,6 +44,7 @@ export const watchlistQuery = infiniteQueryOptions({
       }),
     ),
   getNextPageParam: (page) => page.nextCursor,
+  staleTime: gridStaleTime,
 })
 
 export const itemQuery = (id: string) =>

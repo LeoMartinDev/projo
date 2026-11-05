@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from '@tanstack/react-router'
-import { useEffect, useId, useState } from 'react'
+import { Link } from '@tanstack/react-router'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { genreLabel, sortGenresByLabel } from '@projo/i18n/genres'
@@ -20,14 +20,12 @@ import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
 import {
   activeFilterCount,
-  arrivalState,
-  type CatalogSearch,
   clearFilters,
   decadesWithin,
-  loadCatalogState,
   type CatalogStateDraft,
   normalizeCatalogState,
   saveCatalogState,
+  useCatalogState,
   yearsOf,
 } from './catalog-state.ts'
 import { type CatalogKind, type CatalogQueryState, catalogQuery, genresQuery } from './queries.ts'
@@ -216,32 +214,46 @@ const SortChip = ({
   )
 }
 
-export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: CatalogSearch }) => {
+export const CatalogSkeleton = ({ kind }: { kind: CatalogKind | 'watchlist' }) => {
   const { t } = useTranslation()
-  const navigate = useNavigate()
+  const title =
+    kind === 'movies' ? t('nav.movies') : kind === 'series' ? t('nav.series') : t('nav.watchlist')
+  return (
+    <div className="page catalog">
+      <div className="catalog__header">
+        <h1 className="page__title">{title}</h1>
+      </div>
+      <VirtualGrid
+        items={[]}
+        label={title}
+        pending
+        fetchingMore={false}
+        hasMore={false}
+        onMore={() => undefined}
+        renderItem={() => undefined}
+      />
+    </div>
+  )
+}
+
+export const CatalogPage = ({ kind }: { kind: CatalogKind }) => {
+  const { t } = useTranslation()
   const sheetTitleId = useId()
   const profileId = getActiveProfileId() ?? 'none'
-  const [state, setState] = useState<CatalogQueryState>(() =>
-    arrivalState(loadCatalogState(profileId, kind), search),
-  )
+  const state = useCatalogState(profileId, kind)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [sheetUsed, setSheetUsed] = useState(false)
   const catalog = useInfiniteQuery(catalogQuery(kind, state))
   const session = useQuery(sessionQuery)
   const isAdmin = session.data?.status === 'signed_in' && canAdminister(session.data.me)
   const filterCount = activeFilterCount(state)
   const device = useDevice()
 
-  const change = (next: CatalogQueryState) => {
-    setState(next)
-    saveCatalogState(profileId, kind, next)
+  const change = (next: CatalogQueryState) => saveCatalogState(profileId, kind, next)
+  const openFilters = () => {
+    setSheetUsed(true)
+    setFiltersOpen(true)
   }
-
-  const { sort } = search
-  useEffect(() => {
-    if (sort === undefined) return
-    saveCatalogState(profileId, kind, arrivalState(loadCatalogState(profileId, kind), { sort }))
-    void navigate({ to: kind === 'movies' ? '/movies' : '/series', search: {}, replace: true })
-  }, [sort, profileId, kind, navigate])
 
   const items = catalog.data?.pages.flatMap((page) => page.items) ?? []
   const cardSheet = useGridCardSheet(items)
@@ -284,7 +296,7 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
             type="button"
             className="button button--glass catalog__filters-button"
             aria-expanded={filtersOpen}
-            onClick={() => setFiltersOpen(true)}
+            onClick={openFilters}
           >
             <FilterIcon />
             {filterCount === 0
@@ -294,25 +306,27 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
         </div>
       </div>
 
-      <div className="catalog__filters" role="group" aria-label={t('catalog.filters.title')}>
-        <Filters
-          kind={kind}
-          state={state}
-          onChange={change}
-          idPrefix={`${kind}-filter`}
-          compact
-          chips={device === 'tablet'}
-        />
-        {filterCount === 0 ? undefined : (
-          <button
-            type="button"
-            className="button button--small"
-            onClick={() => change(clearFilters(state))}
-          >
-            {t('catalog.filters.clear')}
-          </button>
-        )}
-      </div>
+      {device === 'phone' ? undefined : (
+        <div className="catalog__filters" role="group" aria-label={t('catalog.filters.title')}>
+          <Filters
+            kind={kind}
+            state={state}
+            onChange={change}
+            idPrefix={`${kind}-filter`}
+            compact
+            chips={device === 'tablet'}
+          />
+          {filterCount === 0 ? undefined : (
+            <button
+              type="button"
+              className="button button--small"
+              onClick={() => change(clearFilters(state))}
+            >
+              {t('catalog.filters.clear')}
+            </button>
+          )}
+        </div>
+      )}
 
       {catalog.isError && items.length === 0 ? (
         <ErrorState error={catalog.error} onRetry={() => void catalog.refetch()} />
@@ -351,7 +365,9 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
           fetchingMore={isFetchingNextPage}
           hasMore={hasNextPage && !catalog.isFetchNextPageError}
           onMore={() => void fetchNextPage()}
-          renderItem={(item) => <PosterTile item={item} onLongPress={cardSheet.onLongPress} />}
+          renderItem={(item, sizes) => (
+            <PosterTile item={item} sizes={sizes} onLongPress={cardSheet.onLongPress} />
+          )}
         />
       )}
       {catalog.isFetchNextPageError ? (
@@ -363,13 +379,15 @@ export const CatalogPage = ({ kind, search }: { kind: CatalogKind; search: Catal
           {t('catalog.filters.title')}
         </h2>
         <div className="catalog__sheet-fields">
-          <Filters
-            kind={kind}
-            state={state}
-            onChange={change}
-            idPrefix={`${kind}-sheet`}
-            compact={false}
-          />
+          {sheetUsed ? (
+            <Filters
+              kind={kind}
+              state={state}
+              onChange={change}
+              idPrefix={`${kind}-sheet`}
+              compact={false}
+            />
+          ) : undefined}
         </div>
         <div className="catalog__sheet-actions">
           <button

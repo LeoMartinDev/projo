@@ -10,16 +10,23 @@ import { imageWidths } from '@projo/shared/api/catalog'
 
 import { reducedMotion } from '../styles/media.ts'
 
+const heldSince = new WeakMap<HTMLImageElement, number>()
+
+const cachedLoadMs = 120
+
 const holdUntilLoaded: RefCallback<HTMLImageElement> = (image) => {
-  if (image && !image.complete) image.dataset['pending'] = ''
+  if (!image || image.complete) return
+  image.dataset['pending'] = ''
+  heldSince.set(image, performance.now())
 }
 
 const reveal = (event: SyntheticEvent<HTMLImageElement>) => {
   const image = event.currentTarget
   if (image.dataset['pending'] === undefined) return
   delete image.dataset['pending']
-  if (window.matchMedia(reducedMotion).matches) return
-  image.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 400, easing: 'ease-out' })
+  const waited = performance.now() - (heldSince.get(image) ?? 0)
+  if (waited < cachedLoadMs || window.matchMedia(reducedMotion).matches) return
+  image.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 250, easing: 'ease-out' })
 }
 
 export const fullWidthSizes = '100vw'

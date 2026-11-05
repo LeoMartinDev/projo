@@ -16,15 +16,16 @@ import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { homeCategorySlugSchema } from '@projo/shared/api/home'
 
 import { parseCatalogSearch } from '../features/catalog/catalog-state.ts'
-import { CatalogPage } from '../features/catalog/CatalogPage.tsx'
+import { CatalogSkeleton } from '../features/catalog/CatalogPage.tsx'
+import { arriveOnCatalog, loadCatalog, loadWatchlist } from '../features/catalog/load-catalog.ts'
 import { CategoryPage } from '../features/home/CategoryPage.tsx'
-import { HomePage, HomeSkeleton } from '../features/home/HomePage.tsx'
+import { HomeSkeleton } from '../features/home/HomePage.tsx'
 import { loadHome } from '../features/home/load-home.ts'
 import { loadItem } from '../features/item/load-item.ts'
 import { WhoIsWatching } from '../features/profiles/WhoIsWatching.tsx'
-import { WatchlistPage } from '../features/watchlist/WatchlistPage.tsx'
 import { AppShell } from '../features/shell/AppShell.tsx'
 import { UpdateBanner } from '../shared/app-update/UpdateBanner.tsx'
+import { isKeptTab } from '../features/shell/KeptTabs.tsx'
 import { canAdminister, canManageAccount } from '../shared/session/active-profile.ts'
 import { applyMe, sessionQuery, setupStatusQuery } from '../shared/session/session.ts'
 import { EmptyState, ErrorState, FullPageSpinner } from '../shared/ui/states.tsx'
@@ -258,12 +259,14 @@ const profilesRoute = createRoute({
   },
 })
 
+const KeptTab = () => undefined
+
 const indexRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/',
   loader: ({ context: { queryClient } }) => loadHome(queryClient),
   pendingComponent: HomeSkeleton,
-  component: HomePage,
+  component: KeptTab,
 })
 
 const validateCatalogSearch = parseCatalogSearch
@@ -272,18 +275,20 @@ const moviesRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/movies',
   validateSearch: validateCatalogSearch,
-  component: function Movies() {
-    return <CatalogPage key="movies" kind="movies" search={moviesRoute.useSearch()} />
-  },
+  beforeLoad: ({ search, preload }) => arriveOnCatalog('movies', search, preload),
+  loader: ({ context: { queryClient } }) => loadCatalog(queryClient, 'movies'),
+  pendingComponent: () => <CatalogSkeleton kind="movies" />,
+  component: KeptTab,
 })
 
 const seriesRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/series',
   validateSearch: validateCatalogSearch,
-  component: function Series() {
-    return <CatalogPage key="series" kind="series" search={seriesRoute.useSearch()} />
-  },
+  beforeLoad: ({ search, preload }) => arriveOnCatalog('series', search, preload),
+  loader: ({ context: { queryClient } }) => loadCatalog(queryClient, 'series'),
+  pendingComponent: () => <CatalogSkeleton kind="series" />,
+  component: KeptTab,
 })
 
 const categoryRoute = createRoute({
@@ -302,7 +307,9 @@ const categoryRoute = createRoute({
 const watchlistRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/watchlist',
-  component: WatchlistPage,
+  loader: ({ context: { queryClient } }) => loadWatchlist(queryClient),
+  pendingComponent: () => <CatalogSkeleton kind="watchlist" />,
+  component: KeptTab,
 })
 
 const shellNotFoundRoute = createRoute({
@@ -565,7 +572,7 @@ export const createAppRouter = (queryClient: QueryClient) =>
     context: { queryClient },
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
-    scrollRestoration: true,
+    scrollRestoration: ({ location }) => !isKeptTab(location.pathname),
   })
 
 declare module '@tanstack/react-router' {
