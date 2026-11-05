@@ -14,11 +14,13 @@ The revised artboards load a stylesheet and illustrations hosted by the canvas (
 | `blobs/b67000ecd3933ddff98d563a346d9f42.jpg` | `img-forest` (Profiles) |
 | `blobs/c95a4d2938c53388f1dfc29bfa3df2b3.jpg` | `img-lighthouse` (Library) |
 
-The application ships 1600 px WebP versions of them in `apps/web/src/shared/backdrops/` (strict CSP, no external domain).
+The application now ships an original cinematic series in `apps/web/src/shared/backdrops/` (1600 × 900 WebP, strict CSP, no external domain). These replace the sample images above while retaining the same themes and filenames across web and mobile. Art direction and exact generation prompts are recorded in [cinematic-backdrops/README.md](cinematic-backdrops/README.md). The images in `artboards/blobs/` remain the archived canvas references.
 
 This folder is projo's **visual source of truth** (see PRODUCT.md §19). A screen that is not in it is built with the same tokens and components.
 
 The artboards are in French, the reference language of the interface; labels below are given in English.
+
+An additional [fictional film and series sample library](sample-library/README.md) provides character-driven artwork for home heroes, cards and timeline thumbnails, with a [standalone visual preview](sample-library/index.html).
 
 ## Inventory
 

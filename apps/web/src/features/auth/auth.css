@@ -8,6 +8,16 @@
   background: var(--color-bg);
 }
 
+.auth .backdrop__image {
+  filter: saturate(0.68) contrast(0.94);
+}
+
+.auth .backdrop::after {
+  background:
+    radial-gradient(ellipse at 35% 42%, transparent 20%, var(--shade-2) 100%),
+    linear-gradient(0deg, var(--shade-2), transparent 60%);
+}
+
 .auth__header {
   position: absolute;
   top: 0;

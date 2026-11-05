@@ -1,0 +1,9 @@
+{
+  "preview": "desktop and mobile, all images loaded",
+  "favicon": {
+    "light": "rgb(10, 10, 11)",
+    "dark": "rgb(255, 255, 255)"
+  },
+  "productionManifest": "all built PNG files valid",
+  "productionHtml": "favicon and Apple Touch links valid"
+}

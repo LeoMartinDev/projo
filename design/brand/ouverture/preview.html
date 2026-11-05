@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>projo — Ouverture</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;padding:40px;background:#101113;color:#f4f4f5;font:16px system-ui,sans-serif}main{max-width:1200px;margin:auto}h1{margin:0 0 28px;font-size:32px;letter-spacing:-.04em}h2{margin:48px 0 20px;font-size:22px}section{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}figure{margin:0}figure>img{display:block;width:100%;aspect-ratio:1;border-radius:22%}figcaption{margin-top:12px}a{color:inherit} .transparent{background:#282a2d;background-image:linear-gradient(45deg,#35373a 25%,transparent 25%),linear-gradient(-45deg,#35373a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#35373a 75%),linear-gradient(-45deg,transparent 75%,#35373a 75%);background-size:24px 24px;background-position:0 0,0 12px,12px -12px,-12px 0}.transparent.light{background-color:#ddd;background-image:linear-gradient(45deg,#eee 25%,transparent 25%),linear-gradient(-45deg,#eee 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#eee 75%),linear-gradient(-45deg,transparent 75%,#eee 75%)}.sizes{display:flex;align-items:center;gap:36px;flex-wrap:wrap}.sizes img{image-rendering:auto;flex-shrink:0}.mask img{border-radius:50%}.lockup{display:block;width:min(100%,700px);height:auto;padding:28px;background:#17191c;border-radius:24px}.downloads{display:flex;gap:24px;margin-top:36px;flex-wrap:wrap}@media(max-width:650px){body{padding:24px}section{grid-template-columns:1fr;gap:32px}figure{max-width:380px}}
+</style>
+<main>
+  <h1>projo. — Ouverture</h1>
+  <section>
+    <figure><img src="png/background/dark/icon-512.png" alt="Icône sur fond sombre"><figcaption>Sombre</figcaption></figure>
+    <figure><img src="png/background/light/icon-512.png" alt="Icône sur fond clair"><figcaption>Clair</figcaption></figure>
+    <figure><img src="png/background/ambient/icon-512.png" alt="Icône sur fond bleu et vert"><figcaption>Ambiance</figcaption></figure>
+  </section>
+  <h2>Sans fond</h2>
+  <section>
+    <figure><img class="transparent" src="png/transparent/white/symbol-512.png" alt="Symbole blanc transparent"><figcaption>Blanc</figcaption></figure>
+    <figure><img class="transparent light" src="png/transparent/black/symbol-512.png" alt="Symbole noir transparent"><figcaption>Noir</figcaption></figure>
+    <figure><img class="transparent" src="png/transparent/ivory/symbol-512.png" alt="Symbole ivoire transparent"><figcaption>Ivoire</figcaption></figure>
+  </section>
+  <h2>Logo</h2>
+  <img class="lockup" src="svg/logo-horizontal-white.svg" alt="Logo projo avec son nom">
+  <h2>Favicon à taille réelle</h2>
+  <div class="sizes">
+    <img src="favicon/dark/favicon-16.png" width="16" height="16" alt="16 px">
+    <img src="favicon/dark/favicon-24.png" width="24" height="24" alt="24 px">
+    <img src="favicon/dark/favicon-32.png" width="32" height="32" alt="32 px">
+    <img src="favicon/dark/favicon-48.png" width="48" height="48" alt="48 px">
+    <img src="favicon/dark/favicon-64.png" width="64" height="64" alt="64 px">
+  </div>
+  <h2>PWA maskable</h2>
+  <section class="mask">
+    <figure><img src="pwa/dark/icon-maskable-512.png" alt="Découpe ronde sur fond sombre"><figcaption>Sombre</figcaption></figure>
+    <figure><img src="pwa/light/icon-maskable-512.png" alt="Découpe ronde sur fond clair"><figcaption>Clair</figcaption></figure>
+    <figure><img src="pwa/ambient/icon-maskable-512.png" alt="Découpe ronde sur fond coloré"><figcaption>Ambiance</figcaption></figure>
+  </section>
+  <nav class="downloads"><a href="README.md">Guide des fichiers</a><a href="source/symbol.svg">Source vectorielle</a><a href="inventory.json">Inventaire</a></nav>
+</main>
+</html>
