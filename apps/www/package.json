@@ -1,0 +1,20 @@
+{
+  "name": "@projo/www",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "bun check"
+  },
+  "dependencies": {
+    "geist": "1.8.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.4",
+    "vite": "8.3.5"
+  }
+}

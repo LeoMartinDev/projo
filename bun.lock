@@ -90,6 +90,18 @@
         "vite": "8.3.5",
       },
     },
+    "apps/www": {
+      "name": "@projo/www",
+      "version": "0.1.0",
+      "dependencies": {
+        "geist": "1.8.2",
+        "zod": "4.6.7",
+      },
+      "devDependencies": {
+        "@types/bun": "1.4.4",
+        "vite": "8.3.5",
+      },
+    },
     "e2e": {
       "name": "@projo/e2e",
       "version": "0.0.0",
@@ -528,6 +540,8 @@
     "@projo/shared": ["@projo/shared@workspace:packages/shared"],
 
     "@projo/web": ["@projo/web@workspace:apps/web"],
+
+    "@projo/www": ["@projo/www@workspace:apps/www"],
 
     "@radix-ui/primitive": ["@radix-ui/primitive@1.2.0", "", {}, "sha512-KABY+VMIRPJL+Vyzv/335FEhXXD/xDv8BMb1kl48/aXJZMH0LtHCTx5ga5RnxaEP3nZHtmTLf1P9vanmFX46bw=="],
 

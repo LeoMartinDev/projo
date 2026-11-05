@@ -1,0 +1,165 @@
+/* Releases page: one row per published version, the version and its date on the left
+   (sticky while its notes scroll), the notes on the right. Imported by site.css. */
+
+.docs-hero--releases .docs-hero__image {
+  background-image: url('../../../web/src/shared/backdrops/city.webp');
+  background-position: center 55%;
+}
+
+.changelog {
+  display: flex;
+  flex-direction: column;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 120px;
+}
+
+.changelog__release {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 760px);
+  gap: 56px;
+  padding: 40px 0;
+  scroll-margin-top: 24px;
+}
+
+.changelog__release + .changelog__release {
+  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+}
+
+.changelog__head {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.changelog__head h2 {
+  font-size: 36px;
+  line-height: 1;
+  letter-spacing: var(--tracking-display);
+}
+
+.changelog__head h2 a {
+  color: var(--color-text-strong);
+  text-decoration: none;
+}
+
+.changelog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.changelog__github {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.changelog__github:hover {
+  color: var(--color-text-strong);
+}
+
+.changelog__body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+}
+
+.changelog__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.changelog__section h3 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.changelog__section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.changelog__section li {
+  padding: 10px 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--color-text-soft);
+}
+
+.changelog__section li + li {
+  box-shadow: inset 0 1px 0 var(--color-border-subtle);
+}
+
+.changelog__scope {
+  display: inline-block;
+  margin-right: 10px;
+  padding: 1px 8px;
+  border-radius: var(--radius-badge);
+  background: var(--fill-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted-strong);
+  vertical-align: 1px;
+}
+
+.changelog__hash {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.changelog__hash:hover {
+  color: var(--color-text-strong);
+}
+
+.changelog__note {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.changelog__empty {
+  padding: 40px 0;
+}
+
+@media (--narrow) {
+  .changelog__release {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .changelog__head {
+    position: static;
+  }
+}
+
+@media (--compact) {
+  .changelog {
+    padding: 8px 16px 64px;
+  }
+
+  .changelog__release {
+    padding: 32px 0;
+  }
+
+  .changelog__head h2 {
+    font-size: 30px;
+  }
+
+  .changelog__section li {
+    font-size: 15px;
+  }
+}

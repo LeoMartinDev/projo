@@ -16,6 +16,7 @@ bun run test         # bun test on the whole repository (bun test <path> to targ
 bun fmt              # Bun's native formatter (bunfig.toml [fmt]); bun fmt --check in CI
 bun run db:generate  # Drizzle migration from the schema (see below)
 bun run build:web    # apps/web/dist, served by the server with SPA fallback
+bun run dev:www      # public website (apps/www) on :5175; build:www → apps/www/dist (static)
 bun run build:bundle # dist/app/: server.js + public/ + drizzle/ + manifest.json (runtime/README.md)
 bun run e2e          # Playwright on the bundle, one server: every journey on Chromium, @webkit/@mobile smoke on WebKit (e2e/)
 ```
@@ -54,6 +55,18 @@ apps/server/test/fixtures/ file trees (parser, classifier, scanner)
 apps/web/src/{app,features/<feature>,shared/{api,i18n,styles}}
 apps/mobile/src/app/       Expo Router routes only: one-line files re-exporting a feature screen, _layout.tsx
 apps/mobile/src/{features/<feature>,shared/{api,i18n,styles,ui,version}}   the app (§26), same rules
+apps/www/                  the public website, English at / and French at /fr/: templates
+                           src/pages/{home,installation,changelog}.html with {{ t.… }} placeholders,
+                           rendered per language at build time by vite-plugins/pages.ts (no HTML at
+                           the app root), texts in src/i18n/messages.ts (en typed on fr, same keys,
+                           tested). changelog/ lists the GitHub releases read at build time
+                           (vite-plugins/releases.ts, GITHUB_TOKEN optional; the build fails without
+                           GitHub, dev warns), notes always in English (src/releases/); the version
+                           badge is the latest release. Plain TS (src/main.ts), no framework. Imports
+                           the app's tokens.css and base.css (components: .button, .panel, .well,
+                           .seg, .alert…; never a class named .player, base.css locks the scroll),
+                           artwork from design/ and apps/web backdrops via CSS url() or TS imports
+                           (an HTML src outside the app breaks in dev); plain copy, no marketing tone
 packages/shared/           @projo/shared: result.ts, errors/<domain>.ts, api/<domain>.ts
 packages/i18n/             @projo/i18n (§26.2): fr.json en.json (keys typed on fr.json), locales and
                            pure label helpers taking `t` (genres versions item-titles content-ratings

@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <title>{{ t.meta.docsTitle }}</title>
+    <meta name="description" content="{{ t.meta.docsDescription }}" />
+    <link vite-ignore rel="alternate" hreflang="en" href="{{ url.en }}" />
+    <link vite-ignore rel="alternate" hreflang="fr" href="{{ url.fr }}" />
+    <link vite-ignore rel="alternate" hreflang="x-default" href="{{ url.en }}" />
+    <link rel="icon" href="/icons/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip-link button button--primary" href="#content">{{ t.nav.skip }}</a>
+
+    <nav class="docs-nav" aria-label="{{ t.nav.main }}">
+      <div class="docs-nav__brand">
+        <a class="nav__logo" href="{{ home }}" aria-label="{{ t.nav.homeLabel }}">
+          <svg
+            width="112"
+            height="30"
+            viewBox="0 0 1120 300"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <g transform="translate(32 37) scale(0.4336917562724014)">
+              <path
+                d="M 28 508 C 12 508 0 498 0 480 V 160 C 0 72 72 0 160 0 C 248 0 314 66 314 152 V 168 C 314 294 268 400 178 462 C 122 500 64 508 28 508 Z"
+              />
+              <path
+                d="M 319 160 C 332 104 382 62 440 62 C 506 62 558 114 558 180 V 484 Q 558 508 534 508 H 268 C 278 470 320 444 367 416 C 426 381 460 359 460 330 C 460 301 429 276 388 241 C 350 209 312 184 319 160 Z"
+              />
+            </g>
+            <g transform="translate(328 227) scale(0.234 -0.234)">
+              <path
+                d="M66 -150L66 536L210 536L212 456Q236 501 277 524.5Q318 548 371 548Q446 548 496.5 511Q547 474 572 410.5Q597 347 597 268Q597 189 571.5 125.5Q546 62 495.5 25Q445 -12 370 -12Q320 -12 279 11Q238 34 216 75L216 -150L66 -150ZM329 103Q382 103 412.5 147Q443 191 443 268Q443 345 412.5 389Q382 433 329 433Q276 433 246 391Q216 349 216 268Q216 187 245.5 145Q275 103 329 103Z"
+              />
+              <g transform="translate(599 0)">
+                <path
+                  d="M66 0L66 536L208 536L212 429Q228 485 259 510.5Q290 536 339 536L388 536L388 412L339 412Q276 412 246 386.5Q216 361 216 301L216 0L66 0Z"
+                />
+              </g>
+              <g transform="translate(989 0)">
+                <path
+                  d="M309 -12Q227 -12 166 22.5Q105 57 71 120Q37 183 37 268Q37 353 71 415.5Q105 478 166 513Q227 548 309 548Q391 548 452.5 513Q514 478 547.5 415.5Q581 353 581 268Q581 183 547.5 120Q514 57 452.5 22.5Q391 -12 309 -12ZM309 103Q365 103 396 146.5Q427 190 427 268Q427 346 396 389.5Q365 433 309 433Q253 433 222 389.5Q191 346 191 268Q191 190 222 146.5Q253 103 309 103Z"
+                />
+              </g>
+              <g transform="translate(1572 0)">
+                <path
+                  d="M-3 -150L-3 -38L57 -38Q86 -38 101 -26Q116 -14 116 22L116 536L266 536L266 18Q266 -72 225.5 -111Q185 -150 87 -150L-3 -150Z"
+                />
+                <path d="M113 602L113 722L268 722L268 602L113 602Z" />
+              </g>
+              <g transform="translate(1868 0)">
+                <path
+                  d="M309 -12Q227 -12 166 22.5Q105 57 71 120Q37 183 37 268Q37 353 71 415.5Q105 478 166 513Q227 548 309 548Q391 548 452.5 513Q514 478 547.5 415.5Q581 353 581 268Q581 183 547.5 120Q514 57 452.5 22.5Q391 -12 309 -12ZM309 103Q365 103 396 146.5Q427 190 427 268Q427 346 396 389.5Q365 433 309 433Q253 433 222 389.5Q191 346 191 268Q191 190 222 146.5Q253 103 309 103Z"
+                />
+              </g>
+              <g transform="translate(2451 0)"><path d="M37 0L37 153L200 153L200 0L37 0Z" /></g>
+            </g>
+          </svg>
+        </a>
+        <span class="docs-nav__label">{{ t.nav.docs }}</span>
+      </div>
+      <div class="docs-nav__links">
+        <a class="docs-nav__link" href="{{ home }}">{{ t.nav.home }}</a>
+        <a class="docs-nav__link docs-nav__link--wide" href="{{ changelog }}"
+          >{{ t.nav.versions }}</a
+        >
+        <a
+          class="lang lang--plain"
+          href="{{ switch.href }}"
+          hreflang="{{ switch.lang }}"
+          lang="{{ switch.lang }}"
+          data-lang="{{ switch.lang }}"
+          aria-label="{{ switch.name }}"
+          >{{ switch.code }}</a
+        >
+        <a class="docs-nav__link docs-nav__link--well" href="https://github.com/LeoMartinDev/projo"
+          >{{ t.nav.github }}</a
+        >
+      </div>
+    </nav>
+
+    <header class="docs-hero">
+      <div class="docs-hero__image" aria-hidden="true"></div>
+      <div class="docs-hero__content">
+        <h1>{{ t.docs.title }}</h1>
+        <p>{{ t.docs.lead }}</p>
+      </div>
+    </header>
+
+    <div class="docs">
+      <aside class="toc" aria-label="{{ t.docs.toc }}">
+        <details class="toc__fold">
+          <summary>{{ t.docs.toc }}</summary>
+          <ul class="toc__list well">
+            <li><a href="#requirements">{{ t.docs.sections.requirements }}</a></li>
+            <li><a href="#install">{{ t.docs.sections.install }}</a></li>
+            <li><a href="#permissions">{{ t.docs.sections.permissions }}</a></li>
+            <li><a href="#gpu">{{ t.docs.sections.gpu }}</a></li>
+            <li><a href="#proxy">{{ t.docs.sections.proxy }}</a></li>
+            <li><a href="#first-launch">{{ t.docs.sections.firstRun }}</a></li>
+            <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
+            <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
+            <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
+            <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
+            <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
+          </ul>
+        </details>
+        <ul class="toc__list toc__list--side well">
+          <li><a href="#requirements">{{ t.docs.sections.requirements }}</a></li>
+          <li><a href="#install">{{ t.docs.sections.install }}</a></li>
+          <li><a href="#permissions">{{ t.docs.sections.permissions }}</a></li>
+          <li><a href="#gpu">{{ t.docs.sections.gpu }}</a></li>
+          <li><a href="#proxy">{{ t.docs.sections.proxy }}</a></li>
+          <li><a href="#first-launch">{{ t.docs.sections.firstRun }}</a></li>
+          <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
+          <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
+          <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
+          <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
+          <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
+        </ul>
+      </aside>
+
+      <main class="prose" id="content">
+        <section id="requirements">
+          <h2>{{ t.docs.sections.requirements }}</h2>
+          <div class="tiles">
+            <div class="tile well">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="7" rx="2" />
+                <rect x="3" y="13" width="18" height="7" rx="2" />
+                <path d="M7 7.5h.01M7 16.5h.01" />
+              </svg>
+              <p>{{ t.docs.requirements.machine }}</p>
+            </div>
+            <div class="tile well">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path
+                  d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"
+                />
+              </svg>
+              <p>{{ t.docs.requirements.videos }}</p>
+            </div>
+            <div class="tile well">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="8" cy="15" r="4" />
+                <path d="m11 12 9-9" />
+                <path d="m17 6 3 3" />
+              </svg>
+              <p>{{ t.docs.requirements.tmdb }}</p>
+            </div>
+            <div class="tile well">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M3 12h18" />
+                <path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />
+              </svg>
+              <p>{{ t.docs.requirements.browser }}</p>
+            </div>
+          </div>
+          <p class="prose__note">{{ t.docs.requirements.note }}</p>
+        </section>
+
+        <section id="install">
+          <h2>{{ t.docs.sections.install }}</h2>
+          <h3>{{ t.docs.install.step1 }}</h3>
+          <p>{{ t.docs.install.folder }}</p>
+          <div
+            class="seg"
+            role="radiogroup"
+            aria-label="{{ t.docs.install.system }}"
+            data-active="0"
+            data-choice
+          >
+            <span class="seg__indicator" aria-hidden="true"></span>
+            <button
+              class="seg__option"
+              type="button"
+              role="radio"
+              aria-controls="panel-linux"
+              aria-checked="true"
+            >
+              Linux
+            </button>
+            <button
+              class="seg__option"
+              type="button"
+              role="radio"
+              aria-controls="panel-synology"
+              aria-checked="false"
+              tabindex="-1"
+            >
+              Synology
+            </button>
+          </div>
+          <pre id="panel-linux"><code>services:
+  projo:
+    image: ghcr.io/leomartindev/projo:latest
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./projo-data:/data
+      - /srv/{{ t.docs.install.moviesDir }}:/media/{{ t.docs.install.moviesDir }}:ro
+      - /srv/{{ t.docs.install.showsDir }}:/media/{{ t.docs.install.showsDir }}:ro
+    environment:
+      - TRUST_PROXY=false
+    stop_grace_period: 30s
+    restart: unless-stopped</code></pre>
+          <pre
+            id="panel-synology"
+            hidden
+          ><code><span class="c"># {{ t.docs.install.synologyHint }}</span>
+services:
+  projo:
+    image: ghcr.io/leomartindev/projo:latest
+    user: '1026:100' <span class="c"># {{ t.docs.install.synologyUser }}</span>
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./projo-data:/data
+      - /volume1/video:/media/video:ro
+      - /volumeUSB1/usbshare:/media/usb:ro
+    environment:
+      - TRUST_PROXY=false
+    stop_grace_period: 30s
+    restart: unless-stopped</code></pre>
+          <h3>{{ t.docs.install.step2 }}</h3>
+          <dl class="rows well">
+            <div>
+              <dt><code>./projo-data:/data</code></dt>
+              <dd>{{ t.docs.install.data }}</dd>
+            </div>
+            <div>
+              <dt><code>…:/media/…:ro</code></dt>
+              <dd>{{ t.docs.install.media }}</dd>
+            </div>
+            <div>
+              <dt><code>8080:8080</code></dt>
+              <dd>{{ t.docs.install.port }}</dd>
+            </div>
+            <div>
+              <dt><code>TRUST_PROXY</code></dt>
+              <dd>{{ t.docs.install.trustProxy }}</dd>
+            </div>
+            <div>
+              <dt><code>stop_grace_period</code></dt>
+              <dd>{{ t.docs.install.grace }}</dd>
+            </div>
+          </dl>
+          <h3>{{ t.docs.install.step3 }}</h3>
+          <pre><code>docker compose up -d
+docker compose logs -f projo   <span class="c"># {{ t.docs.install.logs }}</span></code></pre>
+        </section>
+
+        <section id="permissions">
+          <h2>{{ t.docs.sections.permissions }}</h2>
+          <p>{{ t.docs.permissions.user }}</p>
+          <p>{{ t.docs.permissions.readable }}</p>
+          <pre><code>chmod -R o+rX /srv/{{ t.docs.install.moviesDir }}
+<span class="c"># {{ t.docs.permissions.orCompose }}</span>
+    user: '1001:1001'   <span class="c"># {{ t.docs.permissions.owner }}</span></code></pre>
+          <p>{{ t.docs.permissions.chown }}</p>
+        </section>
+
+        <section id="gpu">
+          <div class="prose__title">
+            <h2>{{ t.docs.sections.gpu }}</h2>
+            <span class="tag">{{ t.docs.gpu.tag }}</span>
+          </div>
+          <p>{{ t.docs.gpu.text }}</p>
+          <ol>
+            <li>{{ t.docs.gpu.step1 }}</li>
+            <li>{{ t.docs.gpu.step2 }}</li>
+          </ol>
+          <pre><code>    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    group_add:
+      - '937'   <span class="c"># {{ t.docs.gpu.number }}</span></code></pre>
+          <ol start="3">
+            <li>{{ t.docs.gpu.step3 }}</li>
+          </ol>
+        </section>
+
+        <section id="proxy">
+          <h2>{{ t.docs.sections.proxy }}</h2>
+          <p>{{ t.docs.proxy.text }}</p>
+          <p class="alert alert--warning">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.9"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 3 2 20h20z" />
+              <path d="M12 10v4" />
+              <path d="M12 17h.01" />
+            </svg>
+            <span>{{ t.docs.proxy.warning }}</span>
+          </p>
+          <pre><code>    ports:
+      - '127.0.0.1:8080:8080'
+    environment:
+      - TRUST_PROXY=true</code></pre>
+          <p>{{ t.docs.proxy.caddy }}</p>
+          <pre><code>media.example.com {
+	reverse_proxy 127.0.0.1:8080
+}</code></pre>
+          <p class="prose__note">{{ t.docs.proxy.nginx }}</p>
+        </section>
+
+        <section id="first-launch">
+          <h2>{{ t.docs.sections.firstRun }}</h2>
+          <ol class="numbered">
+            <li class="well">{{ t.docs.firstRun.step1 }}</li>
+            <li class="well">{{ t.docs.firstRun.step2 }}</li>
+            <li class="well">{{ t.docs.firstRun.step3 }}</li>
+          </ol>
+          <p>{{ t.docs.firstRun.then }}</p>
+        </section>
+
+        <section id="tmdb">
+          <h2>{{ t.docs.sections.tmdb }}</h2>
+          <p>{{ t.docs.tmdb.key }}</p>
+          <p>{{ t.docs.tmdb.review }}</p>
+        </section>
+
+        <section id="naming">
+          <h2>{{ t.docs.sections.naming }}</h2>
+          <p>{{ t.docs.naming.intro }}</p>
+          <h3>{{ t.docs.naming.movies }}</h3>
+          <pre><code>{{ t.docs.naming.moviesFolder }}/Inception (2010).mkv
+{{ t.docs.naming.moviesFolder }}/Inception (2010)/Inception.2010.1080p.BluRay.x264-GRP.mkv
+{{ t.docs.naming.moviesFolder }}/Blade Runner (1982) - Director's Cut.mkv</code></pre>
+          <h3>{{ t.docs.naming.shows }}</h3>
+          <pre><code>{{ t.docs.naming.showsFolder }}/Breaking Bad (2008)/Season 01/Breaking.Bad.S01E01.mkv
+{{ t.docs.naming.showsFolder }}/Breaking Bad (2008)/Specials/Breaking.Bad.S00E01.mkv</code></pre>
+          <ul>
+            <li>{{ t.docs.naming.year }}</li>
+            <li>{{ t.docs.naming.id }}</li>
+            <li>{{ t.docs.naming.editions }}</li>
+          </ul>
+        </section>
+
+        <section id="updates">
+          <h2>{{ t.docs.sections.updates }}</h2>
+          <div class="tiles">
+            <div class="tile tile--column well">
+              <h3>{{ t.docs.updates.app }}</h3>
+              <p>{{ t.docs.updates.appText }}</p>
+            </div>
+            <div class="tile tile--column well">
+              <h3>{{ t.docs.updates.image }}</h3>
+              <p>{{ t.docs.updates.imageText }}</p>
+              <pre><code>docker compose pull
+docker compose up -d</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="backup">
+          <h2>{{ t.docs.sections.backup }}</h2>
+          <p>{{ t.docs.backup.intro }}</p>
+          <pre><code>db/projo.db     <span class="c">{{ t.docs.backup.db }}</span>
+db/backups/     <span class="c">{{ t.docs.backup.backups }}</span>
+images/         <span class="c">{{ t.docs.backup.images }}</span>
+app/            <span class="c">{{ t.docs.backup.app }}</span>
+cache/          <span class="c">{{ t.docs.backup.cache }}</span></code></pre>
+          <h3>{{ t.docs.backup.save }}</h3>
+          <ol>
+            <li>{{ t.docs.backup.save1 }}</li>
+            <li>{{ t.docs.backup.save2 }}</li>
+          </ol>
+          <h3>{{ t.docs.backup.restore }}</h3>
+          <ol>
+            <li><code>docker compose stop</code>.</li>
+            <li>{{ t.docs.backup.restore2 }}</li>
+            <li>{{ t.docs.backup.restore3 }}</li>
+          </ol>
+        </section>
+
+        <section id="troubleshooting">
+          <h2>{{ t.docs.sections.troubleshooting }}</h2>
+          <p>{{ t.docs.troubleshooting.intro }}</p>
+          <dl class="rows rows--wide well">
+            <div>
+              <dt>{{ t.docs.troubleshooting.pending }}</dt>
+              <dd>{{ t.docs.troubleshooting.pendingText }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.docs.troubleshooting.review }}</dt>
+              <dd>{{ t.docs.troubleshooting.reviewText }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.docs.troubleshooting.missing }}</dt>
+              <dd>{{ t.docs.troubleshooting.missingText }}</dd>
+            </div>
+            <div>
+              <dt>{{ t.docs.troubleshooting.jobs }}</dt>
+              <dd>{{ t.docs.troubleshooting.jobsText }}</dd>
+            </div>
+          </dl>
+          <p>{{ t.docs.troubleshooting.last }}</p>
+        </section>
+
+        <div class="docs-help">
+          <p>{{ t.docs.help }}</p>
+          <a class="button button--primary" href="https://github.com/LeoMartinDev/projo/issues"
+            >{{ t.docs.issue }}</a
+          >
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

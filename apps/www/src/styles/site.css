@@ -1,0 +1,1683 @@
+/*
+ * projo website. Same language and same components as the app: its tokens, its media queries
+ * and its base.css (reset, .button, .panel, .well, .seg, .alert, .dot, .rise…) are imported
+ * from apps/web, never redefined. This file only lays out the site's own sections.
+ * Surfaces follow the app's rule: no flat translucent colour, no raw blur, only tokens.
+ */
+@import '../../../web/src/shared/styles/tokens.css';
+@import '../../../web/src/shared/styles/base.css';
+@import './media.css';
+@import './fonts.css';
+@import './docs.css';
+@import './changelog.css';
+
+:root {
+  --page: 1240px;
+  --rim: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-size: 16px;
+  overflow-x: hidden;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 50;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
+/* Floating glass for the site's decorative pieces of app UI (the app's own controls carry it
+   in their component classes: .button--glass, .panel…). */
+.glass {
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: var(--shadow-glass);
+}
+
+.glass--dim {
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+}
+
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-avatar);
+  color: var(--color-text-strong);
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.avatar--small {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.avatar--large {
+  width: 96px;
+  height: 96px;
+  font-size: 36px;
+}
+
+.avatar--blue {
+  background: var(--avatar-blue);
+}
+.avatar--terracotta {
+  background: var(--avatar-terracotta);
+}
+.avatar--sage {
+  background: var(--avatar-sage);
+}
+.avatar--honey {
+  background: var(--avatar-honey);
+}
+.avatar--violet {
+  background: var(--avatar-violet);
+}
+
+.avatar.is-selected {
+  box-shadow: 0 0 0 3px var(--color-text-strong);
+}
+
+.avatar__lock {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-menu);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+
+/* Photos are CSS backgrounds: their files live outside this app (apps/web, design/), which
+   Vite resolves from a stylesheet both in dev and in the build, not from an HTML src. */
+.preview__image,
+.card__photo,
+.room__image,
+.player-preview__image,
+.who__image,
+.docs-hero__image {
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 960px;
+  overflow: hidden;
+}
+
+.wall {
+  position: absolute;
+  inset: -45% -16%;
+  display: flex;
+  gap: 20px;
+  transform: rotate(-9deg);
+}
+
+.wall__column {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: drift 110s linear infinite;
+}
+
+.wall__column--reverse {
+  animation-direction: reverse;
+}
+
+.wall__tile {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-well);
+  box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes drift {
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+.hero__veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      60% 58% at 50% 46%,
+      rgba(10, 10, 11, 0.94) 0%,
+      rgba(10, 10, 11, 0.78) 50%,
+      rgba(10, 10, 11, 0.4) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(10, 10, 11, 0.55) 0%,
+      rgba(10, 10, 11, 0) 18%,
+      rgba(10, 10, 11, 0) 62%,
+      var(--color-bg) 100%
+    );
+}
+
+.nav {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px var(--gutter);
+}
+
+.nav__logo {
+  display: inline-flex;
+  color: var(--color-text-strong);
+}
+
+.nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav__links {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+}
+
+.nav__links a {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-bright);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav__links a:hover {
+  background: var(--fill-2);
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--control-height);
+  height: var(--control-height);
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-strong);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.lang.glass:hover {
+  background: var(--material-glass-hover);
+}
+
+.lang--plain {
+  min-width: 40px;
+  height: 40px;
+  color: var(--color-text-muted-strong);
+}
+
+.lang--plain:hover {
+  background: var(--fill-2);
+}
+
+.nav__menu {
+  display: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-strong);
+}
+
+.hero__content {
+  position: relative;
+  z-index: 2;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  width: 100%;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 64px var(--gutter) 300px;
+  text-align: center;
+}
+
+.release {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px 0 8px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.release:hover {
+  background: var(--material-glass-hover);
+  color: var(--color-text-strong);
+}
+
+.release__version {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hero__title {
+  font-size: clamp(56px, 9vw, 132px);
+  line-height: 0.88;
+  font-weight: 700;
+  letter-spacing: var(--tracking-hero);
+  color: var(--color-text-strong);
+}
+
+.hero__lead {
+  max-width: 600px;
+  font-size: clamp(18px, 1.6vw, 21px);
+  line-height: 1.5;
+  color: var(--color-text-muted-strong);
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* ── App preview ────────────────────────────────────────────────────────── */
+
+.preview {
+  position: relative;
+  z-index: 3;
+  max-width: var(--page);
+  margin: -260px auto 0;
+  padding: 0 var(--gutter);
+}
+
+.preview__screen {
+  position: relative;
+  height: 560px;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.9);
+}
+
+.preview__image {
+  position: absolute;
+  inset: 0;
+  background-image: url('../../../web/src/shared/backdrops/mountains.webp');
+  background-position: 50% 40%;
+}
+
+.preview__shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 11, 0.88) 0%,
+    rgba(10, 10, 11, 0.3) 55%,
+    rgba(10, 10, 11, 0) 100%
+  );
+}
+
+.preview__bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 28px;
+}
+
+.preview__symbol {
+  color: var(--color-text-strong);
+}
+
+.preview__tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.preview__tabs span {
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted-strong);
+}
+
+.preview__tabs .is-selected {
+  background: var(--fill-3);
+  color: var(--color-text-strong);
+}
+
+.preview__feature {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 520px;
+  padding: 120px 40px 0;
+}
+
+.preview__title {
+  font-size: clamp(40px, 5vw, 64px);
+  line-height: 0.92;
+  font-weight: 700;
+  letter-spacing: var(--tracking-hero);
+}
+
+.preview__meta {
+  font-size: 14px;
+  color: var(--color-text-soft);
+}
+
+.preview__buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.preview__buttons .button {
+  pointer-events: none;
+}
+
+.preview__dock {
+  display: none;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 56px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 180px var(--gutter) 0;
+}
+
+.section--tight {
+  gap: 20px;
+  padding-top: 72px;
+}
+
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+}
+
+h2 {
+  font-size: clamp(40px, 5.4vw, 76px);
+  line-height: 0.95;
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+}
+
+.section__head p,
+.room__head p {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+/* ── Feature cards ──────────────────────────────────────────────────────── */
+
+.highlights,
+.features {
+  display: grid;
+  gap: 20px;
+}
+
+.highlights {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.features {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+/* The rim is drawn above the content: as an inset shadow on the box itself, any child with a
+   background (a card's visual, a photo) would cover it and leave it only around the text. */
+.card::after,
+.player-preview::after,
+.who::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: var(--rim);
+  pointer-events: none;
+}
+
+.card__visual {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  padding: 0 24px;
+  overflow: hidden;
+  /* closest-side: the glow reaches the card's colour exactly at the edges, so no seam shows
+     where the visual meets the text below. */
+  background: radial-gradient(closest-side, #1a1a1d 0%, var(--color-surface) 100%);
+}
+
+.card__visual--photo {
+  height: 300px;
+  padding: 0;
+}
+
+.card__photo {
+  position: absolute;
+  inset: 0;
+  background-image: url('../../../../design/website-assets/dark-fantasy-landscape-v1.webp');
+  background-position: 60% 40%;
+}
+
+.card__visual--photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(17, 17, 19, 0) 40%, var(--color-surface) 100%);
+}
+
+.card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 28px 28px;
+}
+
+.card--wide .card__body {
+  padding: 8px 32px 32px;
+}
+
+.card h3 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.card--wide h3,
+.card--profiles h3 {
+  font-size: 26px;
+  letter-spacing: var(--tracking-title);
+}
+
+.card p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.card--wide p,
+.card--profiles p {
+  max-width: 560px;
+  font-size: 16px;
+}
+
+.card--profiles {
+  justify-content: space-between;
+  gap: 32px;
+  padding-top: 60px;
+}
+
+.profiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 0 32px;
+}
+
+.card--profiles .card__body {
+  padding: 0 32px 32px;
+}
+
+/* The player's skip button, as drawn in the app (glass over video, with its countdown). */
+.skip {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-button-lg);
+}
+
+.skip__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 22px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.skip__timer {
+  height: 3px;
+  background: var(--fill-3);
+}
+
+.skip__timer span {
+  display: block;
+  width: 62%;
+  height: 100%;
+  background: var(--color-text-strong);
+}
+
+/* Small pieces of the app's UI, one per feature card. */
+.ui {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-choice);
+  font-size: 14px;
+}
+
+.ui--stack {
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--radius-well);
+}
+
+.ui__file {
+  flex-grow: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-bright);
+}
+
+.ui--stack > .ui__file {
+  color: var(--color-text-secondary);
+}
+
+.ui__match {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ui__match strong {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ui__match span {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.ui__meta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.ui__chips {
+  display: flex;
+  gap: 6px;
+}
+
+.ui__chips span,
+.ui__tag {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-3);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.ui--menu {
+  width: 188px;
+}
+
+.ui__caption {
+  padding: 6px 10px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.ui__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 12px;
+  color: var(--color-text-muted-strong);
+}
+
+.ui__option.is-selected {
+  background: var(--fill-3);
+  color: var(--color-text-strong);
+  font-weight: 500;
+}
+
+.ui__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+}
+
+.ui__row strong {
+  flex-grow: 1;
+  font-weight: 500;
+}
+
+.ui--update {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 16px;
+}
+
+.ui__update-text {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ui__update-text strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ui__update-text span {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.ui--update .button {
+  pointer-events: none;
+}
+
+.ui--segmented {
+  flex-direction: row;
+  gap: 4px;
+  padding: 5px;
+  border-radius: var(--radius-pill);
+}
+
+.ui--segmented span {
+  flex: 1 1 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted-strong);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ui--segmented .is-selected {
+  background: var(--fill-3);
+  color: var(--color-text-strong);
+}
+
+/* ── The interface: living room, player, profiles ───────────────────────── */
+
+.room {
+  position: relative;
+  margin-top: 200px;
+}
+
+.room__image {
+  width: 100%;
+  aspect-ratio: 7 / 3;
+  background-image: url('../../../../design/website-assets/private-cinema-natural-v1.webp');
+  background-position: center;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 62%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 9%, #000 62%, transparent 100%);
+}
+
+.room__head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 900px;
+  margin: -110px auto 0;
+  padding: 0 var(--gutter);
+  text-align: center;
+}
+
+.room__head p {
+  max-width: 620px;
+}
+
+/* The web player, as drawn in design/artboards/Player.dc.html. Not .player: the app's base.css
+   locks the page scroll while a .player is on screen. */
+.player-preview {
+  position: relative;
+  aspect-ratio: 16 / 8;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+}
+
+.player-preview__image {
+  position: absolute;
+  inset: 0;
+  background-image: url('../../../web/src/shared/backdrops/ocean.webp');
+  background-position: center;
+}
+
+.player-preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 10, 11, 0.55) 0%,
+    rgba(10, 10, 11, 0) 25%,
+    rgba(10, 10, 11, 0) 55%,
+    rgba(10, 10, 11, 0.85) 100%
+  );
+}
+
+.player-preview__top {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.player-preview__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border-radius: var(--radius-pill);
+}
+
+.player-preview__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.player-preview__title span {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-muted-strong);
+}
+
+.player-preview .skip {
+  bottom: 104px;
+}
+
+.player-preview__bottom {
+  position: absolute;
+  left: 28px;
+  right: 28px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.player-preview__track {
+  position: relative;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-4);
+}
+
+.player-preview__segment,
+.player-preview__played,
+.player-preview__knob {
+  position: absolute;
+  border-radius: var(--radius-pill);
+}
+
+/* Same look as the app's Timeline (.timeline__zone, __played, __knob in player.css): the intro
+   and credits zones stay inside the 4 px track, one step lighter. */
+.player-preview__segment {
+  top: 0;
+  height: 100%;
+  border-radius: 0;
+  background: var(--fill-4);
+}
+
+.player-preview__segment--intro {
+  left: 4%;
+  width: 7%;
+}
+
+.player-preview__segment--credits {
+  left: 92%;
+  width: 8%;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+}
+
+.player-preview__played {
+  left: 0;
+  width: 8%;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.player-preview__knob {
+  left: 8%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: #ffffff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+}
+
+.player-preview__controls,
+.player-preview__group {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.player-preview__controls {
+  justify-content: space-between;
+  color: var(--color-text-strong);
+}
+
+.player-preview__time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted-strong);
+}
+
+.who {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  min-height: 380px;
+  padding: 48px 32px;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+}
+
+.who__image {
+  position: absolute;
+  inset: 0;
+  background-image: url('../../../web/src/shared/backdrops/forest.webp');
+  background-position: center;
+}
+
+.who::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--shade-2);
+}
+
+.who__title,
+.who__profiles {
+  position: relative;
+  z-index: 2;
+}
+
+.who__title {
+  font-size: clamp(32px, 3.6vw, 48px);
+  font-weight: 700;
+  letter-spacing: var(--tracking-display);
+}
+
+.who__profiles {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.who__profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text-muted-strong);
+}
+
+.avatar--add {
+  color: var(--color-text-strong);
+}
+
+/* ── What projo does not do ─────────────────────────────────────────────── */
+
+.not-doing {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px;
+}
+
+.not-doing__head {
+  flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.not-doing h2 {
+  font-size: clamp(32px, 3.6vw, 48px);
+  line-height: 1;
+}
+
+.not-doing__head p {
+  max-width: 440px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.pills {
+  flex: 1 1 480px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pills li {
+  display: inline-flex;
+  align-items: center;
+  height: var(--touch-target);
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-1);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  color: var(--color-text-soft);
+  font-size: 15px;
+}
+
+/* ── Install ────────────────────────────────────────────────────────────── */
+
+.install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 48px;
+  padding: clamp(28px, 4vw, 56px);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--rim);
+}
+
+.install__text {
+  flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.install h2 {
+  font-size: clamp(36px, 4.4vw, 60px);
+}
+
+/* The number hangs in the left padding: a flex row would split the sentence at each <code>. */
+.install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.install-steps li {
+  position: relative;
+  padding-left: 38px;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--color-text-muted-strong);
+  counter-increment: step;
+}
+
+.install-steps li::before {
+  content: counter(step, decimal-leading-zero);
+  position: absolute;
+  left: 0;
+  top: 0.2em;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.install-steps code {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--color-text-strong);
+}
+
+.code {
+  flex: 1 1 440px;
+  min-width: 0;
+  margin: 0;
+  padding: 28px;
+  overflow-x: auto;
+  border-radius: var(--radius-well);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-well);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-muted-strong);
+}
+
+.code strong {
+  color: var(--color-text-strong);
+  font-weight: 500;
+}
+
+.code__comment {
+  color: var(--color-text-muted);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 160px var(--gutter) 56px;
+}
+
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--color-text-strong);
+}
+
+.footer__brand p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 14px;
+}
+
+.footer__links a {
+  color: var(--color-text-soft);
+  text-decoration: none;
+}
+
+.footer__links a:hover {
+  color: var(--color-text-strong);
+}
+
+/* ── Phone menu: a modal dialog holding the app's .panel ────────────────── */
+
+.site-menu {
+  width: auto;
+  max-width: none;
+  max-height: none;
+  margin: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.site-menu::backdrop {
+  background: var(--color-scrim);
+  -webkit-backdrop-filter: var(--blur-scrim);
+  backdrop-filter: var(--blur-scrim);
+}
+
+.site-menu__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+}
+
+.site-menu__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 10px 8px;
+  color: var(--color-text-strong);
+}
+
+.site-menu__panel > a:not(.button) {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: var(--radius-button-lg);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-title);
+  color: var(--color-text-strong);
+  text-decoration: none;
+}
+
+.site-menu__panel > .button {
+  margin-top: 8px;
+}
+
+/* ── Smaller screens ────────────────────────────────────────────────────── */
+
+@media (--narrow) {
+  .nav__links {
+    display: none;
+  }
+
+  .nav__menu {
+    display: inline-flex;
+  }
+
+  .highlights {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (--compact) {
+  .hero {
+    min-height: 800px;
+  }
+
+  .wall {
+    inset: -30%;
+    gap: 12px;
+  }
+
+  .wall__column {
+    gap: 12px;
+  }
+
+  .wall__column:nth-child(n + 6) {
+    display: none;
+  }
+
+  .wall__tile {
+    border-radius: 12px;
+  }
+
+  .hero__veil {
+    background:
+      radial-gradient(
+        90% 55% at 50% 52%,
+        rgba(10, 10, 11, 0.94) 0%,
+        rgba(10, 10, 11, 0.76) 55%,
+        rgba(10, 10, 11, 0.42) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(10, 10, 11, 0.6) 0%,
+        rgba(10, 10, 11, 0) 16%,
+        rgba(10, 10, 11, 0) 66%,
+        var(--color-bg) 100%
+      );
+  }
+
+  .nav {
+    padding: 18px 16px;
+  }
+
+  .nav__logo svg {
+    width: 98px;
+    height: 26px;
+  }
+
+  .nav__actions {
+    gap: 8px;
+  }
+
+  .nav .button,
+  .nav .lang {
+    height: var(--touch-target);
+  }
+
+  .nav .button {
+    padding: 0 18px;
+  }
+
+  .nav .lang {
+    min-width: var(--touch-target);
+  }
+
+  .hero__content {
+    gap: 24px;
+    padding: 0 16px 120px;
+  }
+
+  .hero__title {
+    font-size: 58px;
+    line-height: 0.9;
+  }
+
+  .hero__actions {
+    flex-direction: column;
+    align-self: stretch;
+    gap: 10px;
+  }
+
+  .preview {
+    margin-top: -80px;
+    padding: 0 28px;
+  }
+
+  .preview__screen {
+    height: 600px;
+    border-radius: 36px;
+    background: var(--color-bg);
+  }
+
+  .preview__image {
+    height: 516px;
+    background-position: 53% 40%;
+  }
+
+  .preview__shade {
+    height: 516px;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 11, 0.35) 0%,
+      rgba(10, 10, 11, 0) 30%,
+      rgba(10, 10, 11, 0.2) 55%,
+      var(--color-bg) 100%
+    );
+  }
+
+  .preview__bar {
+    padding: 20px 18px;
+  }
+
+  .preview__tabs {
+    display: none;
+  }
+
+  .preview__feature {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 96px;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    text-align: center;
+  }
+
+  .preview__title {
+    font-size: 42px;
+  }
+
+  .preview__meta {
+    font-size: 12px;
+  }
+
+  .preview__buttons {
+    width: 100%;
+  }
+
+  .preview__buttons .button {
+    flex: 1 1 0;
+  }
+
+  .preview__dock {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 60px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-soft);
+  }
+
+  .preview__dock span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 44px;
+    border-radius: var(--radius-pill);
+  }
+
+  .preview__dock .is-selected {
+    background: var(--fill-3);
+    color: var(--color-text-strong);
+  }
+
+  .section {
+    gap: 28px;
+    padding: 120px 16px 0;
+  }
+
+  .section--tight {
+    gap: 16px;
+    padding-top: 32px;
+  }
+
+  h2 {
+    font-size: 44px;
+  }
+
+  .section__head p,
+  .room__head p {
+    font-size: 17px;
+  }
+
+  .card__visual--photo {
+    height: 220px;
+  }
+
+  .card--wide .card__body,
+  .card--profiles .card__body {
+    padding: 4px 22px 24px;
+  }
+
+  .card--wide h3,
+  .card--profiles h3 {
+    font-size: 22px;
+  }
+
+  .card--profiles {
+    gap: 22px;
+    padding-top: 24px;
+  }
+
+  .profiles {
+    gap: 12px;
+    padding: 0 22px;
+  }
+
+  .profiles .avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 24px;
+    font-size: 24px;
+  }
+
+  .skip {
+    right: 18px;
+    bottom: 18px;
+    border-radius: var(--radius-button);
+  }
+
+  .skip__label {
+    height: 46px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  /* The six small cards become a horizontal rail on a phone. */
+  .features {
+    display: flex;
+    gap: 12px;
+    margin: 0 -16px;
+    padding: 0 16px 4px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 16px;
+    scrollbar-width: none;
+  }
+
+  .features::-webkit-scrollbar {
+    display: none;
+  }
+
+  .features .card {
+    flex: 0 0 286px;
+    scroll-snap-align: start;
+    border-radius: 24px;
+  }
+
+  .features .card__visual {
+    height: 160px;
+    padding: 0 18px;
+  }
+
+  .features .card__body {
+    padding: 4px 20px 22px;
+  }
+
+  .features h3 {
+    font-size: 18px;
+  }
+
+  .features p {
+    font-size: 14px;
+  }
+
+  .room {
+    margin-top: 120px;
+  }
+
+  .room__image {
+    aspect-ratio: 1;
+  }
+
+  .room__head {
+    align-items: flex-start;
+    margin-top: -40px;
+    padding: 0 16px;
+    text-align: left;
+  }
+
+  .player-preview {
+    aspect-ratio: 16 / 10;
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  .player-preview__top {
+    top: 14px;
+    left: 16px;
+    right: 16px;
+  }
+
+  .player-preview__back,
+  .player-preview__time,
+  .player-preview__group--side {
+    display: none;
+  }
+
+  .player-preview__title {
+    font-size: 14px;
+  }
+
+  .player-preview__title span {
+    font-size: 12px;
+  }
+
+  .player-preview .skip {
+    right: 14px;
+    bottom: 44px;
+    border-radius: 12px;
+  }
+
+  .player-preview .skip__label {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .player-preview__bottom {
+    left: 16px;
+    right: 16px;
+    bottom: 20px;
+  }
+
+  .player-preview__controls {
+    display: none;
+  }
+
+  .who {
+    gap: 24px;
+    padding: 36px 16px;
+  }
+
+  .who__title {
+    font-size: 32px;
+  }
+
+  .who__profiles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 28px;
+  }
+
+  .who .avatar--large {
+    width: 84px;
+    height: 84px;
+    border-radius: 28px;
+    font-size: 32px;
+  }
+
+  .not-doing {
+    gap: 20px;
+  }
+
+  .not-doing h2 {
+    font-size: 34px;
+  }
+
+  .install {
+    gap: 24px;
+    padding: 26px 20px;
+  }
+
+  .install h2 {
+    font-size: 38px;
+  }
+
+  .install__text {
+    flex-basis: 100%;
+    align-items: stretch;
+  }
+
+  .code {
+    flex-basis: 100%;
+    padding: 18px;
+    font-size: 13px;
+  }
+
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 96px 16px 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

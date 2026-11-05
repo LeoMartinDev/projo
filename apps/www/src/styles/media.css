@@ -1,0 +1,3 @@
+/* The site's own breakpoint, next to the app's (--compact, --phone…): below it the
+   navigation folds into the menu sheet and the docs' table of contents into a fold. */
+@custom-media --narrow (max-width: 900px);

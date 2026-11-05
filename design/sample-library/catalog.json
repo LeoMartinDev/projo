@@ -1,0 +1,117 @@
+{
+  "generated": "2026-11-05",
+  "generator": "Built-in ImageGen",
+  "fictional": true,
+  "items": [
+    {
+      "id": "nord",
+      "title": "Nord",
+      "kind": "series",
+      "genre": "Aventure, mystère",
+      "meta": "Série · 2 saisons",
+      "year": 2026,
+      "overview": "Une guide de haute montagne rejoint un refuge scientifique dont les occupants ne répondent plus.",
+      "tint": "#202830",
+      "progress": 0.64,
+      "images": {
+        "backdrop": "assets/nord.webp",
+        "thumbnail": "thumbnails/nord.webp"
+      }
+    },
+    {
+      "id": "marees",
+      "title": "Les Marées basses",
+      "kind": "series",
+      "genre": "Drame, policier",
+      "meta": "Série · 2 saisons",
+      "year": 2025,
+      "overview": "Sur une île de l’Atlantique, une garde-côte enquête sur un bateau revenu au port sans son équipage.",
+      "tint": "#13283B",
+      "progress": 0.42,
+      "images": {
+        "backdrop": "assets/marees.webp",
+        "thumbnail": "thumbnails/marees.webp"
+      }
+    },
+    {
+      "id": "minuit",
+      "title": "Minuit à Fourvière",
+      "kind": "movie",
+      "genre": "Thriller, policier",
+      "meta": "Film · 1 h 48",
+      "year": 2026,
+      "overview": "Dans le dernier tramway, un homme comprend que la personne qui le suit connaît sa destination.",
+      "tint": "#1C1634",
+      "progress": 0.27,
+      "images": {
+        "backdrop": "assets/minuit.webp",
+        "thumbnail": "thumbnails/minuit.webp"
+      }
+    },
+    {
+      "id": "orbite",
+      "title": "Orbite basse",
+      "kind": "movie",
+      "genre": "Science-fiction, drame",
+      "meta": "Film · 1 h 56",
+      "year": 2026,
+      "overview": "Seule à bord d’une station qui perd le contact avec la Terre, une astronaute reçoit une transmission inattendue.",
+      "tint": "#181B33",
+      "progress": 0.76,
+      "images": {
+        "backdrop": "assets/orbite.webp",
+        "thumbnail": "thumbnails/orbite.webp"
+      }
+    },
+    {
+      "id": "ferry",
+      "title": "Le Dernier Ferry",
+      "kind": "movie",
+      "genre": "Drame",
+      "meta": "Film · 1 h 42",
+      "year": 2025,
+      "overview": "Un père et sa fille se retrouvent sur la dernière traversée de l’automne, après des années de silence.",
+      "tint": "#1C2C38",
+      "progress": 0.34,
+      "images": {
+        "backdrop": "assets/ferry.webp",
+        "thumbnail": "thumbnails/ferry.webp"
+      }
+    },
+    {
+      "id": "tilleuls",
+      "title": "Sous les tilleuls",
+      "kind": "movie",
+      "genre": "Comédie, famille",
+      "meta": "Film · 1 h 38",
+      "year": 2026,
+      "overview": "Un déjeuner de famille qui devait durer une heure se prolonge jusqu’au soir, avec ses secrets et ses retrouvailles.",
+      "tint": "#1C2413",
+      "progress": 0.58,
+      "images": {
+        "backdrop": "assets/tilleuls.webp",
+        "thumbnail": "thumbnails/tilleuls.webp"
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "id": "nord",
+      "timeMs": 260000,
+      "label": "00:04:20",
+      "src": "timeline/nord-ridge.webp"
+    },
+    {
+      "id": "nord-refuge",
+      "timeMs": 1050000,
+      "label": "00:17:30",
+      "src": "timeline/nord-refuge.webp"
+    },
+    {
+      "id": "nord-interieur",
+      "timeMs": 1860000,
+      "label": "00:31:00",
+      "src": "timeline/nord-interieur.webp"
+    }
+  ]
+}

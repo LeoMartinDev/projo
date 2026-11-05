@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <title>{{ t.meta.changelogTitle }}</title>
+    <meta name="description" content="{{ t.meta.changelogDescription }}" />
+    <link vite-ignore rel="alternate" hreflang="en" href="{{ url.en }}" />
+    <link vite-ignore rel="alternate" hreflang="fr" href="{{ url.fr }}" />
+    <link vite-ignore rel="alternate" hreflang="x-default" href="{{ url.en }}" />
+    <link rel="icon" href="/icons/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml" sizes="any" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <a class="skip-link button button--primary" href="#content">{{ t.nav.skip }}</a>
+
+    <nav class="docs-nav" aria-label="{{ t.nav.main }}">
+      <div class="docs-nav__brand">
+        <a class="nav__logo" href="{{ home }}" aria-label="{{ t.nav.homeLabel }}">
+          <svg
+            width="112"
+            height="30"
+            viewBox="0 0 1120 300"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <g transform="translate(32 37) scale(0.4336917562724014)">
+              <path
+                d="M 28 508 C 12 508 0 498 0 480 V 160 C 0 72 72 0 160 0 C 248 0 314 66 314 152 V 168 C 314 294 268 400 178 462 C 122 500 64 508 28 508 Z"
+              />
+              <path
+                d="M 319 160 C 332 104 382 62 440 62 C 506 62 558 114 558 180 V 484 Q 558 508 534 508 H 268 C 278 470 320 444 367 416 C 426 381 460 359 460 330 C 460 301 429 276 388 241 C 350 209 312 184 319 160 Z"
+              />
+            </g>
+            <g transform="translate(328 227) scale(0.234 -0.234)">
+              <path
+                d="M66 -150L66 536L210 536L212 456Q236 501 277 524.5Q318 548 371 548Q446 548 496.5 511Q547 474 572 410.5Q597 347 597 268Q597 189 571.5 125.5Q546 62 495.5 25Q445 -12 370 -12Q320 -12 279 11Q238 34 216 75L216 -150L66 -150ZM329 103Q382 103 412.5 147Q443 191 443 268Q443 345 412.5 389Q382 433 329 433Q276 433 246 391Q216 349 216 268Q216 187 245.5 145Q275 103 329 103Z"
+              />
+              <g transform="translate(599 0)">
+                <path
+                  d="M66 0L66 536L208 536L212 429Q228 485 259 510.5Q290 536 339 536L388 536L388 412L339 412Q276 412 246 386.5Q216 361 216 301L216 0L66 0Z"
+                />
+              </g>
+              <g transform="translate(989 0)">
+                <path
+                  d="M309 -12Q227 -12 166 22.5Q105 57 71 120Q37 183 37 268Q37 353 71 415.5Q105 478 166 513Q227 548 309 548Q391 548 452.5 513Q514 478 547.5 415.5Q581 353 581 268Q581 183 547.5 120Q514 57 452.5 22.5Q391 -12 309 -12ZM309 103Q365 103 396 146.5Q427 190 427 268Q427 346 396 389.5Q365 433 309 433Q253 433 222 389.5Q191 346 191 268Q191 190 222 146.5Q253 103 309 103Z"
+                />
+              </g>
+              <g transform="translate(1572 0)">
+                <path
+                  d="M-3 -150L-3 -38L57 -38Q86 -38 101 -26Q116 -14 116 22L116 536L266 536L266 18Q266 -72 225.5 -111Q185 -150 87 -150L-3 -150Z"
+                />
+                <path d="M113 602L113 722L268 722L268 602L113 602Z" />
+              </g>
+              <g transform="translate(1868 0)">
+                <path
+                  d="M309 -12Q227 -12 166 22.5Q105 57 71 120Q37 183 37 268Q37 353 71 415.5Q105 478 166 513Q227 548 309 548Q391 548 452.5 513Q514 478 547.5 415.5Q581 353 581 268Q581 183 547.5 120Q514 57 452.5 22.5Q391 -12 309 -12ZM309 103Q365 103 396 146.5Q427 190 427 268Q427 346 396 389.5Q365 433 309 433Q253 433 222 389.5Q191 346 191 268Q191 190 222 146.5Q253 103 309 103Z"
+                />
+              </g>
+              <g transform="translate(2451 0)"><path d="M37 0L37 153L200 153L200 0L37 0Z" /></g>
+            </g>
+          </svg>
+        </a>
+        <span class="docs-nav__label">{{ t.changelog.title }}</span>
+      </div>
+      <div class="docs-nav__links">
+        <a class="docs-nav__link" href="{{ home }}">{{ t.nav.home }}</a>
+        <a class="docs-nav__link docs-nav__link--wide" href="{{ installation }}"
+          >{{ t.nav.docs }}</a
+        >
+        <a
+          class="lang lang--plain"
+          href="{{ switch.href }}"
+          hreflang="{{ switch.lang }}"
+          lang="{{ switch.lang }}"
+          data-lang="{{ switch.lang }}"
+          aria-label="{{ switch.name }}"
+          >{{ switch.code }}</a
+        >
+        <a class="docs-nav__link docs-nav__link--well" href="https://github.com/LeoMartinDev/projo"
+          >{{ t.nav.github }}</a
+        >
+      </div>
+    </nav>
+
+    <header class="docs-hero docs-hero--releases">
+      <div class="docs-hero__image" aria-hidden="true"></div>
+      <div class="docs-hero__content">
+        <h1>{{ t.changelog.title }}</h1>
+        <p>{{ t.changelog.lead }}</p>
+      </div>
+    </header>
+
+    <main class="changelog" id="content">{{ releases }}</main>
+  </body>
+</html>
