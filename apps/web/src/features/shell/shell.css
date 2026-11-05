@@ -139,6 +139,11 @@ html:has(dialog:modal) .shell__header {
     transform: translateX(var(--actions-x, 0px));
   }
 
+  /* The popover sits in the top layer, out of reach of the actions' transform: follow it. */
+  .shell__actions .menu {
+    translate: var(--actions-x, 0px) 0;
+  }
+
   .shell__header .pill-nav {
     border-color: transparent;
     background: none;
