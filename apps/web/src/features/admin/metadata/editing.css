@@ -28,6 +28,12 @@
   margin: -6px;
 }
 
+/* The form scrolls: its rows keep their size instead of shrinking to fit the viewport
+   (a shrunk .field stops at its min-height while the textarea inside keeps its own). */
+.edit-item__form > * {
+  flex: 0 0 auto;
+}
+
 .edit-item__row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 132px;
