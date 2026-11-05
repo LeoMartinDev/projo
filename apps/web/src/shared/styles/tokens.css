@@ -6,16 +6,43 @@
   --color-surface-2: #141416;
   --color-surface-3: #17171a;
   --color-surface-menu: #18181b;
-  --color-glass: rgba(255, 255, 255, 0.06);
-  --color-glass-strong: rgba(255, 255, 255, 0.16);
-  --color-hover: rgba(255, 255, 255, 0.08);
-  --color-selected: rgba(255, 255, 255, 0.07);
-  --color-panel: rgba(18, 18, 21, 0.58);
-  --color-overlay: rgba(36, 36, 40, 0.55);
-  --color-scrim: rgba(0, 0, 0, 0.5);
-  --color-well: rgba(255, 255, 255, 0.04);
-  --color-field: rgba(255, 255, 255, 0.045);
-  --color-field-focus: rgba(255, 255, 255, 0.075);
+  /*
+   * Surface language. A stylesheet never writes a translucent colour of its own
+   * (surfaces.test.ts): it picks a fill step, a shade step or a material.
+   * Fills tint white over dark (rows, wells, hover, selection, tracks); shades
+   * darken imagery (veils, code wells).
+   */
+  --fill-1: rgba(255, 255, 255, 0.04);
+  --fill-2: rgba(255, 255, 255, 0.08);
+  --fill-3: rgba(255, 255, 255, 0.14);
+  --fill-4: rgba(255, 255, 255, 0.22);
+  --fill-5: rgba(255, 255, 255, 0.45);
+  --shade-1: rgba(10, 10, 11, 0.3);
+  --shade-2: rgba(10, 10, 11, 0.5);
+  --shade-3: rgba(10, 10, 11, 0.75);
+
+  /*
+   * Materials: anything floating is glass or panel, nothing else.
+   * - glass: controls, pills, chips, toasts, HUDs (background + --blur-glass
+   *   + --shadow-glass). Over video or artwork with text on it, the same glass
+   *   takes --blur-glass-dim: identical on the dark UI, darker over a bright frame.
+   * - panel: dialogs, menus, sheets, cards that float (background + --blur-panel
+   *   + --shadow-panel). --material-opaque is its stand-in where blur cannot run.
+   * - scrim: what sits behind a modal (--color-scrim + --blur-scrim).
+   */
+  --material-glass: rgba(40, 40, 44, 0.42);
+  --material-glass-hover: rgba(72, 72, 78, 0.5);
+  --material-panel: rgba(30, 30, 34, 0.6);
+  --material-opaque: rgba(22, 22, 25, 0.97);
+
+  --color-glass: var(--fill-2);
+  --color-glass-strong: var(--fill-3);
+  --color-hover: var(--fill-2);
+  --color-selected: var(--fill-2);
+  --color-scrim: var(--shade-2);
+  --color-well: var(--fill-1);
+  --color-field: var(--fill-1);
+  --color-field-focus: var(--fill-2);
 
   --color-border-subtle: rgba(255, 255, 255, 0.06);
   --color-border: rgba(255, 255, 255, 0.08);
@@ -41,7 +68,9 @@
   --color-error: #ff5a5f;
   --color-error-soft: #fca5a5;
   --color-error-tint: rgba(248, 113, 113, 0.08);
+  --color-error-tint-strong: rgba(248, 113, 113, 0.14);
   --color-warning: #e5b567;
+  --color-warning-tint: rgba(229, 181, 103, 0.08);
 
   --avatar-slate: #5f6670;
   --avatar-blue: #5b7fa6;
@@ -77,8 +106,10 @@
   --shadow-glass:
     inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 8px 24px -12px rgba(0, 0, 0, 0.6);
-  --blur-panel: blur(40px) saturate(170%);
-  --blur-glass: blur(20px) saturate(160%);
+  --blur-glass: blur(24px) saturate(160%);
+  --blur-glass-dim: blur(24px) saturate(160%) brightness(0.6);
+  --blur-panel: blur(40px) saturate(170%) brightness(0.7);
+  --blur-scrim: blur(12px);
 
   --control-height: 48px;
   --control-height-lg: 56px;

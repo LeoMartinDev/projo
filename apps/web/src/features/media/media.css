@@ -20,7 +20,7 @@
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--fill-1);
   color: var(--color-text-muted-strong);
   transition:
     background-color 0.25s ease,
@@ -28,7 +28,7 @@
 }
 
 .row__arrow:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-2);
   color: var(--color-text-strong);
 }
 
@@ -86,7 +86,7 @@
 
 .round-button:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-2);
   color: var(--color-text-strong);
 }
 
@@ -116,7 +116,7 @@
   width: 32px;
   height: 32px;
   border: 0;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-2);
   color: var(--color-text-muted-strong);
 }
 
@@ -279,11 +279,11 @@
   left: 10px;
   z-index: 2;
   padding: 4px 9px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-pill);
-  background: rgba(10, 10, 11, 0.45);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+  box-shadow: var(--shadow-glass);
   color: var(--color-text);
   font-size: 11px;
   font-weight: 600;
@@ -731,7 +731,7 @@
   flex-direction: column;
   overflow: hidden;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--fill-1);
 }
 
 .sheet-line {
@@ -750,7 +750,7 @@
 }
 
 .sheet-line:active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-2);
 }
 
 .sheet-line + .sheet-line {
@@ -785,8 +785,8 @@
 
 .card-menu::backdrop {
   background: var(--color-scrim);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: var(--blur-scrim);
+  backdrop-filter: var(--blur-scrim);
   animation: fade-in 0.25s ease both;
 }
 
@@ -807,7 +807,7 @@
   width: 340px;
   padding: 12px;
   border-radius: 24px;
-  background: var(--color-overlay);
+  background: var(--material-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   backdrop-filter: var(--blur-panel);
   box-shadow: var(--shadow-panel);

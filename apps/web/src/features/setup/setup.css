@@ -302,7 +302,7 @@
   }
 
   .wall::after {
-    background: rgba(10, 10, 11, 0.8);
+    background: var(--shade-3);
   }
 }
 

@@ -19,7 +19,7 @@
 }
 
 .review-row:not(.review-row--skeleton):hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 
 .review-row--skeleton {

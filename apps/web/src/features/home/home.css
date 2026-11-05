@@ -57,7 +57,7 @@
 }
 
 .hero__sound[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--fill-4);
 }
 
 .hero__shade {
@@ -177,7 +177,7 @@
 }
 
 .hero__list[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--fill-4);
 }
 
 .hero__progress {

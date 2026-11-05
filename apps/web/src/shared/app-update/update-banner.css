@@ -12,9 +12,9 @@
   min-height: 44px;
   padding: 6px 8px 6px 18px;
   border-radius: var(--radius-button);
-  background: rgba(20, 20, 22, 0.82);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
   box-shadow: var(--shadow-glass);
   color: var(--color-text-muted-strong);
   font-size: 14px;
@@ -34,7 +34,7 @@
   padding: 0 12px;
   border: 0;
   border-radius: var(--radius-thumb);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--fill-2);
   color: var(--color-text-strong);
   font-size: 14px;
   font-weight: 600;
@@ -43,7 +43,7 @@
 }
 
 .update-banner__action:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--fill-3);
 }
 
 .update-banner__action:disabled {

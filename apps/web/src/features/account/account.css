@@ -45,7 +45,7 @@
 }
 
 .device:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 
 .device__icon {
@@ -139,7 +139,7 @@
 .pairing__skeleton {
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: #f0f0f1;
 }
 
 .pairing__done {

@@ -202,7 +202,10 @@ button.edit-item__tile:disabled {
   left: 6px;
   padding: 1px 5px;
   border-radius: 6px;
-  background: rgba(10, 10, 11, 0.72);
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+  box-shadow: var(--shadow-glass);
   color: var(--color-text-muted-strong);
   font-family: var(--font-mono);
   font-size: 10px;
@@ -214,7 +217,7 @@ button.edit-item__tile:disabled {
   inset: 0;
   display: grid;
   place-items: center;
-  background: rgba(10, 10, 11, 0.55);
+  background: var(--shade-2);
   color: var(--color-text);
 }
 

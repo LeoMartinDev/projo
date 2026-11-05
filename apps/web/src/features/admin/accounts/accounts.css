@@ -22,7 +22,7 @@
 }
 
 .acc-tr:not(.acc-tr--head):hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--fill-1);
 }
 
 .acc-tr--head {

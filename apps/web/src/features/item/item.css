@@ -67,7 +67,7 @@
 }
 
 .detail-hero__back:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-2);
   color: var(--color-text-strong);
 }
 
@@ -184,7 +184,7 @@
 }
 
 .detail-action[aria-pressed='true'] {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--fill-4);
 }
 
 .detail-hero__progress {
@@ -354,7 +354,7 @@
   min-width: 260px;
   padding: 8px;
   border-radius: var(--radius-well);
-  background: rgba(24, 24, 27, 0.97);
+  background: var(--material-opaque);
   box-shadow: var(--shadow-panel);
   animation: rise 0.3s var(--ease) both;
 }
@@ -441,7 +441,7 @@
 }
 
 .episode[data-in-progress='true'] {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--fill-1);
 }
 
 .episode--skeleton {
@@ -483,7 +483,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--shade-1);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -522,13 +522,13 @@
   width: 100%;
   height: 3px;
   border: 0;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--fill-4);
   appearance: none;
   -webkit-appearance: none;
 }
 
 .episode__bar::-webkit-progress-bar {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--fill-4);
 }
 
 .episode__bar::-webkit-progress-value {
@@ -540,11 +540,11 @@
 }
 
 .episode__bar--done::-webkit-progress-value {
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--fill-5);
 }
 
 .episode__bar--done::-moz-progress-bar {
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--fill-5);
 }
 
 .episode__body {
@@ -631,7 +631,7 @@
 }
 
 .episode__check:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--fill-2);
   color: var(--color-text-muted-strong);
 }
 
@@ -777,9 +777,10 @@
     height: 40px;
     justify-content: center;
     padding: 0;
-    background: rgba(10, 10, 11, 0.5);
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    background: var(--material-glass);
+    -webkit-backdrop-filter: var(--blur-glass-dim);
+    backdrop-filter: var(--blur-glass-dim);
+    box-shadow: var(--shadow-glass);
     color: var(--color-text);
   }
 
@@ -901,7 +902,7 @@
   }
 
   .season-tabs__tab[aria-selected='true'] {
-    background: rgba(255, 255, 255, 0.14);
+    background: var(--fill-3);
   }
 
   .episodes__summary {
@@ -999,7 +1000,7 @@
     width: 48px;
     height: 48px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--material-glass);
     -webkit-backdrop-filter: var(--blur-glass);
     backdrop-filter: var(--blur-glass);
     box-shadow: var(--shadow-glass);
@@ -1008,7 +1009,7 @@
 
   .detail-hero__actions .admin-menu__button:hover,
   .detail-hero__actions .admin-menu:has(.admin-menu__menu:popover-open) .admin-menu__button {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--material-glass-hover);
   }
 }
 

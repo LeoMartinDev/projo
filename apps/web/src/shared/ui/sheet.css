@@ -6,7 +6,7 @@
   padding: 0;
   border: 0;
   border-radius: 32px;
-  background: var(--color-overlay);
+  background: var(--material-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   backdrop-filter: var(--blur-panel);
   box-shadow: var(--shadow-panel);
@@ -43,7 +43,7 @@
   width: 36px;
   height: 5px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--fill-4);
 }
 
 .sheet__title {
