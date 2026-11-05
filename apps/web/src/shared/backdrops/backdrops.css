@@ -12,30 +12,25 @@
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  animation: ken-burns 32s ease-out both;
 }
 
 .backdrop__image--dunes {
   background-image: url('./dunes.webp');
-  transform-origin: 62% 56%;
 }
 .backdrop__image--mountains {
   background-image: url('./mountains.webp');
 }
 .backdrop__image--ocean {
   background-image: url('./ocean.webp');
-  transform-origin: 70% 30%;
 }
 .backdrop__image--city {
   background-image: url('./city.webp');
 }
 .backdrop__image--forest {
   background-image: url('./forest.webp');
-  transform-origin: 75% 22%;
 }
 .backdrop__image--lighthouse {
   background-image: url('./lighthouse.webp');
-  transform-origin: 78% 30%;
 }
 
 .backdrop::before,
