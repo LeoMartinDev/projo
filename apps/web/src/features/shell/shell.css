@@ -88,7 +88,6 @@ html:has(dialog:modal) .shell__header {
   gap: 4px;
 }
 
-.pill-merge__glass,
 .pill-merge__paint {
   position: absolute;
   inset: 0;
@@ -99,6 +98,10 @@ html:has(dialog:modal) .shell__header {
 }
 
 .pill-merge__glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
   -webkit-backdrop-filter: var(--blur-glass);
   backdrop-filter: var(--blur-glass);
 }

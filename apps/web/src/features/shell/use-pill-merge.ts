@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef } from 'react'
 
 import { media, reducedMotion } from '../../shared/styles/media.ts'
 import { useElement } from '../../shared/ui/use-element.ts'
-import { pillMerge, type SideMotion } from './pill-merge.ts'
+import { type PillLayout, pillMerge, type SideMotion } from './pill-merge.ts'
 
 const stiffness = 380
 const damping = 25
@@ -10,6 +10,14 @@ const lag = 45
 const instant = `${media.compact}, ${reducedMotion}`
 
 const box = (element: HTMLElement) => ({ left: element.offsetLeft, width: element.offsetWidth })
+
+const shift = (layout: PillLayout, x: number, y: number): PillLayout => ({
+  logo: { ...layout.logo, left: layout.logo.left - x },
+  nav: { ...layout.nav, left: layout.nav.left - x },
+  actions: { ...layout.actions, left: layout.actions.left - x },
+  top: layout.top - y,
+  height: layout.height,
+})
 
 const atRest = (target: number): SideMotion => ({ progress: target, velocity: 0, acceleration: 0 })
 
@@ -43,18 +51,26 @@ export const usePillMerge = (merged: boolean) => {
     }
 
     const paint = () => {
-      const merge = pillMerge(
-        {
-          logo: box(logo),
-          nav: box(nav),
-          actions: box(actions),
-          top: nav.offsetTop,
-          height: nav.offsetHeight,
-        },
-        springs.current,
-      )
+      const layout = {
+        logo: box(logo),
+        nav: box(nav),
+        actions: box(actions),
+        top: nav.offsetTop,
+        height: nav.offsetHeight,
+      }
+      const merge = pillMerge(layout, springs.current)
       shape.setAttribute('d', merge.path)
-      glass.style.clipPath = `path('${merge.path}')`
+      /* WebKit clips a backdrop to the element's rounded box, never to its clip-path: fit the glass to the shape's bounds and round it like the pill. */
+      const { left, top, width, height, radius } = merge.bounds
+      const local = pillMerge(shift(layout, left, top), springs.current)
+      Object.assign(glass.style, {
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        borderRadius: `${radius}px`,
+        clipPath: `path('${local.path}')`,
+      })
       header.style.setProperty('--logo-x', `${merge.logo.x}px`)
       header.style.setProperty('--actions-x', `${merge.actions.x}px`)
       blur(logo, logoBlur, merge.logo.blur)

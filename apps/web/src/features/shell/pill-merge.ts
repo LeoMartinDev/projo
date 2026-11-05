@@ -94,8 +94,19 @@ export const pillMerge = (
   if (right.swell === 1 && rightReach > 0 && c < d)
     parts.push(bridge(c, r, d, right.r, cy, rightReach))
 
+  const bubbles = [left, right].filter((bubble) => bubble.swell > 0)
+  const radius = Math.max(r, ...bubbles.map((bubble) => bubble.r))
+  const edges = [nav.left, navRight, ...bubbles.flatMap((bubble) => [bubble.left, bubble.right])]
+  const boundsLeft = Math.min(...edges)
   return {
     path: parts.join(''),
+    bounds: {
+      left: px(boundsLeft),
+      top: px(cy - radius),
+      width: px(Math.max(...edges) - boundsLeft),
+      height: px(2 * radius),
+      radius: px(radius),
+    },
     logo: { x: left.x, blur: left.blur },
     actions: { x: right.x, blur: right.blur },
   }

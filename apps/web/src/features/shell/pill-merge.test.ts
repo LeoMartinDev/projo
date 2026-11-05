@@ -41,6 +41,30 @@ describe('pillMerge', () => {
     expect(path).toContain('M787 17C787 17 833 17 833 17L833 63')
   })
 
+  test('bounds the navigation alone, then the whole fused pill', () => {
+    expect(pillMerge(layout, both(0)).bounds).toEqual({
+      left: 470,
+      top: 17,
+      width: 340,
+      height: 46,
+      radius: 23,
+    })
+    expect(pillMerge(layout, both(1)).bounds).toEqual({
+      left: 368,
+      top: 17,
+      width: 551,
+      height: 46,
+      radius: 23,
+    })
+  })
+
+  test('bounds a bubble that squashes taller than the navigation', () => {
+    const braking = { progress: 0.5, velocity: 4, acceleration: -90 }
+    const { bounds } = pillMerge(layout, { ...both(0.5), logo: braking })
+    expect(bounds.height).toBeGreaterThan(46)
+    expect(bounds.top).toBe(40 - bounds.radius)
+  })
+
   test('swells the bubbles before they reach each other', () => {
     expect(subpaths(pillMerge(layout, both(0.2)).path)).toBe(3)
   })
