@@ -146,6 +146,7 @@ import {
   remainingMs,
   seekTargetFor,
   segmentAt,
+  snapToSeekPoint,
   segmentZones,
   totalDurationMs,
 } from './timeline.ts'
@@ -1381,7 +1382,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               total: formatClock(totalMs),
             })}
             thumbnailAt={thumbnailFor}
-            onSeek={seekToItem}
+            onSeek={(target) =>
+              seekToItem(session === undefined ? target : snapToSeekPoint(session, target))
+            }
             onHoverStart={() => {
               if (trickplay.data !== undefined && trickplayUrl !== undefined)
                 preloadImages(sheetUrls(trickplayUrl, trickplay.data))

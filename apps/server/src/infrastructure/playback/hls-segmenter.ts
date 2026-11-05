@@ -4,12 +4,16 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs'
 import { rename } from 'node:fs/promises'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+
+import { z } from 'zod'
 
 import { appError, err, ok, type Result } from '@projo/shared'
 
@@ -35,6 +39,7 @@ import {
   remuxArgs,
   tonemaps,
   transcodeArgs,
+  type X264Preset,
 } from './ffmpeg-args.ts'
 import {
   createBoxSplitter,
@@ -56,6 +61,7 @@ type Deps = {
   bufferAhead?: number
   keepBehind?: number
   rememberStopped?: number
+  presetsFile?: string
 }
 
 type Run = {
@@ -70,7 +76,11 @@ type Run = {
   resume: (() => void) | undefined
   vaapi: boolean
   fallback: boolean
+  throttled: boolean
+  speed: SpeedSample | undefined
 }
+
+type SpeedSample = { preset: X264Preset; fromS: number | undefined; at: number; done: boolean }
 
 type SessionState = {
   job: HlsJob
@@ -80,6 +90,46 @@ type SessionState = {
   listeners: Set<() => void>
   stopped: boolean
   vaapi: boolean | undefined
+  preset: X264Preset | undefined
+}
+
+const speedSampleS = 12
+
+export const nextPreset = (current: X264Preset, speed: number): X264Preset => {
+  if (current === 'veryfast' && speed < 1.25) return 'ultrafast'
+  if (current === 'ultrafast' && speed > 3) return 'veryfast'
+  return current
+}
+
+export const presetKey = (job: HlsJob): string => {
+  if (job.mode !== 'hls_transcode') return job.mode
+  const { quality, dynamicRange, burnIn } = job.transcode
+  return [
+    job.video.codec,
+    job.video.pixelFormat ?? 'unknown',
+    job.video.height ?? 0,
+    quality,
+    dynamicRange ?? 'sdr',
+    burnIn === undefined ? 'plain' : 'burn_in',
+  ].join(':')
+}
+
+const presetsSchema = z.record(z.string(), z.enum(['veryfast', 'ultrafast']))
+
+const loadPresets = (path: string): Map<string, X264Preset> => {
+  try {
+    const parsed = presetsSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')))
+    return new Map(parsed.success ? Object.entries(parsed.data) : [])
+  } catch {
+    return new Map()
+  }
+}
+
+const savePresets = (path: string, presets: Map<string, X264Preset>): void => {
+  try {
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, JSON.stringify(Object.fromEntries(presets)))
+  } catch {}
 }
 
 type Pending = { segment: number; temp: string; sink: Bun.FileSink | undefined }
@@ -118,12 +168,14 @@ const usable = (path: string): boolean => {
   }
 }
 
+const forcedKeyframeToleranceS = 0.005
+
 const placeFragment = (
   job: HlsJob,
   time: number,
 ): { segment: number; sequence: number; complete: boolean } => {
   if (job.mode === 'hls_transcode') {
-    const segment = segmentAt(job.segments, time)
+    const segment = segmentAt(job.segments, time + forcedKeyframeToleranceS)
     return { segment, sequence: segment + 1, complete: true }
   }
   const keyframe = nearestKeyframe(job.keyframes, time)
@@ -148,7 +200,9 @@ export const createHlsSegmenter = ({
   filters,
   renderNode = '/dev/dri/renderD128',
   notifier,
+  presetsFile = join(transcodeDir, 'x264-presets.json'),
 }: Deps): HlsSegmenter => {
+  const presets = loadPresets(presetsFile)
   let knownFilters = filters
   const ffmpegFilters = (): FfmpegFilters => {
     knownFilters ??= detectFfmpegFilters(ffmpegBinary)
@@ -252,6 +306,7 @@ export const createHlsSegmenter = ({
     try {
       for (;;) {
         while (!run.killed && run.producing > state.lastRequested + bufferAhead) {
+          run.throttled = true
           await new Promise<void>((resolve) => (run.resume = resolve))
           run.resume = undefined
         }
@@ -274,7 +329,10 @@ export const createHlsSegmenter = ({
               continue
             }
             if (current === undefined || segment !== current.segment) {
-              if (current !== undefined) await finalize(state, current)
+              if (current !== undefined) {
+                await finalize(state, current)
+                measureSpeed(state, run, current.segment)
+              }
               current = openSegment(state, run, segment, complete)
               run.producing = segment
             }
@@ -353,15 +411,22 @@ export const createHlsSegmenter = ({
     })
   }
 
-  const argsFor = (job: HlsJob, startS: number, vaapi: boolean): string[] => {
+  const argsFor = (
+    job: HlsJob,
+    fromSegment: number,
+    vaapi: boolean,
+    preset: X264Preset | undefined,
+  ): string[] => {
+    const segment = job.segments[fromSegment]
     const common = {
       sourcePath: job.sourcePath,
-      startS,
+      startS: segment?.startS ?? 0,
       audioDownmix: job.audioDownmix,
       ...(job.audio === undefined ? {} : { audio: job.audio }),
     }
     if (job.mode === 'hls_remux') return remuxArgs({ ...common, video: job.video })
     const { quality, dynamicRange, burnIn } = job.transcode
+    const aligned = job.segments.some((planned) => planned.onKeyframe === true)
     return transcodeArgs({
       ...common,
       video: { ...job.video, ...(dynamicRange === undefined ? {} : { dynamicRange }) },
@@ -369,6 +434,56 @@ export const createHlsSegmenter = ({
       ...(burnIn === undefined ? {} : { burnIn }),
       filters: ffmpegFilters(),
       ...(vaapi ? { vaapiDevice: renderNode } : {}),
+      ...(aligned
+        ? {
+            cuts: job.segments.slice(fromSegment + 1).map((planned) => planned.startS),
+            onKeyframe: segment?.onKeyframe === true,
+          }
+        : {}),
+      ...(preset === undefined ? {} : { preset }),
+    })
+  }
+
+  const presetFor = (state: SessionState, vaapi: boolean): X264Preset | undefined => {
+    const { job } = state
+    if (job.mode !== 'hls_transcode' || vaapi) return undefined
+    state.preset ??= presets.get(presetKey(job)) ?? 'veryfast'
+    return state.preset
+  }
+
+  const measureSpeed = (state: SessionState, run: Run, segment: number): void => {
+    const sample = run.speed
+    if (sample === undefined || sample.done) return
+    if (run.throttled) {
+      sample.done = true
+      return
+    }
+    const endS = state.job.segments[segment]?.endS ?? 0
+    const now = Date.now()
+    if (sample.fromS === undefined) {
+      sample.fromS = endS
+      sample.at = now
+      return
+    }
+    const contentS = endS - sample.fromS
+    if (contentS < speedSampleS) return
+    sample.done = true
+    const speed = contentS / Math.max(0.001, (now - sample.at) / 1000)
+    const next = nextPreset(sample.preset, speed)
+    logger.debug('x264 speed measured', {
+      sessionId: state.job.sessionId,
+      preset: sample.preset,
+      speed: Math.round(speed * 100) / 100,
+    })
+    if (next === sample.preset) return
+    presets.set(presetKey(state.job), next)
+    savePresets(presetsFile, presets)
+    logger.info('x264 preset adapted to the server speed', {
+      code: 'playback/x264_preset',
+      sessionId: state.job.sessionId,
+      from: sample.preset,
+      to: next,
+      speed: Math.round(speed * 100) / 100,
     })
   }
 
@@ -380,10 +495,11 @@ export const createHlsSegmenter = ({
       if (wantsVaapi(job) && !state.vaapi) vaapiFailed(job, 'render_node_unavailable')
     }
     const vaapi = state.vaapi
+    const preset = presetFor(state, vaapi)
     try {
       mkdirSync(state.dir, { recursive: true })
       const proc = Bun.spawn({
-        cmd: [ffmpegBinary, ...argsFor(job, job.segments[fromSegment]?.startS ?? 0, vaapi)],
+        cmd: [ffmpegBinary, ...argsFor(job, fromSegment, vaapi, preset)],
         stdin: 'ignore',
         stdout: 'pipe',
         stderr: 'pipe',
@@ -401,6 +517,11 @@ export const createHlsSegmenter = ({
         resume: undefined,
         vaapi,
         fallback: false,
+        throttled: false,
+        speed:
+          preset === undefined
+            ? undefined
+            : { preset, fromS: undefined, at: Date.now(), done: false },
       }
       state.run = run
       logger.debug('ffmpeg HLS run started', {
@@ -408,6 +529,7 @@ export const createHlsSegmenter = ({
         mode: job.mode,
         fromSegment,
         vaapi,
+        ...(preset === undefined ? {} : { preset }),
       })
       if (job.mode === 'hls_transcode' && (job.transcode.dynamicRange ?? 'sdr') !== 'sdr') {
         logger.info('HDR source transcoded to SDR', {
@@ -443,6 +565,7 @@ export const createHlsSegmenter = ({
       listeners: new Set(),
       stopped: false,
       vaapi: undefined,
+      preset: undefined,
     }
     sessions.set(job.sessionId, state)
     return state

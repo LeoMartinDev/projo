@@ -57,7 +57,7 @@ type HlsJobBase = {
   sourcePath: string
   segments: readonly HlsSegment[]
   startS?: number
-  video: { index: number; codec: string }
+  video: { index: number; codec: string; height?: number; pixelFormat?: string }
   audio?: HlsAudio
   audioDownmix: PlaybackSettings['audioDownmix']
   hwAccel: PlaybackSettings['hwAccel']

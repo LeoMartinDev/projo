@@ -57,26 +57,32 @@ const streamFor = ({
   media = source.media,
   tracks = [],
   settings = {},
+  keyframes,
 }: {
   playing: PlaybackSession
   media?: PlayableSource['media']
   tracks?: SubtitleTrack[]
   settings?: Partial<PlaybackSettings>
+  keyframes?: number[] | 'missing'
 }) => {
   const jobs: HlsJob[] = []
+  const recording = createRecordingJobQueue()
   const stream = hlsStreamFactory({
     authorize: () => ok(playing),
     catalogRepository: {
       findSource: () => ({ ...source, ...(media === undefined ? {} : { media }) }),
     } as unknown as CatalogRepository,
     keyframeStore: {
-      read: () => ({ keyframes: [0, 2, 4, 6, 8], durationS: 10, sizeBytes: 1, mtime: 1 }),
+      read: () =>
+        keyframes === 'missing'
+          ? undefined
+          : { keyframes: keyframes ?? [0, 2, 4, 6, 8], durationS: 10, sizeBytes: 1, mtime: 1 },
       write: () => ok(),
     },
     mediaProber: {
       probe: async () => err(appError('media/ffprobe_failed', 'no probe in this test')),
     },
-    jobQueue: createRecordingJobQueue().queue,
+    jobQueue: recording.queue,
     segmenter: {
       segment: async (job) => {
         jobs.push(job)
@@ -93,7 +99,7 @@ const streamFor = ({
     playbackSettings: { read: () => ({ ...defaultPlaybackSettings, ...settings }) },
     delay: async () => {},
   })
-  return { stream, jobs }
+  return { stream, jobs, enqueued: recording }
 }
 
 const transcoding: PlaybackSession = {
@@ -123,7 +129,7 @@ const pgs: SubtitleTrack = {
 }
 
 describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
-  test('the job follows the session row: quality, audio, settings, fixed 4 s plan', async () => {
+  test('the job follows the session row: quality, audio, settings, cut on the keyframes', async () => {
     const { stream, jobs } = streamFor({
       playing: transcoding,
       media,
@@ -132,8 +138,8 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
     const playlist = await stream.playlist(access)
     expect(playlist.ok).toBe(true)
     if (playlist.ok) {
-      expect(playlist.value).toContain('#EXT-X-TARGETDURATION:5')
-      expect(playlist.value.match(/#EXTINF:/g)?.length).toBe(2)
+      expect(playlist.value).toContain('#EXT-X-TARGETDURATION:3')
+      expect(playlist.value.match(/#EXTINF:/g)?.length).toBe(4)
     }
     await stream.segment({ ...access, name: 'seg-00001.m4s' })
     expect(jobs[0]).toEqual({
@@ -141,8 +147,10 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
       sessionId: 's1',
       sourcePath: source.path,
       segments: [
-        { index: 0, startS: 0, endS: 4 },
-        { index: 1, startS: 4, endS: 8.5 },
+        { index: 0, startS: 0, endS: 2, onKeyframe: true },
+        { index: 1, startS: 2, endS: 4, onKeyframe: true },
+        { index: 2, startS: 4, endS: 6, onKeyframe: true },
+        { index: 3, startS: 6, endS: 8.5, onKeyframe: true },
       ],
       startS: 0,
       video: { index: 0, codec: 'hevc' },
@@ -153,20 +161,26 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
     })
   })
 
-  test('planned on the end of the video stream when audio runs longer', async () => {
-    const { stream, jobs } = streamFor({
+  test('without a keyframe index: the fixed 2 s grid, the index asked for in the background', async () => {
+    const { stream, jobs, enqueued } = streamFor({
       playing: transcoding,
       media: {
         ...media,
         durationMs: 14_000,
         video: [{ index: 0, codec: 'hevc', durationMs: 10_000 }],
       },
+      keyframes: 'missing',
     })
     await stream.segment({ ...access, name: 'init.mp4' })
     expect(jobs[0]?.segments).toEqual([
-      { index: 0, startS: 0, endS: 4 },
-      { index: 1, startS: 4, endS: 8 },
-      { index: 2, startS: 8, endS: 10 },
+      { index: 0, startS: 0, endS: 2 },
+      { index: 1, startS: 2, endS: 4 },
+      { index: 2, startS: 4, endS: 6 },
+      { index: 3, startS: 6, endS: 8 },
+      { index: 4, startS: 8, endS: 10 },
+    ])
+    expect(enqueued.enqueued).toEqual([
+      expect.objectContaining({ type: 'index_keyframes', priority: 20 }),
     ])
   })
 

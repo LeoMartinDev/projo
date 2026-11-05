@@ -11,6 +11,7 @@ import {
   remainingMs,
   seekTargetFor,
   segmentAt,
+  snapToSeekPoint,
   segmentZones,
   type TimelineSession,
   totalDurationMs,
@@ -59,6 +60,28 @@ describe('parts', () => {
     }
     expect(totalDurationMs(placeholder, 61_000)).toBe(61_000)
     expect(currentPartDurationMs(placeholder, 61_000)).toBe(61_000)
+  })
+})
+
+describe('snapToSeekPoint (§10.3)', () => {
+  const points = { seekPointsMs: [0, 4_200, 10_000, 30_000], partOffsetMs: 0 }
+
+  test('a seek in transcode lands on the nearest source keyframe within 4 s', () => {
+    expect(snapToSeekPoint(points, 6_000)).toBe(4_200)
+    expect(snapToSeekPoint(points, 8_000)).toBe(10_000)
+    expect(snapToSeekPoint(points, 7_100)).toBe(4_200)
+    expect(snapToSeekPoint(points, 20_000)).toBe(20_000)
+  })
+
+  test('without seek points the position is kept', () => {
+    expect(snapToSeekPoint({ partOffsetMs: 0 }, 6_000)).toBe(6_000)
+    expect(snapToSeekPoint({ seekPointsMs: [], partOffsetMs: 0 }, 6_000)).toBe(6_000)
+  })
+
+  test('the points belong to the current part: shifted by its offset', () => {
+    const second = { seekPointsMs: [0, 5_000], partOffsetMs: 3_000_000 }
+    expect(snapToSeekPoint(second, 3_004_000)).toBe(3_005_000)
+    expect(snapToSeekPoint(second, 1_000_000)).toBe(1_000_000)
   })
 })
 

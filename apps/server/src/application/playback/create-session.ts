@@ -22,6 +22,7 @@ import {
   decidePlayback,
   type PlaybackPlan,
 } from '../../core/playback/decide-mode.ts'
+import { planTranscodeSegments, seekPointsOf } from '../../core/playback/hls-playlist.ts'
 import type { AudioStreamInfo, MediaInfo, MediaProber } from '../../core/playback/media-info.ts'
 import { isFreshIndex, type KeyframeStore } from '../../core/playback/ports.ts'
 import {
@@ -106,6 +107,7 @@ export type CreatedPlaybackSession = {
   parts: TimelinePart[]
   partOffsetMs: number
   trickplayUrl?: string
+  seekPointsMs?: number[]
 }
 
 type Input = {
@@ -486,10 +488,30 @@ export const createPlaybackSessionFactory = ({
       parts: timeline,
       partOffsetMs: part.offsetMs,
       ...withTrickplay(trickplayUrl?.(source.id)),
+      ...withSeekPoints(
+        plan.mode === 'hls_transcode' && !session.burnIn
+          ? transcodeSeekPointsMs(keyframeStore, source, plan.video.durationMs ?? media.durationMs)
+          : undefined,
+      ),
     })
   }
 }
 
 const withTrickplay = (url: string | undefined) => (url === undefined ? {} : { trickplayUrl: url })
+
+const transcodeSeekPointsMs = (
+  keyframeStore: KeyframeStore,
+  source: { id: string; sizeBytes: number; mtime: number },
+  durationMs: number | undefined,
+): number[] | undefined => {
+  const index = keyframeStore.read(source.id)
+  if (!isFreshIndex(index, source) || durationMs === undefined) return undefined
+  return seekPointsOf(planTranscodeSegments(durationMs / 1000, index.keyframes)).map((startS) =>
+    Math.round(startS * 1000),
+  )
+}
+
+const withSeekPoints = (points: number[] | undefined) =>
+  points === undefined ? {} : { seekPointsMs: points }
 
 export type CreatePlaybackSession = ReturnType<typeof createPlaybackSessionFactory>

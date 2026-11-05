@@ -64,6 +64,24 @@ export const seekTargetFor = (
   return { kind: 'part', part, positionMs: clamped }
 }
 
+export const seekSnapToleranceMs = 4000
+
+export const snapToSeekPoint = (
+  session: Pick<PlaybackSessionDto, 'seekPointsMs' | 'partOffsetMs'>,
+  positionMs: number,
+): number => {
+  const streamMs = positionMs - session.partOffsetMs
+  let nearest: number | undefined
+  for (const point of session.seekPointsMs ?? []) {
+    if (nearest === undefined || Math.abs(point - streamMs) < Math.abs(nearest - streamMs)) {
+      nearest = point
+    }
+  }
+  return nearest !== undefined && Math.abs(nearest - streamMs) <= seekSnapToleranceMs
+    ? nearest + session.partOffsetMs
+    : positionMs
+}
+
 export const remainingMs = (positionMs: number, totalMs: number) =>
   Math.max(0, totalMs - Math.max(0, positionMs))
 

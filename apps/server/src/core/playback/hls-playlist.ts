@@ -7,6 +7,7 @@ export type HlsSegment = {
   index: number
   startS: number
   endS: number
+  onKeyframe?: true
 }
 
 export type SegmentPolicy = { minS: number; targetS: number; maxS: number }
@@ -17,7 +18,9 @@ const epsilon = 1e-6
 
 export const outputTimestampOffsetS = 10
 
-export const transcodeSegmentS = 4
+export const transcodeSegmentS = 2
+
+export const transcodeSegmentPolicy = { minGapS: 1, maxS: 2.5 }
 
 const minTailS = 1
 
@@ -38,6 +41,40 @@ export const planFixedSegments = (
   }
   return segments
 }
+
+export const planTranscodeSegments = (
+  durationS: number,
+  keyframes: readonly number[] | undefined,
+): HlsSegment[] => {
+  if (keyframes === undefined) return planFixedSegments(durationS)
+  if (!(durationS > 0)) return []
+  const { minGapS, maxS } = transcodeSegmentPolicy
+  const starts = [0]
+  for (const time of [...new Set(keyframes)].sort((a, b) => a - b)) {
+    if (time - (starts[starts.length - 1] ?? 0) < minGapS - epsilon) continue
+    if (durationS - time < minTailS - epsilon) break
+    starts.push(time)
+  }
+  return starts
+    .flatMap((start, span) => {
+      const end = starts[span + 1] ?? durationS
+      const pieces = Math.max(1, Math.ceil((end - start) / maxS - epsilon))
+      const length = (end - start) / pieces
+      return Array.from({ length: pieces }, (_, piece) => ({
+        startS: piece === 0 ? start : start + piece * length,
+        endS: piece === pieces - 1 ? end : start + (piece + 1) * length,
+        onKeyframe: piece === 0,
+      }))
+    })
+    .map(({ onKeyframe, ...segment }, index) => ({
+      index,
+      ...segment,
+      ...(onKeyframe ? { onKeyframe: true as const } : {}),
+    }))
+}
+
+export const seekPointsOf = (segments: readonly HlsSegment[]): number[] =>
+  segments.filter((segment) => segment.onKeyframe === true).map((segment) => segment.startS)
 
 export const planSegments = (
   { keyframes, durationS }: KeyframeIndex,

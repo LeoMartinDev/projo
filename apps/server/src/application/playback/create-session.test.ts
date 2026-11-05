@@ -103,6 +103,7 @@ type World = {
   memory?: TrackPreferences[]
   progress?: ItemProgress[]
   segments?: Record<string, { type: string; startMs: number; endMs: number }[]>
+  keyframes?: Record<string, number[]>
 }
 
 const build = (world: World) => {
@@ -159,7 +160,15 @@ const build = (world: World) => {
         throw new Error('every source has a stored probe')
       },
     },
-    keyframeStore: { read: () => undefined, write: () => ok() },
+    keyframeStore: {
+      read: (sourceId) => {
+        const keyframes = world.keyframes?.[sourceId]
+        return keyframes === undefined
+          ? undefined
+          : { keyframes, durationS: 3600, sizeBytes: 1, mtime: 1 }
+      },
+      write: () => ok(),
+    },
     jobQueue: createRecordingJobQueue().queue,
     trickplayUrl: (sourceId) =>
       sourceId === 'h264-1080p' ? `/t/${sourceId}/index.json` : undefined,
@@ -666,5 +675,16 @@ describe('createPlaybackSession: multi-episode files (§8.4)', () => {
   test('trickplay: ready for the played source only', async () => {
     const { play } = build({ sources: [h264] })
     expect(await play()).toMatchObject({ value: { trickplayUrl: '/t/h264-1080p/index.json' } })
+  })
+
+  test('seek points (§10.3): the keyframes that start a transcode segment, in ms', async () => {
+    const keyframes = { 'hevc-4k': [0, 0.5, 4.2, 12.004, 3599.5] }
+    const transcoded = await build({ sources: [hevc4k], keyframes }).play()
+    expect(transcoded.ok && transcoded.value.seekPointsMs).toEqual([0, 4200, 12004])
+    const remuxed = await build({ sources: [hevc4k], keyframes }).play({ capabilities: safari })
+    expect(remuxed.ok && remuxed.value.plan.mode).toBe('hls_remux')
+    expect(remuxed.ok && remuxed.value.seekPointsMs).toBeUndefined()
+    const unindexed = await build({ sources: [hevc4k] }).play()
+    expect(unindexed.ok && unindexed.value.seekPointsMs).toBeUndefined()
   })
 })

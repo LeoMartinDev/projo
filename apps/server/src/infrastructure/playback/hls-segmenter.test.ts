@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { createTempDir } from '../../../test/support/database.ts'
@@ -8,7 +8,13 @@ import { generateVideo, hasFfmpeg } from '../../../test/support/media.ts'
 import { planFixedSegments, segmentFileName } from '../../core/playback/hls-playlist.ts'
 import type { HlsJob, HlsSegmenter } from '../../core/playback/ports.ts'
 import { createFfprobe } from './ffprobe.ts'
-import { createHlsSegmenter, fallsBackToSoftware, wantsVaapi } from './hls-segmenter.ts'
+import {
+  createHlsSegmenter,
+  fallsBackToSoftware,
+  nextPreset,
+  presetKey,
+  wantsVaapi,
+} from './hls-segmenter.ts'
 
 const media = createTempDir('projo-segmenter-media-')
 const files: Record<string, string> = {}
@@ -71,8 +77,15 @@ afterEach(async () => {
   segmenter = undefined
 })
 
-const newSegmenter = (options: { keepBehind?: number; bufferAhead?: number; waitMs: number }) => {
+const newSegmenter = (options: {
+  keepBehind?: number
+  bufferAhead?: number
+  waitMs: number
+  presets?: string
+}) => {
   const dir = createTempDir('projo-segmenter-')
+  if (options.presets !== undefined)
+    writeFileSync(join(dir.path, 'x264-presets.json'), options.presets)
   const { logger, lines } = createCapturingLogger()
   const created = createHlsSegmenter({
     transcodeDir: dir.path,
@@ -84,7 +97,7 @@ const newSegmenter = (options: { keepBehind?: number; bufferAhead?: number; wait
   cache = dir
   segmenter = created
   const runsStarted = () => lines.filter((line) => line.message === 'ffmpeg HLS run started')
-  return { segmenter: created, dir: dir.path, runsStarted }
+  return { segmenter: created, dir: dir.path, runsStarted, lines }
 }
 
 const probeOf = async (path: string) => {
@@ -118,21 +131,21 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     expect(probe.video[0]?.durationMs).toBe(10_000)
 
     const job = await jobFor('tail', files['tail'] ?? '')
-    expect(job.segments).toHaveLength(4)
+    expect(job.segments).toHaveLength(7)
     const { segmenter, runsStarted } = newSegmenter({ waitMs: 10_000 })
     const startedAt = Date.now()
-    expect(await segmenter.segment(job, 3)).toMatchObject({
+    expect(await segmenter.segment(job, 6)).toMatchObject({
       ok: false,
       error: { code: 'playback/segment_not_found' },
     })
     expect(runsStarted()).toHaveLength(1)
     expect(Date.now() - startedAt).toBeLessThan(5_000)
-    expect(await segmenter.segment(job, 3)).toMatchObject({ ok: false })
+    expect(await segmenter.segment(job, 6)).toMatchObject({ ok: false })
     expect(runsStarted()).toHaveLength(1)
 
     const planned = await jobFor('tail-video', files['tail'] ?? '', 10)
-    expect(planned.segments).toHaveLength(3)
-    expect((await segmenter.segment(planned, 2)).ok).toBe(true)
+    expect(planned.segments).toHaveLength(5)
+    expect((await segmenter.segment(planned, 4)).ok).toBe(true)
   })
 
   test('back to a segment deleted behind the player, same run: ffmpeg restarts there', async () => {
@@ -180,8 +193,8 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     const job = { ...(await jobFor('resume', files['long'] ?? '')), startS: 21 }
     const { segmenter, runsStarted } = newSegmenter({ waitMs: 6_000 })
     expect((await segmenter.segment(job, 'init')).ok).toBe(true)
-    expect((await segmenter.segment(job, 5)).ok).toBe(true)
-    expect(runsStarted()).toMatchObject([{ fields: { fromSegment: 5 } }])
+    expect((await segmenter.segment(job, 10)).ok).toBe(true)
+    expect(runsStarted()).toMatchObject([{ fields: { fromSegment: 10 } }])
   })
 
   test('a segment is written to disk as it comes, a killed run leaves no partial file', async () => {
@@ -198,6 +211,67 @@ describe.skipIf(!hasFfmpeg())('HLS segmenter run control (real ffmpeg)', () => {
     await segmenter.stopAll()
     await until(() => temporaries().length === 0)
     expect(temporaries()).toEqual([])
+  })
+})
+
+describe.skipIf(!hasFfmpeg())('x264 preset memory (real ffmpeg, §10.3)', () => {
+  test('a session starts with the preset remembered for its kind of source', async () => {
+    const job = await jobFor('preset', files['long'] ?? '')
+    const { segmenter, runsStarted } = newSegmenter({
+      waitMs: 6_000,
+      presets: JSON.stringify({ [presetKey(job)]: 'ultrafast' }),
+    })
+    expect((await segmenter.segment(job, 0)).ok).toBe(true)
+    expect(runsStarted()).toMatchObject([{ fields: { preset: 'ultrafast' } }])
+    const other = { ...job, sessionId: 'preset-other', transcode: { quality: '480p' as const } }
+    expect((await segmenter.segment(other, 0)).ok).toBe(true)
+    expect(runsStarted()[1]).toMatchObject({ fields: { preset: 'veryfast' } })
+  })
+
+  test('the measured speed updates the memory for the next sessions, not the running one', async () => {
+    const job = await jobFor('preset-speed', files['long'] ?? '')
+    const { segmenter, dir, lines } = newSegmenter({
+      waitMs: 6_000,
+      presets: JSON.stringify({ [presetKey(job)]: 'ultrafast' }),
+    })
+    expect((await segmenter.segment(job, 0)).ok).toBe(true)
+    const adapted = () =>
+      lines.find((line) => line.message === 'x264 preset adapted to the server speed')
+    for (let tries = 0; tries < 200 && adapted() === undefined; tries += 1) await Bun.sleep(25)
+    expect(adapted()?.fields).toMatchObject({ from: 'ultrafast', to: 'veryfast' })
+    expect(JSON.parse(readFileSync(join(dir, 'x264-presets.json'), 'utf8'))).toEqual({
+      [presetKey(job)]: 'veryfast',
+    })
+  })
+
+  test('an unreadable memory file is ignored', async () => {
+    const job = await jobFor('preset-broken', files['long'] ?? '')
+    const { segmenter, runsStarted } = newSegmenter({ waitMs: 6_000, presets: '{"x": "placebo"' })
+    expect((await segmenter.segment(job, 0)).ok).toBe(true)
+    expect(runsStarted()).toMatchObject([{ fields: { preset: 'veryfast' } }])
+  })
+})
+
+describe('x264 preset choice (§10.3)', () => {
+  test('ultrafast below 1.25× real time, back to veryfast above 3×', () => {
+    expect(nextPreset('veryfast', 0.7)).toBe('ultrafast')
+    expect(nextPreset('veryfast', 1.3)).toBe('veryfast')
+    expect(nextPreset('ultrafast', 1.6)).toBe('ultrafast')
+    expect(nextPreset('ultrafast', 3.5)).toBe('veryfast')
+  })
+
+  test('one memory per kind of source: codec, pixel format, height, quality, HDR, burn-in', () => {
+    const job: HlsJob = {
+      mode: 'hls_transcode',
+      sessionId: 's',
+      sourcePath: '/media/a.mkv',
+      segments: planFixedSegments(8),
+      video: { index: 0, codec: 'h264', height: 1080, pixelFormat: 'yuv420p10le' },
+      audioDownmix: 'stereo',
+      hwAccel: 'off',
+      transcode: { quality: 'original' },
+    }
+    expect(presetKey(job)).toBe('h264:yuv420p10le:1080:original:sdr:plain')
   })
 })
 

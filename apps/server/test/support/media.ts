@@ -6,6 +6,7 @@ export type TestVideo = {
   audio: 'aac' | 'ac3' | 'flac'
   durationS: number
   pixelFormat?: 'yuv420p' | 'yuv420p10le'
+  gopFrames?: number
 }
 
 export const audioDelayS = 0.03
@@ -23,9 +24,10 @@ export const hasFfmpegEncoder = (name: string): boolean =>
 
 export const generateVideo = async (dir: string, spec: TestVideo): Promise<string> => {
   const pixelFormat = spec.pixelFormat ?? 'yuv420p'
+  const gop = spec.gopFrames ?? 48
   const path = join(
     dir,
-    `${spec.video}-${spec.audio}-${spec.durationS}s${pixelFormat === 'yuv420p' ? '' : `-${pixelFormat}`}.${spec.container}`,
+    `${spec.video}-${spec.audio}-${spec.durationS}s${pixelFormat === 'yuv420p' ? '' : `-${pixelFormat}`}${gop === 48 ? '' : `-gop${gop}`}.${spec.container}`,
   )
   const proc = Bun.spawn({
     cmd: [
@@ -53,13 +55,13 @@ export const generateVideo = async (dir: string, spec: TestVideo): Promise<strin
       '-preset',
       'ultrafast',
       '-g',
-      '48',
+      String(gop),
       '-bf',
       '2',
       '-pix_fmt',
       pixelFormat,
       ...(spec.video === 'hevc'
-        ? ['-x265-params', 'log-level=error:keyint=48:min-keyint=48:scenecut=0']
+        ? ['-x265-params', `log-level=error:keyint=${gop}:min-keyint=${gop}:scenecut=0`]
         : ['-sc_threshold', '0']),
       '-c:a',
       encoders[spec.audio],

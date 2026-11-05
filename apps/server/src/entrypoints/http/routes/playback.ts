@@ -112,6 +112,7 @@ export const toPlaybackSessionDto = (
       ...optional('title', chapterTitle(chapter.title)),
     })),
     ...optional('trickplayUrl', created.trickplayUrl),
+    ...optional('seekPointsMs', created.seekPointsMs),
     segments: mediaSegments,
   }
 }

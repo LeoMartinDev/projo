@@ -113,6 +113,10 @@ const subtitleInputFormat = { pgs: 'sup', vobsub: 'vobsub' } as const
 
 export const transcodePrerollS = 0.5
 
+const keyframeSeekMarginS = 0.002
+
+export type X264Preset = 'veryfast' | 'ultrafast'
+
 export type TranscodeArgsInput = {
   sourcePath: string
   startS: number
@@ -123,7 +127,18 @@ export type TranscodeArgsInput = {
   burnIn?: BurnInSubtitle
   filters: FfmpegFilters
   vaapiDevice?: string
+  cuts?: readonly number[]
+  onKeyframe?: boolean
+  preset?: X264Preset
 }
+
+const forcedKeyframes = (cuts: readonly number[] | undefined, seekS: number): string =>
+  cuts === undefined
+    ? `expr:gte(t,n_forced*${transcodeSegmentS})`
+    : cuts
+        .filter((cut) => cut > seekS + 0.01)
+        .map((cut) => (cut - seekS - 0.001).toFixed(3))
+        .join(',') || '0'
 
 const vaapiInput = (device: string): string[] => [
   '-init_hw_device',
@@ -148,12 +163,23 @@ export const transcodeArgs = ({
   burnIn,
   filters,
   vaapiDevice,
+  cuts,
+  onKeyframe = false,
+  preset = 'veryfast',
 }: TranscodeArgsInput): string[] => {
   const vaapi = burnIn === undefined ? vaapiDevice : undefined
-  const inputStartS = Math.max(0, startS - transcodePrerollS)
-  const preroll = startS - inputStartS
+  const keyframeStart =
+    onKeyframe && startS > 0 && burnIn === undefined && audio?.delivery !== 'copy'
+  const audioStartS = Math.max(0, startS - transcodePrerollS)
+  const inputStartS = keyframeStart ? startS + keyframeSeekMarginS : audioStartS
+  const timelineStartS = keyframeStart ? startS : inputStartS
+  const preroll = keyframeStart ? 0 : startS - inputStartS
   const seek = inputStartS > 0 ? inputStartS.toFixed(6) : undefined
-  const trim = preroll > 0 ? [`trim=start=${preroll.toFixed(6)}`] : []
+  const lead = keyframeStart
+    ? [`select='gte(t,-${(2 * keyframeSeekMarginS).toFixed(6)})'`]
+    : preroll > 0
+      ? [`trim=start=${preroll.toFixed(6)}`]
+      : []
   const external = burnIn?.origin === 'external' ? burnIn : undefined
   const tonemap = tonemaps(video, filters)
   const filtered =
@@ -161,6 +187,8 @@ export const transcodeArgs = ({
       ? [`scale=${scaleSize(quality)}`, ...(tonemap ? tonemapChain : [])]
       : tonemap
         ? [
+            'format=p010|vaapi',
+            'hwupload',
             `scale_vaapi=${scaleSize(quality)}:format=p010`,
             'hwdownload',
             'format=p010',
@@ -168,8 +196,21 @@ export const transcodeArgs = ({
             'format=nv12',
             'hwupload',
           ]
-        : [`scale_vaapi=${scaleSize(quality)}:format=nv12`]
-  const picture = `[0:${video.index}]${[...trim, ...filtered].join(',')}`
+        : ['format=nv12|vaapi', 'hwupload', `scale_vaapi=${scaleSize(quality)}:format=nv12`]
+  const picture = `[0:${video.index}]${[...lead, ...filtered].join(',')}`
+  const audioInput =
+    keyframeStart && audio !== undefined
+      ? [
+          '-noaccurate_seek',
+          '-ss',
+          audioStartS.toFixed(6),
+          '-itsoffset',
+          (audioStartS - timelineStartS).toFixed(6),
+          '-i',
+          fileInput(sourcePath),
+        ]
+      : []
+  const audioMap = audioInput.length > 0 ? `1:${audio?.index ?? 0}` : `0:${audio?.index ?? 0}`
   const graph =
     vaapi !== undefined
       ? `${picture}[v]`
@@ -196,9 +237,11 @@ export const transcodeArgs = ({
   return [
     ...head,
     ...(vaapi === undefined ? [] : vaapiInput(vaapi)),
+    ...(keyframeStart ? ['-noaccurate_seek'] : []),
     ...(seek === undefined ? [] : ['-ss', seek]),
     '-i',
     fileInput(sourcePath),
+    ...audioInput,
     ...(external === undefined
       ? []
       : [
@@ -214,14 +257,14 @@ export const transcodeArgs = ({
     graph,
     '-map',
     '[v]',
-    ...(audio === undefined ? [] : ['-map', `0:${audio.index}`]),
+    ...(audio === undefined ? [] : ['-map', audioMap]),
     '-c:v',
-    ...(vaapi === undefined ? ['libx264', '-preset', 'veryfast'] : ['h264_vaapi']),
+    ...(vaapi === undefined ? ['libx264', '-preset', preset] : ['h264_vaapi']),
     '-profile:v',
     'high',
     ...rate,
     '-force_key_frames',
-    `expr:gte(t,n_forced*${transcodeSegmentS})`,
+    forcedKeyframes(cuts, timelineStartS),
     ...(vaapi === undefined
       ? ['-forced-idr', '1', '-sc_threshold', '0', '-x264-params', 'keyint=infinite']
       : ['-g', '1000']),
@@ -229,10 +272,13 @@ export const transcodeArgs = ({
       ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
       : []),
     ...(audio === undefined ? [] : audioArgs(audio, audioDownmix)),
+    ...(audioInput.length > 0
+      ? ['-af', `aselect='gte(t,${(audioStartS - timelineStartS).toFixed(6)})'`]
+      : []),
     '-avoid_negative_ts',
     'disabled',
     '-output_ts_offset',
-    (outputTimestampOffsetS + inputStartS).toFixed(6),
+    (outputTimestampOffsetS + timelineStartS).toFixed(6),
     ...fragmentedMp4Output,
   ]
 }

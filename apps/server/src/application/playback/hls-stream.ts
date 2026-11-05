@@ -5,8 +5,8 @@ import type { CatalogRepository } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import {
   parseSegmentName,
-  planFixedSegments,
   planSegments,
+  planTranscodeSegments,
   renderMasterPlaylist,
   renderPlaylist,
   renderSubtitlePlaylist,
@@ -186,7 +186,12 @@ export const hlsStreamFactory = ({
       sessionId: session.id,
       sourcePath: source.path,
       startS: session.positionMs / 1000,
-      video: { index: video.index, codec: video.codec },
+      video: {
+        index: video.index,
+        codec: video.codec,
+        ...(video.height === undefined ? {} : { height: video.height }),
+        ...(video.pixelFormat === undefined ? {} : { pixelFormat: video.pixelFormat }),
+      },
       audioDownmix: settings.audioDownmix,
       hwAccel: settings.hwAccel,
       ...(audio === undefined ? {} : { audio }),
@@ -204,10 +209,17 @@ export const hlsStreamFactory = ({
       }
       const burnIn = session.burnIn ? burnInFor(session) : undefined
       if (burnIn !== undefined && !burnIn.ok) return burnIn
+      const index = keyframeStore.read(source.id)
+      if (!isFreshIndex(index, source)) {
+        requestKeyframes(jobQueue, source.id, keyframePriority.background)
+      }
       job = {
         ...common,
         mode,
-        segments: planFixedSegments(durationS),
+        segments: planTranscodeSegments(
+          durationS,
+          isFreshIndex(index, source) ? index.keyframes : undefined,
+        ),
         transcode: {
           quality: session.quality ?? 'original',
           ...(video.dynamicRange === undefined ? {} : { dynamicRange: video.dynamicRange }),

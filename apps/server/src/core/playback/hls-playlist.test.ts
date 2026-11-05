@@ -6,12 +6,14 @@ import {
   parseSegmentName,
   planFixedSegments,
   planSegments,
+  planTranscodeSegments,
   remuxSegmentPolicy,
   renderMasterPlaylist,
   renderPlaylist,
   renderSubtitlePlaylist,
   segmentAt,
   segmentFileName,
+  seekPointsOf,
   toHlsWebVtt,
 } from './hls-playlist.ts'
 
@@ -222,30 +224,30 @@ describe('segment names and lookups', () => {
   })
 })
 
-describe('planFixedSegments (§10.3: 4 s segments in transcode)', () => {
-  test('4 s segments from 0 to the duration, the last one shorter', () => {
-    expect(bounds(planFixedSegments(10.5))).toEqual([
-      [0, 4],
-      [4, 8],
-      [8, 10.5],
+describe('planFixedSegments (§10.3: 2 s segments in transcode without a keyframe index)', () => {
+  test('2 s segments from 0 to the duration, the last one shorter', () => {
+    expect(bounds(planFixedSegments(5.5))).toEqual([
+      [0, 2],
+      [2, 4],
+      [4, 5.5],
     ])
-    expect(bounds(planFixedSegments(12))).toEqual([
-      [0, 4],
-      [4, 8],
-      [8, 12],
+    expect(bounds(planFixedSegments(6))).toEqual([
+      [0, 2],
+      [2, 4],
+      [4, 6],
     ])
-    expect(planFixedSegments(10.5).map((segment) => segment.index)).toEqual([0, 1, 2])
+    expect(planFixedSegments(5.5).map((segment) => segment.index)).toEqual([0, 1, 2])
   })
 
   test('a tail under 1 s is merged into the previous segment', () => {
-    expect(bounds(planFixedSegments(8.4))).toEqual([
-      [0, 4],
-      [4, 8.4],
+    expect(bounds(planFixedSegments(4.4))).toEqual([
+      [0, 2],
+      [2, 4.4],
     ])
-    expect(bounds(planFixedSegments(9))).toEqual([
-      [0, 4],
-      [4, 8],
-      [8, 9],
+    expect(bounds(planFixedSegments(5))).toEqual([
+      [0, 2],
+      [2, 4],
+      [4, 5],
     ])
   })
 
@@ -255,11 +257,64 @@ describe('planFixedSegments (§10.3: 4 s segments in transcode)', () => {
     expect(planFixedSegments(Number.NaN)).toEqual([])
   })
 
-  test('a 2 h film: 1800 segments, starts on multiples of 4 s, playlist target 4', () => {
+  test('a 2 h film: 3600 segments, starts on multiples of 2 s, playlist target 2', () => {
     const segments = planFixedSegments(7200)
-    expect(segments).toHaveLength(1800)
-    expect(segments.every((segment) => segment.startS === segment.index * 4)).toBe(true)
-    expect(renderPlaylist(segments)).toContain('#EXT-X-TARGETDURATION:4\n')
+    expect(segments).toHaveLength(3600)
+    expect(segments.every((segment) => segment.startS === segment.index * 2)).toBe(true)
+    expect(renderPlaylist(segments)).toContain('#EXT-X-TARGETDURATION:2\n')
+  })
+})
+
+describe('planTranscodeSegments (§10.3: cut on the source keyframes)', () => {
+  const round = (segments: HlsSegment[]) =>
+    segments.map((s) => [Math.round(s.startS * 1000) / 1000, Math.round(s.endS * 1000) / 1000])
+
+  test('without a keyframe index: the fixed 2 s grid', () => {
+    expect(planTranscodeSegments(5.5, undefined)).toEqual(planFixedSegments(5.5))
+  })
+
+  test('every keyframe starts a segment; a long GOP is split in equal pieces of 2.5 s at most', () => {
+    const segments = planTranscodeSegments(20, [0, 2, 3.5, 10.5, 12.5])
+    expect(round(segments)).toEqual([
+      [0, 2],
+      [2, 3.5],
+      [3.5, 5.833],
+      [5.833, 8.167],
+      [8.167, 10.5],
+      [10.5, 12.5],
+      [12.5, 15],
+      [15, 17.5],
+      [17.5, 20],
+    ])
+    expect(segments.map((s) => s.onKeyframe === true)).toEqual([
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+    ])
+    expect(segments.map((s) => s.index)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8])
+    expect(seekPointsOf(segments)).toEqual([0, 2, 3.5, 10.5, 12.5])
+  })
+
+  test('keyframes under 1 s after a cut, or under 1 s from the end, start no segment', () => {
+    const segments = planTranscodeSegments(10, [0, 0.4, 2, 2.6, 3.2, 9.5])
+    expect(seekPointsOf(segments)).toEqual([0, 2, 3.2])
+    expect(segments.at(-1)?.endS).toBe(10)
+  })
+
+  test('the pieces chain without gap and the playlist target stays at 3', () => {
+    const keyframes = [0, 1.3, 7.9, 8.4, 19.7, 25, 26.1]
+    const segments = planTranscodeSegments(30, keyframes)
+    for (let i = 1; i < segments.length; i += 1) {
+      expect(segments[i]?.startS).toBe(segments[i - 1]?.endS ?? NaN)
+    }
+    expect(segments.every((s) => s.endS - s.startS <= 2.5 + 1e-9)).toBe(true)
+    expect(renderPlaylist(segments)).toContain('#EXT-X-TARGETDURATION:3\n')
   })
 })
 

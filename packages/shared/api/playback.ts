@@ -135,6 +135,7 @@ export const playbackSessionDtoSchema = z.object({
   partOffsetMs: z.number().int(),
   chapters: z.array(chapterDtoSchema),
   trickplayUrl: z.string().optional(),
+  seekPointsMs: z.array(z.number().int()).optional(),
   segments: z.array(mediaSegmentDtoSchema),
 })
 export type PlaybackSessionDto = z.infer<typeof playbackSessionDtoSchema>

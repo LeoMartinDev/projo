@@ -13,7 +13,7 @@ import {
   generateVideo,
   hasFfmpeg,
 } from '../../../test/support/media.ts'
-import { planFixedSegments } from '../../core/playback/hls-playlist.ts'
+import { planFixedSegments, planTranscodeSegments } from '../../core/playback/hls-playlist.ts'
 import type {
   BurnInSubtitle,
   HlsJob,
@@ -54,6 +54,13 @@ beforeAll(async () => {
     video: 'h264',
     audio: 'aac',
     durationS: 22,
+  })
+  files['longGop'] = await generateVideo(media.path, {
+    container: 'mkv',
+    video: 'h264',
+    audio: 'aac',
+    durationS: 22,
+    gopFrames: 120,
   })
   files['hevc10'] = await generateVideo(media.path, {
     container: 'mkv',
@@ -255,7 +262,7 @@ const expectContinuous = (init: string, segments: string[], fromS: number, toS: 
 
 const boxLuma = async (
   init: string,
-  segment: string,
+  segments: string[],
   glued: string,
 ): Promise<{ t: number; luma: number }[]> => {
   const proc = Bun.spawn({
@@ -279,7 +286,7 @@ const boxLuma = async (
     stderr: 'ignore',
   })
   const bytes = new Uint8Array(await new Response(proc.stdout).arrayBuffer())
-  const { frames } = timeline(init, [segment])
+  const { frames } = timeline(init, segments)
   const size = box.width * box.height
   expect(bytes.length).toBe(frames.length * size)
   return frames.map((time, i) => {
@@ -298,7 +305,7 @@ const litAt = (frames: { t: number; luma: number }[], timeS: number): boolean =>
 }
 
 describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
-  test('H.264 → H.264: init + segment playable, one fragment per 4 s segment', async () => {
+  test('H.264 → H.264: init + segment playable, one fragment per 2 s segment', async () => {
     const job = await jobFor('t-h264', files['h264'] ?? '', { quality: '480p' })
     const { segmenter, dir } = newSegmenter()
     const init = unwrap(await segmenter.segment(job, 'init'))
@@ -317,31 +324,18 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
 
   test('seek, then back to the start: segments of both runs chain without hole or jump', async () => {
     const job = await jobFor('t-seek', files['h264'] ?? '')
-    expect(job.segments.map((s) => [s.startS, Math.round(s.endS)])).toEqual([
-      [0, 4],
-      [4, 8],
-      [8, 12],
-      [12, 16],
-      [16, 20],
-      [20, 22],
-    ])
+    expect(job.segments.map((s) => s.startS)).toEqual([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20])
     const { segmenter, dir } = newSegmenter()
-    const third = unwrap(await segmenter.segment(job, 3))
+    const sixth = unwrap(await segmenter.segment(job, 6))
     const init = unwrap(await segmenter.segment(job, 'init'))
-    expect(fragmentStarts(init, third)).toEqual([12])
-    const zero = unwrap(await segmenter.segment(job, 0))
-    const one = unwrap(await segmenter.segment(job, 1))
-    const two = unwrap(await segmenter.segment(job, 2))
-    const four = unwrap(await segmenter.segment(job, 4))
-    const last = unwrap(await segmenter.segment(job, 5))
-    expect([zero, one, two, four, last].map((segment) => fragmentStarts(init, segment))).toEqual([
-      [0],
-      [4],
-      [8],
-      [16],
-      [20],
-    ])
-    const all = [zero, one, two, third, four, last]
+    expect(fragmentStarts(init, sixth)).toEqual([12])
+    const all: string[] = []
+    for (const which of job.segments.map((segment) => segment.index)) {
+      all.push(which === 6 ? sixth : unwrap(await segmenter.segment(job, which)))
+    }
+    expect(all.map((segment) => fragmentStarts(init, segment))).toEqual(
+      job.segments.map((segment) => [segment.startS]),
+    )
     const glued = glue(dir, 'all.mp4', [init, ...all])
     expect(await decodesCleanly(glued)).toBe(true)
     expectContinuous(init, all, 0, 22)
@@ -350,11 +344,12 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
   test('HEVC 10-bit → H.264 8-bit 4:2:0, right timeline after a seek', async () => {
     const job = await jobFor('t-hevc10', files['hevc10'] ?? '', { quality: '720p' })
     const { segmenter, dir } = newSegmenter()
-    const two = unwrap(await segmenter.segment(job, 2))
+    const four = unwrap(await segmenter.segment(job, 4))
     const init = unwrap(await segmenter.segment(job, 'init'))
-    expect(fragmentStarts(init, two)).toEqual([8])
-    const one = unwrap(await segmenter.segment(job, 1))
-    const glued = glue(dir, 'hevc.mp4', [init, one, two])
+    expect(fragmentStarts(init, four)).toEqual([8])
+    const two = unwrap(await segmenter.segment(job, 2))
+    const three = unwrap(await segmenter.segment(job, 3))
+    const glued = glue(dir, 'hevc.mp4', [init, two, three, four])
     const probe = (await ffprobeJson(glued)) as unknown as {
       streams: { codec_name: string; pix_fmt?: string; profile?: string; channels?: number }[]
     }
@@ -365,7 +360,55 @@ describe.skipIf(!hasFfmpeg())('HLS transcode segmenter (real ffmpeg)', () => {
     })
     expect(probe.streams[1]).toMatchObject({ codec_name: 'aac', channels: 2 })
     expect(await decodesCleanly(glued)).toBe(true)
-    expectContinuous(init, [one, two], 4, 12)
+    expectContinuous(init, [two, three, four], 4, 10)
+  })
+})
+
+describe.skipIf(!hasFfmpeg())('transcode cut on the source keyframes (real ffmpeg, §10.3)', () => {
+  const alignedJob = async (sessionId: string) => {
+    const job = await jobFor(sessionId, files['longGop'] ?? '')
+    return { ...job, segments: planTranscodeSegments(22, [0, 5, 10, 15, 20]) }
+  }
+
+  test('a seek on a keyframe, then the whole file: every segment in place, no hole', async () => {
+    const job = await alignedJob('k-seek')
+    expect(job.segments.map((s) => [s.startS, s.onKeyframe === true])).toEqual([
+      [0, true],
+      [2.5, false],
+      [5, true],
+      [7.5, false],
+      [10, true],
+      [12.5, false],
+      [15, true],
+      [17.5, false],
+      [20, true],
+    ])
+    const { segmenter, dir } = newSegmenter()
+    const fourth = unwrap(await segmenter.segment(job, 4))
+    const init = unwrap(await segmenter.segment(job, 'init'))
+    expect(fragmentStarts(init, fourth)).toEqual([10])
+    const all: string[] = []
+    for (const which of job.segments.map((segment) => segment.index)) {
+      all.push(which === 4 ? fourth : unwrap(await segmenter.segment(job, which)))
+    }
+    expect(all.map((segment) => fragmentStarts(init, segment))).toEqual(
+      job.segments.map((segment) => [segment.startS]),
+    )
+    const glued = glue(dir, 'aligned.mp4', [init, ...all])
+    expect(await decodesCleanly(glued)).toBe(true)
+    expectContinuous(init, all, 0, 22)
+  })
+
+  test('a seek between two keyframes, then the following pieces', async () => {
+    const job = await alignedJob('k-mid')
+    const { segmenter, dir } = newSegmenter()
+    const fifth = unwrap(await segmenter.segment(job, 5))
+    const init = unwrap(await segmenter.segment(job, 'init'))
+    expect(fragmentStarts(init, fifth)).toEqual([12.5])
+    const sixth = unwrap(await segmenter.segment(job, 6))
+    const seventh = unwrap(await segmenter.segment(job, 7))
+    expect(await decodesCleanly(glue(dir, 'mid.mp4', [init, fifth, sixth, seventh]))).toBe(true)
+    expectContinuous(init, [fifth, sixth, seventh], 12.5, 20)
   })
 })
 
@@ -380,9 +423,10 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
     const { segmenter, dir } = newSegmenter()
     const produced = unwrap(await segmenter.segment(job, segment))
     const init = unwrap(await segmenter.segment(job, 'init'))
-    const glued = glue(dir, `${sessionId}.mp4`, [init, produced])
+    const next = unwrap(await segmenter.segment(job, segment + 1))
+    const glued = glue(dir, `${sessionId}.mp4`, [init, produced, next])
     expect(await decodesCleanly(glued)).toBe(true)
-    return boxLuma(init, produced, glued)
+    return boxLuma(init, [produced, next], glued)
   }
 
   test('embedded PGS, after a seek: the cues show at their own time', async () => {
@@ -390,7 +434,7 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
       'b-pgs',
       files['blackPgs'] ?? '',
       { origin: 'embedded', streamIndex: 2 },
-      2,
+      4,
     )
     expect(frames[0]?.t).toBeCloseTo(8, 2)
     expect([8.5, 9.5, 10.5, 11.5].map((t) => litAt(frames, t))).toEqual([false, true, true, false])
@@ -401,18 +445,18 @@ describe.skipIf(!hasFfmpeg())('burn-in of bitmap subtitles (real ffmpeg, §10.4)
       'b-dvd',
       files['blackDvd'] ?? '',
       { origin: 'embedded', streamIndex: 2 },
-      2,
+      4,
     )
     expect([8.5, 9.5, 10.5].map((t) => litAt(frames, t))).toEqual([false, true, true])
   })
 
   test('external .sup, after a seek: the cue already on screen at the seek point shows too', async () => {
     const sup = { origin: 'external', path: files['sup'] ?? '', format: 'pgs' } as const
-    const fourth = await burnt('b-sup', files['black'] ?? '', sup, 4)
-    expect(fourth[0]?.t).toBeCloseTo(16, 2)
-    expect([16.2, 18.5, 19.5].map((t) => litAt(fourth, t))).toEqual([true, true, false])
-    const third = await burnt('b-sup-2', files['black'] ?? '', sup, 2)
-    expect([8.5, 9.5, 10.5, 11.5].map((t) => litAt(third, t))).toEqual([false, true, true, false])
+    const fromSixteen = await burnt('b-sup', files['black'] ?? '', sup, 8)
+    expect(fromSixteen[0]?.t).toBeCloseTo(16, 2)
+    expect([16.2, 17.5].map((t) => litAt(fromSixteen, t))).toEqual([true, true])
+    const fromEight = await burnt('b-sup-2', files['black'] ?? '', sup, 4)
+    expect([8.5, 9.5, 11.5].map((t) => litAt(fromEight, t))).toEqual([false, true, false])
   })
 })
 
@@ -425,9 +469,10 @@ describe.skipIf(!canTonemap)('HDR → SDR tone mapping (real ffmpeg with zscale,
     expect(probed.video[0]?.dynamicRange).toBe('hdr')
     const job = await jobFor('t-hdr', path, { quality: '480p', dynamicRange: 'hdr' })
     const { segmenter, dir } = newSegmenter()
-    const one = unwrap(await segmenter.segment(job, 1))
+    const two = unwrap(await segmenter.segment(job, 2))
     const init = unwrap(await segmenter.segment(job, 'init'))
-    const glued = glue(dir, 'hdr.mp4', [init, one])
+    const three = unwrap(await segmenter.segment(job, 3))
+    const glued = glue(dir, 'hdr.mp4', [init, two, three])
     const probe = (await ffprobeJson(glued)) as unknown as {
       streams: Record<string, unknown>[]
     }
@@ -439,7 +484,7 @@ describe.skipIf(!canTonemap)('HDR → SDR tone mapping (real ffmpeg with zscale,
       color_space: 'bt709',
     })
     expect(await decodesCleanly(glued)).toBe(true)
-    expectContinuous(init, [one], 4, 8)
+    expectContinuous(init, [two, three], 4, 8)
   })
 })
 
@@ -493,10 +538,10 @@ describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, 
       notifier: world.notifier,
       renderNode: fakeNode,
     })
-    const one = unwrap(await segmenter.segment(job, 1))
+    const two = unwrap(await segmenter.segment(job, 2))
     const init = unwrap(await segmenter.segment(job, 'init'))
-    expect(await decodesCleanly(glue(dir, 'fallback.mp4', [init, one]))).toBe(true)
-    expect(fragmentStarts(init, one)).toEqual([4])
+    expect(await decodesCleanly(glue(dir, 'fallback.mp4', [init, two]))).toBe(true)
+    expect(fragmentStarts(init, two)).toEqual([4])
     expect(world.notified).toEqual([
       expect.objectContaining({ context: expect.objectContaining({ reason: 'ffmpeg_failed' }) }),
     ])

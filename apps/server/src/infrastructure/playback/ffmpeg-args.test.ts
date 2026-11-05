@@ -103,9 +103,9 @@ describe('transcodeArgs (§10.2, §10.3)', () => {
     expect(valueOf(args, '-movflags')).toContain('+frag_keyframe')
   })
 
-  test('a forced IDR every 4 s and no other keyframe', () => {
+  test('without planned cuts: a forced IDR every 2 s and no other keyframe', () => {
     const args = transcodeArgs(base)
-    expect(valueOf(args, '-force_key_frames')).toBe('expr:gte(t,n_forced*4)')
+    expect(valueOf(args, '-force_key_frames')).toBe('expr:gte(t,n_forced*2)')
     expect(valueOf(args, '-forced-idr')).toBe('1')
     expect(valueOf(args, '-sc_threshold')).toBe('0')
     expect(valueOf(args, '-x264-params')).toBe('keyint=infinite')
@@ -136,6 +136,54 @@ describe('transcodeArgs (§10.2, §10.3)', () => {
       '[0:0]trim=start=0.500000,scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v]',
     )
     expect(valueOf(args, '-output_ts_offset')).toBe('21.500000')
+  })
+
+  test('planned cuts: a forced IDR on each, counted from the input seek point', () => {
+    const fromZero = transcodeArgs({ ...base, cuts: [2, 3.5, 5.833333] })
+    expect(valueOf(fromZero, '-force_key_frames')).toBe('1.999,3.499,5.832')
+    const seeked = transcodeArgs({ ...base, startS: 12, cuts: [14, 16.25] })
+    expect(valueOf(seeked, '-force_key_frames')).toBe('2.499,4.749')
+  })
+
+  test('a run starting on a source keyframe: no decoding before it, the audio pre-rolled apart', () => {
+    const args = transcodeArgs({ ...base, startS: 12, onKeyframe: true, cuts: [14, 16] })
+    expect(args.slice(args.indexOf('-noaccurate_seek'), args.indexOf('-filter_complex'))).toEqual([
+      '-noaccurate_seek',
+      '-ss',
+      '12.002000',
+      '-i',
+      'file:/media/Film (2020)/film.mkv',
+      '-noaccurate_seek',
+      '-ss',
+      '11.500000',
+      '-itsoffset',
+      '-0.500000',
+      '-i',
+      'file:/media/Film (2020)/film.mkv',
+    ])
+    expect(valueOf(args, '-filter_complex')).toBe(
+      "[0:0]select='gte(t,-0.004000)',scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p[v]",
+    )
+    expect(valuesOf(args, '-map')).toEqual(['[v]', '1:1'])
+    expect(valueOf(args, '-af')).toBe("aselect='gte(t,-0.500000)'")
+    expect(valueOf(args, '-force_key_frames')).toBe('1.999,3.999')
+    expect(valueOf(args, '-output_ts_offset')).toBe('22.000000')
+  })
+
+  test('on a keyframe, but with burn-in, copied audio or at 0: the usual seek', () => {
+    const burnIn = { origin: 'embedded', streamIndex: 2 } as const
+    expect(transcodeArgs({ ...base, startS: 12, onKeyframe: true, burnIn })).toEqual(
+      transcodeArgs({ ...base, startS: 12, burnIn }),
+    )
+    const copied = { index: 1, delivery: 'copy', channels: 2 } as const
+    expect(transcodeArgs({ ...base, audio: copied, startS: 12, onKeyframe: true })).toEqual(
+      transcodeArgs({ ...base, audio: copied, startS: 12 }),
+    )
+    expect(transcodeArgs({ ...base, onKeyframe: true })).toEqual(transcodeArgs(base))
+  })
+
+  test('x264 preset: veryfast unless the server asked for ultrafast', () => {
+    expect(valueOf(transcodeArgs({ ...base, preset: 'ultrafast' }), '-preset')).toBe('ultrafast')
   })
 
   test('a seek closer to the start than the pre-roll reads from 0', () => {
@@ -230,21 +278,21 @@ describe('VAAPI (§10.3)', () => {
     ])
   })
 
-  test('SDR: scaled to NV12 and encoded on the GPU, a forced IDR every 4 s', () => {
+  test('SDR: uploaded when decoded on the CPU, scaled to NV12 and encoded on the GPU', () => {
     const args = transcodeArgs({ ...vaapi, quality: '720p' })
     expect(valueOf(args, '-filter_complex')).toBe(
-      "[0:0]scale_vaapi='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12[v]",
+      "[0:0]format=nv12|vaapi,hwupload,scale_vaapi='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=nv12[v]",
     )
     expect(valueOf(args, '-c:v')).toBe('h264_vaapi')
     expect(valueOf(args, '-b:v')).toBe('4000k')
-    expect(valueOf(args, '-force_key_frames')).toBe('expr:gte(t,n_forced*4)')
+    expect(valueOf(args, '-force_key_frames')).toBe('expr:gte(t,n_forced*2)')
     expect(valueOf(args, '-g')).toBe('1000')
     for (const x264Only of ['-preset', '-crf', '-forced-idr', '-x264-params']) {
       expect(args).not.toContain(x264Only)
     }
     const original = transcodeArgs(vaapi)
     expect(valueOf(original, '-filter_complex')).toBe(
-      '[0:0]scale_vaapi=trunc(iw/2)*2:trunc(ih/2)*2:format=nv12[v]',
+      '[0:0]format=nv12|vaapi,hwupload,scale_vaapi=trunc(iw/2)*2:trunc(ih/2)*2:format=nv12[v]',
     )
     expect(valueOf(original, '-qp')).toBe('21')
     expect(valueOf(original, '-rc_mode')).toBe('CQP')
@@ -259,7 +307,7 @@ describe('VAAPI (§10.3)', () => {
       filters: { zscale: true, tonemap: true },
     })
     expect(valueOf(args, '-filter_complex')).toBe(
-      "[0:0]trim=start=0.500000,scale_vaapi='min(iw,1920)':'min(ih,1080)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=p010,hwdownload,format=p010,zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=nv12,hwupload[v]",
+      "[0:0]trim=start=0.500000,format=p010|vaapi,hwupload,scale_vaapi='min(iw,1920)':'min(ih,1080)':force_original_aspect_ratio=decrease:force_divisible_by=2:format=p010,hwdownload,format=p010,zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=nv12,hwupload[v]",
     )
     expect(args.join(' ')).not.toContain('tonemap_vaapi')
     expect(valueOf(args, '-color_trc')).toBe('bt709')
