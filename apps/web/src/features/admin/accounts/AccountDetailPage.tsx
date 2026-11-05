@@ -1,21 +1,25 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { type FormEvent, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { AdminAccountDto } from '@projo/shared/api/accounts'
-import type { LibraryDto } from '@projo/shared/api/libraries'
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
 import { api, request } from '../../../shared/api/client.ts'
 import { Field } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { PlusIcon } from '../../../shared/ui/icons.tsx'
-import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { AdminPageTitle } from '../AdminPageTitle.tsx'
+import { librariesQuery } from '../queries.ts'
 import { AccountActivity } from './AccountActivity.tsx'
 import { AccountSettings } from './AccountSettings.tsx'
-import { AdminAvatar, avatarColors, ColorPicker } from './parts.tsx'
+import { avatarColors, ColorPicker } from './parts.tsx'
 import { ProfileCard } from './ProfileCard.tsx'
-import { accountsQueryKey } from './queries.ts'
+import { accountsQuery, accountsQueryKey } from './queries.ts'
+import '../admin.css'
+import './accounts.css'
 
 const maxProfiles = 5
 
@@ -104,65 +108,93 @@ const AddProfileDialog = ({
   )
 }
 
-export const AccountDialog = ({
-  account,
-  libraries,
-  onClose,
-}: {
-  account: AdminAccountDto
-  libraries: readonly LibraryDto[]
-  onClose: () => void
-}) => {
+export const AccountDetailPage = ({ accountId }: { accountId: string }) => {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const accounts = useQuery(accountsQuery)
+  const libraries = useQuery(librariesQuery)
   const [adding, setAdding] = useState(false)
+
+  if (accounts.isError)
+    return (
+      <div className="admin-page">
+        <ErrorState error={accounts.error} onRetry={() => void accounts.refetch()} />
+      </div>
+    )
+  if (accounts.isPending)
+    return (
+      <div className="admin-page" aria-busy="true">
+        <div className="skeleton skeleton--line admin-page__skeleton-title" />
+        <div className="skeleton admin-page__skeleton-block" />
+      </div>
+    )
+
+  const account = accounts.data.items.find((candidate) => candidate.id === accountId)
+  if (account === undefined)
+    return (
+      <div className="admin-page">
+        <EmptyState
+          title={t('common.notFound')}
+          action={
+            <Link to="/admin/accounts" className="button button--glass">
+              {t('admin.accounts.title')}
+            </Link>
+          }
+        />
+      </div>
+    )
+
   const full = account.profiles.length >= maxProfiles
   return (
-    <Dialog open fill title={account.username} onClose={onClose}>
-      <div className="acc-detail">
-        <header className="acc-head">
-          <AdminAvatar name={account.username} color="neutral" size="large" />
-          <div className="acc-head__text">
-            <div className="acc-head__title">
-              <span className="acc-pill">{t(`admin.accounts.role.${account.role}`)}</span>
-              {account.disabledAt === undefined ? undefined : (
-                <span className="acc-pill acc-pill--off">{t('admin.accounts.disabledBadge')}</span>
-              )}
-            </div>
-            <AccountActivity account={account} />
-          </div>
-        </header>
-
-        <AccountSettings account={account} onDeleted={onClose} />
-
-        <section className="acc-profiles-section" aria-labelledby="acc-profiles-title">
-          <div className="acc-section-head">
-            <div className="acc-section-head__title">
-              <h3 id="acc-profiles-title" className="admin-section__title">
-                {t('admin.accounts.columns.profiles')}
-              </h3>
-              <span className="acc-section-head__count">
-                {account.profiles.length} / {maxProfiles}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="button button--glass button--small"
-              disabled={full}
-              onClick={() => setAdding(true)}
-            >
-              <PlusIcon />
-              {t('admin.accounts.addProfile')}
-            </button>
-          </div>
-          <div className="acc-cards">
-            {account.profiles.map((profile) => (
-              <ProfileCard key={profile.id} profile={profile} libraries={libraries} />
-            ))}
-          </div>
-        </section>
+    <div className="admin-page acc-page">
+      <div className="admin-page__heading">
+        <AdminPageTitle back="/admin/accounts">{account.username}</AdminPageTitle>
+        <div className="acc-head">
+          <span className="acc-pill">{t(`admin.accounts.role.${account.role}`)}</span>
+          {account.disabledAt === undefined ? undefined : (
+            <span className="acc-pill acc-pill--off">{t('admin.accounts.disabledBadge')}</span>
+          )}
+          <AccountActivity account={account} />
+        </div>
       </div>
 
+      <AccountSettings
+        account={account}
+        onDeleted={() => void navigate({ to: '/admin/accounts', replace: true })}
+      />
+
+      <section className="acc-profiles-section" aria-labelledby="acc-profiles-title">
+        <div className="acc-section-head">
+          <div className="acc-section-head__title">
+            <h2 id="acc-profiles-title" className="admin-section__title">
+              {t('admin.accounts.columns.profiles')}
+            </h2>
+            <span className="acc-section-head__count">
+              {account.profiles.length} / {maxProfiles}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="button button--glass button--small"
+            disabled={full}
+            onClick={() => setAdding(true)}
+          >
+            <PlusIcon />
+            {t('admin.accounts.addProfile')}
+          </button>
+        </div>
+        <div className="acc-cards">
+          {account.profiles.map((profile) => (
+            <ProfileCard
+              key={profile.id}
+              profile={profile}
+              libraries={libraries.data?.items ?? []}
+            />
+          ))}
+        </div>
+      </section>
+
       {adding ? <AddProfileDialog account={account} onClose={() => setAdding(false)} /> : undefined}
-    </Dialog>
+    </div>
   )
 }

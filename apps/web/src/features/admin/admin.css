@@ -243,21 +243,28 @@
   max-width: 720px;
 }
 
-.breadcrumb {
+.admin-page__title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-muted);
+  gap: 12px;
+  min-width: 0;
 }
 
-.breadcrumb a {
-  color: var(--color-text-secondary);
-  text-decoration: none;
+.admin-back {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-2);
+  color: var(--color-text);
+  transition: background-color var(--duration-fast) ease;
 }
 
-.breadcrumb a:hover {
-  color: var(--color-text-strong);
+.admin-back:hover {
+  background: var(--fill-3);
 }
 
 .lib-table {
@@ -589,7 +596,8 @@
   padding: 16px 0;
 }
 
-.library-form__actions {
+.library-form__actions,
+.admin-form__actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;

@@ -520,7 +520,6 @@
     "title": "Administration",
     "titleWithServer": "Administration · {{server}}",
     "backToCatalog": "Back to the catalog",
-    "breadcrumb": "Breadcrumb",
     "libraries": {
       "title": "Libraries",
       "summary_one": "{{count}} library · {{files}} ready files",
@@ -528,7 +527,6 @@
       "syncAll": "Resync all",
       "add": "Add a library",
       "addTitle": "Add a library",
-      "new": "New",
       "emptyTitle": "No libraries",
       "emptyText": "Pick a folder on the server: projo finds movies and series in it, even unsorted.",
       "columns": {

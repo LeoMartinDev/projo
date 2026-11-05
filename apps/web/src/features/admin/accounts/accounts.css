@@ -240,39 +240,7 @@
     0 0 0 4px var(--color-text);
 }
 
-.dialog:has(.acc-detail) {
-  width: min(960px, calc(100vw - 32px));
-  height: min(860px, calc(100dvh - 32px));
-  max-height: none;
-}
-
-.acc-detail {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 28px;
-  min-height: 0;
-  margin: 0 -28px -18px;
-  padding: 6px 28px 28px;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
 .acc-head {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-width: 0;
-}
-
-.acc-head__text {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.acc-head__title {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -451,6 +419,10 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.acc-create--page {
+  max-width: 560px;
 }
 
 .invites {

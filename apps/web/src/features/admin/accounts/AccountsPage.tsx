@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -7,8 +8,6 @@ import type { AdminAccountDto } from '@projo/shared/api/accounts'
 import { ChevronRightIcon, PlusIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { AccountActivity } from './AccountActivity.tsx'
-import { AccountDialog } from './AccountDialog.tsx'
-import { CreateAccountDialog } from './CreateAccountDialog.tsx'
 import { InvitationCreatedDialog, Invitations, useCreateInvitation } from './Invitations.tsx'
 import { AdminAvatar, useRatingLabel } from './parts.tsx'
 import { librariesQuery } from '../queries.ts'
@@ -64,23 +63,19 @@ const ProfileStack = ({
   )
 }
 
-const AccountRow = ({
-  account,
-  libraries,
-  onOpen,
-}: {
-  account: AdminAccountDto
-  libraries: Libraries
-  onOpen: () => void
-}) => {
+const AccountRow = ({ account, libraries }: { account: AdminAccountDto; libraries: Libraries }) => {
   const { t } = useTranslation()
   return (
     <div className="acc-tr" role="row" data-disabled={account.disabledAt !== undefined}>
       <div className="acc-tr__name" role="cell">
         <AdminAvatar name={account.username} color="neutral" />
-        <button type="button" className="acc-tr__link" aria-haspopup="dialog" onClick={onOpen}>
+        <Link
+          to="/admin/accounts/$accountId"
+          params={{ accountId: account.id }}
+          className="acc-tr__link"
+        >
           {account.username}
-        </button>
+        </Link>
         {account.disabledAt === undefined ? undefined : (
           <span className="acc-pill acc-pill--off">{t('admin.accounts.disabledBadge')}</span>
         )}
@@ -105,13 +100,10 @@ export const AccountsPage = () => {
   const { t } = useTranslation()
   const accounts = useQuery(accountsQuery)
   const libraries = useQuery(librariesQuery)
-  const [openId, setOpenId] = useState<string>()
-  const [creating, setCreating] = useState(false)
   const [token, setToken] = useState<string>()
   const invite = useCreateInvitation(setToken)
 
   const items = accounts.data?.items ?? []
-  const opened = items.find((account) => account.id === openId)
   const profileCount = items.reduce((total, account) => total + account.profiles.length, 0)
 
   return (
@@ -129,13 +121,9 @@ export const AccountsPage = () => {
           ) : undefined}
         </div>
         <div className="admin-page__actions">
-          <button
-            type="button"
-            className="button button--glass button--small"
-            onClick={() => setCreating(true)}
-          >
+          <Link to="/admin/accounts/new" className="button button--glass button--small">
             {t('admin.accounts.create')}
-          </button>
+          </Link>
           <button
             type="button"
             className="button button--primary button--small"
@@ -169,7 +157,6 @@ export const AccountsPage = () => {
               key={account.id}
               account={account}
               libraries={libraries.data?.items ?? []}
-              onOpen={() => setOpenId(account.id)}
             />
           ))}
         </div>
@@ -177,23 +164,6 @@ export const AccountsPage = () => {
 
       <Invitations />
 
-      {creating ? (
-        <CreateAccountDialog
-          onClose={() => setCreating(false)}
-          onCreated={(account) => {
-            setCreating(false)
-            setOpenId(account.id)
-          }}
-        />
-      ) : undefined}
-      {opened === undefined ? undefined : (
-        <AccountDialog
-          key={opened.id}
-          account={opened}
-          libraries={libraries.data?.items ?? []}
-          onClose={() => setOpenId(undefined)}
-        />
-      )}
       {token === undefined ? undefined : (
         <InvitationCreatedDialog token={token} onClose={() => setToken(undefined)} />
       )}

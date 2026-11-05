@@ -79,6 +79,14 @@ const AccountsPage = lazyRouteComponent(
   () => import('../features/admin/accounts/AccountsPage.tsx'),
   'AccountsPage',
 )
+const NewAccountPage = lazyRouteComponent(
+  () => import('../features/admin/accounts/NewAccountPage.tsx'),
+  'NewAccountPage',
+)
+const AccountDetailPage = lazyRouteComponent(
+  () => import('../features/admin/accounts/AccountDetailPage.tsx'),
+  'AccountDetailPage',
+)
 const ReviewPage = lazyRouteComponent(
   () => import('../features/admin/review/ReviewPage.tsx'),
   'ReviewPage',
@@ -424,6 +432,22 @@ const adminAccountsRoute = createRoute({
   component: AccountsPage,
 })
 
+const adminNewAccountRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/accounts/new',
+  component: NewAccountPage,
+})
+
+const adminAccountRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/accounts/$accountId',
+  loader: () => AccountDetailPage.preload?.(),
+  component: function AdminAccount() {
+    const { accountId } = adminAccountRoute.useParams()
+    return <AccountDetailPage key={accountId} accountId={accountId} />
+  },
+})
+
 const adminReviewRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/review',
@@ -549,6 +573,8 @@ export const routeTree = rootRoute.addChildren([
       adminNewLibraryRoute,
       adminLibraryRoute,
       adminAccountsRoute,
+      adminNewAccountRoute,
+      adminAccountRoute,
       adminReviewRoute,
       adminSessionsRoute,
       adminUpdatesRoute,

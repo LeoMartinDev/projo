@@ -1,11 +1,13 @@
-import { Link, useCanGoBack, useRouter } from '@tanstack/react-router'
+import { Link, type LinkProps, useCanGoBack, useRouter } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 export const BackLink = ({
+  to = '/',
   className,
   label,
   children,
 }: {
+  to?: LinkProps['to']
   className: string
   label?: string
   children: ReactNode
@@ -14,7 +16,7 @@ export const BackLink = ({
   const canGoBack = useCanGoBack()
   return (
     <Link
-      to="/"
+      to={to}
       className={className}
       {...(label === undefined ? {} : { 'aria-label': label })}
       onClick={(event) => {

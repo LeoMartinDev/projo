@@ -1,30 +1,27 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { type FormEvent, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { type AccountRole, passwordSchema, usernameSchema } from '@projo/shared/api/auth'
-import type { AdminAccountDto } from '@projo/shared/api/accounts'
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
 import { api, request } from '../../../shared/api/client.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field, RevealButton } from '../../../shared/ui/controls.tsx'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { LockIcon, UserIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { AdminPageTitle } from '../AdminPageTitle.tsx'
 import { ColorPicker } from './parts.tsx'
 import { accountsQueryKey } from './queries.ts'
+import '../admin.css'
+import './accounts.css'
 
 const roles: readonly AccountRole[] = ['user', 'admin']
 
-export const CreateAccountDialog = ({
-  onClose,
-  onCreated,
-}: {
-  onClose: () => void
-  onCreated: (account: AdminAccountDto) => void
-}) => {
+export const NewAccountPage = () => {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const id = useId()
   const queryClient = useQueryClient()
   const [username, setUsername] = useState('')
@@ -57,7 +54,11 @@ export const CreateAccountDialog = ({
       ),
     onSuccess: async (account) => {
       await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
-      onCreated(account)
+      await navigate({
+        to: '/admin/accounts/$accountId',
+        params: { accountId: account.id },
+        replace: true,
+      })
     },
   })
 
@@ -68,28 +69,13 @@ export const CreateAccountDialog = ({
   }
 
   return (
-    <Dialog
-      open
-      title={t('admin.accounts.createAccount.title')}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            form={`${id}-form`}
-            className="button button--primary"
-            disabled={create.isPending}
-          >
-            {create.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.accounts.createAccount.submit')}
-          </button>
-        </>
-      }
-    >
-      <form id={`${id}-form`} className="acc-create" onSubmit={submit} noValidate>
+    <div className="admin-page">
+      <div className="admin-page__heading">
+        <AdminPageTitle back="/admin/accounts">
+          {t('admin.accounts.createAccount.title')}
+        </AdminPageTitle>
+      </div>
+      <form className="acc-create acc-create--page" onSubmit={submit} noValidate>
         {create.isError ? <ErrorAlert error={create.error} /> : undefined}
         <div className="form-row">
           <Field
@@ -184,7 +170,16 @@ export const CreateAccountDialog = ({
           </span>
           <ColorPicker value={avatarColor} labelId={`${id}-color`} onChange={setAvatarColor} />
         </div>
+        <div className="admin-form__actions">
+          <Link to="/admin/accounts" className="button">
+            {t('common.cancel')}
+          </Link>
+          <button type="submit" className="button button--primary" disabled={create.isPending}>
+            {create.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
+            {t('admin.accounts.createAccount.submit')}
+          </button>
+        </div>
       </form>
-    </Dialog>
+    </div>
   )
 }

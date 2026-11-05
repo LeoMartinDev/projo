@@ -10,6 +10,7 @@ import { formatDateTime, formatNumber } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { SyncIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
+import { AdminPageTitle } from './AdminPageTitle.tsx'
 import { DeleteLibraryDialog } from './DeleteLibraryDialog.tsx'
 import { LibraryForm } from './LibraryForm.tsx'
 import { useLiveScans } from './live-scans.ts'
@@ -24,25 +25,13 @@ import {
 import { libraryQuery, scanRunsQuery } from './queries.ts'
 import './admin.css'
 
-const Breadcrumb = ({ current }: { current: string }) => {
-  const { t } = useTranslation()
-  return (
-    <nav className="breadcrumb" aria-label={t('admin.breadcrumb')}>
-      <Link to="/admin/libraries">{t('admin.libraries.title')}</Link>
-      <span aria-hidden="true">/</span>
-      <span aria-current="page">{current}</span>
-    </nav>
-  )
-}
-
 export const NewLibraryPage = () => {
   const { t } = useTranslation()
   const navigate = useNavigate()
   return (
     <div className="admin-page">
       <div className="admin-page__heading">
-        <Breadcrumb current={t('admin.libraries.new')} />
-        <h1 className="admin-page__title">{t('admin.libraries.addTitle')}</h1>
+        <AdminPageTitle back="/admin/libraries">{t('admin.libraries.addTitle')}</AdminPageTitle>
       </div>
       <LibraryForm
         submitLabel={t('admin.form.createAndScan')}
@@ -51,7 +40,7 @@ export const NewLibraryPage = () => {
             {t('common.cancel')}
           </Link>
         }
-        onSaved={() => navigate({ to: '/admin/libraries' })}
+        onSaved={() => navigate({ to: '/admin/libraries', replace: true })}
       />
     </div>
   )
@@ -120,8 +109,7 @@ export const EditLibraryPage = ({ libraryId }: { libraryId: string }) => {
     <div className="admin-page">
       <div className="admin-page__header">
         <div className="admin-page__heading">
-          <Breadcrumb current={library.data.name} />
-          <h1 className="admin-page__title">{library.data.name}</h1>
+          <AdminPageTitle back="/admin/libraries">{library.data.name}</AdminPageTitle>
           <LibraryStatus state={state} />
         </div>
         <div className="admin-page__actions">
@@ -156,7 +144,7 @@ export const EditLibraryPage = ({ libraryId }: { libraryId: string }) => {
             {t('common.cancel')}
           </Link>
         }
-        onSaved={() => navigate({ to: '/admin/libraries' })}
+        onSaved={() => navigate({ to: '/admin/libraries', replace: true })}
       />
 
       <section className="admin-section" aria-labelledby="history-title">

@@ -520,7 +520,6 @@
     "title": "Administration",
     "titleWithServer": "Administration · {{server}}",
     "backToCatalog": "Retour au catalogue",
-    "breadcrumb": "Fil d’Ariane",
     "libraries": {
       "title": "Bibliothèques",
       "summary_one": "{{count}} bibliothèque · {{files}} fichiers prêts",
@@ -528,7 +527,6 @@
       "syncAll": "Tout resynchroniser",
       "add": "Ajouter une bibliothèque",
       "addTitle": "Ajouter une bibliothèque",
-      "new": "Nouvelle",
       "emptyTitle": "Aucune bibliothèque",
       "emptyText": "Choisissez un dossier du serveur : projo y trouve films et séries, même en vrac.",
       "columns": {
