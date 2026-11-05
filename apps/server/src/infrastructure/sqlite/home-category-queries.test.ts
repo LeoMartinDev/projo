@@ -35,10 +35,11 @@ beforeEach(() => {
 })
 
 describe('§13.3 category titles', () => {
-  test('visible movies and series with a genre, their language and added date', () => {
+  test('visible movies and series with a genre, their language, score and added date', () => {
     movie('m', {
       genres: ['animation', 'action'],
       originalLanguage: 'ja',
+      voteAverage: 7.8,
       addedAt: '2026-02-01T00:00:00.000Z',
     })
     movie('no-genre')
@@ -50,6 +51,7 @@ describe('§13.3 category titles', () => {
         id: 'm',
         genres: ['animation', 'action'],
         originalLanguage: 'ja',
+        voteAverage: 7.8,
         addedAt: new Date('2026-02-01T00:00:00.000Z'),
       },
       { id: 'show', genres: ['drama'], addedAt: new Date('2026-01-01T00:00:00.000Z') },

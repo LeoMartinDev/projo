@@ -14,6 +14,7 @@ import { useCardActions } from './actions.ts'
 import { useCardText } from './card-text.ts'
 import { type CardPlace, detailTargetOf, progressRatioOf, toneOf, wideArtOf } from './media.ts'
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
+import { Score } from './Score.tsx'
 import './media.css'
 
 export const CardSheet = ({
@@ -158,11 +159,13 @@ const CardSheetBody = ({
               {text.title}
             </h2>
             <span className="card-sheet__line">{text.line}</span>
-            {text.duration === undefined && rating === undefined ? undefined : (
+            {text.duration === undefined &&
+            rating === undefined &&
+            text.score === undefined ? undefined : (
               <span className="card-sheet__meta">
                 <RatingBadge badge={rating} plain />
-                {rating === undefined || text.duration === undefined ? undefined : ' · '}
-                {text.duration}
+                <Score score={text.score} />
+                {text.duration === undefined ? undefined : <span>{text.duration}</span>}
               </span>
             )}
           </div>

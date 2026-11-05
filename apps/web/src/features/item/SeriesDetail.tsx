@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { itemTitle, listedNumber, playEpisodeLabel } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 
-import { formatDuration } from '../../shared/format/format.ts'
+import { formatDuration, formatScore } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { CheckIcon, MoreIcon, PlayIcon } from '../../shared/ui/icons.tsx'
@@ -22,6 +22,7 @@ import {
   remainingMsOf,
   toneOf,
 } from '../media/media.ts'
+import { Score } from '../media/Score.tsx'
 import { episodeCards, episodeNumberLabel } from '../player/next-episode.ts'
 import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
@@ -49,6 +50,7 @@ const EpisodeRow = ({
   const number = episodeNumberLabel(episode) ?? '–'
   const title = itemTitle(t, episode)
   const inline = listedNumber(episode, number)
+  const score = formatScore(episode.voteAverage, locale)
   return (
     <li className="episode" data-in-progress={ratio !== undefined}>
       <span
@@ -91,8 +93,13 @@ const EpisodeRow = ({
             )}
             {title}
           </h3>
-          {durationMs === undefined ? undefined : (
-            <span className="episode__duration">{formatDuration(durationMs, locale)}</span>
+          {durationMs === undefined && score === undefined ? undefined : (
+            <span className="episode__facts">
+              <Score score={score} />
+              {durationMs === undefined ? undefined : (
+                <span>{formatDuration(durationMs, locale)}</span>
+              )}
+            </span>
           )}
         </div>
         {episode.overview === undefined ? undefined : (

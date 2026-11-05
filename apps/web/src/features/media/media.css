@@ -137,6 +137,19 @@
   white-space: nowrap;
 }
 
+.score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted-strong);
+  white-space: nowrap;
+}
+
+.score svg {
+  flex: none;
+  color: var(--color-warning);
+}
+
 .progress-line {
   display: flex;
   align-items: center;
@@ -701,6 +714,10 @@
 }
 
 .card-sheet__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
   color: var(--color-text-muted);
   font-size: 12px;
 }

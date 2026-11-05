@@ -22,8 +22,12 @@ export type CategoryTitle = {
   id: string
   genres: readonly GenreId[]
   originalLanguage?: string
+  voteAverage?: number
   addedAt: Date
 }
+
+const scoreOf = (title: CategoryTitle): number =>
+  title.voteAverage === undefined || title.voteAverage <= 0 ? -1 : title.voteAverage
 
 export const categoriesOf = (title: CategoryTitle): HomeCategory[] => {
   const anime = isAnime(title)
@@ -86,6 +90,7 @@ export const categoryRows = ({
   const ordered = [...titles].sort(
     (a, b) =>
       Number(watched.has(a.id)) - Number(watched.has(b.id)) ||
+      scoreOf(b) - scoreOf(a) ||
       b.addedAt.getTime() - a.addedAt.getTime() ||
       (a.id < b.id ? 1 : a.id > b.id ? -1 : 0),
   )

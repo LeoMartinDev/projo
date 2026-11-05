@@ -14,6 +14,7 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 import type { ResumeFrameDto } from '@projo/shared/api/home'
 
 import { RatingBadge, useRatingBadge } from './RatingBadge.tsx'
+import { Score } from './Score.tsx'
 import { useErrorMessage } from '../../shared/i18n/errors.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { PlayIcon } from '../../shared/ui/icons.tsx'
@@ -247,9 +248,11 @@ const Preview = ({
             <span className="preview__line">{text.line}</span>
             {rating === undefined &&
             text.duration === undefined &&
+            text.score === undefined &&
             quality === undefined ? undefined : (
               <span className="preview__meta">
                 <RatingBadge badge={rating} />
+                <Score score={text.score} />
                 {text.duration === undefined ? undefined : <span>{text.duration}</span>}
                 {quality === undefined ? undefined : (
                   <span className="rating-badge">{quality}</span>

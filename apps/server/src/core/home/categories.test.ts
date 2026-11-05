@@ -21,12 +21,13 @@ const day = (n: number) => new Date(Date.UTC(2026, 0, n))
 const title = (
   id: string,
   genres: GenreId[],
-  { added = day(1), language }: { added?: Date; language?: string } = {},
+  { added = day(1), language, score }: { added?: Date; language?: string; score?: number } = {},
 ): CategoryTitle => ({
   id,
   genres,
   addedAt: added,
   ...(language === undefined ? {} : { originalLanguage: language }),
+  ...(score === undefined ? {} : { voteAverage: score }),
 })
 
 const genre = (id: GenreId): HomeCategory => ({ kind: 'genre', genre: id })
@@ -155,7 +156,35 @@ describe('categoryBatch', () => {
 })
 
 describe('categoryRows', () => {
-  test('newest first, watched titles last, limited, anime kept out of "Animation"', () => {
+  test('best score first, unrated titles after, watched titles last', () => {
+    const rows = categoryRows({
+      titles: [
+        title('fine', ['drama'], { score: 6.8, added: day(9) }),
+        title('unrated', ['drama'], { added: day(8) }),
+        title('zero', ['drama'], { score: 0, added: day(7) }),
+        title('great', ['drama'], { score: 8.4, added: day(1) }),
+        title('seen', ['drama'], { score: 9.1, added: day(2) }),
+        title('good', ['drama'], { score: 7.5, added: day(3) }),
+      ],
+      categories: [genre('drama')],
+      watched: new Set(['seen']),
+    })
+    expect(rows.get('genre-drama')).toEqual(['great', 'good', 'fine', 'unrated', 'zero', 'seen'])
+  })
+
+  test('same score: newest first', () => {
+    const rows = categoryRows({
+      titles: [
+        title('old', ['drama'], { score: 7.5, added: day(1) }),
+        title('new', ['drama'], { score: 7.5, added: day(5) }),
+      ],
+      categories: [genre('drama')],
+      watched: new Set(),
+    })
+    expect(rows.get('genre-drama')).toEqual(['new', 'old'])
+  })
+
+  test('unrated titles: newest first, watched titles last, limited, anime kept out of "Animation"', () => {
     const titles = [
       title('old', ['animation'], { added: day(1) }),
       title('new', ['animation'], { added: day(5) }),

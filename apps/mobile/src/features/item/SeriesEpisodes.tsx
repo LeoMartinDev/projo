@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ActionSheetIOS, Pressable, StyleSheet, Text, View } from 'react-native'
 
-import { formatDuration } from '@projo/i18n/format'
+import { formatDuration, formatScore } from '@projo/i18n/format'
 import { itemTitle, listedNumber, seasonLabel } from '@projo/i18n/item-titles'
 import {
   durationMsOf,
@@ -25,7 +25,7 @@ import { useCatalogQueries } from '../catalog/queries.ts'
 import { Artwork } from '../media/Artwork.tsx'
 import { PlayButton } from '../media/buttons.tsx'
 import { useLocale } from '../media/card-text.ts'
-import { ProgressBar } from '../media/parts.tsx'
+import { ProgressBar, Score } from '../media/parts.tsx'
 import { DetailHead, HeadAction, ProgressLine } from './DetailHead.tsx'
 import { CastRow, Section } from './sections.tsx'
 
@@ -51,6 +51,7 @@ const EpisodeRow = ({
   const remaining = remainingMsOf(episode)
   const durationMs = durationMsOf(episode)
   const title = itemTitle(t, episode)
+  const score = formatScore(episode.voteAverage, locale)
   const number = listedNumber(episode, episodeNumberLabel(episode))
   const meta =
     ratio !== undefined && remaining !== undefined
@@ -88,7 +89,12 @@ const EpisodeRow = ({
           <Text numberOfLines={2} style={styles.episodeTitle}>
             {number === undefined ? title : `${number}. ${title}`}
           </Text>
-          {meta === undefined ? undefined : <Text style={styles.episodeMeta}>{meta}</Text>}
+          {meta === undefined && score === undefined ? undefined : (
+            <View style={styles.episodeFacts}>
+              <Score score={score} size={12} />
+              {meta === undefined ? undefined : <Text style={styles.episodeMeta}>{meta}</Text>}
+            </View>
+          )}
           {regular ? overview : undefined}
         </View>
         <Pressable
@@ -335,6 +341,7 @@ const styles = StyleSheet.create({
   stillBar: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 0 },
   episodeText: { flex: 1, gap: 4 },
   episodeTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 14 },
+  episodeFacts: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 10 },
   episodeMeta: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 12 },
   overview: {
     color: colors.textSecondary,

@@ -283,7 +283,8 @@
     "removeUpNext": "Remove from Up next",
     "info": "More info",
     "infoOn": "More info on {{title}}",
-    "previewOf": "Preview of {{title}}"
+    "previewOf": "Preview of {{title}}",
+    "score": "TMDB score: {{score}} out of 10"
   },
   "search": {
     "label": "Search movies and series",

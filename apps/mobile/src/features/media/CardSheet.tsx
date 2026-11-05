@@ -20,7 +20,7 @@ import { PlayButton } from './buttons.tsx'
 import { useCardText } from './card-text.ts'
 import { findItem } from './find-item.ts'
 import { itemHref } from './navigation.ts'
-import { ProgressBar } from './parts.tsx'
+import { ProgressBar, Score } from './parts.tsx'
 
 const places: readonly CardPlace[] = [
   'continue_watching',
@@ -95,15 +95,20 @@ export const CardSheet = () => {
           <Text numberOfLines={2} style={styles.line}>
             {text.line}
           </Text>
-          {meta.length === 0 ? undefined : (
-            <Text
-              accessibilityLabel={[text.rating?.label, ...meta.slice(text.rating ? 1 : 0)]
-                .filter(Boolean)
-                .join(', ')}
-              style={styles.meta}
-            >
-              {meta.join(' · ')}
-            </Text>
+          {meta.length === 0 && text.score === undefined ? undefined : (
+            <View style={styles.metaRow}>
+              {meta.length === 0 ? undefined : (
+                <Text
+                  accessibilityLabel={[text.rating?.label, ...meta.slice(text.rating ? 1 : 0)]
+                    .filter(Boolean)
+                    .join(', ')}
+                  style={styles.meta}
+                >
+                  {meta.join(' · ')}
+                </Text>
+              )}
+              <Score score={text.score} size={12} />
+            </View>
           )}
         </View>
         <Pressable
@@ -183,6 +188,7 @@ const styles = StyleSheet.create({
     letterSpacing: 18 * -0.03,
   },
   line: { color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 13 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8 },
   meta: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 12 },
   close: {
     alignSelf: 'flex-start',

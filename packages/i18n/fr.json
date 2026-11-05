@@ -283,7 +283,8 @@
     "removeUpNext": "Retirer de À suivre",
     "info": "Plus d’infos",
     "infoOn": "Plus d’infos sur {{title}}",
-    "previewOf": "Aperçu de {{title}}"
+    "previewOf": "Aperçu de {{title}}",
+    "score": "Note TMDB : {{score}} sur 10"
   },
   "search": {
     "label": "Rechercher des films et des séries",

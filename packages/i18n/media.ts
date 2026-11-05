@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next'
 
 import type { ItemSummaryDto, PlayTargetDto } from '@projo/shared/api/catalog'
 
-import { formatDuration } from './format.ts'
+import { formatDuration, formatScore } from './format.ts'
 import { episodeCode, episodeLine, itemTitle } from './item-titles.ts'
 
 const toneCount = 6
@@ -149,6 +149,7 @@ export type CardText = {
   line: string
   duration?: string
   remaining?: string
+  score?: string
 }
 
 export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): CardText => {
@@ -158,6 +159,7 @@ export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): 
   const duration = durationMs === undefined ? undefined : formatDuration(durationMs, locale)
   const remainingMs = remainingMsOf(item)
   const remaining = remainingMs === undefined ? undefined : formatRemaining(remainingMs, locale)
+  const score = formatScore(item.voteAverage, locale)
   const kindLabel =
     item.kind === 'series' ? t('card.series') : item.kind === 'movie' ? t('card.movie') : undefined
   const seasons =
@@ -182,5 +184,6 @@ export const cardTextOf = (t: TFunction, locale: string, item: ItemSummaryDto): 
     line: item.kind === 'episode' ? episodeLine(t, item) : typed,
     ...(duration === undefined ? {} : { duration }),
     ...(remaining === undefined ? {} : { remaining: t('item.remaining', { duration: remaining }) }),
+    ...(score === undefined ? {} : { score }),
   }
 }

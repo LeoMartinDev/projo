@@ -1,4 +1,6 @@
+import { SymbolView } from 'expo-symbols'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native'
 
 import type { RatingBadge } from '@projo/i18n/content-ratings'
@@ -31,14 +33,27 @@ export const OutlineBadge = ({ text, label }: { text: string; label?: string }) 
   </View>
 )
 
+export const Score = ({ score, size = 13 }: { score: string | undefined; size?: number }) => {
+  const { t } = useTranslation()
+  if (score === undefined) return undefined
+  return (
+    <View accessibilityLabel={t('card.score', { score })} accessible style={styles.score}>
+      <SymbolView name="star.fill" size={size - 2} tintColor={colors.warning} />
+      <Text style={[styles.scoreText, { fontSize: size }]}>{score}</Text>
+    </View>
+  )
+}
+
 export const MetaLine = ({
   parts,
   rating,
+  score,
   quality,
   center = false,
 }: {
   parts: readonly (string | undefined)[]
   rating?: RatingBadge | undefined
+  score?: string | undefined
   quality?: string | undefined
   center?: boolean
 }) => {
@@ -46,6 +61,7 @@ export const MetaLine = ({
     ...(rating === undefined
       ? []
       : [<OutlineBadge key="rating" label={rating.label} text={rating.text} />]),
+    ...(score === undefined ? [] : [<Score key="score" score={score} />]),
     ...parts
       .filter((part) => part !== undefined && part !== '')
       .map((part) => (
@@ -89,4 +105,6 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 4 },
   center: { justifyContent: 'center' },
   metaText: { color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 13 },
+  score: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  scoreText: { color: colors.textMutedStrong, fontFamily: fonts.regular },
 })

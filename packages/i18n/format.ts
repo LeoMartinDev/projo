@@ -49,6 +49,13 @@ export const formatBytes = (bytes: number, locale: string): string => {
 export const formatNumber = (value: number, locale: string): string =>
   new Intl.NumberFormat(locale).format(value)
 
+export const formatScore = (voteAverage: number | undefined, locale: string): string | undefined =>
+  voteAverage === undefined || voteAverage <= 0
+    ? undefined
+    : new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(
+        voteAverage,
+      )
+
 export const formatPercent = (ratio: number, locale: string): string =>
   new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(ratio)
 

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 
 import { ratingBadge } from '@projo/i18n/content-ratings'
+import { formatScore } from '@projo/i18n/format'
 import { genreLabels } from '@projo/i18n/genres'
 import { itemTitle } from '@projo/i18n/item-titles'
 import { qualityLabel, yearsLabel } from '@projo/i18n/media'
@@ -109,6 +110,7 @@ export const DetailHead = ({
         parts={[yearsLabel(item), extra, genres]}
         quality={qualityLabel(item.bestQuality)}
         rating={ratingBadge(t, locale, item.contentRating)}
+        score={formatScore(item.voteAverage, locale)}
       />
     </>
   )

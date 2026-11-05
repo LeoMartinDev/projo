@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatPercent,
   formatRelative,
+  formatScore,
   formatSoon,
 } from './format.ts'
 
@@ -87,5 +88,18 @@ describe('formatSoon', () => {
   test('the time today, the day later', () => {
     expect(formatSoon(new Date('2026-10-24T14:32:00').toISOString(), 'fr', now)).toBe('14:32')
     expect(formatSoon(new Date('2026-10-25T09:00:00').toISOString(), 'fr', now)).toBe('25 oct.')
+  })
+})
+
+describe('formatScore', () => {
+  test('one decimal, in the locale', () => {
+    expect(formatScore(7.94, 'fr')).toBe('7,9')
+    expect(formatScore(8, 'en')).toBe('8.0')
+    expect(formatScore(8.944, 'en')).toBe('8.9')
+  })
+
+  test('no score without votes', () => {
+    expect(formatScore(undefined, 'fr')).toBeUndefined()
+    expect(formatScore(0, 'fr')).toBeUndefined()
   })
 })

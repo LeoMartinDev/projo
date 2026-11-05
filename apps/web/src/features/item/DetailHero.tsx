@@ -5,12 +5,15 @@ import { genreLabels } from '@projo/i18n/genres'
 import { itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, PersonDto } from '@projo/shared/api/catalog'
 
+import { formatScore } from '../../shared/format/format.ts'
+
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Artwork, fullWidthSizes, logoSizes } from '../../shared/ui/Artwork.tsx'
 import { BackLink } from '../../shared/ui/BackLink.tsx'
-import { ChevronLeftIcon, StarIcon } from '../../shared/ui/media-icons.tsx'
+import { ChevronLeftIcon } from '../../shared/ui/media-icons.tsx'
 import { qualityLabel, toneOf, yearsLabel } from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
+import { Score } from '../media/Score.tsx'
 
 const names = (people: readonly PersonDto[], max: number) =>
   people
@@ -61,15 +64,7 @@ export const MetaLine = ({ item, extra }: { item: ItemDetailDto; extra?: string 
         </span>
       ))}
       {quality === undefined ? undefined : <span className="rating-badge">{quality}</span>}
-      {item.voteAverage === undefined || item.voteAverage === 0 ? undefined : (
-        <span className="detail-hero__vote">
-          <StarIcon />
-          {new Intl.NumberFormat(locale, {
-            maximumFractionDigits: 1,
-            minimumFractionDigits: 1,
-          }).format(item.voteAverage)}
-        </span>
-      )}
+      <Score score={formatScore(item.voteAverage, locale)} />
     </div>
   )
 }
