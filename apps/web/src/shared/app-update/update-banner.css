@@ -50,7 +50,7 @@
   opacity: 0.5;
 }
 
-@media (--phone) and (not (--in-browser)) {
+@media (--phone) and (--compact) and (not (--in-browser)) {
   .update-banner {
     bottom: calc(max(12px, env(safe-area-inset-bottom) - 14px) + 80px);
   }
