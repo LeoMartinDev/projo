@@ -9,14 +9,18 @@ export type SupervisorConfig = {
   dataDir: string
   port: number
   logLevel: LogLevel
+  /** App bundle embedded in the image. */
   seedDir: string
+  /** Version of this runtime image, passed to the app as PROJO_RUNTIME_VERSION. */
   runtimeVersion: string
+  /** Bun binary used to run the app: the one running the supervisor. */
   bunPath: string
   shutdownGraceMs: number
 }
 
 type Env = Readonly<Record<string, string | undefined>>
 
+// The image lays out /opt/projo/{supervisor,app,VERSION}; the repo mirrors it with runtime/{supervisor,VERSION}.
 const RUNTIME_ROOT = join(import.meta.dir, '..')
 
 export const readRuntimeVersion = (
@@ -58,6 +62,7 @@ export const loadConfig = (
   })
 }
 
+/** Environment of the app process: inherited, plus what the supervisor exposes. */
 export const appEnv = (env: Env, config: SupervisorConfig): Record<string, string> => {
   const inherited = Object.entries(env).flatMap(([key, value]) =>
     value === undefined ? [] : [[key, value] as const],

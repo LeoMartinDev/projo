@@ -5,12 +5,15 @@ import { ENTRY_FILE, readManifest, type Manifest } from './manifest'
 import { err, ok, type Result } from './result'
 import { compareSemVer, isSemVer, parseSemVer } from './semver'
 
+/** Layout of `/data/app` (PRODUCT.md §5.4). */
 export type AppLayout = {
   appDir: string
   versionsDir: string
   stagingDir: string
   currentLink: string
+  /** Written by the M5 switch: last known good version. */
   previousLink: string
+  /** Written by the app before exit 75 (M5): the version to switch to. */
   pendingFile: string
 }
 
@@ -33,6 +36,7 @@ export const versionDir = (layout: AppLayout, version: string): string =>
 
 export type InstalledVersion = {
   version: string
+  /** Real directory (never the `current` link), so the running app is unaffected by a later switch. */
   dir: string
   entry: string
   manifest: Manifest
@@ -46,7 +50,9 @@ export type LinkState =
 export type AppState = {
   current: LinkState
   previous: LinkState
+  /** Version directories present in `versions/`, newest first. */
   installed: readonly string[]
+  /** Content of `pending` when present (M5). */
   pending: string | undefined
 }
 
@@ -142,6 +148,7 @@ export const readAppState = async (layout: AppLayout): Promise<AppState> => {
   return { current, previous, installed, pending }
 }
 
+/** Atomically points `current` or `previous` to `versions/<version>` (relative target). */
 export const pointLink = async (
   layout: AppLayout,
   name: LinkName,
@@ -153,6 +160,7 @@ export const pointLink = async (
   try {
     await symlink(target, tmp)
     await rename(tmp, path).catch(async (cause: unknown) => {
+      // Windows (development only) refuses to rename over a directory link: not atomic there.
       if (process.platform !== 'win32') throw cause
       await unlink(path).catch(() => undefined)
       await rename(tmp, path)

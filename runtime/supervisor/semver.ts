@@ -52,6 +52,7 @@ export const compareSemVer = (a: SemVer, b: SemVer): number =>
   Math.sign(a.patch - b.patch) ||
   comparePrerelease(a.prerelease, b.prerelease)
 
+/** Undefined when either side is not valid semver. */
 export const satisfiesMinimum = (actual: string, minimum: string): boolean | undefined => {
   const a = parseSemVer(actual)
   const m = parseSemVer(minimum)

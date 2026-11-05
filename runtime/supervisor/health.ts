@@ -36,6 +36,7 @@ export const httpHealthProbeFactory =
     }
   }
 
+/** Polls until healthy or `timeoutMs` elapses: the 60 s window after a version switch (§16.3). */
 export const waitForHealthFactory =
   ({ probe, clock }: { probe: HealthProbe; clock: Clock }) =>
   async ({

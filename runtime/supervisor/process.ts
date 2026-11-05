@@ -22,6 +22,7 @@ export type Launcher = (
   spec: LaunchSpec,
 ) => Result<ChildProcess, SupervisorError<'process/spawn_failed'>>
 
+/** Spawns with inherited stdio: the app's stdout/stderr go straight to the container output. */
 export const bunLauncher: Launcher = ({ command, args, cwd, env }) => {
   try {
     const proc = Bun.spawn([command, ...args], {

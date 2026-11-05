@@ -13,9 +13,11 @@ import {
   type InstalledVersion,
 } from './version-state'
 
+/** PRODUCT.md §16.3: the new version has this long to answer `/health`. */
 export const SWITCH_HEALTH_TIMEOUT_MS = 60_000
 export const SWITCH_HEALTH_INTERVAL_MS = 1_000
 
+/** Database files of `/data/db` (§5.4); the supervisor copies them, it never opens the database. */
 export type DbLayout = { file: string; backupsDir: string }
 
 export const dbLayout = (dataDir: string): DbLayout => ({
@@ -23,14 +25,17 @@ export const dbLayout = (dataDir: string): DbLayout => ({
   backupsDir: join(resolve(dataDir), 'db', 'backups'),
 })
 
+/** A switch in flight: `current` already points to `to`, waiting for `/health`. */
 export type PendingSwitch = {
   from: string
   to: string
+  /** Copy of the database taken before the switch; absent when there was no database yet. */
   backup?: string
 }
 
 export type RollbackReason = 'health_timeout' | 'exited' | 'stopped'
 
+/** `/data/app/switch-result.json`, read once by the app at startup (runtime/README.md). */
 export type SwitchReport = {
   fromVersion: string
   toVersion: string
@@ -40,11 +45,18 @@ export type SwitchReport = {
 }
 
 export type SwitchHandler = {
+  /**
+   * Exit 75: reads `pending`, backs the database up, points `current` to the new version.
+   * `undefined` when there is nothing to switch to (relaunch as is; a report says why).
+   */
   begin: (from: InstalledVersion) => Promise<PendingSwitch | undefined>
+  /** The new version answered `/health`: `previous`, retention, report. */
   confirm: (pending: PendingSwitch) => Promise<void>
+  /** The new version failed: `current` back, database restored, report. */
   rollback: (pending: PendingSwitch, reason: RollbackReason) => Promise<void>
 }
 
+/** SQLite's companions of the main file (WAL mode). */
 const DB_SIDE_FILES = ['-wal', '-shm'] as const
 
 const exists = async (path: string): Promise<boolean> =>
@@ -87,6 +99,7 @@ export const switchHandlerFactory = ({
     await rm(layout.pendingFile, { force: true }).catch(() => undefined)
   }
 
+  /** `projo.db` (and its WAL files when present) → `db/backups/projo-<from>.db[-wal]`. */
   const backupDatabase = async (from: string): Promise<string | undefined> => {
     if (!(await exists(db.file))) return undefined
     await mkdir(db.backupsDir, { recursive: true })
@@ -101,6 +114,11 @@ export const switchHandlerFactory = ({
     return backup
   }
 
+  /**
+   * Copies first, beside the live files, then swaps with `rename`: a kill at any step leaves the
+   * new version's database or the old one, never one's journal replayed onto the other. `-shm`
+   * is not restored: SQLite rebuilds it from the `-wal`.
+   */
   const restoreDatabase = async (backup: string): Promise<void> => {
     const restored = `${db.file}.restore`
     await copyFile(backup, restored)
@@ -112,6 +130,7 @@ export const switchHandlerFactory = ({
     if (withWal) await rename(`${restored}-wal`, `${db.file}-wal`)
   }
 
+  /** `projo-<version>.db[-wal|-shm]` of earlier switches; the app's own copies are left alone. */
   const pruneBackups = async (keep: string): Promise<void> => {
     const names = await readdir(db.backupsDir).catch(() => [] as string[])
     for (const name of names) {
@@ -128,6 +147,7 @@ export const switchHandlerFactory = ({
     }
   }
 
+  /** Keeps `keep` (current and previous); removes every other version directory. */
   const pruneVersions = async (keep: readonly string[]): Promise<void> => {
     const { installed } = await readAppState(layout)
     for (const version of installed) {
@@ -149,6 +169,7 @@ export const switchHandlerFactory = ({
   return {
     begin: async (from) => {
       const { pending } = await readAppState(layout)
+      // Consumed at once: a later boot must not see it again, whatever happens next.
       await removePending()
       if (pending === undefined || !isSemVer(pending)) {
         logger.warn('switch requested without a valid pending version: relaunching', {
@@ -202,6 +223,7 @@ export const switchHandlerFactory = ({
       if (!linked.ok)
         logger.warn('cannot point previous to the old version', errorFields(linked.error))
       await pruneVersions([to, from])
+      // Keeps the copy taken before this switch: the database `previous` last ran on.
       await pruneBackups(from)
       await removePending()
       await writeReport({ fromVersion: from, toVersion: to, outcome: 'switched' })
