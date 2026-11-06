@@ -9,7 +9,8 @@
 #                     same commit (a v* tag push starts no run at all).
 #   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
 # Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
-# Website (apps/www): deployed to Cloudflare Workers on every green push to main (job www).
+# Website (apps/www): deployed to Cloudflare Workers by a green push to main that changes it or
+# publishes a release (job www).
 # Bun comes from npm: packageManager pins a dated canary (bun lint is canary-only), which
 # oven-sh/setup-bun cannot download (it only knows bun-v* tags and the moving `canary`).
 name: ci
@@ -362,8 +363,9 @@ jobs:
 
   # ── Public website (apps/www) ───────────────────────────────────────────────────────────────
 
-  # Static assets of the Cloudflare Worker projo-www, on every push to main once all of the above
-  # passed, after the release when there is one (the changelog page lists the GitHub releases).
+  # Static assets of the Cloudflare Worker projo-www, on a push to main once all of the above
+  # passed, when the push changes what the website is built from or publishes a release (the
+  # changelog page lists the GitHub releases), after that release.
   # Not Workers Builds: its installer reads packageManager and cannot download the dated canary.
   # Secrets: CLOUDFLARE_API_TOKEN (template "Edit Cloudflare Workers"), CLOUDFLARE_ACCOUNT_ID.
   www:
@@ -377,19 +379,48 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the previous head of main, for the diff below
+      # What apps/www imports from outside itself (vite.config.ts, src/, vite-plugins/), and this
+      # file. An unknown previous head (force push) deploys.
+      - name: Decide whether to deploy
+        id: plan
+        env:
+          BEFORE: ${{ github.event.before }}
+          RELEASE: ${{ needs.release.result }}
+        run: |
+          set -euo pipefail
+          paths=(apps/www apps/web/src/shared/styles apps/web/src/shared/backdrops design
+            package.json bun.lock tsconfig.base.json .github/workflows/ci.yml)
+          if [ "$RELEASE" = success ]; then
+            deploy=true reason="a release was published"
+          elif ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            deploy=true reason="previous head $BEFORE unknown"
+          elif git diff --quiet "$BEFORE" HEAD -- "${paths[@]}"; then
+            deploy=false reason="nothing the website is built from changed"
+          else
+            deploy=true reason="the website's sources changed"
+          fi
+          echo "deploy=$deploy ($reason)"
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
       - name: Install Bun (packageManager)
+        if: steps.plan.outputs.deploy == 'true'
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - uses: actions/cache@v6
+        if: steps.plan.outputs.deploy == 'true'
         with:
           path: ~/.bun/install/cache
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: bun-${{ runner.os }}-
-      - run: bun install --frozen-lockfile
+      - if: steps.plan.outputs.deploy == 'true'
+        run: bun install --frozen-lockfile
       - name: Build the website (apps/www/dist)
+        if: steps.plan.outputs.deploy == 'true'
         run: bun run build:www
         env:
           GITHUB_TOKEN: ${{ github.token }}
       - name: Deploy to Cloudflare Workers
+        if: steps.plan.outputs.deploy == 'true'
         run: >-
           npx --yes wrangler@4.158.0 deploy --assets apps/www/dist --name projo-www
           --compatibility-date 2026-11-01
