@@ -16,6 +16,7 @@
         "@expo-google-fonts/geist": "0.4.2",
         "@expo-google-fonts/geist-mono": "0.4.3",
         "@expo/metro-runtime": "58.0.15",
+        "@projo/design": "workspace:*",
         "@projo/i18n": "workspace:*",
         "@projo/shared": "workspace:*",
         "@tanstack/react-query": "5.104.5",
@@ -67,11 +68,11 @@
       "name": "@projo/web",
       "version": "0.1.0",
       "dependencies": {
+        "@projo/design": "workspace:*",
         "@projo/i18n": "workspace:*",
         "@projo/shared": "workspace:*",
         "@tanstack/react-query": "5.104.5",
         "@tanstack/react-router": "1.170.46",
-        "geist": "1.8.2",
         "hls.js": "1.7.3",
         "hono": "4.13.13",
         "i18next": "26.5.6",
@@ -94,7 +95,7 @@
       "name": "@projo/www",
       "version": "0.1.0",
       "dependencies": {
-        "geist": "1.8.2",
+        "@projo/design": "workspace:*",
         "zod": "4.6.7",
       },
       "devDependencies": {
@@ -107,6 +108,16 @@
       "version": "0.0.0",
       "devDependencies": {
         "@playwright/test": "1.64.1",
+        "@types/bun": "1.4.4",
+      },
+    },
+    "packages/design": {
+      "name": "@projo/design",
+      "version": "0.0.0",
+      "dependencies": {
+        "geist": "1.8.2",
+      },
+      "devDependencies": {
         "@types/bun": "1.4.4",
       },
     },
@@ -528,6 +539,8 @@
     "@oxc-project/types": ["@oxc-project/types@0.155.0", "", {}, "sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q=="],
 
     "@playwright/test": ["@playwright/test@1.64.1", "", { "dependencies": { "playwright": "1.64.1" }, "bin": { "playwright": "cli.js" } }, "sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg=="],
+
+    "@projo/design": ["@projo/design@workspace:packages/design"],
 
     "@projo/e2e": ["@projo/e2e@workspace:e2e"],
 

@@ -21,7 +21,7 @@ import type {
 
 import { formatClock } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { media } from '../../shared/styles/media.ts'
+import { media } from '@projo/design/media'
 import { CheckIcon, CloseIcon } from '../../shared/ui/icons.tsx'
 import { audioCodecLabel, languageName } from '../item/media-labels.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'

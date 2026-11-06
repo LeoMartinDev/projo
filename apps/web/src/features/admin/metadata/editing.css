@@ -1,4 +1,4 @@
-@import '../../../shared/styles/media.css';
+@import '@projo/design/media.css';
 
 .edit-item {
   flex: 1 1 auto;

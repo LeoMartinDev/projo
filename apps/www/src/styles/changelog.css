@@ -2,7 +2,7 @@
    (sticky while its notes scroll), the notes on the right. Imported by site.css. */
 
 .docs-hero--releases .docs-hero__image {
-  background-image: url('../../../web/src/shared/backdrops/city.webp');
+  background-image: url('@projo/design/backdrops/city.webp');
   background-position: center 55%;
 }
 

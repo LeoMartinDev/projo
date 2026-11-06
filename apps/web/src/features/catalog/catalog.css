@@ -1,4 +1,4 @@
-@import '../../shared/styles/media.css';
+@import '@projo/design/media.css';
 
 .catalog__header {
   display: flex;

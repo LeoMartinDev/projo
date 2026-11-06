@@ -69,6 +69,10 @@ ignorePatterns = [
     { target = "./apps/server/src/infrastructure", from = "./apps/server/src/entrypoints", message = "infrastructure/ never imports entrypoints/." },
     { target = "./packages/shared", from = "./apps", message = "packages/shared never imports an app." },
     { target = "./packages/i18n", from = "./apps", message = "packages/i18n never imports an app." },
+    { target = "./packages/design", from = "./apps", message = "packages/design never imports an app." },
+    { target = "./apps/web", from = ["./apps/www", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
+    { target = "./apps/www", from = ["./apps/web", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
+    { target = "./apps/mobile", from = ["./apps/web", "./apps/www"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
   ] },
 ]
 

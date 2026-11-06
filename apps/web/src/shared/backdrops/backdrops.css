@@ -1,4 +1,4 @@
-@import '../styles/media.css';
+@import '@projo/design/media.css';
 .backdrop {
   position: absolute;
   inset: 0;
@@ -15,22 +15,22 @@
 }
 
 .backdrop__image--dunes {
-  background-image: url('./dunes.webp');
+  background-image: url('@projo/design/backdrops/dunes.webp');
 }
 .backdrop__image--mountains {
-  background-image: url('./mountains.webp');
+  background-image: url('@projo/design/backdrops/mountains.webp');
 }
 .backdrop__image--ocean {
-  background-image: url('./ocean.webp');
+  background-image: url('@projo/design/backdrops/ocean.webp');
 }
 .backdrop__image--city {
-  background-image: url('./city.webp');
+  background-image: url('@projo/design/backdrops/city.webp');
 }
 .backdrop__image--forest {
-  background-image: url('./forest.webp');
+  background-image: url('@projo/design/backdrops/forest.webp');
 }
 .backdrop__image--lighthouse {
-  background-image: url('./lighthouse.webp');
+  background-image: url('@projo/design/backdrops/lighthouse.webp');
 }
 
 .backdrop::before,

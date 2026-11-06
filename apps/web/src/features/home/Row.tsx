@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { HomeCategorySlug } from '@projo/shared/api/home'
 
-import { media } from '../../shared/styles/media.ts'
+import { media } from '@projo/design/media'
 import { ChevronLeftIcon, ChevronRightSmallIcon } from '../../shared/ui/media-icons.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 

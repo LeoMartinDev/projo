@@ -1,4 +1,4 @@
-import type { Device } from '../styles/media.ts'
+import type { Device } from '@projo/design/media'
 
 // 'prompt': the browser offered its own install dialog (Chromium, `beforeinstallprompt`).
 // 'ios': no install API on iOS, any browser: the user adds projo from the share menu.

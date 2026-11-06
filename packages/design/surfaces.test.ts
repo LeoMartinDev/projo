@@ -4,15 +4,19 @@ import { Glob } from 'bun'
 
 // The surface language of tokens.css: flat translucent colours and backdrop
 // blurs come from its steps and materials, never from a stylesheet of its own.
+// Holds for this package and for every app that draws with it.
 
-const src = new URL('../../', import.meta.url).pathname.replace(/^\/(\w:)/, '$1')
+const root = new URL('../../', import.meta.url).pathname.replace(/^\/(\w:)/, '$1')
+const folders = ['packages/design', 'apps/web/src', 'apps/www/src']
 
 const stylesheets = async () => {
   const files: { path: string; css: string }[] = []
-  for await (const path of new Glob('**/*.css').scan(src)) {
-    if (path.replaceAll('\\', '/').endsWith('shared/styles/tokens.css')) continue
-    files.push({ path, css: await Bun.file(`${src}/${path}`).text() })
-  }
+  for (const folder of folders)
+    for await (const path of new Glob('**/*.css').scan(`${root}${folder}`)) {
+      const file = `${folder}/${path.replaceAll('\\', '/')}`
+      if (file === 'packages/design/tokens.css' || file.includes('/node_modules/')) continue
+      files.push({ path: file, css: await Bun.file(`${root}${file}`).text() })
+    }
   return files
 }
 

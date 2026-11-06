@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useEffectEvent } from 'react'
 
-import { reducedMotion } from '../styles/media.ts'
+import { reducedMotion } from '@projo/design/media'
 import { useElement } from './use-element.ts'
 import './sheet.css'
 

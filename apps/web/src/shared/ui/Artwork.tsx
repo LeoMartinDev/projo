@@ -8,7 +8,7 @@ import {
 
 import { imageWidths } from '@projo/shared/api/catalog'
 
-import { reducedMotion } from '../styles/media.ts'
+import { reducedMotion } from '@projo/design/media'
 
 const heldSince = new WeakMap<HTMLImageElement, number>()
 

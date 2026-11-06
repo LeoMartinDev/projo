@@ -15,7 +15,7 @@ import {
   pickActiveProfile,
 } from '../../shared/session/active-profile.ts'
 import { sessionQuery, signedOut } from '../../shared/session/session.ts'
-import { reducedMotion } from '../../shared/styles/media.ts'
+import { reducedMotion } from '@projo/design/media'
 import { FilmIcon, LogoutIcon, SettingsIcon, TvIcon } from '../../shared/ui/icons.tsx'
 import {
   AddToHomeIcon,

@@ -1,4 +1,4 @@
-import { media } from '../styles/media.ts'
+import { media } from '@projo/design/media'
 import { useDevice, useMedia } from '../ui/use-media.ts'
 import { installMethodOf } from './install-method.ts'
 import { useCanPromptInstall } from './install-prompt.ts'

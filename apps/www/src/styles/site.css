@@ -1,13 +1,13 @@
 /*
- * projo website. Same language and same components as the app: its tokens, its media queries
- * and its base.css (reset, .button, .panel, .well, .seg, .alert, .dot, .rise…) are imported
- * from apps/web, never redefined. This file only lays out the site's own sections.
+ * projo website. Same language and same components as the app: its fonts, tokens, media queries
+ * and base.css (reset, .button, .panel, .well, .seg, .alert, .dot, .rise…) come from
+ * @projo/design, never redefined. This file only lays out the site's own sections.
  * Surfaces follow the app's rule: no flat translucent colour, no raw blur, only tokens.
  */
-@import '../../../web/src/shared/styles/tokens.css';
-@import '../../../web/src/shared/styles/base.css';
+@import '@projo/design/fonts.css';
+@import '@projo/design/tokens.css';
+@import '@projo/design/base.css';
 @import './media.css';
-@import './fonts.css';
 @import './docs.css';
 @import './changelog.css';
 
@@ -360,7 +360,7 @@ img {
 .preview__image {
   position: absolute;
   inset: 0;
-  background-image: url('../../../web/src/shared/backdrops/mountains.webp');
+  background-image: url('@projo/design/backdrops/mountains.webp');
   background-position: 50% 40%;
 }
 
@@ -844,7 +844,7 @@ h2 {
 .player-preview__image {
   position: absolute;
   inset: 0;
-  background-image: url('../../../web/src/shared/backdrops/ocean.webp');
+  background-image: url('@projo/design/backdrops/ocean.webp');
   background-position: center;
 }
 
@@ -993,7 +993,7 @@ h2 {
 .who__image {
   position: absolute;
   inset: 0;
-  background-image: url('../../../web/src/shared/backdrops/forest.webp');
+  background-image: url('@projo/design/backdrops/forest.webp');
   background-position: center;
 }
 

@@ -1,4 +1,4 @@
-@import '../styles/media.css';
+@import '@projo/design/media.css';
 
 .update-banner {
   position: fixed;

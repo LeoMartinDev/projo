@@ -1,4 +1,4 @@
-@import '../../shared/styles/media.css';
+@import '@projo/design/media.css';
 
 .oauth {
   min-height: 340px;

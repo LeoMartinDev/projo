@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AccessibilityInfo, Animated, Easing, StyleSheet, View } from 'react-native'
 
-import city from '../../../../web/src/shared/backdrops/city.webp'
-import dunes from '../../../../web/src/shared/backdrops/dunes.webp'
-import forest from '../../../../web/src/shared/backdrops/forest.webp'
-import ocean from '../../../../web/src/shared/backdrops/ocean.webp'
+import city from '@projo/design/backdrops/city.webp'
+import dunes from '@projo/design/backdrops/dunes.webp'
+import forest from '@projo/design/backdrops/forest.webp'
+import ocean from '@projo/design/backdrops/ocean.webp'
 
 const images = {
   ocean: { source: ocean, origin: '70% 30%' },

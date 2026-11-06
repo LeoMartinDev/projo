@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
-import { media } from '../../shared/styles/media.ts'
+import { media } from '@projo/design/media'
 import { useElement } from '../../shared/ui/use-element.ts'
 
 const previewQuery = `${media.finePointer} and (not ${media.compact}) and (prefers-reduced-motion: no-preference)`

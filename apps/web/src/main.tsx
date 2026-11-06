@@ -1,6 +1,7 @@
-import './shared/styles/fonts.css'
-import './shared/styles/tokens.css'
-import './shared/styles/base.css'
+import '@projo/design/fonts.css'
+import '@projo/design/tokens.css'
+import '@projo/design/base.css'
+import './shared/styles/app.css'
 
 import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'

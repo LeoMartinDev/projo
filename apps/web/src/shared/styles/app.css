@@ -1,0 +1,10 @@
+/* The single-page app's document, on top of @projo/design's base.css (shared with the website). */
+
+html:has(.player) {
+  overflow: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}

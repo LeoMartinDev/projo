@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from 'react'
 
-import { media, reducedMotion } from '../../shared/styles/media.ts'
+import { media, reducedMotion } from '@projo/design/media'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { type PillLayout, pillMerge, type SideMotion } from './pill-merge.ts'
 

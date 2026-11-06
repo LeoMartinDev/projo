@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react'
 
-import { type Device, media } from '../styles/media.ts'
+import { type Device, media } from '@projo/design/media'
 
 export const useMedia = (query: string) => {
   const subscribe = useCallback(

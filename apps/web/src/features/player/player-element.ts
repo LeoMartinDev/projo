@@ -1,6 +1,6 @@
 import { type RefCallback, useCallback, useState } from 'react'
 
-import { media } from '../../shared/styles/media.ts'
+import { media } from '@projo/design/media'
 import { enterDocumentFullscreen, fullscreenActive } from './video-state.ts'
 
 export type PlainClick = Pick<

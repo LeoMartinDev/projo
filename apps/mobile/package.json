@@ -15,6 +15,7 @@
     "@expo-google-fonts/geist": "0.4.2",
     "@expo-google-fonts/geist-mono": "0.4.3",
     "@expo/metro-runtime": "58.0.15",
+    "@projo/design": "workspace:*",
     "@projo/i18n": "workspace:*",
     "@projo/shared": "workspace:*",
     "@tanstack/react-query": "5.104.5",

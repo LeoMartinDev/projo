@@ -19,10 +19,6 @@ html:has(dialog:modal) {
   padding-right: var(--scrollbar-width, 0px);
 }
 
-html:has(.player) {
-  overflow: hidden;
-}
-
 html,
 body {
   margin: 0;
@@ -38,11 +34,6 @@ body {
 
 body {
   min-width: 320px;
-}
-
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
 }
 
 h1,

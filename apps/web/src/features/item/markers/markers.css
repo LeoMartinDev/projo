@@ -1,4 +1,4 @@
-@import '../../../shared/styles/media.css';
+@import '@projo/design/media.css';
 
 .dialog:has(.markers) {
   width: min(760px, calc(100vw - 32px));

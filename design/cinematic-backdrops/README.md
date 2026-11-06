@@ -2,7 +2,7 @@
 
 Created on 2026-11-05 with the built-in ImageGen tool for Projo's existing entry screens. These six original environments replace the sample backdrops; they are not movie artwork.
 
-The runtime files live in `apps/web/src/shared/backdrops/` and retain their existing names so web, mobile and the ready-screen wall use the same series. Each is a 1600 × 900 opaque WebP, encoded with libwebp at quality 84 and compression level 6. Original generation size: 1672 × 941. No baked-in UI, lettering or gradients; the app supplies the shading. Web entry backdrops are static. Sign-in adds restrained desaturation and a soft vignette in CSS; mobile retains its native treatment.
+The runtime files live in `packages/design/backdrops/` and retain their existing names so web, mobile and the ready-screen wall use the same series. Each is a 1600 × 900 opaque WebP, encoded with libwebp at quality 84 and compression level 6. Original generation size: 1672 × 941. No baked-in UI, lettering or gradients; the app supplies the shading. Web entry backdrops are static. Sign-in adds restrained desaturation and a soft vignette in CSS; mobile retains its native treatment.
 
 | Asset | Direction | Usage |
 |---|---|---|
