@@ -1,20 +1,8 @@
-@font-face {
-  font-family: 'Geist';
-  src: url('./node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
+/* Geist and Geist Mono: each split into a Latin file and the rest of the font, cut to the
+   weights in use (scripts/fonts.ts, bun run --cwd packages/design fonts). */
+@import './fonts/geist.css';
 
-@font-face {
-  font-family: 'Geist Mono';
-  src: url('./node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2')
-    format('woff2');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
+/* Metric-matched local fallbacks, shown until Geist has loaded. */
 @font-face {
   font-family: 'Geist Fallback';
   src: local('Arial'), local('ArialMT');

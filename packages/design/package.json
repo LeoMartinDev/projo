@@ -12,12 +12,16 @@
     "./backdrops/*": "./backdrops/*"
   },
   "scripts": {
-    "typecheck": "bun check"
+    "typecheck": "bun check",
+    "fonts": "bun scripts/fonts.ts"
   },
   "dependencies": {
     "geist": "1.8.2"
   },
   "devDependencies": {
-    "@types/bun": "1.4.4"
+    "@types/bun": "1.4.4",
+    "fontverter": "2.0.0",
+    "harfbuzzjs": "1.6.4",
+    "subset-font": "2.9.0"
   }
 }
