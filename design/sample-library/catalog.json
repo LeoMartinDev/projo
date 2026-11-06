@@ -92,6 +92,21 @@
         "backdrop": "assets/tilleuls.webp",
         "thumbnail": "thumbnails/tilleuls.webp"
       }
+    },
+    {
+      "id": "lanternes",
+      "title": "Le Vent des lanternes",
+      "kind": "series",
+      "genre": "Animation, fantastique",
+      "meta": "Série · 1 saison",
+      "year": 2025,
+      "overview": "Dans une ville de montagne, une jeune femme lâche chaque soir une lanterne dans le vent, jusqu’au jour où l’une d’elles revient.",
+      "tint": "#1A1B2E",
+      "progress": 0.5,
+      "images": {
+        "backdrop": "assets/lanternes.webp",
+        "thumbnail": "thumbnails/lanternes.webp"
+      }
     }
   ],
   "timeline": [

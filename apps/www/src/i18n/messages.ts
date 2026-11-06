@@ -31,6 +31,7 @@ export const fr = {
     language: 'Langue',
   },
   home: {
+    show: 'Le Vent des lanternes',
     badge: 'Open source · auto-hébergé',
     title: 'Vos films,<br />sur votre serveur.',
     lead: 'Un serveur multimédia open source pour vos films et séries. Il identifie vos fichiers, les lit dans le navigateur et tient dans un seul conteneur Docker.',
@@ -61,8 +62,9 @@ export const fr = {
     tmdb: {
       title: 'Identification TMDB',
       text: 'Affiches, résumés et casting. Une correction manuelle est conservée aux scans suivants.',
-      genre: 'Thriller',
-      genre2: 'Policier',
+      genre: 'Animation',
+      genre2: 'Fantastique',
+      episode: 'S1 É7',
     },
     playback: {
       title: 'Lecture dans le navigateur',
@@ -72,7 +74,11 @@ export const fr = {
     tracks: {
       title: 'Audio et sous-titres',
       text: 'Choisis selon les langues du profil, puis mémorisés par série.',
+      audio: 'Audio',
+      subtitles: 'Sous-titres',
       language: 'Français',
+      other: 'Anglais',
+      off: 'Désactivés',
       forced: 'Forcés',
     },
     libraries: {
@@ -101,12 +107,17 @@ export const fr = {
       alt: 'Deux personnes regardent un film dans leur salon, le soir',
     },
     player: {
-      episode: 'S1 É2 · Sans équipage',
+      episode: "S1 É7 · L'Atelier",
     },
     who: {
-      label: 'Choix du profil',
       title: 'Qui regarde ?',
       add: 'Ajouter',
+    },
+    next: {
+      eyebrow: 'Épisode suivant',
+      episode: 'S1 É8',
+      title: 'Le Pont des brumes',
+      play: 'Lecture dans 8 s',
     },
     notDoing: {
       title: 'Ce que projo ne fait pas',
@@ -308,6 +319,7 @@ export const en: Messages = {
     language: 'Language',
   },
   home: {
+    show: 'Lantern Wind',
     badge: 'Open source · self-hosted',
     title: 'Your movies,<br />on your server.',
     lead: 'An open source media server for your movies and shows. It identifies your files, plays them in the browser and fits in a single Docker container.',
@@ -338,8 +350,9 @@ export const en: Messages = {
     tmdb: {
       title: 'TMDB identification',
       text: 'Posters, overviews and cast. A manual fix is kept on later scans.',
-      genre: 'Thriller',
-      genre2: 'Crime',
+      genre: 'Animation',
+      genre2: 'Fantasy',
+      episode: 'S1 E7',
     },
     playback: {
       title: 'Plays in the browser',
@@ -349,7 +362,11 @@ export const en: Messages = {
     tracks: {
       title: 'Audio and subtitles',
       text: "Picked from the profile's languages, then remembered per show.",
+      audio: 'Audio',
+      subtitles: 'Subtitles',
       language: 'English',
+      other: 'French',
+      off: 'Off',
       forced: 'Forced',
     },
     libraries: {
@@ -378,12 +395,17 @@ export const en: Messages = {
       alt: 'Two people watching a film in their living room, in the evening',
     },
     player: {
-      episode: 'S1 E2 · No crew',
+      episode: 'S1 E7 · The Workshop',
     },
     who: {
-      label: 'Profile picker',
       title: "Who's watching?",
       add: 'Add',
+    },
+    next: {
+      eyebrow: 'Next episode',
+      episode: 'S1 E8',
+      title: 'The Misty Bridge',
+      play: 'Playing in 8 s',
     },
     notDoing: {
       title: 'What projo does not do',

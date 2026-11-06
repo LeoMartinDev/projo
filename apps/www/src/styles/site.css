@@ -121,7 +121,6 @@ img {
 .card__photo,
 .room__image,
 .player-preview__image,
-.who__image,
 .docs-hero__image {
   background-repeat: no-repeat;
   background-size: cover;
@@ -481,18 +480,54 @@ h2 {
 
 /* ── Feature cards ──────────────────────────────────────────────────────── */
 
-.highlights,
-.features {
-  display: grid;
+.bento {
+  display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
-.highlights {
-  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+/* One three-column grid for every card, so the two rows of highlights and the bento below
+   share the same columns. Each card takes the space its picture needs. */
+.highlights,
+.features {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.card--wide {
+  grid-column: span 2;
 }
 
 .features {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    'playback tmdb tmdb'
+    'updates screens libraries'
+    'tracks tracks libraries';
+}
+
+.card--playback {
+  grid-area: playback;
+}
+
+.card--tmdb {
+  grid-area: tmdb;
+}
+
+.card--updates {
+  grid-area: updates;
+}
+
+.card--screens {
+  grid-area: screens;
+}
+
+.card--libraries {
+  grid-area: libraries;
+}
+
+.card--tracks {
+  grid-area: tracks;
 }
 
 .card {
@@ -509,7 +544,8 @@ h2 {
    background (a card's visual, a photo) would cover it and leave it only around the text. */
 .card::after,
 .player-preview::after,
-.who::after {
+.who::after,
+.next-up::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -595,12 +631,94 @@ h2 {
 .profiles {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
   padding: 0 32px;
+}
+
+.profiles .avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 24px;
+  font-size: 26px;
 }
 
 .card--profiles .card__body {
   padding: 0 32px 32px;
+}
+
+/* The identified film: its text on the left, its frame coming in from the right, under the
+   file name it was matched from. */
+.card--tmdb {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.card--tmdb .card__photo {
+  left: 32%;
+  background-image: url('../../../../design/sample-library/assets/lanternes.webp');
+  background-position: 70% 50%;
+}
+
+.card--tmdb .card__photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, var(--color-surface) 0%, rgba(17, 17, 19, 0) 55%),
+    linear-gradient(0deg, rgba(17, 17, 19, 0.7) 0%, rgba(17, 17, 19, 0) 45%);
+}
+
+/* The match sits low, on the text's baseline, leaving the frame's upper half (lanterns, figure) clear. */
+.card--tmdb .card__visual {
+  grid-column: 2;
+  align-items: flex-end;
+  height: auto;
+  min-height: 260px;
+  padding: 28px;
+  background: none;
+}
+
+.card--tmdb .card__body {
+  position: relative;
+  grid-row: 1;
+  grid-column: 1;
+  align-self: end;
+  padding: 28px;
+}
+
+/* The tall card: its text first, then the folder listing running on past the bottom edge. */
+.card--libraries .card__body {
+  order: -1;
+  padding-top: 28px;
+}
+
+.card--libraries .card__visual {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 220px;
+}
+
+.card--libraries .card__visual::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(17, 17, 19, 0) 0%, var(--color-surface) 100%);
+}
+
+.card--libraries .ui--files {
+  position: absolute;
+  top: 8px;
+  left: 24px;
+  right: 24px;
+  width: auto;
+}
+
+.ui__path {
+  padding: 6px 10px 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 /* The player's skip button, as drawn in the app (glass over video, with its countdown). */
@@ -732,6 +850,29 @@ h2 {
   font-weight: 500;
 }
 
+.ui__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* The player's languages panel: audio and subtitles side by side. */
+.ui--languages {
+  flex-direction: row;
+  gap: 6px;
+  width: min(100%, 470px);
+}
+
+.ui__column {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .ui__row {
   display: flex;
   align-items: center;
@@ -831,12 +972,25 @@ h2 {
   max-width: 620px;
 }
 
-/* The web player, as drawn in design/artboards/Player.dc.html. Not .player: the app's base.css
-   locks the page scroll while a .player is on screen. */
+/* Three moments of the app under the living room: the player on two thirds, then who is
+   watching and what plays next, stacked on the last third. */
+.stage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(260px, auto));
+  grid-template-areas:
+    'player player who'
+    'player player next';
+  gap: 20px;
+  max-width: var(--page);
+  margin: 72px auto 0;
+  padding: 0 var(--gutter);
+}
+
+/* The web player, as drawn in design/artboards/Player.dc.html. */
 .player-preview {
   position: relative;
-  aspect-ratio: 16 / 8;
-  min-height: 360px;
+  grid-area: player;
   overflow: hidden;
   border-radius: var(--radius-panel);
 }
@@ -844,8 +998,8 @@ h2 {
 .player-preview__image {
   position: absolute;
   inset: 0;
-  background-image: url('@projo/design/backdrops/ocean.webp');
-  background-position: center;
+  background-image: url('../../../../design/sample-library/assets/lanternes-atelier.webp');
+  background-position: 50% 50%;
 }
 
 .player-preview::before {
@@ -979,63 +1133,150 @@ h2 {
 
 .who {
   position: relative;
+  grid-area: who;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 36px;
-  min-height: 380px;
-  padding: 48px 32px;
+  gap: 24px;
+  padding: 28px 20px;
   overflow: hidden;
   border-radius: var(--radius-panel);
-}
-
-.who__image {
-  position: absolute;
-  inset: 0;
-  background-image: url('@projo/design/backdrops/forest.webp');
-  background-position: center;
-}
-
-.who::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: var(--shade-2);
-}
-
-.who__title,
-.who__profiles {
-  position: relative;
-  z-index: 2;
+  background: radial-gradient(closest-side, #1a1a1d 0%, var(--color-surface) 100%);
 }
 
 .who__title {
-  font-size: clamp(32px, 3.6vw, 48px);
+  font-size: 30px;
   font-weight: 700;
   letter-spacing: var(--tracking-display);
 }
 
 .who__profiles {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 24px;
+  gap: 14px;
 }
 
 .who__profile {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  font-size: 15px;
+  gap: 8px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--color-text-muted-strong);
 }
 
+.who .avatar--large {
+  width: 62px;
+  height: 62px;
+  border-radius: 22px;
+  font-size: 24px;
+}
+
+.who .avatar--large svg {
+  width: 22px;
+  height: 22px;
+}
+
 .avatar--add {
   color: var(--color-text-strong);
+}
+
+/* The card that takes over at the credits, as in the app's player (NextUpCard). */
+.next-up {
+  position: relative;
+  grid-area: next;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  padding: 28px;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.next-up__eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+.next-up__episode {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.next-up__still {
+  flex: 0 0 auto;
+  width: 136px;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  background: url('../../../../design/sample-library/timeline/lanternes-pont.webp') center / cover
+    no-repeat;
+  box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.7);
+}
+
+.next-up__title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.next-up__title span {
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--color-text-muted);
+}
+
+.next-up__play {
+  align-self: flex-start;
+  padding: 0 16px 0 8px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.next-up__ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+}
+
+.next-up__ring > svg:last-child {
+  position: relative;
+}
+
+.next-up__ring-svg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.next-up__ring-track,
+.next-up__ring-left {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.next-up__ring-track {
+  stroke: rgba(10, 10, 11, 0.15);
+}
+
+.next-up__ring-left {
+  stroke: var(--color-on-accent);
+  stroke-linecap: round;
 }
 
 /* ── What projo does not do ─────────────────────────────────────────────── */
@@ -1280,8 +1521,43 @@ h2 {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .card--wide {
+    grid-column: auto;
+  }
+
   .features {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'playback updates'
+      'tmdb tmdb'
+      'screens libraries'
+      'tracks tracks';
+  }
+
+  .card--libraries .card__body {
+    order: 0;
+    padding-top: 6px;
+  }
+
+  .card--libraries .card__visual {
+    flex: none;
+    height: 220px;
+  }
+
+  .card--libraries .ui--files {
+    top: 24px;
+  }
+
+  .stage {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+    grid-template-areas:
+      'player player'
+      'who next';
+  }
+
+  .player-preview {
+    aspect-ratio: 16 / 10;
   }
 }
 
@@ -1517,31 +1793,30 @@ h2 {
     font-size: 15px;
   }
 
-  /* The six small cards become a horizontal rail on a phone. */
+  /* On a phone the six cards follow one another, full width, like the two above. */
   .features {
     display: flex;
-    gap: 12px;
-    margin: 0 -16px;
-    padding: 0 16px 4px;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scroll-padding: 0 16px;
-    scrollbar-width: none;
-  }
-
-  .features::-webkit-scrollbar {
-    display: none;
+    flex-direction: column;
   }
 
   .features .card {
-    flex: 0 0 286px;
-    scroll-snap-align: start;
     border-radius: 24px;
   }
 
   .features .card__visual {
     height: 160px;
     padding: 0 18px;
+  }
+
+  /* Each picture as tall as its panel needs, so the stack stays short. */
+  .features .card--playback .card__visual,
+  .features .card--tracks .card__visual {
+    height: 184px;
+  }
+
+  .features .card--updates .card__visual,
+  .features .card--screens .card__visual {
+    height: 112px;
   }
 
   .features .card__body {
@@ -1554,6 +1829,49 @@ h2 {
 
   .features p {
     font-size: 14px;
+  }
+
+  /* Every card is a plain one here: picture on top, text below. */
+  .features .card--tmdb {
+    display: flex;
+  }
+
+  .card--tmdb .card__photo {
+    left: 0;
+    bottom: auto;
+    height: 160px;
+  }
+
+  .card--tmdb .card__photo::after {
+    background: linear-gradient(180deg, rgba(17, 17, 19, 0) 40%, var(--color-surface) 100%);
+  }
+
+  /* Tall enough for the match to sit on the frame's lower edge, under the figure. */
+  .card--tmdb .card__visual {
+    min-height: 196px;
+    padding: 0 20px 6px;
+  }
+
+  .card--tmdb .ui__chips,
+  .card--tmdb .ui__match span {
+    display: none;
+  }
+
+  .card--tmdb .card__body {
+    align-self: auto;
+    padding: 4px 20px 22px;
+  }
+
+  .ui--languages {
+    font-size: 13px;
+  }
+
+  .ui--languages .ui__option {
+    padding: 0 8px;
+  }
+
+  .ui--languages .ui__tag {
+    display: none;
   }
 
   .room {
@@ -1619,26 +1937,34 @@ h2 {
     display: none;
   }
 
-  .who {
-    gap: 24px;
-    padding: 36px 16px;
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'player'
+      'who'
+      'next';
+    gap: 12px;
+    margin-top: 40px;
+  }
+
+  .who,
+  .next-up {
+    padding: 28px 20px;
+    border-radius: 22px;
   }
 
   .who__title {
-    font-size: 32px;
+    font-size: 26px;
   }
 
   .who__profiles {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px 28px;
+    gap: 12px;
   }
 
   .who .avatar--large {
-    width: 84px;
-    height: 84px;
-    border-radius: 28px;
-    font-size: 32px;
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
   }
 
   .not-doing {
