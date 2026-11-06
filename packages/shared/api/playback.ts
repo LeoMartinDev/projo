@@ -160,6 +160,7 @@ export const trickplayIndexDtoSchema = z.object({
   columns: z.number().int(),
   rows: z.number().int(),
   sheets: z.array(z.number().int()),
+  times: z.array(z.number()).optional(),
 })
 export type TrickplayIndexDto = z.infer<typeof trickplayIndexDtoSchema>
 

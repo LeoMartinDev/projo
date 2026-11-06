@@ -43,6 +43,14 @@ const isFresh = (store: TrickplayStore, source: PlayableSource): boolean => {
   return stored !== undefined && sameFingerprint(stored.fingerprint, sourceFingerprint(source))
 }
 
+const isCurrent = (
+  stored: ReturnType<TrickplayStore['read']>,
+  fingerprint: FileFingerprint,
+): boolean =>
+  stored !== undefined &&
+  stored.index.times !== undefined &&
+  sameFingerprint(stored.fingerprint, fingerprint)
+
 export const generateTrickplayFactory =
   ({
     catalogRepository,
@@ -70,7 +78,7 @@ export const generateTrickplayFactory =
     if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return ok('skipped')
     }
-    if (isFresh(trickplayStore, source)) return ok('skipped')
+    if (isCurrent(trickplayStore.read(source.id), sourceFingerprint(source))) return ok('skipped')
     const video = source.media?.video[0]
     const durationMs = source.media?.durationMs ?? 0
     if (video === undefined || !(durationMs > 0)) return ok('skipped')
@@ -206,10 +214,7 @@ export const requestMissingTrickplayFactory =
     if (!playbackSettings.read().trickplayEnabled) return 0
     let queued = 0
     for (const candidate of mediaCatalog.listTrickplayCandidates()) {
-      const stored = trickplayStore.read(candidate.id)
-      if (stored !== undefined && sameFingerprint(stored.fingerprint, candidate.fingerprint)) {
-        continue
-      }
+      if (isCurrent(trickplayStore.read(candidate.id), candidate.fingerprint)) continue
       requestTrickplay(
         jobQueue,
         candidate.id,

@@ -6,11 +6,13 @@ import { createRecordingJobQueue } from '../../../test/support/fakes.ts'
 import { requestMissingTrickplayFactory, trickplayInProgressPriority } from './trickplay.ts'
 
 const fingerprint = { sizeBytes: 100, mtimeMs: 5 }
-const index = { interval: 10, width: 320, height: 180, columns: 10, rows: 10, sheets: [0] }
+const untimed = { interval: 10, width: 320, height: 180, columns: 10, rows: 10, sheets: [0] }
+const index = { ...untimed, times: [0] }
 
 const backfill = (
   candidates: ReturnType<MediaAssetCatalog['listTrickplayCandidates']>,
   withSprites: readonly string[] = [],
+  withUntimedSprites: readonly string[] = [],
 ) => {
   const jobs = createRecordingJobQueue()
   const requestMissing = requestMissingTrickplayFactory({
@@ -18,7 +20,11 @@ const backfill = (
     playbackSettings: { read: () => defaultPlaybackSettings },
     trickplayStore: {
       read: (sourceId: string) =>
-        withSprites.includes(sourceId) ? { index, fingerprint } : undefined,
+        withSprites.includes(sourceId)
+          ? { index, fingerprint }
+          : withUntimedSprites.includes(sourceId)
+            ? { index: untimed, fingerprint }
+            : undefined,
     } as unknown as TrickplayStore,
     jobQueue: jobs.queue,
   })
@@ -44,6 +50,20 @@ describe('requestMissingTrickplayFactory', () => {
         dedupeKey: 'trickplay:resumed',
         priority: trickplayInProgressPriority,
       },
+    ])
+  })
+
+  test('rebuilds sprites that do not know the instant of their thumbnails', () => {
+    const { enqueued } = backfill(
+      [
+        { id: 'timed', fingerprint, inProgress: false },
+        { id: 'untimed', fingerprint, inProgress: false },
+      ],
+      ['timed'],
+      ['untimed'],
+    )
+    expect(enqueued).toEqual([
+      { type: 'trickplay', payload: { sourceId: 'untimed' }, dedupeKey: 'trickplay:untimed' },
     ])
   })
 })

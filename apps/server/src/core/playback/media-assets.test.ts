@@ -6,7 +6,32 @@ import {
   sameFingerprint,
   trickplayHeight,
   trickplayInstantAt,
+  trickplayThumbnailTimes,
 } from './media-assets.ts'
+
+describe('trickplayThumbnailTimes', () => {
+  const spec = { intervalS: 10, durationS: 45 }
+
+  test('each thumbnail shows the last decoded frame at or before its instant', () => {
+    expect(trickplayThumbnailTimes([0, 10.427, 20.854, 31.281, 41.708], spec)).toEqual([
+      0, 0, 10.427, 20.854, 31.281,
+    ])
+    expect(trickplayThumbnailTimes([20, 0, 10, 30, 40], spec)).toEqual([0, 10, 20, 30, 40])
+  })
+
+  test('a long GOP repeats its keyframe, a first frame after 0 opens the sprites', () => {
+    expect(trickplayThumbnailTimes([0.042, 15.015, 30.03], spec)).toEqual([
+      0.042, 0.042, 15.015, 15.015, 30.03,
+    ])
+  })
+
+  test('frames from the end on are cut like the sprites, none means unknown', () => {
+    expect(trickplayThumbnailTimes([0, 44, 46], spec)).toEqual([0, 0, 0, 0, 0])
+    expect(trickplayThumbnailTimes([0], { intervalS: 10, durationS: 5 })).toEqual([0])
+    expect(trickplayThumbnailTimes([], spec)).toBeUndefined()
+    expect(trickplayThumbnailTimes([50], spec)).toBeUndefined()
+  })
+})
 
 describe('trickplayInstantAt', () => {
   const index = { interval: 10, width: 320, height: 180, columns: 10, rows: 10, sheets: [0, 1] }

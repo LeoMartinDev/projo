@@ -46,6 +46,16 @@ describe('thumbnailAt', () => {
     expect(thumbnailAt(index, url, -5)).toMatchObject({ x: 0, y: 0 })
   })
 
+  test('with the instant of each thumbnail, the one whose picture is nearest', () => {
+    const timed = { ...index, times: [0, 0, 10.427, 20.854, 31.281, 41.708, 52.135] }
+    expect(thumbnailAt(timed, url, 4)).toMatchObject({ x: 0, y: 0 })
+    expect(thumbnailAt(timed, url, 14)).toMatchObject({ x: 2 * 320 })
+    expect(thumbnailAt(timed, url, 26)).toMatchObject({ x: 3 * 320 })
+    expect(thumbnailAt(timed, url, 27)).toMatchObject({ x: 4 * 320 })
+    expect(thumbnailAt(timed, url, 9_999)).toMatchObject({ x: 6 * 320 })
+    expect(thumbnailAt(timed, url, 9_999, 45)).toMatchObject({ x: 4 * 320 })
+  })
+
   test('nothing without sheets', () => {
     expect(thumbnailAt({ ...index, sheets: [] }, url, 10)).toBeUndefined()
     expect(thumbnailAt(index, url, Number.NaN)).toBeUndefined()

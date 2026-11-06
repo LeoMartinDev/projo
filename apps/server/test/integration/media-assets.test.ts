@@ -323,6 +323,7 @@ describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
       columns: 10,
       rows: 10,
       sheets: [0],
+      times: [0, 10, 20, 28],
     })
     const sheet = await get('/trickplay/source-movie/0.jpg')
     expect(sheet.status).toBe(200)

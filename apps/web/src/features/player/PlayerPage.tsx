@@ -1028,6 +1028,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     !idle || state.paused || blocked || overlay !== undefined || showEnd || nextUpShown
   const canAct = session !== undefined && !blocked
   const muted = state.muted || state.volume === 0
+  const landingFor = (ms: number) => (session === undefined ? ms : snapToSeekPoint(session, ms))
   const thumbnailFor = (ms: number) => {
     if (session === undefined || trickplay.data === undefined || trickplayUrl === undefined)
       return undefined
@@ -1382,9 +1383,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               total: formatClock(totalMs),
             })}
             thumbnailAt={thumbnailFor}
-            onSeek={(target) =>
-              seekToItem(session === undefined ? target : snapToSeekPoint(session, target))
-            }
+            landingAt={landingFor}
+            onSeek={(target) => seekToItem(landingFor(target))}
             onHoverStart={() => {
               if (trickplay.data !== undefined && trickplayUrl !== undefined)
                 preloadImages(sheetUrls(trickplayUrl, trickplay.data))

@@ -19,6 +19,15 @@ export const sheetUrl = (indexUrl: string, sheet: number): string => {
 export const sheetUrls = (indexUrl: string, index: TrickplayIndexDto): string[] =>
   index.sheets.map((sheet) => sheetUrl(indexUrl, sheet))
 
+const nearestTime = (times: readonly number[], seconds: number, last: number): number => {
+  let nearest = 0
+  for (let position = 1; position <= Math.min(last, times.length - 1); position++) {
+    const time = times[position] ?? Number.POSITIVE_INFINITY
+    if (Math.abs(time - seconds) < Math.abs((times[nearest] ?? 0) - seconds)) nearest = position
+  }
+  return nearest
+}
+
 export const thumbnailAt = (
   index: TrickplayIndexDto,
   indexUrl: string,
@@ -32,11 +41,11 @@ export const thumbnailAt = (
     streamDurationS === undefined || streamDurationS <= 0
       ? lastBySheets
       : Math.max(0, Math.ceil(streamDurationS / index.interval) - 1)
-  const position = Math.min(
-    Math.max(0, Math.round(Math.max(0, seconds) / index.interval)),
-    lastBySheets,
-    lastByDuration,
-  )
+  const last = Math.min(lastBySheets, lastByDuration)
+  const position =
+    index.times === undefined || index.times.length === 0
+      ? Math.min(Math.max(0, Math.round(Math.max(0, seconds) / index.interval)), last)
+      : nearestTime(index.times, seconds, last)
   const sheet = index.sheets[Math.floor(position / perSheet)]
   if (sheet === undefined) return undefined
   const within = position % perSheet

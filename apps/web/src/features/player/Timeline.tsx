@@ -40,6 +40,7 @@ export const Timeline = ({
   label,
   valueText,
   thumbnailAt,
+  landingAt = (positionMs) => positionMs,
   onSeek,
   onHoverStart,
 }: {
@@ -52,6 +53,7 @@ export const Timeline = ({
   label: string
   valueText: string
   thumbnailAt: (positionMs: number) => Thumbnail | undefined
+  landingAt?: (positionMs: number) => number
   onSeek: (positionMs: number) => void
   onHoverStart?: () => void
 }) => {
@@ -70,7 +72,7 @@ export const Timeline = ({
 
   const shownRatio = drag ?? ratioOf(positionMs, totalMs)
   const previewRatio = drag ?? hover?.ratio
-  const previewMs = previewRatio === undefined ? undefined : previewRatio * totalMs
+  const previewMs = previewRatio === undefined ? undefined : landingAt(previewRatio * totalMs)
   const thumbnail = previewMs === undefined ? undefined : thumbnailAt(previewMs)
   const chapterIndex = previewMs === undefined ? -1 : chapterIndexAt(chapters, previewMs)
   const chapter = chapters[chapterIndex]

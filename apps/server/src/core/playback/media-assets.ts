@@ -46,6 +46,27 @@ export type TrickplayIndex = {
   columns: number
   rows: number
   sheets: number[]
+  times?: number[]
+}
+
+export const trickplayThumbnailTimes = (
+  frameTimes: readonly number[],
+  { intervalS, durationS }: { intervalS: number; durationS: number },
+): number[] | undefined => {
+  const frames = frameTimes
+    .filter((time) => Number.isFinite(time) && time < durationS)
+    .toSorted((a, b) => a - b)
+  const first = frames[0]
+  if (first === undefined || intervalS <= 0) return undefined
+  const count = Math.max(1, Math.ceil(durationS / intervalS))
+  const times: number[] = []
+  let shown = 0
+  for (let thumbnail = 0; thumbnail < count; thumbnail++) {
+    const instant = thumbnail * intervalS + 1e-6
+    while ((frames[shown + 1] ?? Number.POSITIVE_INFINITY) <= instant) shown++
+    times.push(Math.round((frames[shown] ?? first) * 1000) / 1000)
+  }
+  return times
 }
 
 export const trickplayHeight = (video: { width?: number; height?: number }): number => {

@@ -87,7 +87,8 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
       durationMs: 25_000,
       fingerprint,
     })
-    expect(generated).toMatchObject({ ok: true, value: { sheets: [0] } })
+    expect(generated).toMatchObject({ ok: true, value: { sheets: [0], times: [0, 0, 15] } })
+    expect(store.read('src')?.index.times).toEqual([0, 0, 15])
     const sheet = store.sheetPath({ sourceId: 'src', sheet: 0 })
     expect(sheet).toBeDefined()
     if (sheet === undefined) return
@@ -115,7 +116,7 @@ describe.skipIf(!hasFfmpeg())('trickplay store', () => {
       durationMs: 5_000,
       fingerprint,
     })
-    expect(generated).toMatchObject({ ok: true, value: { sheets: [0] } })
+    expect(generated).toMatchObject({ ok: true, value: { sheets: [0], times: [0] } })
     const sheet = store.sheetPath({ sourceId: 'short', sheet: 0 })
     if (sheet === undefined) throw new Error('no sheet')
     expect(Math.abs((await luma(sheet, 0)) - fullRange(40))).toBeLessThan(8)

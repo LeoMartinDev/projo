@@ -10,6 +10,7 @@ import {
   type TrickplayIndex,
   trickplaySpec,
   type TrickplayStore,
+  trickplayThumbnailTimes,
 } from '../../core/playback/media-assets.ts'
 import { toHostPath } from '../fs/host-paths.ts'
 import { type ProcessPriority, runProcess, stderrTail } from '../media/process.ts'
@@ -34,6 +35,7 @@ const indexSchema = z.object({
   columns: z.number().int(),
   rows: z.number().int(),
   sheets: z.array(z.number().int()),
+  times: z.array(z.number()).optional(),
 })
 
 const generationVersion = 2
@@ -42,6 +44,14 @@ const generationSchema = z.object({ generation: z.literal(generationVersion) })
 const frameWidth = 640
 
 const generationTimeoutMs = 3 * 60 * 60_000
+
+const showinfoFrame = /\[Parsed_showinfo_\d+ @ [^\]]+\] n:\s*\d+ pts:\s*-?\d+ pts_time:(-?[\d.]+)/
+
+export const decodedFrameTimes = (stderr: string): number[] =>
+  stderr.split('\n').flatMap((line) => {
+    const time = showinfoFrame.exec(line)?.[1]
+    return time === undefined ? [] : [Number(time)]
+  })
 
 export const createTrickplayStore = ({
   trickplayDir,
@@ -60,9 +70,11 @@ export const createTrickplayStore = ({
       const index = readJsonFile(join(dir, 'index.json'), indexSchema)
       const fingerprint = readJsonFile(join(dir, 'source.json'), fingerprintSchema)
       const generation = readJsonFile(join(dir, 'source.json'), generationSchema)
-      return index === undefined || fingerprint === undefined || generation === undefined
-        ? undefined
-        : { index, fingerprint }
+      if (index === undefined || fingerprint === undefined || generation === undefined) {
+        return undefined
+      }
+      const { times, ...layout } = index
+      return { index: { ...layout, ...(times === undefined ? {} : { times }) }, fingerprint }
     },
 
     generate: async ({
@@ -89,7 +101,8 @@ export const createTrickplayStore = ({
           '-nostdin',
           '-hide_banner',
           '-v',
-          'error',
+          'info',
+          '-nostats',
           '-y',
           '-skip_frame',
           'nokey',
@@ -103,7 +116,7 @@ export const createTrickplayStore = ({
           '-sn',
           '-dn',
           '-vf',
-          `tpad=stop_mode=clone:stop_duration=${durationS},trim=end=${durationS},fps=1/${intervalS}:round=up:start_time=0,scale=${width}:${height},tile=${columns}x${rows},format=yuvj420p`,
+          `showinfo,tpad=stop_mode=clone:stop_duration=${durationS},trim=end=${durationS},fps=1/${intervalS}:round=up:start_time=0,scale=${width}:${height},tile=${columns}x${rows},format=yuvj420p`,
           '-q:v',
           '5',
           '-f',
@@ -144,7 +157,19 @@ export const createTrickplayStore = ({
           }),
         )
       }
-      const index: TrickplayIndex = { interval: intervalS, width, height, columns, rows, sheets }
+      const times = trickplayThumbnailTimes(decodedFrameTimes(run.value.stderr), {
+        intervalS,
+        durationS: durationMs / 1000,
+      })
+      const index: TrickplayIndex = {
+        interval: intervalS,
+        width,
+        height,
+        columns,
+        rows,
+        sheets,
+        ...(times === undefined ? {} : { times }),
+      }
       const swapped = attemptFs(
         () => {
           writeFileAtomic(join(temporary, 'index.json'), JSON.stringify(index))
