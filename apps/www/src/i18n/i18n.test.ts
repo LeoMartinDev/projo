@@ -9,6 +9,7 @@ import {
   pageFile,
   pages,
   pageUrl,
+  renderSitemap,
   renderTemplate,
   type Site,
 } from './pages.ts'
@@ -74,6 +75,19 @@ test('English lives at the root, French under /fr/, each page links to the other
     code: 'EN',
     name: 'English',
   })
+})
+
+test('links to the published site are absolute, with the translations of each page', () => {
+  expect(pageContext('fr', pages[1], site).url).toEqual({
+    en: 'https://getprojo.com/installation/',
+    fr: 'https://getprojo.com/fr/installation/',
+    self: 'https://getprojo.com/fr/installation/',
+  })
+  const sitemap = renderSitemap()
+  expect(sitemap.match(/<loc>/g)).toHaveLength(locales.length * pages.length)
+  expect(sitemap).toContain(
+    '<xhtml:link rel="alternate" hreflang="fr" href="https://getprojo.com/fr/changelog/"/>',
+  )
 })
 
 test('the language switch wins over the browser, the browser over the English default', () => {

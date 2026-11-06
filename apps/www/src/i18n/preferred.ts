@@ -1,4 +1,4 @@
-import { type Locale } from './pages.ts'
+import type { Locale } from './pages.ts'
 
 // Which language a visitor should see: the one they picked with the language switch, else the
 // first of their browser's languages that the site has, else English.

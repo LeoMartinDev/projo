@@ -9,6 +9,8 @@
     <meta name="description" content="{{ t.meta.homeDescription }}" />
     <meta property="og:title" content="{{ t.meta.homeTitle }}" />
     <meta property="og:description" content="{{ t.meta.ogDescription }}" />
+    <meta property="og:url" content="{{ url.self }}" />
+    <link vite-ignore rel="canonical" href="{{ url.self }}" />
     <link vite-ignore rel="alternate" hreflang="en" href="{{ url.en }}" />
     <link vite-ignore rel="alternate" hreflang="fr" href="{{ url.fr }}" />
     <link vite-ignore rel="alternate" hreflang="x-default" href="{{ url.en }}" />
@@ -143,7 +145,16 @@
     <main id="content">
       <section class="preview" aria-label="{{ t.home.preview.label }}">
         <div class="preview__screen">
-          <div class="preview__image" aria-hidden="true"></div>
+          <div class="preview__image" aria-hidden="true">
+            <img
+              class="photo"
+              src="{{ photo.mountains.src }}"
+              srcset="{{ photo.mountains.srcset }}"
+              sizes="(max-width: 640px) 720px, (max-width: 1240px) 1000px, 1180px"
+              alt=""
+              fetchpriority="high"
+            />
+          </div>
           <div class="preview__shade" aria-hidden="true"></div>
           <div class="preview__bar">
             <svg
@@ -250,7 +261,17 @@
           <div class="highlights">
             <article class="card card--wide">
               <div class="card__visual card__visual--photo">
-                <div class="card__photo" aria-hidden="true"></div>
+                <div class="card__photo" aria-hidden="true">
+                  <img
+                    class="photo"
+                    src="{{ photo.darkFantasy.src }}"
+                    srcset="{{ photo.darkFantasy.srcset }}"
+                    sizes="(max-width: 640px) 520px, (max-width: 900px) 860px, 700px"
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
                 <div class="skip glass glass--dim" aria-hidden="true">
                   <span class="skip__label">
                     {{ t.home.skip.button }}
@@ -339,7 +360,17 @@
             </article>
 
             <article class="card card--tmdb">
-              <div class="card__photo" aria-hidden="true"></div>
+              <div class="card__photo" aria-hidden="true">
+                <img
+                  class="photo"
+                  src="{{ photo.lanternes.src }}"
+                  srcset="{{ photo.lanternes.srcset }}"
+                  sizes="(max-width: 640px) 360px, 720px"
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
               <div class="card__visual" aria-hidden="true">
                 <div class="ui ui--stack glass glass--dim">
                   <span class="ui__file">[Kumo] Kaze no Tourou - 07 [1080p].mkv</span>
@@ -580,7 +611,17 @@
       </section>
 
       <section class="room" id="interface" aria-labelledby="interface-title">
-        <div class="room__image" role="img" aria-label="{{ t.home.room.alt }}"></div>
+        <div class="room__image">
+          <img
+            class="photo"
+            src="{{ photo.privateCinema.src }}"
+            srcset="{{ photo.privateCinema.srcset }}"
+            sizes="(max-width: 640px) 880px, 100vw"
+            alt="{{ t.home.room.alt }}"
+            loading="lazy"
+            decoding="async"
+          />
+        </div>
         <div class="room__head">
           <h2 id="interface-title">{{ t.home.room.title }}</h2>
           <p>{{ t.home.room.text }}</p>
@@ -588,7 +629,17 @@
 
         <div class="stage" aria-hidden="true">
           <div class="player-preview">
-            <div class="player-preview__image"></div>
+            <div class="player-preview__image">
+              <img
+                class="photo"
+                src="{{ photo.lanternesAtelier.src }}"
+                srcset="{{ photo.lanternesAtelier.srcset }}"
+                sizes="(max-width: 640px) 390px, 970px"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
             <div class="player-preview__top">
               <span class="player-preview__back glass glass--dim">
                 <svg

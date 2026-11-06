@@ -1,19 +1,19 @@
-// Artwork shown by the site's scripts. Images placed in the HTML are referenced there directly.
-// Backdrops come from the app (apps/web), the fictional film frames from design/sample-library
-// (original images, no real titles).
-import city from '@projo/design/backdrops/city.webp'
-import dunes from '@projo/design/backdrops/dunes.webp'
-import mountains from '@projo/design/backdrops/mountains.webp'
-import ocean from '@projo/design/backdrops/ocean.webp'
-import ferry from '../../../design/sample-library/thumbnails/ferry.webp'
-import lanternes from '../../../design/sample-library/thumbnails/lanternes.webp'
-import lanternesAtelier from '../../../design/sample-library/thumbnails/lanternes-atelier.webp'
-import lanternesPont from '../../../design/sample-library/thumbnails/lanternes-pont.webp'
-import marees from '../../../design/sample-library/thumbnails/marees.webp'
-import minuit from '../../../design/sample-library/thumbnails/minuit.webp'
-import nord from '../../../design/sample-library/thumbnails/nord.webp'
-import orbite from '../../../design/sample-library/thumbnails/orbite.webp'
-import tilleuls from '../../../design/sample-library/thumbnails/tilleuls.webp'
+// The wall behind the homepage title: 640 px tiles generated from the originals listed in
+// src/photos.ts (wallPhotos) by scripts/images.ts. Photos placed in the pages come from
+// pageContext's `photo` instead.
+import city from '../generated/wall/city.webp'
+import dunes from '../generated/wall/dunes.webp'
+import ferry from '../generated/wall/ferry.webp'
+import lanternes from '../generated/wall/lanternes.webp'
+import lanternesAtelier from '../generated/wall/lanternesAtelier.webp'
+import lanternesPont from '../generated/wall/lanternesPont.webp'
+import marees from '../generated/wall/marees.webp'
+import minuit from '../generated/wall/minuit.webp'
+import mountains from '../generated/wall/mountains.webp'
+import nord from '../generated/wall/nord.webp'
+import ocean from '../generated/wall/ocean.webp'
+import orbite from '../generated/wall/orbite.webp'
+import tilleuls from '../generated/wall/tilleuls.webp'
 
 export const wallImages = [
   nord,

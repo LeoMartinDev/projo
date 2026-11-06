@@ -9,6 +9,7 @@ import {
   pageFile,
   pages,
   pageUrl,
+  renderSitemap,
   renderTemplate,
   type Site,
 } from '../src/i18n/pages.ts'
@@ -60,6 +61,9 @@ export const pagesPlugin = (): Plugin => {
       }
     },
     resolveId: (id) => byFile(id)?.file,
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: renderSitemap() })
+    },
     load: (id) => byFile(id)?.render(),
     configureServer: (server) => {
       server.middlewares.use(async (request, response, next) => {

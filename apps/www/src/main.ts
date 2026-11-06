@@ -27,9 +27,14 @@ const counterpart = document.querySelector<HTMLAnchorElement>(`a[data-lang="${pr
 if (preferred !== document.documentElement.lang && counterpart)
   location.replace(counterpart.href + location.hash)
 
-// Homepage: the drifting wall of artwork behind the title (decorative, aria-hidden).
+// Homepage: the drifting wall of artwork behind the title (decorative, aria-hidden), started once
+// the page itself has loaded so its tiles never hold back the title and the preview.
 const wall = document.querySelector<HTMLElement>('[data-wall]')
-if (wall) renderWall(wall, wallColumns({ images: wallImages, columns: 7, rows: 5 }))
+const startWall = () => {
+  if (wall) renderWall(wall, wallColumns({ images: wallImages, columns: 7, rows: 5 }))
+}
+if (document.readyState === 'complete') startWall()
+else addEventListener('load', startWall, { once: true })
 
 // Phone navigation: a native modal dialog (Escape and the backdrop close it).
 const menu = document.querySelector<HTMLDialogElement>('[data-menu]')

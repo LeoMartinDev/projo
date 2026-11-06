@@ -7,6 +7,7 @@
     <meta name="theme-color" content="#0a0a0b" />
     <title>{{ t.meta.changelogTitle }}</title>
     <meta name="description" content="{{ t.meta.changelogDescription }}" />
+    <link vite-ignore rel="canonical" href="{{ url.self }}" />
     <link vite-ignore rel="alternate" hreflang="en" href="{{ url.en }}" />
     <link vite-ignore rel="alternate" hreflang="fr" href="{{ url.fr }}" />
     <link vite-ignore rel="alternate" hreflang="x-default" href="{{ url.en }}" />
@@ -88,7 +89,16 @@
     </nav>
 
     <header class="docs-hero docs-hero--releases">
-      <div class="docs-hero__image" aria-hidden="true"></div>
+      <div class="docs-hero__image" aria-hidden="true">
+        <img
+          class="photo"
+          src="{{ photo.city.src }}"
+          srcset="{{ photo.city.srcset }}"
+          sizes="(max-width: 540px) 540px, 100vw"
+          alt=""
+          fetchpriority="high"
+        />
+      </div>
       <div class="docs-hero__content">
         <h1>{{ t.changelog.title }}</h1>
         <p>{{ t.changelog.lead }}</p>

@@ -59,8 +59,7 @@
 .docs-hero__image {
   position: absolute;
   inset: 0;
-  background-image: url('@projo/design/backdrops/lighthouse.webp');
-  background-position: center 40%;
+  --photo-position: 50% 40%;
 }
 
 .docs-hero::after {

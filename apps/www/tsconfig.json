@@ -4,6 +4,6 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["vite/client", "bun"]
   },
-  "include": ["src/**/*.ts", "vite-plugins/**/*.ts", "vite.config.ts"],
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "vite-plugins/**/*.ts", "vite.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

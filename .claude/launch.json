@@ -44,6 +44,13 @@
       "autoPort": false
     },
     {
+      "name": "www-alt",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--cwd", "apps/www", "dev", "--port", "5176"],
+      "port": 5176,
+      "autoPort": false
+    },
+    {
       "name": "www-build",
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "--cwd", "apps/www", "preview"],

@@ -40,10 +40,18 @@ export const renderWall = (container: HTMLElement, columns: readonly WallColumn[
       image.src = tile.src
       image.alt = ''
       image.decoding = 'async'
+      // Decorative, under a dark veil: never ahead of the page's own photos.
+      image.fetchPriority = 'low'
       image.style.objectPosition = tile.position
       element.append(image)
     }
     fragment.append(element)
   }
   container.replaceChildren(fragment)
+  // Fades in once every tile can be drawn, instead of tile by tile.
+  void Promise.allSettled(
+    [...container.querySelectorAll('img')].map((image) => image.decode()),
+  ).then(() => {
+    container.dataset['ready'] = ''
+  })
 }

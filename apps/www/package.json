@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "bun run images && vite",
+    "build": "bun run images && vite build",
+    "images": "bun scripts/images.ts",
     "preview": "vite preview",
     "typecheck": "bun check"
   },

@@ -1,6 +1,7 @@
 // The site is rendered at build time, once per language: real static pages (no client-side
 // translation), English at the root and French under /fr/. Templates live in src/pages/ and
 // use {{ dotted.path }} placeholders, filled from the page context below.
+import { type PhotoName, photoSources, photos } from '../photos.ts'
 import { type Release } from '../releases/releases.ts'
 import { releaseAnchor, renderChangelog } from '../releases/render.ts'
 import { en, fr, type Messages } from './messages.ts'
@@ -32,6 +33,34 @@ export type Site = {
 /** URL path of a page in a language: '/', '/installation/', '/fr/', '/fr/installation/'. */
 export const pageUrl = (locale: Locale, page: Page) => `${base[locale]}${page.path}`
 
+/** Where the site is published: canonical, hreflang and sitemap URLs are absolute. */
+export const origin = 'https://getprojo.com'
+const absoluteUrl = (locale: Locale, page: Page) => `${origin}${pageUrl(locale, page)}`
+
+/** sitemap.xml: every page in every language, each listing its translations. */
+export const renderSitemap = () => {
+  const alternates = (page: Page) =>
+    locales
+      .map(
+        (locale) =>
+          `    <xhtml:link rel="alternate" hreflang="${locale}" href="${absoluteUrl(locale, page)}"/>`,
+      )
+      .join('\n')
+  const urls = locales.flatMap((locale) =>
+    pages.map(
+      (page) => `  <url>
+    <loc>${absoluteUrl(locale, page)}</loc>
+${alternates(page)}
+  </url>`,
+    ),
+  )
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls.join('\n')}
+</urlset>
+`
+}
+
 /** Output file of a page in a language, relative to the app root: 'fr/index.html'… */
 export const pageFile = (locale: Locale, page: Page) =>
   `${pageUrl(locale, page).slice(1)}index.html`
@@ -45,7 +74,11 @@ export const pageContext = (locale: Locale, page: Page, site: Site) => {
     t,
     lang: locale,
     base: base[locale],
-    url: { en: pageUrl('en', page), fr: pageUrl('fr', page) },
+    url: {
+      en: absoluteUrl('en', page),
+      fr: absoluteUrl('fr', page),
+      self: absoluteUrl(locale, page),
+    },
     home: base[locale],
     installation: `${base[locale]}installation/`,
     changelog,
@@ -54,6 +87,9 @@ export const pageContext = (locale: Locale, page: Page, site: Site) => {
       short: version.split('.').slice(0, 2).join('.'),
       url: `${changelog}#${releaseAnchor(version)}`,
     },
+    photo: Object.fromEntries(
+      Object.keys(photos).map((name) => [name, photoSources(name as PhotoName)]),
+    ),
     releases: renderChangelog(site.releases, {
       locale,
       labels: { latest: t.changelog.latest, github: t.changelog.github, empty: t.changelog.empty },

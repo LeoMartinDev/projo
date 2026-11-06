@@ -390,7 +390,7 @@ jobs:
           RELEASE: ${{ needs.release.result }}
         run: |
           set -euo pipefail
-          paths=(apps/www apps/web/src/shared/styles apps/web/src/shared/backdrops design
+          paths=(apps/www packages/design design
             package.json bun.lock tsconfig.base.json .github/workflows/ci.yml)
           if [ "$RELEASE" = success ]; then
             deploy=true reason="a release was published"
