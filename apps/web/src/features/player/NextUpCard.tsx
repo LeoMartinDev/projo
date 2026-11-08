@@ -4,7 +4,7 @@ import { episodeCode, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto, PersonDto } from '@projo/shared/api/catalog'
 
 import { formatDuration } from '../../shared/format/format.ts'
-import { PlayIcon } from '../../shared/ui/icons.tsx'
+import { CloseIcon, PlayIcon } from '../../shared/ui/icons.tsx'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
 import { durationMsOf, toneOf } from '../media/media.ts'
 import '../media/media.css'
@@ -41,111 +41,117 @@ const Credits = ({ detail }: { detail: ItemDetailDto | undefined }) => {
 
 export type NextUpCountdownView = { seconds: number; ratio: number } | undefined
 
+// A play icon in a ring that fills up as the countdown runs out.
+const CountdownRing = ({ countdown }: { countdown: NextUpCountdownView }) => (
+  <span className="next-up__ring" aria-hidden="true">
+    {countdown === undefined ? undefined : (
+      <svg width="28" height="28" viewBox="0 0 28 28" className="next-up__ring-svg">
+        <circle className="next-up__ring-track" cx="14" cy="14" r={ringRadius} />
+        <circle
+          className="next-up__ring-left"
+          cx="14"
+          cy="14"
+          r={ringRadius}
+          strokeDasharray={ringLength}
+          strokeDashoffset={ringLength * countdown.ratio}
+        />
+      </svg>
+    )}
+    <PlayIcon size={12} />
+  </span>
+)
+
+/** The "Next episode" screen, at the end of the file (§10.7, `PlayerNext`). */
 export const NextUpCard = ({
   next,
   detail,
   fallbackArt,
   countdown,
-  ended,
   onPlay,
-  onWatchCredits,
-  onBack,
 }: {
-  next: ItemSummaryDto | undefined
+  next: ItemSummaryDto
   detail: ItemDetailDto | undefined
   fallbackArt: string | undefined
   countdown: NextUpCountdownView
-  ended: boolean
   onPlay: () => void
-  onWatchCredits: () => void
-  onBack: () => void
 }) => {
   const { t, i18n } = useTranslation()
-  const durationMs = next === undefined ? undefined : durationMsOf(next)
-  const meta =
-    next === undefined
-      ? ''
-      : [
-          episodeCode(next.seasonNumber, next.episodeNumber, {
-            season: t('item.seasonShort'),
-            episode: t('item.episodeShort'),
-          }),
-          durationMs === undefined ? '' : formatDuration(durationMs, i18n.language),
-        ]
-          .filter((part) => part !== '')
-          .join(' · ')
-  const watchCredits = ended ? undefined : (
-    <button type="button" className="button next-up__ghost" onClick={onWatchCredits}>
-      {t('player.next.watchCredits')}
-    </button>
-  )
+  const durationMs = durationMsOf(next)
+  const meta = [
+    episodeCode(next.seasonNumber, next.episodeNumber, {
+      season: t('item.seasonShort'),
+      episode: t('item.episodeShort'),
+    }),
+    durationMs === undefined ? '' : formatDuration(durationMs, i18n.language),
+  ]
+    .filter((part) => part !== '')
+    .join(' · ')
 
   return (
-    <>
-      {ended ? undefined : (
-        <button
-          type="button"
-          className="next-up__frame"
-          aria-label={t('player.next.expand')}
-          onClick={onWatchCredits}
-        />
-      )}
-      <section
-        className={`next-up${next === undefined ? ' next-up--none' : ''}`}
-        aria-labelledby={next === undefined ? undefined : 'next-up-title'}
-        aria-label={next === undefined ? t('player.backToPage') : undefined}
-      >
-        {next === undefined ? undefined : (
-          <>
-            <span className="next-up__eyebrow">{t('player.nextEpisode')}</span>
-            <span className={`next-up__still tone-${toneOf(next.id)}`}>
-              <Artwork src={next.images.still ?? fallbackArt} className="cover-img" eager />
-            </span>
-            <div className="next-up__text">
-              {meta === '' ? undefined : <span className="next-up__meta">{meta}</span>}
-              <h2 id="next-up-title" className="next-up__title">
-                {itemTitle(t, next)}
-              </h2>
-              {next.overview === undefined ? undefined : (
-                <p className="next-up__overview">{next.overview}</p>
-              )}
-              <Credits detail={detail} />
-            </div>
-          </>
+    <section className="next-up" aria-labelledby="next-up-title">
+      <span className="next-up__eyebrow">{t('player.nextEpisode')}</span>
+      <span className={`next-up__still tone-${toneOf(next.id)}`}>
+        <Artwork src={next.images.still ?? fallbackArt} className="cover-img" eager />
+      </span>
+      <div className="next-up__text">
+        {meta === '' ? undefined : <span className="next-up__meta">{meta}</span>}
+        <h2 id="next-up-title" className="next-up__title">
+          {itemTitle(t, next)}
+        </h2>
+        {next.overview === undefined ? undefined : (
+          <p className="next-up__overview">{next.overview}</p>
         )}
-        <div className="next-up__actions">
-          {next === undefined ? (
-            <button type="button" className="button button--primary next-up__play" onClick={onBack}>
-              {t('player.backToPage')}
-            </button>
-          ) : (
-            <button type="button" className="button button--primary next-up__play" onClick={onPlay}>
-              <span className="next-up__ring" aria-hidden="true">
-                {countdown === undefined ? undefined : (
-                  <svg width="28" height="28" viewBox="0 0 28 28" className="next-up__ring-svg">
-                    <circle className="next-up__ring-track" cx="14" cy="14" r={ringRadius} />
-                    <circle
-                      className="next-up__ring-left"
-                      cx="14"
-                      cy="14"
-                      r={ringRadius}
-                      strokeDasharray={ringLength}
-                      strokeDashoffset={ringLength * countdown.ratio}
-                    />
-                  </svg>
-                )}
-                <PlayIcon size={12} />
-              </span>
-              {countdown === undefined
-                ? t('player.nextEpisode')
-                : countdown.seconds > 0
-                  ? t('player.next.playIn', { seconds: countdown.seconds })
-                  : t('player.next.starting')}
-            </button>
-          )}
-          {watchCredits}
-        </div>
-      </section>
-    </>
+        <Credits detail={detail} />
+      </div>
+      <div className="next-up__actions">
+        <button type="button" className="button button--primary next-up__play" onClick={onPlay}>
+          <CountdownRing countdown={countdown} />
+          {countdown === undefined
+            ? t('player.nextEpisode')
+            : countdown.seconds > 0
+              ? t('player.next.playIn', { seconds: countdown.seconds })
+              : t('player.next.starting')}
+        </button>
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The bubble over the playing video in the credits (§12.4): starts the next
+ * episode now, or closes ("Watch the credits") for the rest of the episode.
+ */
+export const NextUpBubble = ({
+  countdown,
+  onPlay,
+  onWatchCredits,
+}: {
+  countdown: NextUpCountdownView
+  onPlay: () => void
+  onWatchCredits: () => void
+}) => {
+  const { t } = useTranslation()
+  return (
+    <div className="next-bubble">
+      <button type="button" className="next-bubble__play" onClick={onPlay}>
+        <CountdownRing countdown={countdown} />
+        <span className="next-bubble__label">
+          {countdown === undefined
+            ? t('player.nextEpisode')
+            : countdown.seconds > 0
+              ? t('player.next.in', { seconds: countdown.seconds })
+              : t('player.next.starting')}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="next-bubble__close"
+        aria-label={t('player.next.watchCredits')}
+        title={t('player.next.watchCredits')}
+        onClick={onWatchCredits}
+      >
+        <CloseIcon size={16} />
+      </button>
+    </div>
   )
 }

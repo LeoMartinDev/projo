@@ -1840,24 +1840,6 @@
   pointer-events: none;
 }
 
-.next-up__frame {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  cursor: pointer;
-  transform: scale(0.62);
-  transform-origin: 6% 10%;
-}
-
-.next-up__frame:focus-visible {
-  outline: 3px solid var(--color-accent);
-  outline-offset: 4px;
-}
-
 .next-up {
   position: absolute;
   right: clamp(16px, 4vw, 64px);
@@ -1888,10 +1870,6 @@
     opacity: 1;
     transform: none;
   }
-}
-
-.next-up--none {
-  width: auto;
 }
 
 .next-up__eyebrow {
@@ -1991,10 +1969,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.next-up--none .next-up__play {
-  padding: 0 22px;
-}
-
 .next-up__ring {
   position: relative;
   display: flex;
@@ -2030,8 +2004,87 @@
   transition: stroke-dashoffset 0.25s linear;
 }
 
-.next-up__ghost {
+/* "Next episode in N s" over the playing video in the credits (§12.4): the
+   corner and layer of "Skip intro", which never shows at the same time. */
+.next-bubble {
+  position: absolute;
+  right: var(--player-gutter);
+  bottom: var(--player-chrome-bottom);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 2 * var(--player-gutter));
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+  box-shadow: var(--shadow-glass);
+  color: var(--color-text-strong);
+  animation: skip-in 0.5s var(--ease) both;
+}
+
+.next-bubble__play,
+.next-bubble__close {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.25s ease;
+}
+
+.next-bubble__play {
+  gap: 10px;
+  min-width: 0;
+  height: 40px;
+  padding: 0 14px 0 6px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.next-bubble__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.next-bubble__close {
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
   color: var(--color-text-muted-strong);
+}
+
+.next-bubble__play:hover,
+.next-bubble__close:hover {
+  background: var(--fill-2);
+}
+
+.next-bubble__close:hover {
+  color: var(--color-text-strong);
+}
+
+.next-bubble .next-up__ring-track {
+  stroke: var(--fill-3);
+}
+
+.next-bubble .next-up__ring-left {
+  stroke: var(--color-accent);
+}
+
+@media (--phone) {
+  .next-bubble__play {
+    font-size: 14px;
+  }
 }
 
 .next-up__progress {
@@ -2073,8 +2126,7 @@
     display: none;
   }
 
-  .player__video,
-  .next-up__frame {
+  .player__video {
     transform-origin: 50% 10%;
   }
 }
@@ -2109,6 +2161,7 @@
   }
 
   .skip-segment,
+  .next-bubble,
   .next-up,
   .player__seek-ripple {
     animation: none;

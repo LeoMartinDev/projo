@@ -49,7 +49,7 @@ import {
 } from './document-pip.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
 import { nowPlayingOf } from './media-session.ts'
-import { NextUpCard } from './NextUpCard.tsx'
+import { NextUpBubble, NextUpCard, type NextUpCountdownView } from './NextUpCard.tsx'
 import { type Heartbeat, sessionTimedOut } from './heartbeat.ts'
 import {
   attachStream,
@@ -98,9 +98,11 @@ import {
   type Countdown,
   countdownFor,
   countdownRatio,
+  countdownRuns,
   countdownStartMs,
+  nextUpLaunches,
   nextUpTriggerAt,
-  nextUpVisible,
+  nextUpViewFor,
   secondsLeft,
   ticked,
 } from './next-up.ts'
@@ -277,7 +279,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [pinchStage, setPinchStage] = useState<'idle' | 'active' | 'settling' | 'closing'>('idle')
   const [skipEntry, setSkipEntry] = useState<{ key: string; atMs: number }>()
   const [skipped, setSkipped] = useState<{ segment: SkippableSegment; id: number }>()
-  const [dismissedNextUp, setDismissedNextUp] = useState<ReadonlySet<string>>(() => new Set())
+  const [creditsDismissed, setCreditsDismissed] = useState(false)
   const [countdown, setCountdown] = useState<Countdown>()
   const handledSegmentsRef = useRef(new Set<string>())
 
@@ -842,29 +844,37 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     session === undefined
       ? undefined
       : nextUpTriggerAt({ segments, positionMs, totalMs, ended: itemEnded })
-  const nextUpShown =
-    !blocked && nextUpVisible({ trigger, dismissed: dismissedNextUp, next: next.status })
-  const countdownStart =
-    nextEpisode === undefined
-      ? undefined
-      : countdownStartMs({
-          autoplayNext: profile?.autoplayNext ?? true,
-          autoSkipCredits: profile?.autoSkipCredits ?? false,
-        })
+  const nextUpView = nextUpViewFor({ trigger, creditsDismissed, next: next.status, blocked })
+  // The full "Next episode" screen, at the end of the file only.
+  const nextUpShown = nextUpView === 'screen'
+  const nextUpActive = nextUpView !== 'none'
+  const countdownStart = countdownStartMs({
+    autoplayNext: profile?.autoplayNext ?? true,
+    autoSkipCredits: profile?.autoSkipCredits ?? false,
+  })
   const activeCountdown =
-    nextUpShown && trigger !== undefined
+    nextUpActive && trigger !== undefined
       ? countdownFor(countdown, trigger, countdownStart)
       : undefined
-  const counting =
-    activeCountdown?.leftMs !== undefined &&
-    activeCountdown.leftMs > 0 &&
-    (itemEnded || !state.paused)
-  const launch = activeCountdown?.leftMs === 0 && nextEpisode !== undefined
+  const countdownView: NextUpCountdownView =
+    activeCountdown === undefined || activeCountdown.leftMs === undefined
+      ? undefined
+      : {
+          seconds: secondsLeft(activeCountdown) ?? 0,
+          ratio: countdownRatio(activeCountdown, countdownStart),
+        }
+  const counting = countdownRuns({
+    view: nextUpView,
+    countdown: activeCountdown,
+    paused: state.paused,
+    ended: itemEnded,
+  })
+  const launch = nextUpLaunches(nextUpView, activeCountdown)
 
   useEffect(() => {
-    if (!nextUpShown) return
+    if (!nextUpActive) return
     return () => setCountdown(undefined)
-  }, [nextUpShown])
+  }, [nextUpActive])
 
   const tick = useEffectEvent((elapsedMs: number) => {
     if (trigger === undefined) return
@@ -910,10 +920,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     enabled: nextEpisode !== undefined,
   })
 
-  const watchCredits = () => {
-    if (trigger !== undefined) setDismissedNextUp((keys) => new Set(keys).add(trigger.key))
-    wake()
-  }
+  const watchCredits = () => setCreditsDismissed(true)
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const command = commandFor(event, {
@@ -1243,7 +1250,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           delayMs={subtitleSettings.delayMs}
           size={subtitleSettings.size}
           raised={chromeVisible}
-          aboveToast={(toast !== undefined || skipped !== undefined) && !blocked}
+          aboveToast={
+            (toast !== undefined || skipped !== undefined || nextUpView === 'bubble') && !blocked
+          }
           native={nativeFullscreen || (pip && pictureInPictureShowsTextTracks(video))}
         />
       ) : (
@@ -1421,26 +1430,22 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         </div>
       ) : undefined}
 
-      {nextUpShown ? (
+      {nextUpView === 'bubble' && nextEpisode !== undefined ? (
+        <NextUpBubble
+          countdown={countdownView}
+          onPlay={() => playEpisode(nextEpisode)}
+          onWatchCredits={watchCredits}
+        />
+      ) : undefined}
+
+      {nextUpShown && nextEpisode !== undefined ? (
         <>
           <NextUpCard
             next={nextEpisode}
             detail={nextDetail.data}
             fallbackArt={item.data?.series?.images?.backdrop ?? item.data?.images.backdrop}
-            countdown={
-              activeCountdown === undefined || activeCountdown.leftMs === undefined
-                ? undefined
-                : {
-                    seconds: secondsLeft(activeCountdown) ?? 0,
-                    ratio: countdownRatio(activeCountdown, countdownStart),
-                  }
-            }
-            ended={itemEnded}
-            onPlay={() => {
-              if (nextEpisode !== undefined) playEpisode(nextEpisode)
-            }}
-            onWatchCredits={watchCredits}
-            onBack={exit}
+            countdown={countdownView}
+            onPlay={() => playEpisode(nextEpisode)}
           />
           <div className="next-up__progress" aria-hidden="true">
             <span

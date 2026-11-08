@@ -109,11 +109,11 @@ test('series: skip the intro, the countdown starts episode 2 with the tracks of 
     await expect(captions(page)).toHaveText('Brackenmoor English line 1', { timeout: 20_000 })
   })
 
-  await test.step('into the credits: "Épisode suivant" counts down, then episode 2 starts', async () => {
+  await test.step('into the credits: the "Épisode suivant dans" bubble counts down, then episode 2 starts', async () => {
     const next = nextSessionFor(page, second, 45_000)
     await video.evaluate((element) => element.setAttribute('data-e2e-episode', 'first'))
     await clickBarAt(page, (credits.startS + 0.5) / durationS)
-    const countdown = page.getByRole('button', { name: startsWith(fr.player.next.playIn) })
+    const countdown = page.getByRole('button', { name: startsWith(fr.player.next.in) })
     await expect(countdown).toBeVisible({ timeout: 15_000 })
     const secondsOf = async () => Number(/\d+/.exec((await countdown.textContent()) ?? '')?.[0])
     const shown = await secondsOf()

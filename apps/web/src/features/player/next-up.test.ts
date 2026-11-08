@@ -3,14 +3,18 @@ import { describe, expect, test } from 'bun:test'
 import type { MediaSegmentDto } from '@projo/shared/api/playback'
 
 import {
+  type Countdown,
   countdownFor,
   countdownRatio,
+  countdownRuns,
   countdownStartMs,
   fallbackWindowMs,
   nextUpCountdownMs,
+  nextUpLaunches,
+  nextUpShortCountdownMs,
   type NextUpTrigger,
   nextUpTriggerAt,
-  nextUpVisible,
+  nextUpViewFor,
   secondsLeft,
   ticked,
 } from './next-up.ts'
@@ -25,7 +29,7 @@ const at = (segments: readonly MediaSegmentDto[], positionMs: number, ended = fa
   nextUpTriggerAt({ segments, positionMs, totalMs: episodeMs, ended })
 
 describe('nextUpTriggerAt', () => {
-  test('entering the credits opens the card, seeking back out of them closes it', () => {
+  test('entering the credits triggers next, seeking back out of them stops it', () => {
     expect(at([intro, credits], minutes(43))).toMatchObject({ kind: 'credits', segment: credits })
     expect(at([intro, credits], minutes(43) - 1)).toBeUndefined()
     expect(at([intro, credits], minutes(20))).toBeUndefined()
@@ -38,7 +42,7 @@ describe('nextUpTriggerAt', () => {
     expect(first?.key).not.toBe(second?.key)
   })
 
-  test('after the credits (a scene before the end), no card until the end of the file', () => {
+  test('after the credits (a scene before the end), nothing until the end of the file', () => {
     const early: MediaSegmentDto = { type: 'credits', startMs: minutes(40), endMs: minutes(42) }
     expect(at([early], minutes(44) + 30_000)).toBeUndefined()
     expect(at([early], episodeMs, true)).toEqual({ kind: 'end', key: 'end' })
@@ -78,81 +82,136 @@ describe('fallbackWindowMs', () => {
   })
 })
 
+describe('nextUpViewFor', () => {
+  const creditsTrigger: NextUpTrigger = { kind: 'credits', key: 'credits:1', segment: credits }
+  const fallback: NextUpTrigger = { kind: 'fallback', key: 'fallback' }
+  const end: NextUpTrigger = { kind: 'end', key: 'end' }
+  const view = (
+    trigger: NextUpTrigger | undefined,
+    {
+      creditsDismissed = false,
+      next = 'found',
+      blocked = false,
+    }: {
+      creditsDismissed?: boolean
+      next?: 'loading' | 'none' | 'found'
+      blocked?: boolean
+    } = {},
+  ) => nextUpViewFor({ trigger, creditsDismissed, next, blocked })
+
+  test('the credits and the fallback window show the bubble, the end of the file the screen', () => {
+    expect(view(creditsTrigger)).toBe('bubble')
+    expect(view(fallback)).toBe('bubble')
+    expect(view(end)).toBe('screen')
+    expect(view(undefined)).toBe('none')
+  })
+
+  test('"Watch the credits" hides the bubble for the episode, the end screen still follows', () => {
+    expect(view(creditsTrigger, { creditsDismissed: true })).toBe('none')
+    expect(view({ ...creditsTrigger, key: 'preview:2' }, { creditsDismissed: true })).toBe('none')
+    expect(view(end, { creditsDismissed: true })).toBe('screen')
+  })
+
+  test('no next episode (a movie, the last episode): neither bubble nor screen', () => {
+    expect(view(creditsTrigger, { next: 'none' })).toBe('none')
+    expect(view(end, { next: 'none' })).toBe('none')
+  })
+
+  test('nothing while the next episode is looked up, nor over a blocking error', () => {
+    expect(view(creditsTrigger, { next: 'loading' })).toBe('none')
+    expect(view(creditsTrigger, { blocked: true })).toBe('none')
+    expect(view(end, { blocked: true })).toBe('none')
+  })
+})
+
 describe('countdown', () => {
   const creditsTrigger: NextUpTrigger = { kind: 'credits', key: 'credits:1', segment: credits }
+  const previewTrigger: NextUpTrigger = { kind: 'credits', key: 'preview:2', segment: preview }
   const end: NextUpTrigger = { kind: 'end', key: 'end' }
 
-  test('10 s, 0 with autoSkipCredits, none with autoplayNext off', () => {
+  test('10 s, 5 s with autoSkipCredits (never 0), none with autoplayNext off', () => {
     expect(countdownStartMs({ autoplayNext: true, autoSkipCredits: false })).toBe(nextUpCountdownMs)
-    expect(countdownStartMs({ autoplayNext: true, autoSkipCredits: true })).toBe(0)
+    expect(countdownStartMs({ autoplayNext: true, autoSkipCredits: true })).toBe(
+      nextUpShortCountdownMs,
+    )
+    expect(nextUpShortCountdownMs).toBeGreaterThan(0)
     expect(countdownStartMs({ autoplayNext: false, autoSkipCredits: true })).toBeUndefined()
   })
 
-  test('a trigger keeps its countdown, a new one starts over', () => {
+  test('the credits keep one countdown, even into a preview right after them', () => {
     const started = countdownFor(undefined, creditsTrigger, 10_000)
-    expect(started).toEqual({ key: 'credits:1', leftMs: 10_000 })
+    expect(started).toEqual({ phase: 'credits', leftMs: 10_000 })
     const running = ticked(started, 2500)
     expect(countdownFor(running, creditsTrigger, 10_000)).toBe(running)
-    expect(countdownFor(running, { kind: 'fallback', key: 'fallback' }, 10_000).leftMs).toBe(10_000)
+    expect(countdownFor(running, previewTrigger, 10_000)).toBe(running)
+  })
+
+  test('dropped (seek back, "Watch the credits"), it starts over', () => {
+    expect(countdownFor(undefined, creditsTrigger, 5000)).toEqual({
+      phase: 'credits',
+      leftMs: 5000,
+    })
   })
 
   test('the end of the file carries on the countdown of the credits it follows', () => {
     const running = ticked(countdownFor(undefined, creditsTrigger, 10_000), 7000)
-    expect(countdownFor(running, end, 10_000)).toEqual({ key: 'end', leftMs: 3000 })
-    expect(countdownFor(undefined, end, 10_000)).toEqual({ key: 'end', leftMs: 10_000 })
-    expect(countdownFor({ key: 'credits:1', leftMs: undefined }, end, undefined).leftMs).toBe(
+    expect(countdownFor(running, end, 10_000)).toEqual({ phase: 'end', leftMs: 3000 })
+    expect(countdownFor(undefined, end, 10_000)).toEqual({ phase: 'end', leftMs: 10_000 })
+    expect(countdownFor({ phase: 'credits', leftMs: undefined }, end, undefined).leftMs).toBe(
       undefined,
     )
   })
 
   test('ticks down to 0, never below; no countdown never ticks', () => {
-    const countdown = { key: 'end', leftMs: 1200 }
+    const countdown: Countdown = { phase: 'end', leftMs: 1200 }
     expect(ticked(countdown, 5000).leftMs).toBe(0)
     expect(ticked(countdown, -100).leftMs).toBe(1200)
-    expect(ticked({ key: 'end', leftMs: undefined }, 5000).leftMs).toBeUndefined()
+    expect(ticked({ phase: 'end', leftMs: undefined }, 5000).leftMs).toBeUndefined()
   })
 
   test('seconds shown rounded up, ring ratio of the start', () => {
-    expect(secondsLeft({ key: 'end', leftMs: 8200 })).toBe(9)
-    expect(secondsLeft({ key: 'end', leftMs: 0 })).toBe(0)
-    expect(secondsLeft({ key: 'end', leftMs: undefined })).toBeUndefined()
-    expect(countdownRatio({ key: 'end', leftMs: 2500 }, 10_000)).toBe(0.25)
-    expect(countdownRatio({ key: 'end', leftMs: 0 }, 0)).toBe(0)
+    expect(secondsLeft({ phase: 'end', leftMs: 8200 })).toBe(9)
+    expect(secondsLeft({ phase: 'end', leftMs: 0 })).toBe(0)
+    expect(secondsLeft({ phase: 'end', leftMs: undefined })).toBeUndefined()
+    expect(countdownRatio({ phase: 'end', leftMs: 2500 }, 10_000)).toBe(0.25)
+    expect(countdownRatio({ phase: 'end', leftMs: 0 }, 0)).toBe(0)
   })
 })
 
-describe('nextUpVisible', () => {
-  const creditsTrigger: NextUpTrigger = { kind: 'credits', key: 'credits:1', segment: credits }
+describe('countdownRuns', () => {
+  const counting: Countdown = { phase: 'credits', leftMs: 4000 }
+  const runs = (view: 'none' | 'bubble' | 'screen', countdown: Countdown, paused = false) =>
+    countdownRuns({ view, countdown, paused, ended: false })
 
-  test('"Regarder le générique" keeps it closed for that segment only', () => {
-    const dismissed = new Set(['credits:1'])
-    expect(nextUpVisible({ trigger: creditsTrigger, dismissed, next: 'found' })).toBe(false)
+  test('runs under the bubble while the video plays (controls or not, PiP), held by a pause', () => {
+    expect(runs('bubble', counting)).toBe(true)
+    expect(runs('bubble', counting, true)).toBe(false)
+  })
+
+  test('runs on the end screen although the ended video reports paused', () => {
     expect(
-      nextUpVisible({
-        trigger: { ...creditsTrigger, key: 'preview:2' },
-        dismissed,
-        next: 'found',
+      countdownRuns({
+        view: 'screen',
+        countdown: { phase: 'end', leftMs: 4000 },
+        paused: true,
+        ended: true,
       }),
     ).toBe(true)
   })
 
-  test('the end of the file shows it again, when there is a next episode', () => {
-    const dismissed = new Set(['credits:1'])
-    const end: NextUpTrigger = { kind: 'end', key: 'end' }
-    expect(nextUpVisible({ trigger: end, dismissed, next: 'found' })).toBe(true)
-    expect(nextUpVisible({ trigger: end, dismissed, next: 'none' })).toBe(false)
+  test('nothing to run: no view, no countdown (autoplay off), or already at 0', () => {
+    expect(runs('none', counting)).toBe(false)
+    expect(runs('bubble', { phase: 'credits', leftMs: undefined })).toBe(false)
+    expect(runs('bubble', { phase: 'credits', leftMs: 0 })).toBe(false)
   })
+})
 
-  test('no next episode (a movie): the card still opens in the credits', () => {
-    expect(nextUpVisible({ trigger: creditsTrigger, dismissed: new Set(), next: 'none' })).toBe(
-      true,
-    )
-  })
-
-  test('nothing while the next episode is being looked up', () => {
-    expect(nextUpVisible({ trigger: creditsTrigger, dismissed: new Set(), next: 'loading' })).toBe(
-      false,
-    )
-    expect(nextUpVisible({ trigger: undefined, dismissed: new Set(), next: 'found' })).toBe(false)
+describe('nextUpLaunches', () => {
+  test('the next episode starts when a shown countdown reaches 0', () => {
+    expect(nextUpLaunches('bubble', { phase: 'credits', leftMs: 0 })).toBe(true)
+    expect(nextUpLaunches('screen', { phase: 'end', leftMs: 0 })).toBe(true)
+    expect(nextUpLaunches('bubble', { phase: 'credits', leftMs: 300 })).toBe(false)
+    expect(nextUpLaunches('bubble', { phase: 'credits', leftMs: undefined })).toBe(false)
+    expect(nextUpLaunches('none', { phase: 'credits', leftMs: 0 })).toBe(false)
   })
 })

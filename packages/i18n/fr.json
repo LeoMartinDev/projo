@@ -472,7 +472,7 @@
       "recapSkipped": "Récap passé"
     },
     "next": {
-      "expand": "Agrandir et regarder le générique",
+      "in": "Épisode suivant dans {{seconds}} s",
       "watchCredits": "Regarder le générique",
       "playIn": "Lecture dans {{seconds}} s",
       "starting": "Lancement…",

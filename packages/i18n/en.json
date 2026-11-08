@@ -472,7 +472,7 @@
       "recapSkipped": "Recap skipped"
     },
     "next": {
-      "expand": "Expand and watch the credits",
+      "in": "Next episode in {{seconds}} s",
       "watchCredits": "Watch the credits",
       "playIn": "Playing in {{seconds}} s",
       "starting": "Starting…",
