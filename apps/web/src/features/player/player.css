@@ -1809,6 +1809,31 @@
   transform: scale(0.62);
 }
 
+/* Pinch in to close (§10.7): the video follows the fingers, then goes back to
+   full size or leaves; durations kept equal to pinchSettleMs / pinchCloseMs. */
+.player--pinch-active .player__video,
+.player--pinch-settling .player__video,
+.player--pinch-closing .player__video {
+  transform-origin: 50% 50%;
+}
+
+.player--pinch-active .player__video {
+  transform: scale(var(--player-pinch-scale, 1));
+  transition: none;
+}
+
+.player--pinch-settling .player__video {
+  transition: transform 240ms var(--ease);
+}
+
+.player--pinch-closing .player__video {
+  opacity: 0;
+  transform: scale(calc(var(--player-pinch-scale, 1) * 0.8));
+  transition:
+    transform 180ms var(--ease),
+    opacity 180ms var(--ease);
+}
+
 .player--next-up .player__bottom {
   visibility: hidden;
   opacity: 0;
@@ -2076,6 +2101,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .player__video,
+  .player--pinch-settling .player__video,
+  .player--pinch-closing .player__video,
   .skip-segment__fill,
   .next-up__ring-left {
     transition: none;

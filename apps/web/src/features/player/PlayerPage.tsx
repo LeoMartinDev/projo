@@ -13,6 +13,7 @@ import {
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
+import { reducedMotion } from '@projo/design/media'
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 import type {
@@ -118,6 +119,13 @@ import {
   type SessionChange,
   type SessionRequest,
 } from './session-request.ts'
+import {
+  type Pinch,
+  type PinchPoint,
+  pinchCloses,
+  pinchMoved,
+  pinchStarted,
+} from './pinch-gesture.ts'
 import { commandFor, isVerticalDrag, tapZone, volumeAfterDrag } from './shortcuts.ts'
 import { createSessionUnlessLeft, startSessionLifecycle } from './session-lifecycle.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
@@ -191,6 +199,9 @@ const volumeStep = 0.1
 const idleDelayMs = 3000
 const endedReturnDelayMs = 5000
 const rippleFadeMs = 250
+// Kept equal to the transitions of `.player--pinch-settling` and `.player--pinch-closing`.
+const pinchSettleMs = 240
+const pinchCloseMs = 180
 const countdownTickMs = 250
 
 type Interruption =
@@ -263,6 +274,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   }>()
   const [tapWait, setTapWait] = useState<{ ms: number; taps: TapGesture }>()
   const [volumeHud, setVolumeHud] = useState<number>()
+  const [pinchStage, setPinchStage] = useState<'idle' | 'active' | 'settling' | 'closing'>('idle')
   const [skipEntry, setSkipEntry] = useState<{ key: string; atMs: number }>()
   const [skipped, setSkipped] = useState<{ segment: SkippableSegment; id: number }>()
   const [dismissedNextUp, setDismissedNextUp] = useState<ReadonlySet<string>>(() => new Set())
@@ -283,7 +295,13 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     pointer: string
     start?: { x: number; y: number; volume: number; height: number; dragging: boolean } | undefined
     taps: TapGesture
-  }>({ pointer: 'mouse', taps: idleGesture })
+    // Touch pointers down on the surface, by pointer id.
+    touches: Map<number, PinchPoint>
+    pinch?: { ids: [number, number]; state: Pinch } | undefined
+    // Set once a second finger went down: the fingers left after it are
+    // neither a tap nor a volume drag until they are all up.
+    ignoring: boolean
+  }>({ pointer: 'mouse', taps: idleGesture, touches: new Map(), ignoring: false })
 
   const [video, videoSlotRef] = usePlayerVideo()
   const [container, containerRef] = useElement<HTMLDivElement>()
@@ -970,10 +988,104 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return () => clearTimeout(timer)
   }, [rippleFading])
 
+  // A pinch in closes the player like its close button (§10.7); the video
+  // follows the fingers through `--player-pinch-scale`, set without a render.
+  const showPinchScale = (scale: number) =>
+    container?.style.setProperty('--player-pinch-scale', String(scale))
+
+  const onPinchEnded = useEffectEvent(() => {
+    if (pinchStage !== 'closing') return
+    exit()
+  })
+
+  useEffect(() => {
+    if (pinchStage === 'settling') {
+      const timer = setTimeout(() => setPinchStage('idle'), pinchSettleMs)
+      return () => clearTimeout(timer)
+    }
+    if (pinchStage !== 'closing') return
+    const timer = setTimeout(onPinchEnded, matchMedia(reducedMotion).matches ? 0 : pinchCloseMs)
+    return () => clearTimeout(timer)
+  }, [pinchStage])
+
+  // Safari zooms the page on a pinch whatever `touch-action` says; inside the
+  // player only, the rest of the app keeps its zoom.
+  useEffect(() => {
+    if (container === undefined) return
+    const prevent = (event: Event) => event.preventDefault()
+    container.addEventListener('gesturestart', prevent)
+    container.addEventListener('gesturechange', prevent)
+    return () => {
+      container.removeEventListener('gesturestart', prevent)
+      container.removeEventListener('gesturechange', prevent)
+    }
+  }, [container])
+
+  // A second finger cancels the tap or volume drag of the first one, and starts
+  // a pinch unless a menu or panel is open.
+  const onSecondTouch = (time: number) => {
+    const gesture = gestureRef.current
+    const start = gesture.start
+    gesture.start = undefined
+    gesture.ignoring = true
+    if (start?.dragging === true) {
+      setVolume(start.volume)
+      setVolumeHud(undefined)
+    }
+    if (gesture.taps.kind !== 'idle') {
+      gesture.taps = idleGesture
+      setTapWait(undefined)
+      setSeekRipple((shown) => shown && { ...shown, fading: true })
+    }
+    const [first, second] = [...gesture.touches.entries()]
+    if (
+      first === undefined ||
+      second === undefined ||
+      gesture.touches.size !== 2 ||
+      overlay !== undefined ||
+      nextUpShown ||
+      pinchStage === 'closing'
+    )
+      return
+    gesture.pinch = { ids: [first[0], second[0]], state: pinchStarted(first[1], second[1], time) }
+    showPinchScale(1)
+    setPinchStage('active')
+  }
+
+  const onPinchPointerUp = (pointerId: number, time: number, cancelled: boolean) => {
+    const gesture = gestureRef.current
+    const pinch = gesture.pinch
+    if (pinch === undefined || !pinch.ids.includes(pointerId)) return
+    gesture.pinch = undefined
+    setPinchStage(!cancelled && pinchCloses(pinch.state, time) ? 'closing' : 'settling')
+  }
+
+  // Drops a lifted touch; true while the fingers left belong to a pinch.
+  const touchLifted = (event: PointerEvent<HTMLDivElement>, cancelled: boolean) => {
+    const gesture = gestureRef.current
+    gesture.touches.delete(event.pointerId)
+    onPinchPointerUp(event.pointerId, event.timeStamp, cancelled)
+    if (!gesture.ignoring) return false
+    gesture.start = undefined
+    if (gesture.touches.size === 0) gesture.ignoring = false
+    return true
+  }
+
   const onSurfacePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current
     gesture.pointer = event.pointerType
     if (event.pointerType === 'mouse') return
+    // The first finger of a touch: whatever was left of an earlier one is stale.
+    if (event.isPrimary) {
+      gesture.touches.clear()
+      gesture.ignoring = false
+    }
+    gesture.touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    if (gesture.touches.size > 1) {
+      if (gesture.pinch === undefined) onSecondTouch(event.timeStamp)
+      return
+    }
+    if (gesture.ignoring) return
     const rect = event.currentTarget.getBoundingClientRect()
     gesture.start = {
       x: event.clientX,
@@ -985,7 +1097,20 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   }
 
   const onSurfacePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const start = gestureRef.current.start
+    const gesture = gestureRef.current
+    if (gesture.touches.has(event.pointerId))
+      gesture.touches.set(event.pointerId, { x: event.clientX, y: event.clientY })
+    const pinch = gesture.pinch
+    if (pinch !== undefined) {
+      const a = gesture.touches.get(pinch.ids[0])
+      const b = gesture.touches.get(pinch.ids[1])
+      if (!pinch.ids.includes(event.pointerId) || a === undefined || b === undefined) return
+      const state = pinchMoved(pinch.state, a, b, event.timeStamp)
+      gesture.pinch = { ...pinch, state }
+      showPinchScale(state.scale)
+      return
+    }
+    const start = gesture.start
     if (start === undefined || video === undefined) return
     const dx = event.clientX - start.x
     const dy = event.clientY - start.y
@@ -998,6 +1123,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   const onSurfacePointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current
+    if (event.pointerType !== 'mouse' && touchLifted(event, false)) return
     const start = gesture.start
     gesture.start = undefined
     if (event.pointerType === 'mouse' || start === undefined) return
@@ -1087,7 +1213,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   return (
     <div
       ref={containerRef}
-      className={`player${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'languages' ? ' player--menu' : ''}`}
+      className={`player${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'languages' ? ' player--menu' : ''}${pinchStage === 'idle' ? '' : ` player--pinch-${pinchStage}`}`}
       onPointerMove={(event) => {
         if (event.pointerType === 'mouse') wake()
       }}
@@ -1140,7 +1266,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         onPointerDown={onSurfacePointerDown}
         onPointerMove={onSurfacePointerMove}
         onPointerUp={onSurfacePointerUp}
-        onPointerCancel={() => {
+        onPointerCancel={(event) => {
+          if (event.pointerType !== 'mouse') touchLifted(event, true)
           gestureRef.current.start = undefined
           setVolumeHud(undefined)
         }}
