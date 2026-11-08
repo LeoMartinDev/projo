@@ -171,6 +171,7 @@ import {
 } from './track-memory.ts'
 import { TrackToast } from './TrackToast.tsx'
 import { sheetUrls, thumbnailAt } from './trickplay.ts'
+import { useControlsInset } from './use-controls-inset.ts'
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import { usePlayerVideo } from './player-element.ts'
@@ -307,6 +308,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
 
   const [video, videoSlotRef] = usePlayerVideo()
   const [container, containerRef] = useElement<HTMLDivElement>()
+  const [controls, controlsRef] = useElement<HTMLDivElement>()
+  useControlsInset(container, controls)
   usePlayerFullscreenScope()
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useVideoState(video)
@@ -1529,7 +1532,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         </div>
       ) : undefined}
 
-      <div className="player__bottom" inert={nextUpShown}>
+      <div ref={controlsRef} className="player__bottom" inert={nextUpShown}>
         <div className="player__bar">
           <Timeline
             positionMs={positionMs}
