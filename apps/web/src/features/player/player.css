@@ -218,7 +218,7 @@
   right: var(--player-gutter);
   bottom: max(6%, 32px);
   left: var(--player-gutter);
-  z-index: 1;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2064,6 +2064,10 @@
 
 .player__overlay--end {
   z-index: 3;
+}
+
+.player:has(> .player__overlay--end) > .captions {
+  visibility: hidden;
 }
 
 .player__overlay-title {
