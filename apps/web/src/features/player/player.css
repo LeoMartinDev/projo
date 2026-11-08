@@ -484,8 +484,7 @@
   transition: width 0.25s linear;
 }
 
-.timeline__played--dragging,
-.timeline__knob--dragging {
+.timeline__played--dragging {
   transition: none;
 }
 
@@ -501,6 +500,11 @@
   transition:
     left 0.25s linear,
     transform 0.2s ease;
+}
+
+/* After the base rule (same specificity): while dragging, the knob follows the pointer. */
+.timeline__knob--dragging {
+  transition: transform 0.2s ease;
 }
 
 .timeline:hover .timeline__knob,
