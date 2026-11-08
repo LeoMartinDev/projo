@@ -663,7 +663,7 @@ Home-made component on top of `<video>` and hls.js, no Video.js. Matches the `Pl
 
 System integration: Now Playing through the Media Session API (title, series, poster; play/pause, ±10 s, seek, next episode on the lock screen, in Control Center and from headset keys); an AirPlay button next to Picture-in-Picture when Safari reports a receiver (`webkitShowPlaybackTargetPicker`, streams under the capability URLs of §20); full screen locks landscape where the browser allows it (Android).
 
-Shortcuts: `space` play/pause, `←`/`→` ±10 s, `↑`/`↓` volume, `M` mute, `F` full screen, `S` skip the current segment, `N` next episode, `C` subtitles on/off, `Esc` exit. Mobile: double tap left/right ±10 s, vertical swipe for volume. Volume remembered per device (`localStorage`).
+Shortcuts: `space` play/pause, `←`/`→` ±10 s, `↑`/`↓` volume, `M` mute, `F` full screen, `S` skip the current segment, `N` next episode, `C` subtitles on/off, `Esc` exit. Mobile: double tap left/right ±10 s, repeated taps add up, shown by a light ripple on that side; never shows the controls (a single tap toggles them once no second tap can follow). Vertical swipe for volume. Volume remembered per device (`localStorage`).
 
 States to handle explicitly: initial loading, buffering, network error (automatic resume at the position), transcode limit reached, session stopped by the admin, end of the item without a next one (back to the title page after 5 s).
 

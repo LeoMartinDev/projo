@@ -75,6 +75,7 @@ import {
   NextEpisodeIcon,
   PictureInPictureIcon,
   QualityIcon,
+  SeekArrowsIcon,
   SpeedIcon,
   SubtitlesIcon,
 } from './player-icons.tsx'
@@ -117,17 +118,11 @@ import {
   type SessionChange,
   type SessionRequest,
 } from './session-request.ts'
-import {
-  commandFor,
-  isDoubleTap,
-  isVerticalDrag,
-  type Tap,
-  tapZone,
-  volumeAfterDrag,
-} from './shortcuts.ts'
+import { commandFor, isVerticalDrag, tapZone, volumeAfterDrag } from './shortcuts.ts'
 import { createSessionUnlessLeft, startSessionLifecycle } from './session-lifecycle.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
 import { SubtitleOverlay } from './SubtitleOverlay.tsx'
+import { idleGesture, type SeekSide, settled, type TapGesture, tapped } from './tap-gestures.ts'
 import {
   needsNewSession,
   renditionLabel,
@@ -195,7 +190,7 @@ const seekStepMs = 10_000
 const volumeStep = 0.1
 const idleDelayMs = 3000
 const endedReturnDelayMs = 5000
-const hudDelayMs = 700
+const rippleFadeMs = 250
 const countdownTickMs = 250
 
 type Interruption =
@@ -258,7 +253,15 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [memory, setMemory] = useState<{ value: TrackPreferencesBody | undefined }>()
   const [writeMemory] = useState(serialTasks)
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
-  const [seekHud, setSeekHud] = useState<{ side: 'left' | 'right'; seconds: number; id: number }>()
+  const [seekRipple, setSeekRipple] = useState<{
+    side: SeekSide
+    steps: number
+    x: number
+    y: number
+    tap: number
+    fading: boolean
+  }>()
+  const [tapWait, setTapWait] = useState<{ ms: number; taps: TapGesture }>()
   const [volumeHud, setVolumeHud] = useState<number>()
   const [skipEntry, setSkipEntry] = useState<{ key: string; atMs: number }>()
   const [skipped, setSkipped] = useState<{ segment: SkippableSegment; id: number }>()
@@ -279,10 +282,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const gestureRef = useRef<{
     pointer: string
     start?: { x: number; y: number; volume: number; height: number; dragging: boolean } | undefined
-    lastTap?: Tap | undefined
-    tapTimer?: ReturnType<typeof setTimeout> | undefined
-    hudTimer?: ReturnType<typeof setTimeout> | undefined
-  }>({ pointer: 'mouse' })
+    taps: TapGesture
+  }>({ pointer: 'mouse', taps: idleGesture })
 
   const [video, videoSlotRef] = usePlayerVideo()
   const [container, containerRef] = useElement<HTMLDivElement>()
@@ -941,16 +942,33 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     return () => window.removeEventListener('keydown', listener)
   }, [])
 
-  const showSeekHud = (side: 'left' | 'right') => {
+  // A single tap toggles the controls once no second tap can follow; a seek
+  // series fades its ripple out once the taps stop (§10.7).
+  const settleTaps = useEffectEvent((waited: TapGesture) => {
     const gesture = gestureRef.current
-    clearTimeout(gesture.hudTimer)
-    setSeekHud((shown) => ({
-      side,
-      seconds: shown?.side === side ? shown.seconds + 10 : 10,
-      id: (shown?.id ?? 0) + 1,
-    }))
-    gesture.hudTimer = setTimeout(() => setSeekHud(undefined), hudDelayMs)
-  }
+    if (gesture.taps !== waited) return
+    const wasSeeking = gesture.taps.kind === 'seeking'
+    const { gesture: next, toggleControls } = settled(gesture.taps)
+    gesture.taps = next
+    if (toggleControls) {
+      if (idle) wake()
+      else setIdle(true)
+    }
+    if (wasSeeking) setSeekRipple((shown) => shown && { ...shown, fading: true })
+  })
+
+  useEffect(() => {
+    if (tapWait === undefined) return
+    const timer = setTimeout(() => settleTaps(tapWait.taps), tapWait.ms)
+    return () => clearTimeout(timer)
+  }, [tapWait])
+
+  const rippleFading = seekRipple?.fading === true
+  useEffect(() => {
+    if (!rippleFading) return
+    const timer = setTimeout(() => setSeekRipple(undefined), rippleFadeMs)
+    return () => clearTimeout(timer)
+  }, [rippleFading])
 
   const onSurfacePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const gesture = gestureRef.current
@@ -988,26 +1006,28 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       return
     }
     if (overlay !== undefined) {
+      gesture.taps = idleGesture
+      setTapWait(undefined)
       closeOverlay()
       return
     }
     const rect = event.currentTarget.getBoundingClientRect()
-    const tap: Tap = { time: event.timeStamp, x: event.clientX, y: event.clientY }
-    const zone = tapZone(event.clientX - rect.left, rect.width)
-    if (zone !== 'center' && isDoubleTap(gesture.lastTap, tap)) {
-      clearTimeout(gesture.tapTimer)
-      gesture.lastTap = tap
-      seekBy(zone === 'left' ? -seekStepMs : seekStepMs)
-      showSeekHud(zone)
-      return
-    }
-    gesture.lastTap = tap
-    clearTimeout(gesture.tapTimer)
-    gesture.tapTimer = setTimeout(() => {
-      gesture.lastTap = undefined
-      if (idle) wake()
-      else setIdle(true)
-    }, 260)
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    const step = tapped(gesture.taps, { time: event.timeStamp, zone: tapZone(x, rect.width) })
+    gesture.taps = step.gesture
+    setTapWait({ ms: step.settleAfterMs, taps: step.gesture })
+    const seek = step.seek
+    if (seek === undefined) return
+    seekBy(seek.side === 'left' ? -seekStepMs : seekStepMs)
+    setSeekRipple((shown) => ({
+      side: seek.side,
+      steps: seek.steps,
+      x,
+      y,
+      tap: (shown?.tap ?? 0) + 1,
+      fading: false,
+    }))
   }
 
   const onSurfaceClick = () => {
@@ -1131,14 +1151,23 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         aria-hidden="true"
       />
 
-      {seekHud === undefined ? undefined : (
+      {seekRipple === undefined ? undefined : (
         <div
-          key={seekHud.id}
-          className={`player__seek-hud player__seek-hud--${seekHud.side}`}
+          key={seekRipple.side}
+          className={`player__seek-ripple player__seek-ripple--${seekRipple.side}${seekRipple.fading ? ' player__seek-ripple--fading' : ''}`}
           aria-hidden="true"
         >
-          {seekHud.side === 'left' ? <Rewind10Icon size={26} /> : <Forward10Icon size={26} />}
-          <span>{seekHud.side === 'left' ? `−${seekHud.seconds} s` : `+${seekHud.seconds} s`}</span>
+          <span
+            key={seekRipple.tap}
+            className="player__seek-ripple-wave"
+            style={{ left: seekRipple.x, top: seekRipple.y }}
+          />
+          <span className="player__seek-ripple-label">
+            <SeekArrowsIcon direction={seekRipple.side === 'left' ? 'back' : 'forward'} />
+            {t(seekRipple.side === 'left' ? 'player.seekTotal.back' : 'player.seekTotal.forward', {
+              seconds: (seekRipple.steps * seekStepMs) / 1000,
+            })}
+          </span>
         </div>
       )}
 

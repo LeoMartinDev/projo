@@ -442,6 +442,10 @@
     "pause": "Pause",
     "back10": "Reculer de 10 secondes",
     "forward10": "Avancer de 10 secondes",
+    "seekTotal": {
+      "back": "−{{seconds}} s",
+      "forward": "+{{seconds}} s"
+    },
     "mute": "Couper le son",
     "unmute": "Rétablir le son",
     "volume": "Volume",

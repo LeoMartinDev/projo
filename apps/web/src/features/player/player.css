@@ -137,36 +137,74 @@
   transform: scale(0.94);
 }
 
-.player__seek-hud {
+/* Double tap to seek (§10.7): a light wash over the tapped side, a wave from
+   the finger at each tap, the arrows and the series' total. */
+.player__seek-ripple {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  background: var(--fill-2);
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  animation: fade-in 0.12s ease;
+}
+
+.player__seek-ripple--left {
+  clip-path: ellipse(42% 80% at 0% 50%);
+}
+
+.player__seek-ripple--right {
+  clip-path: ellipse(42% 80% at 100% 50%);
+}
+
+.player__seek-ripple--fading {
+  opacity: 0;
+}
+
+.player__seek-ripple-wave {
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  margin: -120px 0 0 -120px;
+  border-radius: 50%;
+  background: var(--fill-3);
+  opacity: 0;
+  animation: seek-wave 0.5s ease-out;
+}
+
+@keyframes seek-wave {
+  from {
+    opacity: 1;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+.player__seek-ripple-label {
   position: absolute;
   top: 50%;
-  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 104px;
-  height: 104px;
-  border-radius: var(--radius-pill);
-  background: var(--material-glass);
-  -webkit-backdrop-filter: var(--blur-glass-dim);
-  backdrop-filter: var(--blur-glass-dim);
-  box-shadow: var(--shadow-glass);
+  gap: 2px;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  pointer-events: none;
-  transform: translateY(-50%);
-  animation: fade-in 0.15s ease both;
+  white-space: nowrap;
+  text-shadow: 0 1px 6px var(--shade-2);
+  transform: translate(-50%, -50%);
 }
 
-.player__seek-hud--left {
-  left: 12%;
+.player__seek-ripple--left .player__seek-ripple-label {
+  left: 18%;
 }
 
-.player__seek-hud--right {
-  right: 12%;
+.player__seek-ripple--right .player__seek-ripple-label {
+  left: 82%;
 }
 
 .player__volume-hud {
@@ -2044,8 +2082,13 @@
   }
 
   .skip-segment,
-  .next-up {
+  .next-up,
+  .player__seek-ripple {
     animation: none;
+  }
+
+  .player__seek-ripple-wave {
+    display: none;
   }
 }
 

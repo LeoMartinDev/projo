@@ -58,16 +58,6 @@ export type TapZone = 'left' | 'center' | 'right'
 export const tapZone = (x: number, width: number): TapZone =>
   width <= 0 ? 'center' : x < width / 3 ? 'left' : x > (width * 2) / 3 ? 'right' : 'center'
 
-export type Tap = { time: number; x: number; y: number }
-
-export const doubleTapMs = 300
-const doubleTapDistance = 60
-
-export const isDoubleTap = (previous: Tap | undefined, current: Tap) =>
-  previous !== undefined &&
-  current.time - previous.time <= doubleTapMs &&
-  Math.hypot(current.x - previous.x, current.y - previous.y) <= doubleTapDistance
-
 export const isVerticalDrag = (dx: number, dy: number) =>
   Math.abs(dy) >= 14 && Math.abs(dy) > Math.abs(dx) * 1.5
 

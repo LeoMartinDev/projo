@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   commandFor,
-  isDoubleTap,
   isVerticalDrag,
   type KeyContext,
   tapZone,
@@ -60,14 +59,6 @@ describe('gestures', () => {
     expect(tapZone(195, 390)).toBe('center')
     expect(tapZone(380, 390)).toBe('right')
     expect(tapZone(10, 0)).toBe('center')
-  })
-
-  test('a double tap is quick and close', () => {
-    const first = { time: 1000, x: 50, y: 300 }
-    expect(isDoubleTap(undefined, first)).toBe(false)
-    expect(isDoubleTap(first, { time: 1250, x: 60, y: 310 })).toBe(true)
-    expect(isDoubleTap(first, { time: 1400, x: 60, y: 310 })).toBe(false)
-    expect(isDoubleTap(first, { time: 1100, x: 300, y: 300 })).toBe(false)
   })
 
   test('vertical drags set the volume', () => {

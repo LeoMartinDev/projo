@@ -93,3 +93,18 @@ export const PictureInPictureIcon = ({ size = 20 }: IconProps) => (
     <rect x="12" y="11" width="7" height="6" rx="1" fill="currentColor" stroke="none" />
   </svg>
 )
+
+export const SeekArrowsIcon = ({
+  size = 22,
+  direction,
+}: IconProps & { direction: 'back' | 'forward' }) => (
+  <svg {...svg(size)} fill="currentColor" strokeWidth={1.5}>
+    <path
+      d={
+        direction === 'back'
+          ? 'M11.5 6.5 4 12l7.5 5.5zM20 6.5 12.5 12l7.5 5.5z'
+          : 'M12.5 6.5 20 12l-7.5 5.5zM4 6.5l7.5 5.5L4 17.5z'
+      }
+    />
+  </svg>
+)
