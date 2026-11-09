@@ -17,6 +17,7 @@ import {
   formatRelative,
 } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
+import { reloadFresh } from '../../../shared/app-update/service-worker.ts'
 import { copyText } from '../../../shared/ui/copy-text.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { CheckIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
@@ -339,6 +340,7 @@ export const UpdatesPage = () => {
   const { restarting, watchRestart } = useLiveUpdates()
   const storedError = useStoredError()
   const [confirming, setConfirming] = useState<Confirming | undefined>()
+  const [reloading, setReloading] = useState(false)
   const check = useMutation({
     mutationFn: () => request(() => api.admin.updates.check.$post()),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: updatesQueryKey }),
@@ -361,6 +363,18 @@ export const UpdatesPage = () => {
       <div className="admin-page__header">
         <h1 className="admin-page__title">{t('admin.updates.title')}</h1>
         <div className="admin-page__actions">
+          <button
+            type="button"
+            className="button button--glass"
+            disabled={reloading || restarting}
+            onClick={() => {
+              setReloading(true)
+              void reloadFresh()
+            }}
+          >
+            {reloading ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
+            {t('admin.updates.reloadApp')}
+          </button>
           <button
             type="button"
             className="button button--glass"
@@ -391,6 +405,19 @@ export const UpdatesPage = () => {
                   {t('admin.updates.runtime', { version: data.current.runtime })}
                 </span>
               </>
+            )}
+          </dd>
+        </div>
+        <div className="upd-summary__item">
+          <dt>{t('admin.updates.webApp')}</dt>
+          <dd>
+            <span className="upd-summary__value">{__PROJO_VERSION__}</span>
+            {data === undefined || data.current.version === __PROJO_VERSION__ ? (
+              <span className="upd-summary__sub">{'\u00a0'}</span>
+            ) : (
+              <span className="upd-summary__sub upd-summary__sub--error">
+                {t('admin.updates.webOutdated', { version: data.current.version })}
+              </span>
             )}
           </dd>
         </div>
