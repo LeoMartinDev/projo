@@ -19,7 +19,7 @@ import {
 import { getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { browserMediaEnvironment, detectCapabilities } from './capabilities.ts'
 import { endSession, type HeartbeatTransport } from './heartbeat.ts'
-import { KEYFRAME_WAIT_RETRIES, mediaPlaylistUrl, waitForPlaylist } from './playlist-wait.ts'
+import { keyframeWaitLoadPolicy, mediaPlaylistUrl, waitForPlaylist } from './playlist-wait.ts'
 import { watchSeekStalls } from './seek-stall.ts'
 import { createSessionEnds } from './session-ends.ts'
 import { type SessionRequest, toCreateBody } from './session-request.ts'
@@ -114,21 +114,6 @@ const seekOnceLoaded = (video: HTMLVideoElement, seconds: number) => {
 
 const mediaErrorNetwork = 2
 
-const manifestLoadPolicy: HlsConfig['manifestLoadPolicy'] = {
-  default: {
-    maxTimeToFirstByteMs: Number.POSITIVE_INFINITY,
-    maxLoadTimeMs: 30_000,
-    timeoutRetry: { maxNumRetry: 2, retryDelayMs: 0, maxRetryDelayMs: 0 },
-    errorRetry: {
-      maxNumRetry: KEYFRAME_WAIT_RETRIES,
-      retryDelayMs: 1000,
-      maxRetryDelayMs: 2000,
-      shouldRetry: (_config, retryCount, _isTimeout, response, retry) =>
-        retry && (response?.code === 503 || retryCount < 1),
-    },
-  },
-}
-
 export const attachStream = (
   video: HTMLVideoElement,
   session: PlaybackSessionDto,
@@ -198,7 +183,7 @@ export const attachStream = (
     const config: Partial<HlsConfig> = {
       startPosition: startSeconds,
       maxBufferLength: 30,
-      manifestLoadPolicy,
+      playlistLoadPolicy: keyframeWaitLoadPolicy,
       xhrSetup: (xhr) => {
         xhr.withCredentials = true
       },
