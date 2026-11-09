@@ -64,6 +64,11 @@ export const reloadToLatest = async (): Promise<void> => {
   window.location.reload()
 }
 
+export const reloadFresh = async (): Promise<void> => {
+  await resetServiceWorker()
+  window.location.reload()
+}
+
 const session = (): Storage | undefined => {
   try {
     return globalThis.sessionStorage
