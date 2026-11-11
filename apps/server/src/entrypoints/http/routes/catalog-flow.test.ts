@@ -134,7 +134,7 @@ describe('GET /home', () => {
     })
   })
 
-  test('Continuer à regarder, À suivre, hero, Ma liste — one request', async () => {
+  test('Continuer à regarder (a movie, the next episode of a show), hero, Ma liste — one request', async () => {
     expect((await play('heat', 0.5)).status).toBe(200)
     app.clock.advance(60_000)
     expect((await play('show-s1e2', 0.97)).status).toBe(200)
@@ -143,31 +143,25 @@ describe('GET /home', () => {
     const home = await get<HomeDto>('/home')
     expect(home.rows.map((row) => row.kind)).toEqual([
       'continue_watching',
-      'up_next',
       'recently_added',
       'watchlist',
     ])
-    const [resume, next, , listed] = home.rows
+    const [resume, , listed] = home.rows
     await app.call('/watchlist/show', { method: 'POST' })
     const again = await get<HomeDto>('/home')
-    const upNextRow = again.rows.find((row) => row.kind === 'up_next')
-    expect(upNextRow?.kind === 'up_next' && upNextRow.items[0]?.episode.series).toMatchObject({
-      id: 'show',
-      inWatchlist: true,
-    })
+    const continueRow = again.rows.find((row) => row.kind === 'continue_watching')
+    expect(continueRow?.kind === 'continue_watching' && continueRow.items[0]?.series).toMatchObject(
+      { id: 'show', inWatchlist: true },
+    )
     expect(resume?.kind === 'continue_watching' && resume.items).toMatchObject([
+      { id: 'show-s1e4', seasonNumber: 1, episodeNumber: 4, series: { id: 'show' } },
       {
         id: 'heat',
         images: { backdrop: '/api/v1/images/backdrop-heat' },
         progress: { state: 'in_progress', resumePositionMs: hour / 2 },
       },
     ])
-    expect(next?.kind === 'up_next' && next.items).toMatchObject([
-      {
-        episode: { id: 'show-s1e4', seasonNumber: 1, episodeNumber: 4, series: { id: 'show' } },
-        isNew: false,
-      },
-    ])
+    expect(resume?.kind === 'continue_watching' && resume.items[0]).not.toHaveProperty('isNew')
     expect(listed?.kind === 'watchlist' && listed.items.map((item) => item.id)).toEqual(['amelie'])
     expect(home.hero).toMatchObject({
       item: { id: 'show', kind: 'series' },
@@ -176,7 +170,18 @@ describe('GET /home', () => {
     })
   })
 
-  test('"Retirer" hides a series from both rows until the next play', async () => {
+  test('Continuer à regarder: one card per show, the episode in progress played last', async () => {
+    await play('show-s1e1', 0.5)
+    app.clock.advance(60_000)
+    await play('show-s1e2', 0.3)
+    const home = await get<HomeDto>('/home')
+    const row = home.rows.find((entry) => entry.kind === 'continue_watching')
+    expect(row?.kind === 'continue_watching' && row.items.map((item) => item.id)).toEqual([
+      'show-s1e2',
+    ])
+  })
+
+  test('"Retirer" hides a series from the row until the next play', async () => {
     await play('show-s1e1', 0.97)
     await play('show-s1e2', 0.4)
     const hidden = await app.call('/items/show-s1e2/hide-from-continue', { method: 'POST' })

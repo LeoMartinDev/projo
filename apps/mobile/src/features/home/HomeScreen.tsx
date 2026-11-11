@@ -42,7 +42,6 @@ import { Row, RowSkeleton } from './Row.tsx'
 
 const rowTitleKey = {
   continue_watching: 'home.rows.continueWatching',
-  up_next: 'home.rows.upNext',
   recently_added: 'home.rows.recentlyAdded',
   watchlist: 'home.rows.watchlist',
 } as const
@@ -53,16 +52,17 @@ const windowTop = initialWindowMetrics?.insets.top ?? 0
 
 type Card = { item: ItemSummaryDto; isNew: boolean; resumeFrame?: ResumeFrameDto }
 
+// An older server still sends an `up_next` row (merged into Continue watching since): left out.
+const isKnownRow = (row: HomeRowDto): boolean => Object.hasOwn(rowTitleKey, row.kind)
+
 const cardsOf = (row: HomeRowDto): Card[] =>
-  row.kind === 'up_next'
-    ? row.items.map((entry) => ({ item: entry.episode, isNew: entry.isNew }))
-    : row.kind === 'continue_watching'
-      ? row.items.map((item) => ({
-          item,
-          isNew: false,
-          ...(item.resumeFrame === undefined ? {} : { resumeFrame: item.resumeFrame }),
-        }))
-      : row.items.map((item) => ({ item, isNew: false }))
+  row.kind === 'continue_watching'
+    ? row.items.map((item) => ({
+        item,
+        isNew: item.isNew === true,
+        ...(item.resumeFrame === undefined ? {} : { resumeFrame: item.resumeFrame }),
+      }))
+    : row.items.map((item) => ({ item, isNew: false }))
 
 export const HomeScreen = () => {
   const { t } = useTranslation()
@@ -147,7 +147,8 @@ export const HomeScreen = () => {
           <RowSkeleton gap={gap} gutter={gutter} poster width={layout.posterCard} />
         </View>
       )
-    const { hero, rows } = home.data
+    const { hero } = home.data
+    const rows = home.data.rows.filter(isKnownRow)
     if (hero === undefined && rows.length === 0) {
       const admin = canAdminister(me)
       return (

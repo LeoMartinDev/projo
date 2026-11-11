@@ -17,24 +17,78 @@ export type ProgressQueries = {
   listPlayed: (input: { profileId: string; scope: VisibilityScope }) => PlayedItem[]
 }
 
+export type ContinueEntry = {
+  itemId: string
+  seriesId?: string
+  lastActivityAt: Date
+} & ({ kind: 'resume'; positionMs: number } | { kind: 'next'; isNew: boolean })
+
+const lastActivityOf = (played: readonly PlayedItem[]): Map<string, number> => {
+  const activity = new Map<string, number>()
+  for (const entry of played) {
+    if (entry.seriesId === undefined) continue
+    const at = entry.progress.lastPlayedAt.getTime()
+    activity.set(entry.seriesId, Math.max(activity.get(entry.seriesId) ?? at, at))
+  }
+  return activity
+}
+
+const resumeEntries = (
+  played: readonly PlayedItem[],
+  hiddenSeries: ReadonlySet<string>,
+): ContinueEntry[] => {
+  const latest = new Map<string, PlayedItem>()
+  for (const entry of played) {
+    if (
+      entry.absent === true ||
+      !isResumable(entry.progress) ||
+      entry.progress.hiddenFromContinue ||
+      (entry.seriesId !== undefined && hiddenSeries.has(entry.seriesId))
+    )
+      continue
+    const key = entry.seriesId ?? entry.itemId
+    const current = latest.get(key)
+    if (
+      current === undefined ||
+      entry.progress.lastPlayedAt.getTime() > current.progress.lastPlayedAt.getTime()
+    )
+      latest.set(key, entry)
+  }
+  const activity = lastActivityOf(played)
+  return [...latest.values()].map((entry) => ({
+    kind: 'resume',
+    itemId: entry.itemId,
+    ...(entry.seriesId === undefined ? {} : { seriesId: entry.seriesId }),
+    positionMs: entry.progress.positionMs,
+    lastActivityAt: new Date(
+      (entry.seriesId === undefined ? undefined : activity.get(entry.seriesId)) ??
+        entry.progress.lastPlayedAt.getTime(),
+    ),
+  }))
+}
+
 export const continueWatching = ({
   played,
+  episodes,
   hiddenSeries,
   limit = homeRules.rowLimit,
 }: {
   played: readonly PlayedItem[]
+  episodes: readonly EpisodeRef[]
   hiddenSeries: ReadonlySet<string>
   limit?: number
-}): PlayedItem[] =>
-  played
-    .filter(
-      (entry) =>
-        entry.absent !== true &&
-        isResumable(entry.progress) &&
-        !entry.progress.hiddenFromContinue &&
-        (entry.seriesId === undefined || !hiddenSeries.has(entry.seriesId)),
-    )
-    .sort((a, b) => b.progress.lastPlayedAt.getTime() - a.progress.lastPlayedAt.getTime())
+}): ContinueEntry[] =>
+  [
+    ...resumeEntries(played, hiddenSeries),
+    ...upNext({ played, episodes, hiddenSeries, limit }).map((entry): ContinueEntry => ({
+      kind: 'next',
+      itemId: entry.episode.id,
+      seriesId: entry.seriesId,
+      isNew: entry.isNew,
+      lastActivityAt: entry.lastActivityAt,
+    })),
+  ]
+    .sort((a, b) => b.lastActivityAt.getTime() - a.lastActivityAt.getTime())
     .slice(0, limit)
 
 export const regularEpisodes = (episodes: readonly EpisodeRef[]): readonly EpisodeRef[] => {
@@ -198,28 +252,17 @@ export const seriesPlayTarget = (
 }
 
 export type HeroPick =
-  | { kind: 'continue'; entry: PlayedItem }
-  | { kind: 'up_next'; entry: UpNextEntry }
-  | { kind: 'recent'; itemId: string }
+  { kind: 'continue'; entry: ContinueEntry } | { kind: 'recent'; itemId: string }
 
 export const pickHero = ({
   continueRow,
-  upNextRow,
   recentlyAddedIds,
 }: {
-  continueRow: readonly PlayedItem[]
-  upNextRow: readonly UpNextEntry[]
+  continueRow: readonly ContinueEntry[]
   recentlyAddedIds: readonly string[]
 }): HeroPick | undefined => {
-  const resume = continueRow[0]
-  const next = upNextRow[0]
-  if (resume !== undefined && next !== undefined) {
-    return resume.progress.lastPlayedAt.getTime() >= next.lastActivityAt.getTime()
-      ? { kind: 'continue', entry: resume }
-      : { kind: 'up_next', entry: next }
-  }
-  if (resume !== undefined) return { kind: 'continue', entry: resume }
-  if (next !== undefined) return { kind: 'up_next', entry: next }
+  const latest = continueRow[0]
+  if (latest !== undefined) return { kind: 'continue', entry: latest }
   const recent = recentlyAddedIds[0]
   return recent === undefined ? undefined : { kind: 'recent', itemId: recent }
 }

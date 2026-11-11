@@ -24,7 +24,6 @@ import { ProgressBar, Score } from './parts.tsx'
 
 const places: readonly CardPlace[] = [
   'continue_watching',
-  'up_next',
   'recently_added',
   'watchlist',
   'category',
@@ -79,7 +78,7 @@ export const CardSheet = () => {
   const listTarget = listTargetOf(item)
   const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
   const seen = watched.watched(item)
-  const removable = place === 'continue_watching' || place === 'up_next'
+  const removable = place === 'continue_watching'
   const meta = [text.rating?.text, text.duration, qualityLabel(item.bestQuality)].filter(
     (part) => part !== undefined,
   )
@@ -166,9 +165,7 @@ export const CardSheet = () => {
           style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
         >
           <SymbolView name="xmark" size={18} tintColor={colors.errorSoft} />
-          <Text style={styles.removeLabel}>
-            {place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}
-          </Text>
+          <Text style={styles.removeLabel}>{t('card.removeContinue')}</Text>
         </Pressable>
       ) : undefined}
     </View>

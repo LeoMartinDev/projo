@@ -109,15 +109,7 @@ const useFollowPreview = (
   }, [wrapper, open, update])
 }
 
-const PreviewActions = ({
-  item,
-  place,
-  actions,
-}: {
-  item: ItemSummaryDto
-  place: CardPlace
-  actions: CardActions
-}) => {
+const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: CardActions }) => {
   const { t } = useTranslation()
   const text = useCardText()(item)
   const { listed, seen } = actions
@@ -159,10 +151,8 @@ const PreviewActions = ({
         <button
           type="button"
           className="round-button"
-          aria-label={
-            place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')
-          }
-          title={place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}
+          aria-label={t('card.removeContinue')}
+          title={t('card.removeContinue')}
           disabled={actions.removing}
           onClick={() => actions.remove()}
         >
@@ -236,7 +226,7 @@ const Preview = ({
         </span>
       </div>
       <div className="preview__body">
-        <PreviewActions item={item} place={place} actions={actions} />
+        <PreviewActions item={item} actions={actions} />
         {actions.error ? (
           <div className="preview__info">
             <span className="preview__error" role="alert">

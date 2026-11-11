@@ -118,7 +118,7 @@ export const listTargetOf = (
 }
 
 export type CardPlace =
-  'continue_watching' | 'up_next' | 'recently_added' | 'watchlist' | 'category' | 'grid' | 'search'
+  'continue_watching' | 'recently_added' | 'watchlist' | 'category' | 'grid' | 'search'
 
 export const isPosterPlace = (place: CardPlace): boolean =>
   place === 'recently_added' || place === 'category'

@@ -5,7 +5,6 @@ import {
   homeRules,
   pickHero,
   type ProgressQueries,
-  upNext,
   upNextCandidates,
 } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
@@ -20,8 +19,7 @@ export type HomeHero = {
 
 export type HomeView = {
   hero?: HomeHero
-  continueWatching: CatalogEntry[]
-  upNext: { entry: CatalogEntry; isNew: boolean }[]
+  continueWatching: { entry: CatalogEntry; isNew: boolean }[]
   recentlyAdded: CatalogEntry[]
   watchlist: CatalogEntry[]
 }
@@ -60,9 +58,8 @@ export const getHomeFactory =
       playedSeries.filter((id) => seriesRows.get(id)?.hiddenFromContinue === true),
     )
 
-    const continueRow = continueWatching({ played, hiddenSeries })
     const candidates = [...upNextCandidates(played, hiddenSeries).keys()]
-    const upNextRow = upNext({
+    const continueRow = continueWatching({
       played,
       episodes: catalogRepository.listSeriesEpisodes({ seriesIds: candidates, scope }),
       hiddenSeries,
@@ -75,20 +72,13 @@ export const getHomeFactory =
     })
     const hero = pickHero({
       continueRow,
-      upNextRow,
       recentlyAddedIds: recent
         .map((item) => item.id)
         .filter((id) => recentRows.get(id)?.hiddenFromContinue !== true),
     })
 
-    const episodeIds = [
-      ...continueRow.map((entry) => entry.itemId),
-      ...upNextRow.map((entry) => entry.episode.id),
-    ]
-    const seriesIds = unique([
-      ...continueRow.flatMap((entry) => entry.seriesId ?? []),
-      ...upNextRow.map((entry) => entry.seriesId),
-    ])
+    const episodeIds = continueRow.map((entry) => entry.itemId)
+    const seriesIds = unique(continueRow.flatMap((entry) => entry.seriesId ?? []))
     const known = new Map<string, CatalogItem>(
       [...recent, ...listed.map((row) => row.item)].map((item) => [item.id, item]),
     )
@@ -117,15 +107,12 @@ export const getHomeFactory =
 
     const heroOf = (): HomeHero | undefined => {
       if (hero === undefined) return undefined
-      if (hero.kind === 'continue' || hero.kind === 'up_next') {
-        const playable =
-          hero.kind === 'continue'
-            ? entryOf(hero.entry.itemId, hero.entry.seriesId)
-            : entryOf(hero.entry.episode.id, hero.entry.seriesId)
+      if (hero.kind === 'continue') {
+        const playable = entryOf(hero.entry.itemId, hero.entry.seriesId)
         if (playable === undefined) return undefined
         const play: PlayButton =
-          hero.kind === 'continue'
-            ? { action: 'resume', item: playable.item, positionMs: hero.entry.progress.positionMs }
+          hero.entry.kind === 'resume'
+            ? { action: 'resume', item: playable.item, positionMs: hero.entry.positionMs }
             : { action: 'play', item: playable.item, positionMs: 0 }
         if (playable.item.kind === 'movie') return { item: playable, play }
         const series =
@@ -159,10 +146,9 @@ export const getHomeFactory =
     const heroView = heroOf()
     return {
       ...(heroView === undefined ? {} : { hero: heroView }),
-      continueWatching: continueRow.flatMap((entry) => entryOf(entry.itemId, entry.seriesId) ?? []),
-      upNext: upNextRow.flatMap((entry) => {
-        const episode = entryOf(entry.episode.id, entry.seriesId)
-        return episode === undefined ? [] : [{ entry: episode, isNew: entry.isNew }]
+      continueWatching: continueRow.flatMap((row) => {
+        const entry = entryOf(row.itemId, row.seriesId)
+        return entry === undefined ? [] : [{ entry, isNew: row.kind === 'next' && row.isNew }]
       }),
       recentlyAdded: recent.flatMap((item) => entries.get(item.id) ?? []),
       watchlist: listed.flatMap((row) => entries.get(row.item.id) ?? []),

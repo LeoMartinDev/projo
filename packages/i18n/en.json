@@ -268,7 +268,6 @@
     "previewMute": "Mute preview sound",
     "rows": {
       "continueWatching": "Continue watching",
-      "upNext": "Up next",
       "recentlyAdded": "Recently added",
       "watchlist": "My list",
       "anime": "Anime"
@@ -287,7 +286,6 @@
     "markWatched": "Mark as watched",
     "markUnwatched": "Mark as unwatched",
     "removeContinue": "Remove from Continue watching",
-    "removeUpNext": "Remove from Up next",
     "info": "More info",
     "infoOn": "More info on {{title}}",
     "previewOf": "Preview of {{title}}",

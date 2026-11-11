@@ -230,7 +230,7 @@ const CardSheetBody = ({
             onClick={() => actions.remove(onClose)}
           >
             <RemoveIcon size={20} />
-            {place === 'continue_watching' ? t('card.removeContinue') : t('card.removeUpNext')}
+            {t('card.removeContinue')}
           </button>
         ) : undefined}
       </div>

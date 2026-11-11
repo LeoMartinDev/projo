@@ -268,7 +268,6 @@
     "previewMute": "Couper le son de l’aperçu",
     "rows": {
       "continueWatching": "Continuer à regarder",
-      "upNext": "À suivre",
       "recentlyAdded": "Ajoutés récemment",
       "watchlist": "Ma liste",
       "anime": "Animés"
@@ -287,7 +286,6 @@
     "markWatched": "Marquer comme vu",
     "markUnwatched": "Marquer comme non vu",
     "removeContinue": "Retirer de Continuer à regarder",
-    "removeUpNext": "Retirer de À suivre",
     "info": "Plus d’infos",
     "infoOn": "Plus d’infos sur {{title}}",
     "previewOf": "Aperçu de {{title}}",

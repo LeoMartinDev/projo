@@ -20,17 +20,12 @@ export const homeHeroDtoSchema = z.object({
 })
 export type HomeHeroDto = z.infer<typeof homeHeroDtoSchema>
 
-export const upNextEntryDtoSchema = z.object({
-  episode: itemSummaryDtoSchema,
-  isNew: z.boolean(),
-})
-export type UpNextEntryDto = z.infer<typeof upNextEntryDtoSchema>
-
 export const resumeFrameDtoSchema = z.object({ url: z.string() })
 export type ResumeFrameDto = z.infer<typeof resumeFrameDtoSchema>
 
 export const continueWatchingEntryDtoSchema = itemSummaryDtoSchema.extend({
   resumeFrame: resumeFrameDtoSchema.optional(),
+  isNew: z.boolean().optional(),
 })
 export type ContinueWatchingEntryDto = z.infer<typeof continueWatchingEntryDtoSchema>
 
@@ -39,7 +34,6 @@ export const homeRowDtoSchema = z.discriminatedUnion('kind', [
     kind: z.literal('continue_watching'),
     items: z.array(continueWatchingEntryDtoSchema),
   }),
-  z.object({ kind: z.literal('up_next'), items: z.array(upNextEntryDtoSchema) }),
   z.object({ kind: z.literal('recently_added'), items: z.array(itemSummaryDtoSchema) }),
   z.object({ kind: z.literal('watchlist'), items: z.array(itemSummaryDtoSchema) }),
 ])

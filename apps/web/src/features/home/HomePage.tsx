@@ -21,7 +21,6 @@ import './home.css'
 
 const rowTitleKey = {
   continue_watching: 'home.rows.continueWatching',
-  up_next: 'home.rows.upNext',
   recently_added: 'home.rows.recentlyAdded',
   watchlist: 'home.rows.watchlist',
 } as const
@@ -63,9 +62,7 @@ export const HomePage = () => {
     sheet === undefined
       ? undefined
       : rows
-          .flatMap((row): ItemSummaryDto[] =>
-            row.kind === 'up_next' ? row.items.map((entry) => entry.episode) : row.items,
-          )
+          .flatMap((row): ItemSummaryDto[] => row.items)
           .concat(
             (categories.data?.pages ?? []).flatMap((page) => page.rows.flatMap((row) => row.items)),
           )
@@ -94,15 +91,13 @@ export const HomePage = () => {
         {rows.map((row) => {
           const seeAll = seeAllOf(row)
           const cards: { item: ItemSummaryDto; isNew: boolean; resumeFrame?: ResumeFrameDto }[] =
-            row.kind === 'up_next'
-              ? row.items.map((entry) => ({ item: entry.episode, isNew: entry.isNew }))
-              : row.kind === 'continue_watching'
-                ? row.items.map((item) => ({
-                    item,
-                    isNew: false,
-                    ...(item.resumeFrame === undefined ? {} : { resumeFrame: item.resumeFrame }),
-                  }))
-                : row.items.map((item) => ({ item, isNew: false }))
+            row.kind === 'continue_watching'
+              ? row.items.map((item) => ({
+                  item,
+                  isNew: item.isNew === true,
+                  ...(item.resumeFrame === undefined ? {} : { resumeFrame: item.resumeFrame }),
+                }))
+              : row.items.map((item) => ({ item, isNew: false }))
           return (
             <Row
               key={row.kind}

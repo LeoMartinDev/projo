@@ -14,13 +14,12 @@ const item = (id: string, extra: Partial<ItemSummaryDto> = {}): ItemSummaryDto =
 })
 
 describe('the card sheet reads its item in the cached data', () => {
-  test('in home rows, up next entries and infinite pages', () => {
+  test('in home rows and infinite pages', () => {
     const episode = item('e1', { kind: 'episode', series: { id: 's1', kind: 'series' } })
     const home = {
       hero: { item: item('m1') },
       rows: [
-        { kind: 'continue_watching', items: [episode] },
-        { kind: 'up_next', items: [{ episode: item('e2', { kind: 'episode' }), isNew: true }] },
+        { kind: 'continue_watching', items: [episode, item('e2', { kind: 'episode' })] },
         { kind: 'recently_added', items: [item('s1', { kind: 'series', inWatchlist: true })] },
       ],
     }

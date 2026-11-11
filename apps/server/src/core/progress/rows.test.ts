@@ -54,7 +54,7 @@ const episodes = (seriesId: string, list: [number, number, Date?][]): EpisodeRef
 const none = new Set<string>()
 
 describe('§13.1 Continuer à regarder', () => {
-  test('movies and episodes between 2 % and 93 %, last played first, 20 max', () => {
+  test('movies between 2 % and 93 %, last played first, 20 max', () => {
     const played = [
       movie('started', { ratio: 0.01, at: day(9) }),
       movie('old', { ratio: 0.5, at: day(1) }),
@@ -62,25 +62,79 @@ describe('§13.1 Continuer à regarder', () => {
       episode('ep', 'show', { ratio: 0.3, at: day(5) }),
       movie('recent', { ratio: 0.92, at: day(7) }),
     ]
-    expect(continueWatching({ played, hiddenSeries: none }).map((e) => e.itemId)).toEqual([
-      'recent',
-      'ep',
-      'old',
-    ])
+    expect(
+      continueWatching({ played, episodes: [], hiddenSeries: none }).map((e) => e.itemId),
+    ).toEqual(['recent', 'ep', 'old'])
+    expect(continueWatching({ played, episodes: [], hiddenSeries: none })[0]).toEqual({
+      kind: 'resume',
+      itemId: 'recent',
+      positionMs: Math.round(0.92 * hour),
+      lastActivityAt: day(7),
+    })
     const many = Array.from({ length: 25 }, (_, i) =>
       movie(`m${i}`, { ratio: 0.5, at: day(i + 1) }),
     )
-    expect(continueWatching({ played: many, hiddenSeries: none })).toHaveLength(20)
+    expect(continueWatching({ played: many, episodes: [], hiddenSeries: none })).toHaveLength(20)
   })
 
-  test('a removed movie, or an episode of a removed series, leaves the row', () => {
+  test('one card per show: the episode in progress played last', () => {
+    const played = [
+      episode('rin-s1e2', 'rin', { ratio: 0.8, at: day(2) }),
+      episode('rin-s1e1', 'rin', { ratio: 0.03, at: day(4) }),
+      episode('rin-s1e3', 'rin', { ratio: 0.2, at: day(3) }),
+      movie('heat', { ratio: 0.5, at: day(1) }),
+    ]
+    expect(continueWatching({ played, episodes: [], hiddenSeries: none })).toEqual([
+      {
+        kind: 'resume',
+        itemId: 'rin-s1e1',
+        seriesId: 'rin',
+        positionMs: Math.round(0.03 * hour),
+        lastActivityAt: day(4),
+      },
+      { kind: 'resume', itemId: 'heat', positionMs: hour / 2, lastActivityAt: day(1) },
+    ])
+  })
+
+  test('a show without an episode in progress: its next episode, among the others by activity', () => {
+    const show = episodes('show', [
+      [1, 1],
+      [1, 2, day(10)],
+    ])
+    const played = [
+      movie('heat', { ratio: 0.5, at: day(3) }),
+      episode('show-s1e1', 'show', { watched: true, at: day(5) }),
+      episode('busy-s1e1', 'busy', { watched: true, at: day(6) }),
+      episode('busy-s1e2', 'busy', { ratio: 0.4, at: day(1) }),
+    ]
+    expect(continueWatching({ played, episodes: show, hiddenSeries: none })).toEqual([
+      {
+        kind: 'resume',
+        itemId: 'busy-s1e2',
+        seriesId: 'busy',
+        positionMs: Math.round(0.4 * hour),
+        lastActivityAt: day(6),
+      },
+      { kind: 'next', itemId: 'show-s1e2', seriesId: 'show', isNew: true, lastActivityAt: day(5) },
+      { kind: 'resume', itemId: 'heat', positionMs: hour / 2, lastActivityAt: day(3) },
+    ])
+  })
+
+  test('a removed movie, or a removed series, leaves the row', () => {
+    const show = episodes('show', [
+      [1, 1],
+      [1, 2],
+    ])
     const played = [
       movie('hidden', { ratio: 0.5, hidden: true }),
       episode('ep', 'show', { ratio: 0.5 }),
+      episode('show-s1e1', 'show', { watched: true }),
       movie('kept', { ratio: 0.5 }),
     ]
     expect(
-      continueWatching({ played, hiddenSeries: new Set(['show']) }).map((e) => e.itemId),
+      continueWatching({ played, episodes: show, hiddenSeries: new Set(['show']) }).map(
+        (e) => e.itemId,
+      ),
     ).toEqual(['kept'])
   })
 
@@ -103,7 +157,7 @@ describe('§13.1 Continuer à regarder', () => {
   })
 })
 
-describe('§13.1 À suivre', () => {
+describe('§13.1 Continuer à regarder: the next episode of a show', () => {
   const show = episodes('show', [
     [1, 1],
     [1, 2],
@@ -187,7 +241,9 @@ describe('§13.1 À suivre', () => {
       { seriesId: 'kept', episode: season2[0] as EpisodeRef, isNew: true, lastActivityAt: day(2) },
     ])
     const halfway = [...played, gone(3, { ratio: 0.5, at: day(3) })]
-    expect(continueWatching({ played: halfway, hiddenSeries: none })).toEqual([])
+    expect(continueWatching({ played: halfway, episodes: season2, hiddenSeries: none })).toEqual([
+      { kind: 'next', itemId: 'kept-s2e1', seriesId: 'kept', isNew: true, lastActivityAt: day(3) },
+    ])
     expect(upNext({ played: halfway, episodes: season2, hiddenSeries: none })).toHaveLength(1)
   })
 
@@ -348,38 +404,25 @@ describe('§13.5 Reprendre S2 · É4 / Lire', () => {
 })
 
 describe('§13.3 hero', () => {
-  const resume = movie('m', { ratio: 0.5, at: day(5) })
-  const next = {
-    seriesId: 'show',
-    episode: { id: 'e', seriesId: 'show' },
-    isNew: false,
-    lastActivityAt: day(6),
-  }
-
-  test('the most recent of "Continuer" and "À suivre"', () => {
-    expect(pickHero({ continueRow: [resume], upNextRow: [next], recentlyAddedIds: ['r'] })).toEqual(
-      {
-        kind: 'up_next',
-        entry: next,
-      },
-    )
-    expect(
-      pickHero({
-        continueRow: [resume],
-        upNextRow: [{ ...next, lastActivityAt: day(4) }],
-        recentlyAddedIds: [],
-      }),
-    ).toEqual({ kind: 'continue', entry: resume })
-    expect(pickHero({ continueRow: [resume], upNextRow: [], recentlyAddedIds: [] })?.kind).toBe(
-      'continue',
-    )
+  test('the first card of "Continuer à regarder"', () => {
+    const next = {
+      kind: 'next' as const,
+      itemId: 'e',
+      seriesId: 'show',
+      isNew: false,
+      lastActivityAt: day(6),
+    }
+    expect(pickHero({ continueRow: [next], recentlyAddedIds: ['r'] })).toEqual({
+      kind: 'continue',
+      entry: next,
+    })
   })
 
   test('else the latest addition, else nothing', () => {
-    expect(pickHero({ continueRow: [], upNextRow: [], recentlyAddedIds: ['r', 's'] })).toEqual({
+    expect(pickHero({ continueRow: [], recentlyAddedIds: ['r', 's'] })).toEqual({
       kind: 'recent',
       itemId: 'r',
     })
-    expect(pickHero({ continueRow: [], upNextRow: [], recentlyAddedIds: [] })).toBeUndefined()
+    expect(pickHero({ continueRow: [], recentlyAddedIds: [] })).toBeUndefined()
   })
 })

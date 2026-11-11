@@ -94,7 +94,7 @@ export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
     },
     seen,
     toggleSeen: () => watched.set(item.id, !seen),
-    removable: place === 'continue_watching' || place === 'up_next',
+    removable: place === 'continue_watching',
     removing: hide.isPending,
     remove: (onRemoved?: () => void) =>
       hide.mutate(item.id, onRemoved === undefined ? {} : { onSuccess: onRemoved }),

@@ -62,16 +62,13 @@ export const homeRoutes = ({
       if (!profileId.ok) return respondError(c, profileId.error)
       const home = await getHome({ profileId: profileId.value, scope: scopeFor(profileId.value) })
       previews?.prepare({
-        itemIds: [
-          ...home.continueWatching.map((entry) => entry.item.id),
-          ...home.upNext.map(({ entry }) => entry.item.id),
-        ],
+        itemIds: home.continueWatching.map(({ entry }) => entry.item.id),
         profileId: profileId.value,
       })
       const rows: HomeRowDto[] = [
         {
           kind: 'continue_watching',
-          items: home.continueWatching.map((entry): ContinueWatchingEntryDto => {
+          items: home.continueWatching.map(({ entry, isNew }): ContinueWatchingEntryDto => {
             const progress =
               entry.progress?.kind === 'playable' ? entry.progress.progress : undefined
             const frame =
@@ -85,15 +82,9 @@ export const homeRoutes = ({
             return {
               ...toItemSummaryDto(entry),
               ...(frame === undefined ? {} : { resumeFrame: toResumeFrameDto(frame) }),
+              ...(isNew ? { isNew } : {}),
             }
           }),
-        },
-        {
-          kind: 'up_next',
-          items: home.upNext.map(({ entry, isNew }) => ({
-            episode: toItemSummaryDto(entry),
-            isNew,
-          })),
         },
         { kind: 'recently_added', items: home.recentlyAdded.map(toItemSummaryDto) },
         { kind: 'watchlist', items: home.watchlist.map(toItemSummaryDto) },
