@@ -1,15 +1,9 @@
 import { statSync } from 'node:fs'
 
-import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import { appError, err, ok } from '@projo/shared'
 
+import type { MediaFiles } from '../../core/playback/ports.ts'
 import { toHostPath } from '../fs/host-paths.ts'
-
-export type MediaFiles = {
-  stat: (
-    path: string,
-  ) => Result<{ size: number; mtimeMs: number }, AppError<'playback/source_unavailable'>>
-  slice: (path: string, range?: { start: number; end: number }) => Blob
-}
 
 export const createMediaFiles = (): MediaFiles => ({
   stat: (path) => {

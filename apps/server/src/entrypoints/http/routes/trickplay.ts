@@ -4,7 +4,7 @@ import { appError } from '@projo/shared'
 import type { TrickplayIndexDto } from '@projo/shared/api/playback'
 
 import type { TrickplayFiles } from '../../../application/playback/trickplay.ts'
-import type { MediaFiles } from '../../../infrastructure/playback/media-files.ts'
+import type { MediaFiles } from '../../../core/playback/ports.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { currentProfileId } from '../principal.ts'

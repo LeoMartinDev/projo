@@ -1,11 +1,7 @@
 import { statSync } from 'node:fs'
 import { join, normalize, sep } from 'node:path'
 
-export type StaticFile = { path: string; file: Bun.BunFile }
-
-export type StaticFiles = {
-  resolve: (pathname: string) => StaticFile | undefined
-}
+import type { StaticFiles } from '../../core/http/static-files.ts'
 
 const isFile = (path: string): boolean => {
   try {

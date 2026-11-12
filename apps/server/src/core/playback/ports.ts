@@ -9,6 +9,13 @@ export type StoredKeyframeIndex = KeyframeIndex & {
   mtime: number
 }
 
+export type MediaFiles = {
+  stat: (
+    path: string,
+  ) => Result<{ size: number; mtimeMs: number }, AppError<'playback/source_unavailable'>>
+  slice: (path: string, range?: { start: number; end: number }) => Blob
+}
+
 export type KeyframeStore = {
   read: (sourceId: string) => StoredKeyframeIndex | undefined
   write: (

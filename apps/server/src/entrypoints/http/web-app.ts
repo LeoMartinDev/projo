@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from 'hono'
 
 import { hasFileExtension, isServerPath } from '@projo/shared/api/web-app'
 
-import type { StaticFiles } from '../../infrastructure/http/static-files.ts'
+import type { StaticFiles } from '../../core/http/static-files.ts'
 import type { AppEnv } from './context.ts'
 
 export const serveWebApp =

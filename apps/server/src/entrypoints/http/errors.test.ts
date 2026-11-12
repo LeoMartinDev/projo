@@ -12,15 +12,17 @@ const unreadable = appError('playback/source_unavailable', 'media file unreadabl
   context: { path: '/srv/media/Films/Secret (2020).mkv', sourceId: 'source-1' },
 })
 
-const build = () => {
+const build = (context?: Record<string, unknown>) => {
+  const error =
+    context === undefined ? unreadable : appError(unreadable.code, unreadable.message, { context })
   const logger = createCapturingLogger()
   const app = new Hono<AppEnv>()
     .use('*', async (c, next) => {
       c.set('logger', logger.logger)
       await next()
     })
-    .get('/api/v1/stream/:sessionId/:secret/direct', (c) => respondError(c, unreadable))
-    .get('/api/v1/admin/fs/directories', (c) => respondError(c, unreadable))
+    .get('/api/v1/stream/:sessionId/:secret/direct', (c) => respondError(c, error))
+    .get('/api/v1/admin/fs/directories', (c) => respondError(c, error))
   return { app, logger }
 }
 
@@ -45,5 +47,56 @@ describe('respondError: no server path outside /admin (§20)', () => {
     expect(await response.json()).toMatchObject({
       error: { context: { path: '/srv/media/Films/Secret (2020).mkv', sourceId: 'source-1' } },
     })
+  })
+
+  test('nested objects and arrays are redacted at every depth', async () => {
+    const { app, logger } = build({
+      source: { path: '/media/x.mkv', id: 'source-1', probe: { stderr: 'boom', codec: 'h264' } },
+      sources: [{ id: 'a', filePath: 'C:\\media\\a.mkv' }, { id: 'b' }],
+      paths: ['/media/a.mkv', '/media/b.mkv', 'relative.mkv'],
+      only: { path: '/media/only.mkv' },
+      keptEmpty: { list: [], nested: {} },
+      count: 2,
+    })
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await response.json()).toEqual({
+      error: {
+        code: 'playback/source_unavailable',
+        message: 'media file unreadable',
+        context: {
+          source: { id: 'source-1', probe: { codec: 'h264' } },
+          sources: [{ id: 'a' }, { id: 'b' }],
+          paths: ['relative.mkv'],
+          keptEmpty: { list: [], nested: {} },
+          count: 2,
+        },
+      },
+    })
+    expect(logger.lines.length).toBeGreaterThan(0)
+    expect(JSON.stringify(logger.lines)).toContain('/media/only.mkv')
+  })
+
+  test('a context emptied by the redaction is left out, and the removal is logged', async () => {
+    const { app, logger } = build({ source: { path: '/media/x.mkv' }, files: ['/media/y.mkv'] })
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await response.json()).toEqual({
+      error: { code: 'playback/source_unavailable', message: 'media file unreadable' },
+    })
+    expect(JSON.stringify(logger.lines)).toContain('error context withheld')
+  })
+
+  test('a clean nested context is returned untouched and not logged', async () => {
+    const context = { source: { id: 'source-1' }, tags: ['a', 'b'] }
+    const { app, logger } = build(context)
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await response.json()).toMatchObject({ error: { context } })
+    expect(JSON.stringify(logger.lines)).not.toContain('error context withheld')
+  })
+
+  test('admin routes keep nested paths too', async () => {
+    const context = { source: { path: '/media/x.mkv' }, paths: ['/media/a.mkv'] }
+    const { app } = build(context)
+    const response = await app.request('/api/v1/admin/fs/directories')
+    expect(await response.json()).toMatchObject({ error: { context } })
   })
 })

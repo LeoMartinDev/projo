@@ -6,7 +6,7 @@ import { appError } from '@projo/shared'
 
 import type { IdGenerator } from '../../core/ids.ts'
 import type { Logger } from '../../core/logger.ts'
-import type { StaticFiles } from '../../infrastructure/http/static-files.ts'
+import type { StaticFiles } from '../../core/http/static-files.ts'
 import type { Api } from './api.ts'
 import type { AppEnv } from './context.ts'
 import { errorBody } from './errors.ts'

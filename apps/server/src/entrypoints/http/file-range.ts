@@ -3,7 +3,7 @@ import type { Context } from 'hono'
 import { appError } from '@projo/shared'
 
 import { parseRange } from '../../core/playback/byte-range.ts'
-import type { MediaFiles } from '../../infrastructure/playback/media-files.ts'
+import type { MediaFiles } from '../../core/playback/ports.ts'
 import type { AppEnv } from './context.ts'
 import { respondError } from './errors.ts'
 

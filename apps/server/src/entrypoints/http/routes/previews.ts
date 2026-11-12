@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { appError } from '@projo/shared'
 
 import type { PreviewAccess } from '../../../application/playback/preview-clip.ts'
-import type { MediaFiles } from '../../../infrastructure/playback/media-files.ts'
+import type { MediaFiles } from '../../../core/playback/ports.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { respondWithFile } from '../file-range.ts'
