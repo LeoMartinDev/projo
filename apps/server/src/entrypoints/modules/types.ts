@@ -16,7 +16,9 @@ export type Module<E extends object = Nothing, H extends JobHandlers = Nothing> 
 /**
  * Builds a module's return value: what it `exposes` (routes, ports, settings…) next to its
  * contribution. The definition only takes known keys, so a misspelled `jobHandlers`,
- * `scheduledTasks` or `stop` does not compile, and `startProjo` only takes such modules.
+ * `scheduledTasks` or `stop` does not compile (a typo inside `exposes` is not caught).
+ * `startProjo` takes any object carrying the three contribution keys, so build every module
+ * with this rather than by hand.
  */
 export const defineModule = <E extends object = Nothing, H extends JobHandlers = Nothing>({
   exposes,

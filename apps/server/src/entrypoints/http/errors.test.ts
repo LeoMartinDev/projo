@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import { Hono } from 'hono'
+import { z } from 'zod'
 
-import { appError } from '@projo/shared'
+import { type ApiErrorResponse, appError } from '@projo/shared'
 
 import { createCapturingLogger } from '../../../test/support/logger.ts'
 import type { AppEnv } from './context.ts'
@@ -11,6 +12,9 @@ import { respondError } from './errors.ts'
 const unreadable = appError('playback/source_unavailable', 'media file unreadable', {
   context: { path: '/srv/media/Films/Secret (2020).mkv', sourceId: 'source-1' },
 })
+
+const contextOf = async (response: Response) =>
+  ((await response.json()) as ApiErrorResponse).error.context
 
 const build = (context?: Record<string, unknown>) => {
   const error =
@@ -91,6 +95,33 @@ describe('respondError: no server path outside /admin (§20)', () => {
     const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
     expect(await response.json()).toMatchObject({ error: { context } })
     expect(JSON.stringify(logger.lines)).not.toContain('error context withheld')
+  })
+
+  test('a validation error keeps the field paths of its issues, and is not logged', async () => {
+    const parsed = z.object({ positionSeconds: z.number() }).safeParse({ positionSeconds: 'x' })
+    const context = { target: 'json', issues: parsed.error?.issues }
+    expect(context.issues?.[0]?.path).toEqual(['positionSeconds'])
+    const { app, logger } = build(context)
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await response.json()).toMatchObject({ error: { context } })
+    expect(JSON.stringify(logger.lines)).not.toContain('error context withheld')
+  })
+
+  test('a non-string value under a path key is walked: its absolute paths go, the rest stays', async () => {
+    const { app } = build({ path: ['shows', '/media/x.mkv'], sourcePath: 'relative.mkv' })
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await contextOf(response)).toEqual({ path: ['shows'] })
+  })
+
+  test('UNC paths and file URLs are absolute paths too', async () => {
+    const { app } = build({
+      share: '\\\\nas\\media\\Films\\x.mkv',
+      url: 'file:///srv/media/x.mkv',
+      windowsUrl: 'FILE://C:/media/x.mkv',
+      kept: 'file name.mkv',
+    })
+    const response = await app.request('/api/v1/stream/session-1/secret-1/direct')
+    expect(await contextOf(response)).toEqual({ kept: 'file name.mkv' })
   })
 
   test('admin routes keep nested paths too', async () => {

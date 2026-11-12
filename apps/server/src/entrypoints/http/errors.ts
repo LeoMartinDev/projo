@@ -16,9 +16,20 @@ export const errorBody = (error: AppError): ApiErrorResponse => ({
 
 const adminPrefix = '/api/v1/admin/'
 
-const isSensitiveKey = (key: string): boolean => /path$/i.test(key) || key === 'stderr'
+/**
+ * A string under a `*path` or `stderr` key goes whatever it holds. Other values under such keys
+ * (a Zod issue's `path` is an array of field names) are walked like any other.
+ */
+const isSensitiveEntry = ([key, value]: readonly [string, unknown]): boolean =>
+  typeof value === 'string' && (/path$/i.test(key) || key === 'stderr')
+
+/** POSIX, Windows drive (`C:\`, `C:/`), UNC (`\\server\share`) and `file:` URL paths. */
 const isAbsolutePath = (value: unknown): boolean =>
-  typeof value === 'string' && (value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value))
+  typeof value === 'string' &&
+  (value.startsWith('/') ||
+    value.startsWith('\\\\') ||
+    /^[A-Za-z]:[\\/]/.test(value) ||
+    /^file:\//i.test(value))
 
 const removed = Symbol('removed')
 
@@ -26,7 +37,7 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   Object.prototype.toString.call(value) === '[object Object]'
 
 /**
- * Drops sensitive keys and absolute paths at every depth of plain objects and arrays. A container
+ * Drops sensitive strings and absolute paths at every depth of plain objects and arrays. A container
  * emptied by the redaction goes too; one that was already empty stays.
  */
 const redact = (context: Record<string, unknown>) => {
@@ -42,7 +53,7 @@ const redact = (context: Record<string, unknown>) => {
     }
     if (isPlainObject(value)) {
       const entries = Object.entries(value)
-      const safe = entries.filter(([key]) => !isSensitiveKey(key))
+      const safe = entries.filter((entry) => !isSensitiveEntry(entry))
       if (safe.length < entries.length) withheld = true
       const kept = safe
         .map(([key, item]) => [key, walk(item)] as const)

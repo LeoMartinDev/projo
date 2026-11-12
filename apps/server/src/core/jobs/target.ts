@@ -1,4 +1,4 @@
-import type { JobType } from './job.ts'
+import type { JobPayloads, JobType } from './job.ts'
 import type { JobTargetRef } from './ports.ts'
 
 const stringField = (payload: unknown, key: string): string | undefined => {
@@ -7,7 +7,12 @@ const stringField = (payload: unknown, key: string): string | undefined => {
   return typeof value === 'string' && value !== '' ? value : undefined
 }
 
-const targetKinds: Record<JobType, readonly (readonly [JobTargetRef['kind'], string])[]> = {
+/** Field names of a payload, of each member for a union (a renamed field must be renamed here). */
+type PayloadField<P> = P extends unknown ? keyof P & string : never
+
+const targetKinds: {
+  [T in JobType]: readonly (readonly [JobTargetRef['kind'], PayloadField<JobPayloads[T]>])[]
+} = {
   scan_library: [['library', 'libraryId']],
   watch_pending: [],
   probe_source: [['source', 'sourceId']],

@@ -36,7 +36,7 @@ test('a misspelled contribution key does not compile', () => {
   // @ts-expect-error: a contribution key in exposes would be ignored
   defineModule({ exposes: { jobHandlers: handlers } })
   const handWritten = { routes: {}, jobHandler: handlers }
-  // @ts-expect-error: startProjo only takes modules built by defineModule
+  // @ts-expect-error: a hand-written module whose jobHandlers is misspelled lacks a contribution key
   const modules: ModuleContribution[] = [handWritten]
   expect(modules).toHaveLength(1)
 })

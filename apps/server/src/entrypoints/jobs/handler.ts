@@ -56,11 +56,26 @@ const toJobHandler = <T extends JobType>(definition: JobHandlerDefinition<T>): J
 })
 
 /**
- * Handlers keyed by job type. Each `payload` schema is checked against `JobPayloads` of its
- * key and `run` receives that payload; a key that is not a job type does not compile.
+ * The input direction of the schema check: every payload `JobQueue.enqueue` takes for a type must
+ * parse (`z.ZodType<JobPayloads[T]>` only checks what the schema yields). A key that is not a job
+ * type maps to `never`.
+ */
+type AcceptsJobPayloads<D> = {
+  [K in keyof D]: K extends JobType
+    ? D[K] extends { payload: infer S extends z.ZodType }
+      ? [JobPayloads[K]] extends [z.input<S>]
+        ? unknown
+        : { payload: `the schema of ${K} must accept JobPayloads['${K}']` }
+      : unknown
+    : never
+}
+
+/**
+ * Handlers keyed by job type. Each `payload` schema must accept the job type's payload
+ * (`JobPayloads`) and yield it, `run` receives it; a key that is not a job type does not compile.
  */
 export const defineJobHandlers = <D extends JobHandlerDefinitions>(
-  definitions: D & Record<Exclude<keyof D, JobType>, never>,
+  definitions: D & AcceptsJobPayloads<D>,
 ): { [T in keyof D & JobType]: JobHandler } => {
   const all: JobHandlerDefinitions = definitions
   const handlers: JobHandlers = {}

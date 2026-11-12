@@ -80,6 +80,49 @@ describe('defineJobHandlers', () => {
     })
     expect(Object.keys(handlers)).toEqual(['fetch_images'])
 
+    // Schemas must also accept every payload the queue takes, or those jobs fail for good.
+    defineJobHandlers({
+      refresh_metadata: {
+        // @ts-expect-error: refresh_metadata payloads may carry a libraryId instead of an itemId
+        payload: z.object({ itemId: z.string() }),
+        concurrency: 1,
+        run: async () => ok(),
+      },
+    })
+    defineJobHandlers({
+      fetch_images: {
+        // @ts-expect-error: fetch_images payloads carry no reason
+        payload: z.object({ itemId: z.string(), reason: z.string() }),
+        concurrency: 1,
+        run: async () => ok(),
+      },
+    })
+    defineJobHandlers({
+      probe_source: {
+        // @ts-expect-error: probe_source payloads may carry any mode
+        payload: z.object({ sourceId: z.string(), mode: z.literal('verify') }),
+        concurrency: 1,
+        run: async () => ok(),
+      },
+    })
+    const accepted = defineJobHandlers({
+      probe_source: {
+        payload: z.object({
+          sourceId: z.string(),
+          mode: z.enum(['quarantine', 'verify', 'recheck']).default('quarantine'),
+        }),
+        concurrency: 1,
+        run: async ({ mode }) => (mode === 'verify' ? ok() : ok()),
+      },
+      refresh_metadata: {
+        payload: z.union([z.object({ itemId: z.string() }), z.object({ libraryId: z.string() })]),
+        concurrency: 1,
+        run: async (payload) => ('itemId' in payload ? ok() : ok()),
+      },
+      cleanup_cache: { payload: z.object({}), concurrency: 1, run: async () => ok() },
+    })
+    expect(Object.keys(accepted)).toEqual(['probe_source', 'refresh_metadata', 'cleanup_cache'])
+
     const { queue } = createRecordingJobQueue()
     queue.enqueue({ type: 'match_source', payload: { sourceId: 's1' } })
     // @ts-expect-error: match_source carries a sourceId
