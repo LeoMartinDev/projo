@@ -7,7 +7,7 @@ import type { JobType } from '../../src/core/jobs/job.ts'
 import type { LibraryMetadataContextObserver } from '../../src/core/library/library.ts'
 import { resolveAppPaths } from '../../src/entrypoints/app-paths.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
-import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
+import type { JobHandler, JobHandlers } from '../../src/entrypoints/jobs/handler.ts'
 import { createJobQueue } from '../../src/entrypoints/jobs/job-queue.ts'
 import { buildFsModule } from '../../src/entrypoints/modules/fs.ts'
 import { buildLibrariesModule } from '../../src/entrypoints/modules/libraries.ts'
@@ -109,7 +109,7 @@ export const createScannerWorld = () => {
     })
     return { id, authSessionId: viewer.authSessionId }
   }
-  const handlers = scanner.jobHandlers ?? {}
+  const handlers: JobHandlers = scanner.jobHandlers
 
   const app = new Hono<AppEnv>()
     .use('*', async (c, next) => {
@@ -175,7 +175,7 @@ export const createScannerWorld = () => {
     startPlayback,
     stoppedStreams,
     stop: async () => {
-      await scanner.stop?.()
+      await scanner.stop()
     },
   }
 }

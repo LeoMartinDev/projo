@@ -11,8 +11,9 @@ import { createSqliteFingerprintCatalog } from '../../infrastructure/sqlite/fing
 import { createSqliteFingerprintSettings } from '../../infrastructure/sqlite/fingerprint-settings.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'
 import { createSqliteSegmentRepository } from '../../infrastructure/sqlite/segment-repository.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const seasonPayload = z.object({ seasonId: z.string().min(1) })
 
@@ -47,9 +48,9 @@ export const buildFingerprintModule = (
     logger: moduleLogger,
   })
 
-  return {
-    jobHandlers: {
-      fingerprint_season: defineJobHandler({
+  return defineModule({
+    jobHandlers: defineJobHandlers({
+      fingerprint_season: {
         payload: seasonPayload,
         concurrency: 1,
         group: 'heavy_ffmpeg',
@@ -58,9 +59,9 @@ export const buildFingerprintModule = (
           const result = await fingerprintSeason({ seasonId, signal, reportProgress })
           return result.ok ? ok() : result
         },
-      }),
-    },
-  }
+      },
+    }),
+  })
 }
 
 export type FingerprintModule = ReturnType<typeof buildFingerprintModule>

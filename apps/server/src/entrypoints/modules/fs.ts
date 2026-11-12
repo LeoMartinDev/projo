@@ -2,9 +2,13 @@ import { browseDirectoriesFactory } from '../../application/fs/browse-directorie
 import { createNodeFileSystem } from '../../infrastructure/fs/node-file-system.ts'
 import { adminFsRoutes } from '../http/routes/admin-fs.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
-export const buildFsModule = (_platform: Platform) => ({
-  routes: adminFsRoutes({
-    browseDirectories: browseDirectoriesFactory({ fileSystem: createNodeFileSystem() }),
-  }),
-})
+export const buildFsModule = (_platform: Platform) =>
+  defineModule({
+    exposes: {
+      routes: adminFsRoutes({
+        browseDirectories: browseDirectoriesFactory({ fileSystem: createNodeFileSystem() }),
+      }),
+    },
+  })

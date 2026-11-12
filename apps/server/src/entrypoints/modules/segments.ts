@@ -31,9 +31,10 @@ import {
 import { createSqliteSegmentSettings } from '../../infrastructure/sqlite/segment-settings.ts'
 import { adminSegmentsRoutes } from '../http/routes/admin-segments.ts'
 import { segmentsRoutes } from '../http/routes/segments.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const itemPayload = z.object({ itemId: z.string().min(1) })
 const sourcePayload = z.object({ sourceId: z.string().min(1) })
@@ -149,40 +150,42 @@ export const buildSegmentsModule = (
     }
   })
 
-  return {
-    segmentSettings: settingsAdmin(platform, infrastructure),
-    routes: {
-      segments: segmentsRoutes({
-        getItemSegments: getItemSegmentsFactory({
-          catalogRepository,
-          segmentRepository,
-          visibilityScope,
+  return defineModule({
+    exposes: {
+      segmentSettings: settingsAdmin(platform, infrastructure),
+      routes: {
+        segments: segmentsRoutes({
+          getItemSegments: getItemSegmentsFactory({
+            catalogRepository,
+            segmentRepository,
+            visibilityScope,
+          }),
         }),
-      }),
-      adminSegments: adminSegmentsRoutes({
-        setManualSegment: markers.setManualSegment,
-        removeSegment: markers.removeSegment,
-        applyToSeason: markers.applyToSeason,
-      }),
+        adminSegments: adminSegmentsRoutes({
+          setManualSegment: markers.setManualSegment,
+          removeSegment: markers.removeSegment,
+          applyToSeason: markers.applyToSeason,
+        }),
+      },
     },
-    jobHandlers: {
-      fetch_segments: defineJobHandler({
+    jobHandlers: defineJobHandlers({
+      fetch_segments: {
         payload: itemPayload,
         concurrency: 1,
         run: async ({ itemId }, { signal }) => {
           await fetchSegments({ itemId, signal })
           return ok()
         },
-      }),
-      submit_segment: defineJobHandler({
+      },
+      submit_segment: {
         payload: submitPayload,
         concurrency: 1,
         run: async (payload) => {
           const result = await submitSegment(payload)
           return result.ok ? ok() : result
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks: [
       {
         name: 'segments-backfill',
@@ -197,7 +200,7 @@ export const buildSegmentsModule = (
     stop: () => {
       unsubscribe()
     },
-  }
+  })
 }
 
 export type SegmentsModule = ReturnType<typeof buildSegmentsModule>

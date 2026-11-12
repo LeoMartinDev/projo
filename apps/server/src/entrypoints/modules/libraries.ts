@@ -18,6 +18,7 @@ import type { JobControl } from '../../core/jobs/ports.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 export const buildLibrariesModule = (
   { db, ids, clock, logger, jobQueue, jobRepository, eventBus }: Platform,
@@ -39,39 +40,41 @@ export const buildLibrariesModule = (
   const validateRoots = validateRootsFactory({ fileSystem: createNodeFileSystem() })
   const requestScan = requestScanFactory({ jobQueue, jobRepository, clock, eventBus })
   const moduleLogger = logger.child({ module: 'libraries' })
-  return {
-    routes: adminLibrariesRoutes({
-      views: libraryViewsFactory({ libraryRepository, sourceRepository, scanRunRepository }),
-      createLibrary: createLibraryFactory({
-        libraryRepository,
-        validateRoots,
-        requestScan,
-        clock,
-        ids,
-        logger: moduleLogger,
+  return defineModule({
+    exposes: {
+      routes: adminLibrariesRoutes({
+        views: libraryViewsFactory({ libraryRepository, sourceRepository, scanRunRepository }),
+        createLibrary: createLibraryFactory({
+          libraryRepository,
+          validateRoots,
+          requestScan,
+          clock,
+          ids,
+          logger: moduleLogger,
+        }),
+        updateLibrary: updateLibraryFactory({
+          libraryRepository,
+          localItems,
+          playbackSessions,
+          validateRoots,
+          requestScan,
+          metadataContext,
+          leftovers,
+          jobControl,
+          ids,
+          logger: moduleLogger,
+        }),
+        deleteLibrary: deleteLibraryFactory({
+          libraryRepository,
+          localItems,
+          playbackSessions,
+          metadataContext,
+          leftovers,
+          jobControl,
+          logger: moduleLogger,
+        }),
+        requestLibraryScan: requestLibraryScanFactory({ libraryRepository, requestScan }),
       }),
-      updateLibrary: updateLibraryFactory({
-        libraryRepository,
-        localItems,
-        playbackSessions,
-        validateRoots,
-        requestScan,
-        metadataContext,
-        leftovers,
-        jobControl,
-        ids,
-        logger: moduleLogger,
-      }),
-      deleteLibrary: deleteLibraryFactory({
-        libraryRepository,
-        localItems,
-        playbackSessions,
-        metadataContext,
-        leftovers,
-        jobControl,
-        logger: moduleLogger,
-      }),
-      requestLibraryScan: requestLibraryScanFactory({ libraryRepository, requestScan }),
-    }),
-  }
+    },
+  })
 }

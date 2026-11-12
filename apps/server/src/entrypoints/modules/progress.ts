@@ -11,36 +11,39 @@ import { progressRoutes } from '../http/routes/progress.ts'
 import { watchlistRoutes } from '../http/routes/watchlist.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 export const buildProgressModule = ({ db, clock }: Platform, { visibilityScope }: ScopeDeps) => {
   const catalogRepository = createSqliteCatalogRepository({ db })
   const progressRepository = createSqliteProgressRepository({ db })
   const watchlistRepository = createSqliteWatchlistRepository({ db })
   const progressViews = progressViewsFactory({ catalogRepository, progressRepository })
-  return {
-    routes: progressRoutes({
-      recordProgress: recordProgressFactory({ catalogRepository, progressRepository, clock }),
-      setWatched: setWatchedFactory({
-        catalogRepository,
-        progressRepository,
-        progressViews,
-        clock,
-      }),
-      hideFromContinue: hideFromContinueFactory({ catalogRepository, progressRepository, clock }),
-      scopeFor: visibilityScope,
-    }),
-    watchlistRoutes: watchlistRoutes({
-      watchlist: watchlistFactory({
-        catalogRepository,
-        watchlistRepository,
-        catalogEntries: catalogEntriesFactory({
+  return defineModule({
+    exposes: {
+      routes: progressRoutes({
+        recordProgress: recordProgressFactory({ catalogRepository, progressRepository, clock }),
+        setWatched: setWatchedFactory({
           catalogRepository,
+          progressRepository,
           progressViews,
-          watchlistRepository,
+          clock,
         }),
-        clock,
+        hideFromContinue: hideFromContinueFactory({ catalogRepository, progressRepository, clock }),
+        scopeFor: visibilityScope,
       }),
-      scopeFor: visibilityScope,
-    }),
-  }
+      watchlistRoutes: watchlistRoutes({
+        watchlist: watchlistFactory({
+          catalogRepository,
+          watchlistRepository,
+          catalogEntries: catalogEntriesFactory({
+            catalogRepository,
+            progressViews,
+            watchlistRepository,
+          }),
+          clock,
+        }),
+        scopeFor: visibilityScope,
+      }),
+    },
+  })
 }

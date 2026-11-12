@@ -70,9 +70,6 @@ export type SwitchReport = {
   reason?: string
 }
 
-export type CheckUpdatesPayload = Record<string, never>
-export type ApplyUpdatePayload = { version: string }
-
 export type ReleaseSourceError = AppError<'update/check_failed' | 'update/invalid_release'>
 
 export type InstallReleaseError = AppError<

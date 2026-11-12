@@ -35,6 +35,9 @@ export type JobRunner = {
   idle: () => Promise<void>
 }
 
+/** Failures another attempt cannot fix: the job fails for good on the first one. */
+const nonRetryableCodes: ReadonlySet<string> = new Set(['job/invalid_payload'])
+
 const toJobError = (error: AppError): JobError => ({
   code: error.code,
   message: error.message,
@@ -128,7 +131,7 @@ export const createJobRunner = ({
     }
 
     const error = toJobError(result.error)
-    const retry = job.attempts < job.maxAttempts
+    const retry = job.attempts < job.maxAttempts && !nonRetryableCodes.has(error.code)
     const updated = jobRepository.fail({
       id: job.id,
       error,

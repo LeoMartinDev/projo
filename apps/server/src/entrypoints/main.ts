@@ -16,7 +16,7 @@ import { type AppPaths, resolveAppPaths, sourceVersion } from './app-paths.ts'
 import { loadConfig } from './config.ts'
 import { createApi } from './http/api.ts'
 import { createHttpApp } from './http/app.ts'
-import { mergeJobHandlers } from './jobs/handler.ts'
+import { mergeJobHandlers, requireAllJobHandlers } from './jobs/handler.ts'
 import { createJobRunner, type JobRunner } from './jobs/runner.ts'
 import { createScheduler } from './jobs/scheduler.ts'
 import { buildAdminPlaybackModule } from './modules/admin-playback.ts'
@@ -210,7 +210,9 @@ export const startProjo = ({
 
   const runner = createJobRunner({
     jobRepository: platform.jobRepository,
-    handlers: mergeJobHandlers(...modules.map((module) => module.jobHandlers)),
+    handlers: requireAllJobHandlers(
+      mergeJobHandlers(...modules.map((module) => module.jobHandlers)),
+    ),
     clock: platform.clock,
     logger,
     eventBus: platform.eventBus,
@@ -226,7 +228,7 @@ export const startProjo = ({
   platform.connectJobRunner(runner.wake)
   runnerLater.current = runner
   const scheduler = createScheduler({ logger })
-  for (const task of modules.flatMap((module) => module.scheduledTasks ?? [])) {
+  for (const task of modules.flatMap((module) => module.scheduledTasks)) {
     scheduler.register(task)
   }
 
@@ -253,7 +255,7 @@ export const startProjo = ({
     scheduler.stop()
     const draining = server.stop(false)
     await settleWithin(runner.stop(), shutdownGraceMs)
-    for (const module of modules) await module.stop?.()
+    for (const module of modules) await module.stop()
     await settleWithin(draining, 1_000)
     await server.stop(true)
     closeDatabase(platform.db)

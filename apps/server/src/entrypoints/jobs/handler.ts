@@ -2,7 +2,7 @@ import type { z } from 'zod'
 
 import { appError, type AppError, err, type Result } from '@projo/shared'
 
-import type { Job, JobType } from '../../core/jobs/job.ts'
+import { type Job, type JobPayloads, type JobType, jobTypes } from '../../core/jobs/job.ts'
 import type { Logger } from '../../core/logger.ts'
 
 export type JobContext = {
@@ -17,6 +17,7 @@ export type JobRunResult = Result<void, AppError>
 export const concurrencyGroups = { heavy_ffmpeg: 1 } as const
 export type ConcurrencyGroup = keyof typeof concurrencyGroups
 
+/** What the runner sees: the stored payload is unknown until the handler's schema parses it. */
 export type JobHandler = {
   concurrency: number
   group?: ConcurrencyGroup
@@ -26,13 +27,18 @@ export type JobHandler = {
 
 export type JobHandlers = Partial<Record<JobType, JobHandler>>
 
-export const defineJobHandler = <S extends z.ZodType>(definition: {
-  payload: S
+export type JobHandlerDefinition<T extends JobType> = {
+  /** Parses the stored payload; its output must be the job type's payload (`JobPayloads`). */
+  payload: z.ZodType<JobPayloads[T]>
   concurrency: number
   group?: ConcurrencyGroup
   isRunnable?: () => boolean
-  run: (payload: z.infer<S>, context: JobContext) => Promise<JobRunResult>
-}): JobHandler => ({
+  run: (payload: JobPayloads[T], context: JobContext) => Promise<JobRunResult>
+}
+
+export type JobHandlerDefinitions = { [T in JobType]?: JobHandlerDefinition<T> }
+
+const toJobHandler = <T extends JobType>(definition: JobHandlerDefinition<T>): JobHandler => ({
   concurrency: definition.concurrency,
   ...(definition.group === undefined ? {} : { group: definition.group }),
   ...(definition.isRunnable === undefined ? {} : { isRunnable: definition.isRunnable }),
@@ -49,6 +55,23 @@ export const defineJobHandler = <S extends z.ZodType>(definition: {
   },
 })
 
+/**
+ * Handlers keyed by job type. Each `payload` schema is checked against `JobPayloads` of its
+ * key and `run` receives that payload; a key that is not a job type does not compile.
+ */
+export const defineJobHandlers = <D extends JobHandlerDefinitions>(
+  definitions: D & Record<Exclude<keyof D, JobType>, never>,
+): { [T in keyof D & JobType]: JobHandler } => {
+  const all: JobHandlerDefinitions = definitions
+  const handlers: JobHandlers = {}
+  const add = <T extends JobType>(type: T): void => {
+    const definition = all[type]
+    if (definition !== undefined) handlers[type] = toJobHandler(definition)
+  }
+  for (const type of jobTypes) add(type)
+  return handlers as { [T in keyof D & JobType]: JobHandler }
+}
+
 export const mergeJobHandlers = (...groups: (JobHandlers | undefined)[]): JobHandlers => {
   const merged: JobHandlers = {}
   for (const group of groups) {
@@ -59,4 +82,11 @@ export const mergeJobHandlers = (...groups: (JobHandlers | undefined)[]): JobHan
     }
   }
   return merged
+}
+
+/** Startup invariant: a job type without a handler would stay `queued` forever. */
+export const requireAllJobHandlers = (handlers: JobHandlers): JobHandlers => {
+  const missing = jobTypes.filter((type) => handlers[type] === undefined)
+  if (missing.length > 0) throw new Error(`job types without a handler: ${missing.join(', ')}`)
+  return handlers
 }

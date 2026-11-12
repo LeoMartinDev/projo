@@ -1,14 +1,18 @@
-import type { Job, JobError, JobState, JobType } from './job.ts'
+import type { Job, JobError, JobPayloads, JobState, JobType } from './job.ts'
 
-export type EnqueueJobInput = {
-  type: JobType
-  payload: unknown
-  dedupeKey?: string
-  mergePayload?: (queued: unknown) => unknown
-  priority?: number
-  runAfter?: Date
-  maxAttempts?: number
-}
+/** One member per job type: `payload` and `mergePayload` are checked against `type`. */
+export type EnqueueJobInput<T extends JobType = JobType> = {
+  [K in T]: {
+    type: K
+    payload: JobPayloads[K]
+    dedupeKey?: string
+    /** Payload to store when a job with the same `dedupeKey` is queued (receives its stored one). */
+    mergePayload?: (queued: unknown) => JobPayloads[K]
+    priority?: number
+    runAfter?: Date
+    maxAttempts?: number
+  }
+}[T]
 
 export type EnqueueJobOutput = { job: Job; deduplicated: boolean }
 

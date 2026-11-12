@@ -46,9 +46,10 @@ import { createSqliteSubtitleTrackRepository } from '../../infrastructure/sqlite
 import { createSqliteTrackPreferenceRepository } from '../../infrastructure/sqlite/track-preference-repository.ts'
 import { playbackRoutes } from '../http/routes/playback.ts'
 import { streamRoutes } from '../http/routes/stream.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 export const buildPlaybackModule = (
   { db, clock, ids, logger, eventBus, jobQueue, paths }: Platform,
@@ -152,69 +153,71 @@ export const buildPlaybackModule = (
     }
   })
 
-  return {
-    authorizeStream,
-    playbackSessions,
-    endSession,
-    routes: playbackRoutes({
-      createPlaybackSession: createPlaybackSessionFactory({
-        catalogRepository,
-        progressRepository,
-        sessionRepository,
-        subtitleTrackRepository,
-        trackPreferenceRepository,
-        trickplayUrl,
-        streamSecrets: sessionTokens,
-        profileTracks: (profileId) => {
-          const profile = profileRepository.findById(profileId)
-          return (
-            profile && {
-              audioLanguage: profile.audioLanguage,
-              subtitleLanguage: profile.subtitleLanguage,
-              subtitleMode: profile.subtitleMode,
-              animeOriginalAudio: profile.animeOriginalAudio,
-            }
-          )
-        },
-        playbackSettings,
-        mediaProber: ffprobe,
-        keyframeStore,
-        jobQueue,
-        clock,
-        ids,
-        logger,
+  return defineModule({
+    exposes: {
+      authorizeStream,
+      playbackSessions,
+      endSession,
+      routes: playbackRoutes({
+        createPlaybackSession: createPlaybackSessionFactory({
+          catalogRepository,
+          progressRepository,
+          sessionRepository,
+          subtitleTrackRepository,
+          trackPreferenceRepository,
+          trickplayUrl,
+          streamSecrets: sessionTokens,
+          profileTracks: (profileId) => {
+            const profile = profileRepository.findById(profileId)
+            return (
+              profile && {
+                audioLanguage: profile.audioLanguage,
+                subtitleLanguage: profile.subtitleLanguage,
+                subtitleMode: profile.subtitleMode,
+                animeOriginalAudio: profile.animeOriginalAudio,
+              }
+            )
+          },
+          playbackSettings,
+          mediaProber: ffprobe,
+          keyframeStore,
+          jobQueue,
+          clock,
+          ids,
+          logger,
+        }),
+        heartbeat: heartbeatFactory({
+          authorize,
+          sessionRepository,
+          catalogRepository,
+          progressRepository,
+          clock,
+        }),
+        stopPlaybackSession: stopPlaybackSessionFactory({
+          sessionRepository,
+          endSession,
+          isItemVisible,
+        }),
+        setTrackPreferences: setTrackPreferencesFactory({
+          catalogRepository,
+          trackPreferenceRepository,
+          clock,
+          logger,
+        }),
+        clearTrackPreferences: clearTrackPreferencesFactory({
+          catalogRepository,
+          trackPreferenceRepository,
+        }),
+        scopeFor: visibilityScope,
       }),
-      heartbeat: heartbeatFactory({
-        authorize,
-        sessionRepository,
-        catalogRepository,
-        progressRepository,
-        clock,
+      streamRoutes: streamRoutes({
+        directStream: directStreamFactory({ authorize: authorizeStream, catalogRepository }),
+        hlsStream,
+        mediaFiles: createMediaFiles(),
       }),
-      stopPlaybackSession: stopPlaybackSessionFactory({
-        sessionRepository,
-        endSession,
-        isItemVisible,
-      }),
-      setTrackPreferences: setTrackPreferencesFactory({
-        catalogRepository,
-        trackPreferenceRepository,
-        clock,
-        logger,
-      }),
-      clearTrackPreferences: clearTrackPreferencesFactory({
-        catalogRepository,
-        trackPreferenceRepository,
-      }),
-      scopeFor: visibilityScope,
-    }),
-    streamRoutes: streamRoutes({
-      directStream: directStreamFactory({ authorize: authorizeStream, catalogRepository }),
-      hlsStream,
-      mediaFiles: createMediaFiles(),
-    }),
-    jobHandlers: {
-      index_keyframes: defineJobHandler({
+    },
+    jobHandlers: defineJobHandlers({
+      index_keyframes: {
         payload: z.object({ sourceId: z.string().min(1) }),
         concurrency: 1,
         run: async ({ sourceId }, { signal, job }) => {
@@ -226,16 +229,16 @@ export const buildPlaybackModule = (
           if (indexed.ok || indexed.error.code === 'playback/source_unavailable') return ok()
           return indexed
         },
-      }),
-      cleanup_cache: defineJobHandler({
+      },
+      cleanup_cache: {
         payload: z.object({}),
         concurrency: 1,
         run: async () => {
           cleanupCache()
           return ok()
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks: [
       {
         name: 'playback-sessions-sweep',
@@ -257,5 +260,5 @@ export const buildPlaybackModule = (
       unsubscribe()
       await segmenter.stopAll()
     },
-  }
+  })
 }

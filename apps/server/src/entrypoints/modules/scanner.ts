@@ -22,11 +22,11 @@ import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-
 import { createSqliteNamingRulesVersionStore } from '../../infrastructure/sqlite/settings-values.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { createNodeDirectoryWatcher } from '../../infrastructure/watch/node-directory-watcher.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { MatchRequester } from '../../core/metadata/ports.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
-import type { ModuleContribution } from './types.ts'
+import { defineModule } from './types.ts'
 
 const STARTUP_DELAY_MS = 10_000
 const PERIODIC_TICK_MS = 60_000
@@ -55,7 +55,7 @@ export const buildScannerModule = (
     playbackSessions: PlaybackSessionTerminator
     requestMatch?: MatchRequester
   },
-): ModuleContribution => {
+) => {
   const moduleLogger = logger.child({ module: 'scanner' })
   const fileSystem = createNodeFileSystem()
   const libraryRepository = createSqliteLibraryRepository({ db })
@@ -125,9 +125,9 @@ export const buildScannerModule = (
     clock,
   })
 
-  return {
-    jobHandlers: {
-      scan_library: defineJobHandler({
+  return defineModule({
+    jobHandlers: defineJobHandlers({
+      scan_library: {
         payload: scanLibraryPayloadSchema,
         concurrency: 2,
         run: async ({ libraryId, kind }, { signal, reportProgress, logger: jobLogger }) => {
@@ -144,24 +144,24 @@ export const buildScannerModule = (
           }
           return ok()
         },
-      }),
-      watch_pending: defineJobHandler({
-        payload: z.unknown(),
+      },
+      watch_pending: {
+        payload: z.object({}),
         concurrency: 1,
         run: async () => {
           await watchPending()
           return ok()
         },
-      }),
-      probe_source: defineJobHandler({
+      },
+      probe_source: {
         payload: probeSourcePayloadSchema,
         concurrency: 2,
         run: async ({ sourceId, mode }, { signal }) => {
           const result = await probeSource({ sourceId, mode, signal })
           return result.ok ? ok() : result
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks: [
       {
         name: 'scanner.periodic',
@@ -183,5 +183,5 @@ export const buildScannerModule = (
       },
     ],
     stop: () => watchers.stop(),
-  }
+  })
 }

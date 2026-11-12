@@ -45,9 +45,10 @@ import { adminJobsRoutes } from '../http/routes/admin-jobs.ts'
 import { adminNotificationsRoutes } from '../http/routes/admin-notifications.ts'
 import { adminMissingSourcesRoutes } from '../http/routes/admin-sources.ts'
 import { adminSystemRoutes } from '../http/routes/admin-system.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScheduledTask } from '../jobs/scheduler.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const minute = 60_000
 const hour = 60 * minute
@@ -141,56 +142,58 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
     },
   ]
 
-  return {
-    settings: buildOperationsSettings(platform),
-    routes: {
-      jobs: adminJobsRoutes({
-        jobs: jobsAdminFactory({
-          jobAdminRepository,
-          jobRepository,
-          labels: createSqliteJobTargetLabels({ db }),
-          jobControl: deps.jobControl,
-          clock,
-          eventBus,
-          logger: log,
+  return defineModule({
+    exposes: {
+      settings: buildOperationsSettings(platform),
+      routes: {
+        jobs: adminJobsRoutes({
+          jobs: jobsAdminFactory({
+            jobAdminRepository,
+            jobRepository,
+            labels: createSqliteJobTargetLabels({ db }),
+            jobControl: deps.jobControl,
+            clock,
+            eventBus,
+            logger: log,
+          }),
         }),
-      }),
-      notifications: adminNotificationsRoutes({
-        notifications: notificationsAdminFactory({ notificationRepository, clock }),
-      }),
-      system: adminSystemRoutes({
-        getStats: getAdminStatsFactory({
-          statsQueries,
-          notificationRepository,
-          jobAdminRepository,
-          checkStore: createSqliteUpdateCheckStore({ db }),
-          version: { app: version, runtime },
-          clock,
+        notifications: adminNotificationsRoutes({
+          notifications: notificationsAdminFactory({ notificationRepository, clock }),
         }),
-        getStorage: async () => ({ ...(await measureStorage()), dataDir: paths.root }),
-        exportDatabase: exportDatabaseFactory({
-          exporter: createSqliteDatabaseExporter({ db }),
-          backupsDir: paths.db.backups,
-          clock,
-          logger: log,
+        system: adminSystemRoutes({
+          getStats: getAdminStatsFactory({
+            statsQueries,
+            notificationRepository,
+            jobAdminRepository,
+            checkStore: createSqliteUpdateCheckStore({ db }),
+            version: { app: version, runtime },
+            clock,
+          }),
+          getStorage: async () => ({ ...(await measureStorage()), dataDir: paths.root }),
+          exportDatabase: exportDatabaseFactory({
+            exporter: createSqliteDatabaseExporter({ db }),
+            backupsDir: paths.db.backups,
+            clock,
+            logger: log,
+          }),
         }),
-      }),
-      missingSources: adminMissingSourcesRoutes({
-        missing: missingSourcesAdminFactory(missingDeps),
-      }),
+        missingSources: adminMissingSourcesRoutes({
+          missing: missingSourcesAdminFactory(missingDeps),
+        }),
+      },
     },
-    jobHandlers: {
-      purge_missing: defineJobHandler({
+    jobHandlers: defineJobHandlers({
+      purge_missing: {
         payload: z.object({}),
         concurrency: 1,
         run: async () => {
           purgeExpiredMissing()
           return ok()
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks,
-  }
+  })
 }
 
 export type OperationsModule = ReturnType<typeof buildOperationsModule>

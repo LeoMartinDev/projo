@@ -45,11 +45,12 @@ import { adminItemsRoutes } from '../http/routes/admin-items.ts'
 import { adminSettingsRoutes } from '../http/routes/admin-settings.ts'
 import { adminSourceReviewRoutes } from '../http/routes/admin-sources.ts'
 import { type ImageAccess, imagesRoutes } from '../http/routes/images.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScheduledTask } from '../jobs/scheduler.ts'
 import { buildOperationsSettings, type OperationsSettings } from './operations.ts'
 import type { Platform } from './platform.ts'
 import { buildSegmentSettingsAdmin } from './segments.ts'
+import { defineModule } from './types.ts'
 
 export const matchSourcePayloadSchema = z.object({ sourceId: z.string().min(1) })
 export const fetchImagesPayloadSchema = z.object({ itemId: z.string().min(1) })
@@ -233,56 +234,58 @@ export const buildMetadataModule = (
     },
   ]
 
-  return {
-    requestMatch,
-    assistantPorts: {
-      review,
-      tmdbDetails: tmdbDetailsFactory({ tmdb }),
-      metadataLanguage: settings.language,
-    },
-    libraryMetadataContext: {
-      changed: (input) => {
-        refresh.queueLibraryContextChange(input)
-      },
-      filesLeaving: (files) => {
-        const settle = refresh.filesLeaving(files)
-        return () => {
-          settle()
-        }
-      },
-    } satisfies LibraryMetadataContextObserver,
-    routes: {
-      images: imagesRoutes({
-        getImage: getImageFactory({ images, files }),
-        open: (path) => Bun.file(path),
-        canView: canViewImage,
-      }),
-      adminItems: adminItemsRoutes({
+  return defineModule({
+    exposes: {
+      requestMatch,
+      assistantPorts: {
         review,
-        tmdbPoster: (path, size) => tmdb.downloadImage({ path, size }),
-        editing,
-        optimizeImages: () =>
-          jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
-            .job,
-      }),
-      adminSettings: adminSettingsRoutes({
-        metadata: metadataSettings,
-        segments: segmentSettings,
-        playback: operationsSettings.playback,
-        server: operationsSettings.server,
-      }),
-      adminSourceReview: adminSourceReviewRoutes({ review }),
+        tmdbDetails: tmdbDetailsFactory({ tmdb }),
+        metadataLanguage: settings.language,
+      },
+      libraryMetadataContext: {
+        changed: (input) => {
+          refresh.queueLibraryContextChange(input)
+        },
+        filesLeaving: (files) => {
+          const settle = refresh.filesLeaving(files)
+          return () => {
+            settle()
+          }
+        },
+      } satisfies LibraryMetadataContextObserver,
+      routes: {
+        images: imagesRoutes({
+          getImage: getImageFactory({ images, files }),
+          open: (path) => Bun.file(path),
+          canView: canViewImage,
+        }),
+        adminItems: adminItemsRoutes({
+          review,
+          tmdbPoster: (path, size) => tmdb.downloadImage({ path, size }),
+          editing,
+          optimizeImages: () =>
+            jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
+              .job,
+        }),
+        adminSettings: adminSettingsRoutes({
+          metadata: metadataSettings,
+          segments: segmentSettings,
+          playback: operationsSettings.playback,
+          server: operationsSettings.server,
+        }),
+        adminSourceReview: adminSourceReviewRoutes({ review }),
+      },
     },
-    jobHandlers: {
-      match_source: defineJobHandler({
+    jobHandlers: defineJobHandlers({
+      match_source: {
         payload: matchSourcePayloadSchema,
         concurrency: 2,
         run: async ({ sourceId }) => {
           const result = await matchSource({ sourceId })
           return result.ok ? ok() : result
         },
-      }),
-      refresh_metadata: defineJobHandler({
+      },
+      refresh_metadata: {
         payload: refreshMetadataPayloadSchema,
         concurrency: 1,
         run: async (payload) => {
@@ -293,26 +296,26 @@ export const buildMetadataModule = (
           const result = await refresh.refreshItem({ itemId: payload.itemId })
           return result.ok ? ok() : result
         },
-      }),
-      image_variants: defineJobHandler({
+      },
+      image_variants: {
         payload: z.object({}),
         concurrency: 1,
         run: async (_payload, { signal, reportProgress }) => {
           const result = await generateImageVariants({ signal, reportProgress })
           return result.ok ? ok() : result
         },
-      }),
-      fetch_images: defineJobHandler({
+      },
+      fetch_images: {
         payload: fetchImagesPayloadSchema,
         concurrency: 2,
         run: async ({ itemId }) => {
           const result = await fetchImages({ itemId })
           return result.ok ? ok() : result
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks,
-  }
+  })
 }
 
 export type MetadataModule = ReturnType<typeof buildMetadataModule>

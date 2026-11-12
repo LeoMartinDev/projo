@@ -196,14 +196,18 @@ describe('admin libraries routes (§17.2)', () => {
     for (const libraryId of [films, kept])
       insertSource(world.db, { id: `${libraryId}-1`, libraryId, rootId: `${libraryId}-root` })
     const enqueue = (type: 'probe_source' | 'match_source', sourceId: string) =>
-      world.jobQueue.enqueue({ type, payload: { sourceId, mode: 'quarantine' } }).job.id
+      world.jobQueue.enqueue(
+        type === 'probe_source'
+          ? { type, payload: { sourceId, mode: 'quarantine' } }
+          : { type, payload: { sourceId } },
+      ).job.id
     const running = enqueue('probe_source', 'films-1')
     world.jobRepository.claimNext({ types: ['probe_source'], now: world.clock.now() })
     const queued = [
       enqueue('match_source', 'films-1'),
       world.jobQueue.enqueue({
         type: 'scan_library',
-        payload: { libraryId: films, kind: 'manual' },
+        payload: { libraryId: films, kind: 'manual_quick' },
       }).job.id,
     ]
     const other = enqueue('match_source', 'kept-1')
@@ -247,14 +251,18 @@ describe('admin libraries routes (§17.2)', () => {
     insertSource(world.db, { id: 'kept-1', libraryId, rootId })
     insertSource(world.db, { id: 'gone-1', libraryId, rootId: removed })
     const enqueue = (type: 'probe_source' | 'match_source', sourceId: string) =>
-      world.jobQueue.enqueue({ type, payload: { sourceId, mode: 'quarantine' } }).job.id
+      world.jobQueue.enqueue(
+        type === 'probe_source'
+          ? { type, payload: { sourceId, mode: 'quarantine' } }
+          : { type, payload: { sourceId } },
+      ).job.id
     const running = enqueue('probe_source', 'gone-1')
     world.jobRepository.claimNext({ types: ['probe_source'], now: world.clock.now() })
     const dropped = enqueue('match_source', 'gone-1')
     const kept = [
       enqueue('match_source', 'kept-1'),
-      world.jobQueue.enqueue({ type: 'scan_library', payload: { libraryId, kind: 'manual' } }).job
-        .id,
+      world.jobQueue.enqueue({ type: 'scan_library', payload: { libraryId, kind: 'manual_quick' } })
+        .job.id,
     ]
     for (const [id, context] of [
       ['n-root', { libraryId, rootId: removed }],
@@ -288,7 +296,7 @@ describe('admin libraries routes (§17.2)', () => {
 
   const startScan = () => {
     const job = world.jobRepository.claimNext({ types: ['scan_library'], now: world.clock.now() })
-    const handler = world.scanner.jobHandlers?.scan_library
+    const handler = world.scanner.jobHandlers.scan_library
     if (job === undefined || handler === undefined) throw new Error('no scan to run')
     return handler.run(job.payload, {
       job,

@@ -2,8 +2,8 @@ import { scanKindSchema } from '@projo/shared/api/libraries'
 
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
-import type { JobQueue, JobRepository } from '../../core/jobs/ports.ts'
-import { isFullScan, type ScanKind, type ScanRequester } from '../../core/scanner/ports.ts'
+import type { EnqueueJobInput, JobQueue, JobRepository } from '../../core/jobs/ports.ts'
+import { isFullScan, type ScanRequester } from '../../core/scanner/ports.ts'
 
 type Deps = {
   jobQueue: JobQueue
@@ -11,8 +11,6 @@ type Deps = {
   clock: Clock
   eventBus: EventBus
 }
-
-export type ScanLibraryPayload = { libraryId: string; kind: ScanKind }
 
 export const scanDedupeKey = (libraryId: string): string => `library:${libraryId}`
 
@@ -26,9 +24,9 @@ const queuedIsFull = (payload: unknown): boolean => {
 export const requestScanFactory =
   ({ jobQueue, jobRepository, clock, eventBus }: Deps): ScanRequester =>
   ({ libraryId, kind, delayMs = 0 }) => {
-    const input = {
-      type: 'scan_library' as const,
-      payload: { libraryId, kind } satisfies ScanLibraryPayload,
+    const input: EnqueueJobInput<'scan_library'> = {
+      type: 'scan_library',
+      payload: { libraryId, kind },
       dedupeKey: scanDedupeKey(libraryId),
       runAfter: new Date(clock.now().getTime() + delayMs),
     }

@@ -176,7 +176,7 @@ describe('TMDB identification (§9.2)', () => {
     }
 
     const before = world.tmdb.requests.length
-    world.jobQueue.enqueue({ type: 'fetch_images', payload: { itemId: movie?.id } })
+    world.jobQueue.enqueue({ type: 'fetch_images', payload: { itemId: movie?.id ?? '' } })
     await world.runJobs(['fetch_images'])
     expect(world.tmdb.requests.length).toBe(before)
   })

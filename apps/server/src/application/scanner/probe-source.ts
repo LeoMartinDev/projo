@@ -3,6 +3,8 @@ import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { FileSystem } from '../../core/fs/file-system.ts'
+import type { ProbeMode } from '../../core/jobs/job.ts'
+import type { EnqueueJobInput } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import {
   embeddedSubtitlesOf,
@@ -25,25 +27,26 @@ import type {
 } from '../../core/source/source.ts'
 import type { LinkSourceItems } from './link-source-items.ts'
 
-export type ProbeMode = 'quarantine' | 'verify' | 'recheck'
+export type { ProbeMode }
 
 const probeStrength: Record<ProbeMode, number> = { verify: 0, quarantine: 1, recheck: 2 }
 
 const isProbeMode = (value: unknown): value is ProbeMode =>
   typeof value === 'string' && Object.hasOwn(probeStrength, value)
 
-export const probeJob = (sourceId: string, mode: ProbeMode) => ({
-  type: 'probe_source' as const,
-  payload: { sourceId, mode },
-  dedupeKey: `source:${sourceId}`,
-  mergePayload: (queued: unknown) => {
-    const queuedMode =
-      typeof queued === 'object' ? (queued as { mode?: unknown } | undefined)?.mode : undefined
-    return isProbeMode(queuedMode) && probeStrength[queuedMode] > probeStrength[mode]
-      ? { sourceId, mode: queuedMode }
-      : { sourceId, mode }
-  },
-})
+export const probeJob = (sourceId: string, mode: ProbeMode) =>
+  ({
+    type: 'probe_source',
+    payload: { sourceId, mode },
+    dedupeKey: `source:${sourceId}`,
+    mergePayload: (queued: unknown) => {
+      const queuedMode =
+        typeof queued === 'object' ? (queued as { mode?: unknown } | undefined)?.mode : undefined
+      return isProbeMode(queuedMode) && probeStrength[queuedMode] > probeStrength[mode]
+        ? { sourceId, mode: queuedMode }
+        : { sourceId, mode }
+    },
+  }) satisfies EnqueueJobInput<'probe_source'>
 
 export type ProbeOutcome =
   'ready' | 'unchanged' | 'changed' | 'skipped' | 'probe_failed' | 'decode_failed'

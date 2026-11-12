@@ -103,5 +103,3 @@ export type ImageReencoder = {
     >
   >
 }
-
-export type RefreshMetadataPayload = { itemId: string } | { libraryId: string }

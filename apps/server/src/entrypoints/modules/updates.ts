@@ -23,9 +23,10 @@ import { createGithubReleaseSource } from '../../infrastructure/updates/github-r
 import { createFsReleaseInstaller } from '../../infrastructure/updates/release-installer.ts'
 import type { FetchLike } from '../../infrastructure/updates/http.ts'
 import { adminUpdatesRoutes } from '../http/routes/admin-updates.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScheduledTask } from '../jobs/scheduler.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60_000
 const CHECK_TICK_MS = 60 * 60_000
@@ -121,51 +122,53 @@ export const buildUpdatesModule = (platform: Platform, options: UpdatesModuleOpt
       ]
     : []
 
-  return {
-    routes: adminUpdatesRoutes({
-      getStatus: getUpdatesStatusFactory({
-        processControl,
-        repository,
-        checkStore,
-        installer,
-        state,
+  return defineModule({
+    exposes: {
+      reconcile: async (): Promise<void> => {
+        if (processControl.enabled) await reconcile()
+      },
+      routes: adminUpdatesRoutes({
+        getStatus: getUpdatesStatusFactory({
+          processControl,
+          repository,
+          checkStore,
+          installer,
+          state,
+        }),
+        requestCheck: requestUpdateCheckFactory({ jobQueue, processControl }),
+        requestUpdate: requestUpdateFactory({
+          jobQueue,
+          checkStore,
+          repository,
+          state,
+          processControl,
+        }),
+        requestRollback: requestRollbackFactory({
+          installer,
+          repository,
+          state,
+          processControl,
+          clock,
+          ids,
+          logger: log,
+        }),
       }),
-      requestCheck: requestUpdateCheckFactory({ jobQueue, processControl }),
-      requestUpdate: requestUpdateFactory({
-        jobQueue,
-        checkStore,
-        repository,
-        state,
-        processControl,
-      }),
-      requestRollback: requestRollbackFactory({
-        installer,
-        repository,
-        state,
-        processControl,
-        clock,
-        ids,
-        logger: log,
-      }),
-    }),
-    jobHandlers: {
-      check_updates: defineJobHandler({
+    },
+    jobHandlers: defineJobHandlers({
+      check_updates: {
         payload: z.object({}),
         concurrency: 1,
         run: async () => map(await checkUpdates(), () => undefined),
-      }),
-      apply_update: defineJobHandler({
+      },
+      apply_update: {
         payload: z.object({ version: z.string() }),
         concurrency: 1,
         run: async ({ version }, { signal, reportProgress }) =>
           applyUpdate({ version, signal, reportProgress }),
-      }),
-    },
+      },
+    }),
     scheduledTasks,
-    reconcile: async (): Promise<void> => {
-      if (processControl.enabled) await reconcile()
-    },
-  }
+  })
 }
 
 export type UpdatesModule = ReturnType<typeof buildUpdatesModule>

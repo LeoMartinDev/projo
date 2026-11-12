@@ -356,7 +356,7 @@ describe('scanner on a messy folder (§7, §8)', () => {
     const { libraryId } = insertLibrary(world.db, { id: 'lib-interrupted', rootPath: tmp.path })
     world.jobQueue.enqueue({ type: 'scan_library', payload: { libraryId, kind: 'manual_quick' } })
     const job = world.jobRepository.claimNext({ types: ['scan_library'], now: world.clock.now() })
-    const handler = world.scanner.jobHandlers?.scan_library
+    const handler = world.scanner.jobHandlers.scan_library
     if (job === undefined || handler === undefined) throw new Error('no scan to run')
     const controller = new AbortController()
     controller.abort()

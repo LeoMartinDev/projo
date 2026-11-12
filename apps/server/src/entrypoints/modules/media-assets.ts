@@ -38,9 +38,10 @@ import { createSqliteSubtitleTrackRepository } from '../../infrastructure/sqlite
 import { previewsRoutes } from '../http/routes/previews.ts'
 import { subtitlesRoutes } from '../http/routes/subtitles.ts'
 import { trickplayRoutes } from '../http/routes/trickplay.ts'
-import { defineJobHandler } from '../jobs/handler.ts'
+import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScopeDeps } from './catalog.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const sourcePayload = z.object({ sourceId: z.string().min(1) })
 const itemPayload = z.object({ itemId: z.string().min(1) })
@@ -143,40 +144,42 @@ export const buildMediaAssetsModule = (
     }
   })
 
-  return {
-    homePreviews: homePreviewsFactory({ previewAccess, mediaCatalog, jobQueue, clock }),
-    homeResumeFrames: resumeFramesFactory({
-      catalogRepository,
-      trickplayStore,
-      scopeFor: visibilityScope,
-    }),
-    routes: {
-      subtitles: subtitlesRoutes({
-        getSubtitleVtt: getSubtitleVttFactory({
-          subtitleTracks,
-          catalogRepository,
-          canAccessSource,
-          subtitleCache,
+  return defineModule({
+    exposes: {
+      homePreviews: homePreviewsFactory({ previewAccess, mediaCatalog, jobQueue, clock }),
+      homeResumeFrames: resumeFramesFactory({
+        catalogRepository,
+        trickplayStore,
+        scopeFor: visibilityScope,
+      }),
+      routes: {
+        subtitles: subtitlesRoutes({
+          getSubtitleVtt: getSubtitleVttFactory({
+            subtitleTracks,
+            catalogRepository,
+            canAccessSource,
+            subtitleCache,
+          }),
+          authorizeStream,
+          mediaFiles,
         }),
-        authorizeStream,
-        mediaFiles,
-      }),
-      trickplay: trickplayRoutes({
-        trickplay: trickplayFilesFactory({ catalogRepository, trickplayStore, canAccessSource }),
-        mediaFiles,
-      }),
-      previews: previewsRoutes({ previewAccess, mediaFiles }),
+        trickplay: trickplayRoutes({
+          trickplay: trickplayFilesFactory({ catalogRepository, trickplayStore, canAccessSource }),
+          mediaFiles,
+        }),
+        previews: previewsRoutes({ previewAccess, mediaFiles }),
+      },
     },
-    jobHandlers: {
-      extract_subtitles: defineJobHandler({
+    jobHandlers: defineJobHandlers({
+      extract_subtitles: {
         payload: sourcePayload,
         concurrency: 1,
         run: async ({ sourceId }, { signal }) => {
           const result = await preExtractSubtitles({ sourceId, signal })
           return result.ok ? ok() : result
         },
-      }),
-      trickplay: defineJobHandler({
+      },
+      trickplay: {
         payload: sourcePayload,
         concurrency: 1,
         group: 'heavy_ffmpeg',
@@ -185,8 +188,8 @@ export const buildMediaAssetsModule = (
           const result = await generateTrickplay({ sourceId, signal })
           return result.ok ? ok() : result
         },
-      }),
-      preview_clip: defineJobHandler({
+      },
+      preview_clip: {
         payload: itemPayload,
         concurrency: 1,
         group: 'heavy_ffmpeg',
@@ -195,8 +198,8 @@ export const buildMediaAssetsModule = (
           const result = await generatePreviewClip({ itemId, signal })
           return result.ok ? ok() : result
         },
-      }),
-    },
+      },
+    }),
     scheduledTasks: [
       {
         name: 'trickplay-backfill',
@@ -219,7 +222,7 @@ export const buildMediaAssetsModule = (
     stop: () => {
       unsubscribe()
     },
-  }
+  })
 }
 
 export type MediaAssetsModule = ReturnType<typeof buildMediaAssetsModule>

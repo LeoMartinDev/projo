@@ -27,6 +27,7 @@ import {
 } from '../mcp/tools.ts'
 import { oauthRoutes } from '../oauth/routes.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const mcpRateLimit = { limit: 120, windowMs: 60_000 }
 const registrationRateLimit = { limit: 10, windowMs: 60 * 60_000 }
@@ -109,25 +110,27 @@ export const buildAssistantsModule = (
     },
   ]
 
-  return {
-    assistantTokens,
-    oauth,
-    adminRoutes: adminAssistantsRoutes({ assistantTokens }),
-    oauthConsentRoutes: oauthConsentRoutes({ oauth, trustProxy: config.trustProxy }),
-    oauthRoutes: oauthRoutes({
+  return defineModule({
+    exposes: {
+      assistantTokens,
       oauth,
-      registrationLimiter: createInMemoryRateLimiter({ ...registrationRateLimit, clock }),
-      tokenFailureLimiter: createInMemoryRateLimiter({ ...tokenFailureRateLimit, clock }),
-      trustProxy: config.trustProxy,
-    }),
+      adminRoutes: adminAssistantsRoutes({ assistantTokens }),
+      oauthConsentRoutes: oauthConsentRoutes({ oauth, trustProxy: config.trustProxy }),
+      oauthRoutes: oauthRoutes({
+        oauth,
+        registrationLimiter: createInMemoryRateLimiter({ ...registrationRateLimit, clock }),
+        tokenFailureLimiter: createInMemoryRateLimiter({ ...tokenFailureRateLimit, clock }),
+        trustProxy: config.trustProxy,
+      }),
+      mcpRoutes: mcpRoutes({
+        protocol,
+        authenticate,
+        rateLimiter: createInMemoryRateLimiter({ ...mcpRateLimit, clock }),
+        trustProxy: config.trustProxy,
+      }),
+    },
     scheduledTasks,
-    mcpRoutes: mcpRoutes({
-      protocol,
-      authenticate,
-      rateLimiter: createInMemoryRateLimiter({ ...mcpRateLimit, clock }),
-      trustProxy: config.trustProxy,
-    }),
-  }
+  })
 }
 
 export type AssistantsModule = ReturnType<typeof buildAssistantsModule>

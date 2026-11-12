@@ -5,6 +5,7 @@ import { createSqliteSessionRepository } from '../../infrastructure/sqlite/sessi
 import { startCatalogChanges } from '../catalog-changes.ts'
 import { eventsRoutes } from '../http/routes/events.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 export const buildEventsModule = (
   { db, clock, eventBus }: Platform,
@@ -18,21 +19,23 @@ export const buildEventsModule = (
     eventBus,
     ...(catalogChangedWindowMs === undefined ? {} : { windowMs: catalogChangedWindowMs }),
   })
-  return {
-    routes: eventsRoutes({
-      eventBus,
-      currentSubscriber: eventSubscriberFactory({
-        accountRepository: createSqliteAccountRepository({ db }),
-        sessionRepository: createSqliteSessionRepository({ db }),
-        profileRepository: createSqliteProfileRepository({ db }),
-        clock,
+  return defineModule({
+    exposes: {
+      routes: eventsRoutes({
+        eventBus,
+        currentSubscriber: eventSubscriberFactory({
+          accountRepository: createSqliteAccountRepository({ db }),
+          sessionRepository: createSqliteSessionRepository({ db }),
+          profileRepository: createSqliteProfileRepository({ db }),
+          clock,
+        }),
+        openStreams,
+        ...(keepAliveMs === undefined ? {} : { keepAliveMs }),
       }),
-      openStreams,
-      ...(keepAliveMs === undefined ? {} : { keepAliveMs }),
-    }),
+    },
     stop: () => {
       catalogChanges.stop()
       for (const close of [...openStreams]) close()
     },
-  }
+  })
 }

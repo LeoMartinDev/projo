@@ -10,6 +10,7 @@ import { adminProfilesRoutes } from '../http/routes/admin-profiles.ts'
 import { profilesRoutes } from '../http/routes/profiles.ts'
 import { buildAuthServices } from './auth.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 const pinRateLimit = { limit: 5, windowMs: 60_000 }
 
@@ -40,18 +41,20 @@ export const buildProfilesModule = (
     logger,
   })
 
-  return {
-    visibilityScope,
-    routes: profilesRoutes({ profiles, getMe }),
-    adminRoutes: adminProfilesRoutes({
-      profiles,
-      libraryAccess: libraryAccessFactory({
-        profileRepository,
-        accountRepository,
-        libraryRepository: createSqliteLibraryRepository({ db }),
-        profileChanged: scopes.invalidate,
-        logger,
+  return defineModule({
+    exposes: {
+      visibilityScope,
+      routes: profilesRoutes({ profiles, getMe }),
+      adminRoutes: adminProfilesRoutes({
+        profiles,
+        libraryAccess: libraryAccessFactory({
+          profileRepository,
+          accountRepository,
+          libraryRepository: createSqliteLibraryRepository({ db }),
+          profileChanged: scopes.invalidate,
+          logger,
+        }),
       }),
-    }),
-  }
+    },
+  })
 }

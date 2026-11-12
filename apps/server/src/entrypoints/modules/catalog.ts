@@ -17,6 +17,7 @@ import { catalogRoutes } from '../http/routes/catalog.ts'
 import { type HomePreviewPort, type HomeResumeFramePort, homeRoutes } from '../http/routes/home.ts'
 import { searchRoutes } from '../http/routes/search.ts'
 import type { Platform } from './platform.ts'
+import { defineModule } from './types.ts'
 
 export type ScopeDeps = { visibilityScope: VisibilityScopeResolver }
 
@@ -46,36 +47,38 @@ export const buildCatalogModule = (
     progressQueries: progressRepository,
     catalogEntries,
   }
-  return {
-    routes: catalogRoutes({
-      listCatalog: listCatalogFactory({ catalogRepository, catalogEntries }),
-      listGenres: listGenresFactory({ catalogRepository }),
-      getItem: getItemFactory({ catalogRepository, catalogEntries, seriesPlay }),
-      listChildren: listChildrenFactory({ catalogRepository, catalogEntries }),
-      scopeFor: visibilityScope,
-    }),
-    homeRoutes: homeRoutes({
-      getHome: getHomeFactory({
-        catalogRepository,
-        progressRepository,
-        progressQueries: progressRepository,
-        watchlistRepository,
-        catalogEntries,
-        seriesPlay,
+  return defineModule({
+    exposes: {
+      routes: catalogRoutes({
+        listCatalog: listCatalogFactory({ catalogRepository, catalogEntries }),
+        listGenres: listGenresFactory({ catalogRepository }),
+        getItem: getItemFactory({ catalogRepository, catalogEntries, seriesPlay }),
+        listChildren: listChildrenFactory({ catalogRepository, catalogEntries }),
+        scopeFor: visibilityScope,
       }),
-      getHomeCategories: getHomeCategoriesFactory(homeCategoryDeps),
-      getHomeCategoryPage: getHomeCategoryPageFactory(homeCategoryDeps),
-      scopeFor: visibilityScope,
-      ...(homePreviews === undefined ? {} : { previews: homePreviews }),
-      ...(homeResumeFrames === undefined ? {} : { resumeFrames: homeResumeFrames }),
-    }),
-    searchRoutes: searchRoutes({
-      searchCatalog: searchCatalogFactory({ catalogRepository, catalogEntries }),
-      scopeFor: visibilityScope,
-    }),
-    imageAccess: {
-      canView: ({ imageId, profileId }: { imageId: string; profileId: string }): boolean =>
-        catalogRepository.isImageVisible({ imageId, scope: visibilityScope(profileId) }),
+      homeRoutes: homeRoutes({
+        getHome: getHomeFactory({
+          catalogRepository,
+          progressRepository,
+          progressQueries: progressRepository,
+          watchlistRepository,
+          catalogEntries,
+          seriesPlay,
+        }),
+        getHomeCategories: getHomeCategoriesFactory(homeCategoryDeps),
+        getHomeCategoryPage: getHomeCategoryPageFactory(homeCategoryDeps),
+        scopeFor: visibilityScope,
+        ...(homePreviews === undefined ? {} : { previews: homePreviews }),
+        ...(homeResumeFrames === undefined ? {} : { resumeFrames: homeResumeFrames }),
+      }),
+      searchRoutes: searchRoutes({
+        searchCatalog: searchCatalogFactory({ catalogRepository, catalogEntries }),
+        scopeFor: visibilityScope,
+      }),
+      imageAccess: {
+        canView: ({ imageId, profileId }: { imageId: string; profileId: string }): boolean =>
+          catalogRepository.isImageVisible({ imageId, scope: visibilityScope(profileId) }),
+      },
     },
-  }
+  })
 }

@@ -4,14 +4,21 @@ import { z } from 'zod'
 import { appError, err, ok } from '@projo/shared'
 
 import { createTestDatabase } from '../../../test/support/database.ts'
+import type { Clock } from '../../core/clock.ts'
 import type { ServerEventPayloads } from '../../core/events.ts'
-import type { Job } from '../../core/jobs/job.ts'
+import { type Job, jobDefaults, type JobType } from '../../core/jobs/job.ts'
+import type { JobRepository } from '../../core/jobs/ports.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createInMemoryEventBus } from '../../infrastructure/events/in-memory-event-bus.ts'
 import { createUuidV7Generator } from '../../infrastructure/ids/uuid-v7.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
 import { createSqliteJobRepository } from '../../infrastructure/sqlite/job-repository.ts'
-import { defineJobHandler, type JobHandlers, mergeJobHandlers } from './handler.ts'
+import {
+  defineJobHandlers,
+  type JobHandler,
+  type JobHandlers,
+  mergeJobHandlers,
+} from './handler.ts'
 import { createJobQueue } from './job-queue.ts'
 import { createJobRunner, type JobRunner } from './runner.ts'
 
@@ -59,27 +66,43 @@ afterEach(async () => {
   await Promise.all(runners.splice(0).map((runner) => runner.stop()))
 })
 
-const payload = z.object({ n: z.number() })
+const sourcePayload = z.object({ sourceId: z.string().min(1) })
+
+/** A job stored by an older version, whose payload the typed queue would not take. */
+const storeJob = (
+  jobRepository: JobRepository,
+  clock: Clock,
+  { type, payload }: { type: JobType; payload: unknown },
+): Job =>
+  jobRepository.enqueue({
+    id: crypto.randomUUID(),
+    type,
+    payload,
+    ...jobDefaults[type],
+    runAfter: clock.now(),
+  }).job
 
 describe('createJobRunner', () => {
   test('runs an enqueued job to done and publishes job.updated at each step', async () => {
-    const seen: number[] = []
-    const { queue, runner, jobRepository, events } = setup({
-      scan_library: defineJobHandler({
-        payload,
-        concurrency: 1,
-        run: async ({ n }, { reportProgress }) => {
-          seen.push(n)
-          reportProgress(50)
-          return ok()
+    const seen: string[] = []
+    const { queue, runner, jobRepository, events } = setup(
+      defineJobHandlers({
+        match_source: {
+          payload: sourcePayload,
+          concurrency: 1,
+          run: async ({ sourceId }, { reportProgress }) => {
+            seen.push(sourceId)
+            reportProgress(50)
+            return ok()
+          },
         },
       }),
-    })
+    )
     runner.start()
-    const { job } = queue.enqueue({ type: 'scan_library', payload: { n: 7 } })
+    const { job } = queue.enqueue({ type: 'match_source', payload: { sourceId: 's7' } })
     await runner.idle()
 
-    expect(seen).toEqual([7])
+    expect(seen).toEqual(['s7'])
     expect(jobRepository.findById(job.id)).toMatchObject({
       state: 'done',
       attempts: 1,
@@ -95,32 +118,36 @@ describe('createJobRunner', () => {
 
   test('applies §18 defaults for priority and attempts', () => {
     const { queue } = setup({})
-    expect(queue.enqueue({ type: 'probe_source', payload: {} }).job).toMatchObject({
-      priority: 70,
-      maxAttempts: 3,
-    })
-    expect(queue.enqueue({ type: 'apply_update', payload: {} }).job.maxAttempts).toBe(1)
+    expect(
+      queue.enqueue({ type: 'probe_source', payload: { sourceId: 's1', mode: 'verify' } }).job,
+    ).toMatchObject({ priority: 70, maxAttempts: 3 })
+    expect(
+      queue.enqueue({ type: 'apply_update', payload: { version: '1.2.3' } }).job.maxAttempts,
+    ).toBe(1)
   })
 
   test('respects the concurrency of each type', async () => {
     let active = 0
     let maxActive = 0
     const gates = [deferred(), deferred(), deferred()]
-    const { queue, runner } = setup({
-      probe_source: defineJobHandler({
-        payload,
-        concurrency: 2,
-        run: async ({ n }) => {
-          active += 1
-          maxActive = Math.max(maxActive, active)
-          await gates[n]?.promise
-          active -= 1
-          return ok()
+    const { queue, runner } = setup(
+      defineJobHandlers({
+        extract_subtitles: {
+          payload: sourcePayload,
+          concurrency: 2,
+          run: async ({ sourceId }) => {
+            active += 1
+            maxActive = Math.max(maxActive, active)
+            await gates[Number(sourceId)]?.promise
+            active -= 1
+            return ok()
+          },
         },
       }),
-    })
+    )
     runner.start()
-    for (const n of [0, 1, 2]) queue.enqueue({ type: 'probe_source', payload: { n } })
+    for (const n of [0, 1, 2])
+      queue.enqueue({ type: 'extract_subtitles', payload: { sourceId: String(n) } })
     await scheduledPump()
     expect(active).toBe(2)
     for (const gate of gates) gate.resolve()
@@ -133,28 +160,26 @@ describe('createJobRunner', () => {
       const running = new Set<string>()
       const started: string[] = []
       const gates = new Map<string, ReturnType<typeof deferred>>()
-      const handler = (type: string, group?: 'heavy_ffmpeg') =>
-        defineJobHandler({
-          payload,
-          concurrency: 1,
-          ...(group === undefined ? {} : { group }),
-          run: async ({ n }, { signal }) => {
-            const key = `${type}:${n}`
-            const gate = deferred()
-            gates.set(key, gate)
-            signal.addEventListener('abort', gate.resolve)
-            running.add(key)
-            started.push(key)
-            await gate.promise
-            running.delete(key)
-            return ok()
-          },
-        })
+      const handler = (group?: 'heavy_ffmpeg'): JobHandler => ({
+        concurrency: 1,
+        ...(group === undefined ? {} : { group }),
+        run: async (_payload, { job, signal }) => {
+          const key = job.type
+          const gate = deferred()
+          gates.set(key, gate)
+          signal.addEventListener('abort', gate.resolve)
+          running.add(key)
+          started.push(key)
+          await gate.promise
+          running.delete(key)
+          return ok()
+        },
+      })
       const world = setup({
-        trickplay: handler('trickplay', 'heavy_ffmpeg'),
-        preview_clip: handler('preview_clip', 'heavy_ffmpeg'),
-        fingerprint_season: handler('fingerprint_season', 'heavy_ffmpeg'),
-        extract_subtitles: handler('extract_subtitles'),
+        trickplay: handler('heavy_ffmpeg'),
+        preview_clip: handler('heavy_ffmpeg'),
+        fingerprint_season: handler('heavy_ffmpeg'),
+        extract_subtitles: handler(),
       })
       const finish = async (key: string) => {
         gates.get(key)?.resolve()
@@ -166,9 +191,9 @@ describe('createJobRunner', () => {
 
     test('runs one heavy job at a time across types, the next one when it finishes', async () => {
       const { queue, runner, running, started, finish } = heavySetup()
-      queue.enqueue({ type: 'trickplay', payload: { n: 1 } })
-      queue.enqueue({ type: 'preview_clip', payload: { n: 1 } })
-      queue.enqueue({ type: 'fingerprint_season', payload: { n: 1 } })
+      queue.enqueue({ type: 'trickplay', payload: { sourceId: 's1' } })
+      queue.enqueue({ type: 'preview_clip', payload: { itemId: 'i1' } })
+      queue.enqueue({ type: 'fingerprint_season', payload: { seasonId: 'se1' } })
       runner.start()
       await Bun.sleep(5)
       for (const runningCount of [1, 1, 1]) {
@@ -183,20 +208,20 @@ describe('createJobRunner', () => {
 
     test('does not hold back the other types', async () => {
       const { queue, runner, running } = heavySetup()
-      queue.enqueue({ type: 'trickplay', payload: { n: 1 } })
-      queue.enqueue({ type: 'preview_clip', payload: { n: 1 } })
-      queue.enqueue({ type: 'extract_subtitles', payload: { n: 1 } })
+      queue.enqueue({ type: 'trickplay', payload: { sourceId: 's1' } })
+      queue.enqueue({ type: 'preview_clip', payload: { itemId: 'i1' } })
+      queue.enqueue({ type: 'extract_subtitles', payload: { sourceId: 's1' } })
       runner.start()
       await Bun.sleep(5)
-      expect(running.has('extract_subtitles:1')).toBe(true)
+      expect(running.has('extract_subtitles')).toBe(true)
       expect(running.size).toBe(2)
     })
 
     test('claims the heavy job of highest priority first', async () => {
       const { queue, runner, started, finish } = heavySetup()
-      queue.enqueue({ type: 'trickplay', payload: { n: 1 }, priority: 5 })
-      queue.enqueue({ type: 'preview_clip', payload: { n: 1 }, priority: 20 })
-      queue.enqueue({ type: 'fingerprint_season', payload: { n: 1 }, priority: 10 })
+      queue.enqueue({ type: 'trickplay', payload: { sourceId: 's1' }, priority: 5 })
+      queue.enqueue({ type: 'preview_clip', payload: { itemId: 'i1' }, priority: 20 })
+      queue.enqueue({ type: 'fingerprint_season', payload: { seasonId: 'se1' }, priority: 10 })
       runner.start()
       await Bun.sleep(5)
       for (let n = 0; n < 3; n++) {
@@ -204,7 +229,7 @@ describe('createJobRunner', () => {
         if (current !== undefined) await finish(current)
       }
       await runner.idle()
-      expect(started).toEqual(['preview_clip:1', 'fingerprint_season:1', 'trickplay:1'])
+      expect(started).toEqual(['preview_clip', 'fingerprint_season', 'trickplay'])
     })
   })
 
@@ -212,27 +237,30 @@ describe('createJobRunner', () => {
     const gate = deferred()
     let calls = 0
     const { queue, runner, jobRepository } = setup({
-      scan_library: defineJobHandler({
-        payload,
+      scan_library: {
         concurrency: 4,
         run: async () => {
           calls += 1
           if (calls === 1) await gate.promise
           return ok()
         },
-      }),
+      },
     })
     runner.start()
-    queue.enqueue({ type: 'scan_library', payload: { n: 1 }, dedupeKey: 'library:l1' })
+    queue.enqueue({
+      type: 'scan_library',
+      payload: { libraryId: 'l1', kind: 'manual_quick' },
+      dedupeKey: 'library:l1',
+    })
     await scheduledPump()
     const second = queue.enqueue({
       type: 'scan_library',
-      payload: { n: 2 },
+      payload: { libraryId: 'l1', kind: 'manual_quick' },
       dedupeKey: 'library:l1',
     })
     const third = queue.enqueue({
       type: 'scan_library',
-      payload: { n: 3 },
+      payload: { libraryId: 'l1', kind: 'manual_quick' },
       dedupeKey: 'library:l1',
     })
     expect(second.deduplicated).toBe(false)
@@ -248,17 +276,16 @@ describe('createJobRunner', () => {
   test('retries a failing job and succeeds within max attempts', async () => {
     let calls = 0
     const { queue, runner, jobRepository } = setup({
-      match_source: defineJobHandler({
-        payload,
+      match_source: {
         concurrency: 1,
         run: async () => {
           calls += 1
           return calls < 3 ? err(appError('common/internal', 'flaky')) : ok()
         },
-      }),
+      },
     })
     runner.start()
-    const { job } = queue.enqueue({ type: 'match_source', payload: { n: 1 } })
+    const { job } = queue.enqueue({ type: 'match_source', payload: { sourceId: 's1' } })
     await runner.idle()
     expect(calls).toBe(3)
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'done', attempts: 3 })
@@ -268,17 +295,16 @@ describe('createJobRunner', () => {
     const finalFailures: Job[] = []
     const { queue, runner, jobRepository } = setup(
       {
-        match_source: defineJobHandler({
-          payload,
+        match_source: {
           concurrency: 1,
           run: async () =>
             err(appError('source/not_found', 'gone', { context: { sourceId: 's' } })),
-        }),
+        },
       },
       { onFinalFailure: (job) => finalFailures.push(job) },
     )
     runner.start()
-    const { job } = queue.enqueue({ type: 'match_source', payload: { n: 1 } })
+    const { job } = queue.enqueue({ type: 'match_source', payload: { sourceId: 's1' } })
     await runner.idle()
     expect(jobRepository.findById(job.id)).toMatchObject({
       state: 'failed',
@@ -311,7 +337,7 @@ describe('createJobRunner', () => {
     })
     connectRunner(runner.wake)
     runner.start()
-    const { job } = queue.enqueue({ type: 'fetch_images', payload: {} })
+    const { job } = queue.enqueue({ type: 'fetch_images', payload: { itemId: 'i1' } })
     await runner.idle()
     expect(jobRepository.findById(job.id)).toMatchObject({
       state: 'queued',
@@ -328,25 +354,54 @@ describe('createJobRunner', () => {
   })
 
   test('turns a throwing handler and an invalid payload into typed errors', async () => {
-    const { queue, runner, jobRepository } = setup({
+    const { queue, runner, jobRepository, clock } = setup({
       apply_update: {
         concurrency: 1,
         run: async () => {
           throw new Error('bug')
         },
       },
-      check_updates: defineJobHandler({ payload, concurrency: 1, run: async () => ok() }),
+      ...defineJobHandlers({
+        match_source: { payload: sourcePayload, concurrency: 1, run: async () => ok() },
+      }),
     })
     runner.start()
-    const crashed = queue.enqueue({ type: 'apply_update', payload: {} }).job
-    const invalid = queue.enqueue({
-      type: 'check_updates',
-      payload: { n: 'x' },
-      maxAttempts: 1,
-    }).job
+    const crashed = queue.enqueue({ type: 'apply_update', payload: { version: '1.2.3' } }).job
+    const invalid = storeJob(jobRepository, clock, { type: 'match_source', payload: { n: 'x' } })
+    runner.wake()
     await runner.idle()
     expect(jobRepository.findById(crashed.id)?.error?.code).toBe('job/handler_crashed')
     expect(jobRepository.findById(invalid.id)?.error?.code).toBe('job/invalid_payload')
+  })
+
+  test('an invalid payload fails for good on its first attempt, since retrying cannot fix it', async () => {
+    const finalFailures: Job[] = []
+    let runs = 0
+    const { runner, jobRepository, clock } = setup(
+      defineJobHandlers({
+        fetch_images: {
+          payload: z.object({ itemId: z.string().min(1) }),
+          concurrency: 1,
+          run: async () => (runs++, ok()),
+        },
+      }),
+      { onFinalFailure: (job) => finalFailures.push(job) },
+    )
+    runner.start()
+    const stored = storeJob(jobRepository, clock, {
+      type: 'fetch_images',
+      payload: { sourceId: 'from-an-older-shape' },
+    })
+    runner.wake()
+    await runner.idle()
+    expect(jobRepository.findById(stored.id)).toMatchObject({
+      state: 'failed',
+      attempts: 1,
+      maxAttempts: 3,
+      error: { code: 'job/invalid_payload' },
+    })
+    expect(runs).toBe(0)
+    expect(finalFailures.map((failed) => failed.id)).toEqual([stored.id])
   })
 
   test('requeues jobs left running by a previous process on start', async () => {
@@ -397,7 +452,11 @@ describe('createJobRunner', () => {
       { onFinalFailure: (job) => finalFailures.push(job) },
     )
     runner.start()
-    const { job } = queue.enqueue({ type: 'trickplay', payload: {}, maxAttempts: 1 })
+    const { job } = queue.enqueue({
+      type: 'trickplay',
+      payload: { sourceId: 's1' },
+      maxAttempts: 1,
+    })
     await started.promise
     await runner.stop()
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'queued', attempts: 0 })
@@ -430,7 +489,7 @@ describe('createJobRunner', () => {
       },
     })
     runner.start()
-    const { job } = queue.enqueue({ type: 'apply_update', payload: {} })
+    const { job } = queue.enqueue({ type: 'apply_update', payload: { version: '1.2.3' } })
     await started.promise
     await runner.stop()
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'done', attempts: 1 })
@@ -454,10 +513,18 @@ describe('createJobRunner', () => {
       },
     })
     runner.start()
-    const { job } = queue.enqueue({ type: 'scan_library', payload: {}, dedupeKey: 'library:l1' })
+    const { job } = queue.enqueue({
+      type: 'scan_library',
+      payload: { libraryId: 'l1', kind: 'manual_quick' },
+      dedupeKey: 'library:l1',
+    })
     await started.promise
     expect(runner.cancel(job.id)?.state).toBe('running')
-    queue.enqueue({ type: 'scan_library', payload: {}, dedupeKey: 'library:l1' })
+    queue.enqueue({
+      type: 'scan_library',
+      payload: { libraryId: 'l1', kind: 'manual_quick' },
+      dedupeKey: 'library:l1',
+    })
     await scheduledPump()
     expect(calls).toBe(1)
     expect(jobRepository.findById(job.id)?.state).toBe('running')
@@ -472,7 +539,8 @@ describe('createJobRunner', () => {
     const { queue, runner } = setup({
       probe_source: { concurrency: 2, run: async () => (handled++, ok()) },
     })
-    for (let n = 0; n < 200; n++) queue.enqueue({ type: 'probe_source', payload: {} })
+    for (let n = 0; n < 200; n++)
+      queue.enqueue({ type: 'probe_source', payload: { sourceId: 's1', mode: 'verify' } })
     let handledWhenTimerFired = -1
     setTimeout(() => {
       handledWhenTimerFired = handled
@@ -493,7 +561,8 @@ describe('createJobRunner', () => {
     let claims = 0
     jobRepository.claimNext = (input) => (claims++, claimNext(input))
     runner.start()
-    for (let n = 0; n < 100; n++) queue.enqueue({ type: 'probe_source', payload: {} })
+    for (let n = 0; n < 100; n++)
+      queue.enqueue({ type: 'probe_source', payload: { sourceId: 's1', mode: 'verify' } })
     expect(claims).toBe(1)
     await scheduledPump()
     expect(claims).toBe(2)

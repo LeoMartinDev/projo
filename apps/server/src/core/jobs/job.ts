@@ -1,5 +1,8 @@
 import type { AppError } from '@projo/shared'
 import { jobStates, jobTypes } from '@projo/shared/api/jobs'
+import type { ScanKind } from '@projo/shared/api/libraries'
+
+import type { SegmentType } from '../segments/segment.ts'
 
 export { jobStates, jobTypes }
 export type JobType = (typeof jobTypes)[number]
@@ -8,6 +11,36 @@ export const isJobType = (value: string): value is JobType =>
   (jobTypes as readonly string[]).includes(value)
 
 export type JobState = (typeof jobStates)[number]
+
+export type ProbeMode = 'quarantine' | 'verify' | 'recheck'
+
+type EmptyPayload = Record<string, never>
+
+/**
+ * Payload of each job type: what `JobQueue.enqueue` takes, and what the Zod schema of its
+ * handler must yield (`defineJobHandlers`). Stored jobs keep their payload: change a shape
+ * only in a way the schema still parses from the old one.
+ */
+export type JobPayloads = {
+  scan_library: { libraryId: string; kind: ScanKind }
+  watch_pending: EmptyPayload
+  probe_source: { sourceId: string; mode: ProbeMode }
+  match_source: { sourceId: string }
+  fetch_images: { itemId: string }
+  index_keyframes: { sourceId: string }
+  fetch_segments: { itemId: string }
+  fingerprint_season: { seasonId: string }
+  submit_segment: { itemId: string; type: SegmentType }
+  trickplay: { sourceId: string }
+  preview_clip: { itemId: string }
+  extract_subtitles: { sourceId: string }
+  refresh_metadata: { itemId: string } | { libraryId: string }
+  check_updates: EmptyPayload
+  apply_update: { version: string }
+  cleanup_cache: EmptyPayload
+  purge_missing: EmptyPayload
+  image_variants: EmptyPayload
+}
 
 export type JobError = Pick<AppError, 'code' | 'message' | 'context'>
 
