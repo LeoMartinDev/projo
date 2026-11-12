@@ -11,6 +11,7 @@ import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { buildUpdatesModule } from '../../src/entrypoints/modules/updates.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
+import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import { createManualClock } from './clock.ts'
@@ -55,9 +56,14 @@ export const createUpdatesWorld = ({
       clock,
       ids,
       eventBus,
+      notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
       db,
       jobQueue,
       jobRepository,
+      jobControl: {
+        cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
+        wake: () => {},
+      },
       connectJobRunner: () => {},
     }
     const module = buildUpdatesModule(platform, {

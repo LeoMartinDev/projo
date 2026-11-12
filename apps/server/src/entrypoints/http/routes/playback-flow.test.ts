@@ -24,6 +24,7 @@ import {
 import { silentLogger } from '../../../../test/support/logger.ts'
 import { generateVideo, hasFfmpeg } from '../../../../test/support/media.ts'
 import { dataPathsFor } from '../../../core/data-paths.ts'
+import { createSqliteAdminNotifier } from '../../../infrastructure/sqlite/admin-notifier.ts'
 import type { Db } from '../../../infrastructure/sqlite/database.ts'
 import { profiles } from '../../../infrastructure/sqlite/schema/accounts.ts'
 import { sourceItems, sourceSubtitles } from '../../../infrastructure/sqlite/schema/libraries.ts'
@@ -80,12 +81,14 @@ beforeEach(() => {
   const bus = createRecordingEventBus()
   events = bus.events
   jobs = createRecordingJobQueue()
+  const ids = createSequentialIds('ps-')
   const platform = {
     db,
     clock,
-    ids: createSequentialIds('ps-'),
+    ids,
     logger: silentLogger,
     eventBus: bus.bus,
+    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus: bus.bus }),
     jobQueue: jobs.queue,
     paths: dataPathsFor(data.path),
   } as unknown as Platform

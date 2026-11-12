@@ -15,7 +15,6 @@ import {
 import { segmentSettingsAdminFactory } from '../../application/segments/segment-settings.ts'
 import { submitSegmentFactory } from '../../application/segments/submit-segment.ts'
 import { segmentTargetFactory } from '../../application/segments/targets.ts'
-import type { SegmentSettingsAdmin } from '../../application/segments/types.ts'
 import { segmentTypes } from '../../core/segments/segment.ts'
 import type { SegmentSettingsStore } from '../../core/segments/settings-store.ts'
 import {
@@ -64,22 +63,6 @@ const segmentInfrastructure = (
   return { store, providers }
 }
 
-const settingsAdmin = (
-  platform: Platform,
-  { store, providers }: { store: SegmentSettingsStore; providers: SegmentProviders },
-): SegmentSettingsAdmin =>
-  segmentSettingsAdminFactory({
-    store,
-    validateTheintrodbKey: providers.validateTheintrodbKey,
-    clock: platform.clock,
-    logger: platform.logger.child({ module: 'segments' }),
-  })
-
-export const buildSegmentSettingsAdmin = (
-  platform: Platform,
-  options: ProviderOptions = {},
-): SegmentSettingsAdmin => settingsAdmin(platform, segmentInfrastructure(platform, options))
-
 export type SegmentsModuleOptions = ScopeDeps & ProviderOptions
 
 export const buildSegmentsModule = (
@@ -88,8 +71,7 @@ export const buildSegmentsModule = (
 ) => {
   const { db, ids, clock, logger, eventBus, jobQueue, jobRepository } = platform
   const moduleLogger = logger.child({ module: 'segments' })
-  const infrastructure = segmentInfrastructure(platform, providerOptions)
-  const { store, providers } = infrastructure
+  const { store, providers } = segmentInfrastructure(platform, providerOptions)
   const catalogRepository = createSqliteCatalogRepository({ db })
   const segmentCatalog = createSqliteSegmentCatalog({ db })
   const segmentRepository = createSqliteSegmentRepository({ db, ids, clock })
@@ -152,7 +134,13 @@ export const buildSegmentsModule = (
 
   return defineModule({
     exposes: {
-      segmentSettings: settingsAdmin(platform, infrastructure),
+      /** The "Intros and credits" section of the admin settings, served by the settings module. */
+      settings: segmentSettingsAdminFactory({
+        store,
+        validateTheintrodbKey: providers.validateTheintrodbKey,
+        clock,
+        logger: moduleLogger,
+      }),
       routes: {
         segments: segmentsRoutes({
           getItemSegments: getItemSegmentsFactory({

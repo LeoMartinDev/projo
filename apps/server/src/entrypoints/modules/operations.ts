@@ -19,12 +19,10 @@ import {
 } from '../../application/operations/settings-admin.ts'
 import { getAdminStatsFactory } from '../../application/operations/stats.ts'
 import { measureStorageFactory } from '../../application/operations/storage.ts'
-import type { JobControl } from '../../core/jobs/ports.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { DiskUsage } from '../../core/stats/stats.ts'
 import { createNodeDiskUsage } from '../../infrastructure/fs/disk-usage.ts'
-import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteDatabaseExporter } from '../../infrastructure/sqlite/database-exporter.ts'
 import { createSqliteJobAdminRepository } from '../../infrastructure/sqlite/job-admin-repository.ts'
 import { createSqliteJobTargetLabels } from '../../infrastructure/sqlite/job-target-labels.ts'
@@ -54,7 +52,8 @@ const minute = 60_000
 const hour = 60 * minute
 const day = 24 * 60 * minute
 
-export const buildOperationsSettings = ({ db, config, clock, logger }: Platform) => ({
+/** The "Playback" and "Server" sections of the admin settings (§15), served by `settings`. */
+const buildOperationsSettings = ({ db, config, clock, logger }: Platform) => ({
   playback: playbackSettingsAdminFactory({
     reader: createSqlitePlaybackSettings({ db }),
     writer: createSqlitePlaybackSettingsWriter({ db }),
@@ -68,21 +67,28 @@ export const buildOperationsSettings = ({ db, config, clock, logger }: Platform)
   }),
 })
 
-export type OperationsSettings = ReturnType<typeof buildOperationsSettings>
-
 export type OperationsModuleDeps = {
   playbackSessions: PlaybackSessionTerminator
   metadataContext: Pick<LibraryMetadataContextObserver, 'filesLeaving'>
-  jobControl: JobControl
   diskUsage?: DiskUsage
 }
 
 export const buildOperationsModule = (platform: Platform, deps: OperationsModuleDeps) => {
-  const { db, ids, clock, eventBus, jobQueue, jobRepository, logger, paths, version, runtime } =
-    platform
+  const {
+    db,
+    clock,
+    eventBus,
+    notifier,
+    jobQueue,
+    jobRepository,
+    jobControl,
+    logger,
+    paths,
+    version,
+    runtime,
+  } = platform
   const log = logger.child({ module: 'operations' })
   const diskUsage = deps.diskUsage ?? createNodeDiskUsage()
-  const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const notificationRepository = createSqliteNotificationRepository({ db })
   const jobAdminRepository = createSqliteJobAdminRepository({ db })
   const statsQueries = createSqliteStatsQueries({ db })
@@ -151,7 +157,7 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
             jobAdminRepository,
             jobRepository,
             labels: createSqliteJobTargetLabels({ db }),
-            jobControl: deps.jobControl,
+            jobControl,
             clock,
             eventBus,
             logger: log,

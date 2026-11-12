@@ -21,14 +21,12 @@ import { resolveMatchFactory } from '../../application/metadata/resolve-match.ts
 import { refreshMetadataFactory } from '../../application/metadata/refresh-metadata.ts'
 import { reviewFactory } from '../../application/metadata/review.ts'
 import { tmdbDetailsFactory } from '../../application/metadata/tmdb-details.ts'
-import type { SegmentSettingsAdmin } from '../../application/segments/types.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { ImageReencoder } from '../../core/metadata/editing.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { createImageFiles } from '../../infrastructure/fs/image-files.ts'
 import { createFfmpegImageReencoder } from '../../infrastructure/media/ffmpeg-image-reencoder.ts'
 import { createFfmpegImageVariants } from '../../infrastructure/media/ffmpeg-image-variants.ts'
-import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteImageRepository } from '../../infrastructure/sqlite/image-repository.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteManualMatchRepository } from '../../infrastructure/sqlite/manual-match-repository.ts'
@@ -42,14 +40,11 @@ import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source
 import { createSqliteTmdbResponseStore } from '../../infrastructure/sqlite/tmdb-response-store.ts'
 import { createTmdbClient } from '../../infrastructure/tmdb/tmdb-client.ts'
 import { adminItemsRoutes } from '../http/routes/admin-items.ts'
-import { adminSettingsRoutes } from '../http/routes/admin-settings.ts'
 import { adminSourceReviewRoutes } from '../http/routes/admin-sources.ts'
 import { type ImageAccess, imagesRoutes } from '../http/routes/images.ts'
 import { defineJobHandlers } from '../jobs/handler.ts'
 import type { ScheduledTask } from '../jobs/scheduler.ts'
-import { buildOperationsSettings, type OperationsSettings } from './operations.ts'
 import type { Platform } from './platform.ts'
-import { buildSegmentSettingsAdmin } from './segments.ts'
 import { defineModule } from './types.ts'
 
 export const matchSourcePayloadSchema = z.object({ sourceId: z.string().min(1) })
@@ -64,8 +59,6 @@ const hour = 60 * 60_000
 export type MetadataModuleOptions = {
   playbackSessions: PlaybackSessionTerminator
   canViewImage: ImageAccess
-  segmentSettings?: SegmentSettingsAdmin
-  operationsSettings?: OperationsSettings
   imageReencoder?: ImageReencoder
   tmdb?: {
     apiBaseUrl?: string
@@ -79,13 +72,11 @@ export const buildMetadataModule = (
   {
     playbackSessions,
     canViewImage,
-    segmentSettings = buildSegmentSettingsAdmin(platform),
-    operationsSettings = buildOperationsSettings(platform),
     imageReencoder = createFfmpegImageReencoder(),
     tmdb: tmdbOptions = {},
   }: MetadataModuleOptions,
 ) => {
-  const { db, ids, clock, logger, eventBus, jobQueue, paths } = platform
+  const { db, ids, clock, logger, eventBus, notifier, jobQueue, paths } = platform
   const moduleLogger = logger.child({ module: 'metadata' })
   const settings = createSqliteMetadataSettings({ db })
   const tmdbResponses = createSqliteTmdbResponseStore({ db })
@@ -101,7 +92,6 @@ export const buildMetadataModule = (
     logger: moduleLogger,
     ...tmdbOptions,
   })
-  const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const items = createSqliteMetadataItemRepository({ db })
   const images = createSqliteImageRepository({ db })
   const files = createImageFiles({ imagesDir: paths.images.dir })
@@ -237,6 +227,8 @@ export const buildMetadataModule = (
   return defineModule({
     exposes: {
       requestMatch,
+      /** The "Metadata" section of the admin settings, served by the settings module. */
+      settings: metadataSettings,
       assistantPorts: {
         review,
         tmdbDetails: tmdbDetailsFactory({ tmdb }),
@@ -266,12 +258,6 @@ export const buildMetadataModule = (
           optimizeImages: () =>
             jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
               .job,
-        }),
-        adminSettings: adminSettingsRoutes({
-          metadata: metadataSettings,
-          segments: segmentSettings,
-          playback: operationsSettings.playback,
-          server: operationsSettings.server,
         }),
         adminSourceReview: adminSourceReviewRoutes({ review }),
       },

@@ -16,7 +16,6 @@ import { reconcileAfterSwitchFactory } from '../../application/updates/reconcile
 import { createUpdateStateHolder } from '../../application/updates/state.ts'
 import { getUpdatesStatusFactory } from '../../application/updates/status.ts'
 import type { ProcessControl } from '../../core/updates/update.ts'
-import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteUpdateCheckStore } from '../../infrastructure/sqlite/update-check-store.ts'
 import { createSqliteUpdateRepository } from '../../infrastructure/sqlite/update-repository.ts'
 import { createGithubReleaseSource } from '../../infrastructure/updates/github-release-source.ts'
@@ -41,7 +40,19 @@ export type UpdatesModuleOptions = {
 }
 
 export const buildUpdatesModule = (platform: Platform, options: UpdatesModuleOptions = {}) => {
-  const { db, ids, clock, eventBus, jobQueue, logger, paths, appPaths, version, runtime } = platform
+  const {
+    db,
+    ids,
+    clock,
+    eventBus,
+    notifier,
+    jobQueue,
+    logger,
+    paths,
+    appPaths,
+    version,
+    runtime,
+  } = platform
   const log = logger.child({ module: 'updates' })
   const processControl: ProcessControl = {
     enabled: options.enabled ?? (appPaths.bundled && runtime !== 'dev'),
@@ -53,7 +64,6 @@ export const buildUpdatesModule = (platform: Platform, options: UpdatesModuleOpt
   const state = createUpdateStateHolder({ eventBus })
   const repository = createSqliteUpdateRepository({ db })
   const checkStore = createSqliteUpdateCheckStore({ db })
-  const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const fetchOption = options.fetch === undefined ? {} : { fetch: options.fetch }
   const releaseSource = createGithubReleaseSource({
     logger,

@@ -13,11 +13,15 @@ import { buildAuthModule } from '../../src/entrypoints/modules/auth.ts'
 import { buildEventsModule } from '../../src/entrypoints/modules/events.ts'
 import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
-import { buildProfilesModule } from '../../src/entrypoints/modules/profiles.ts'
+import {
+  buildProfilesModule,
+  buildVisibilityScopes,
+} from '../../src/entrypoints/modules/profiles.ts'
 import { buildSetupModule } from '../../src/entrypoints/modules/setup.ts'
 import { createBunPasswordHasher } from '../../src/infrastructure/auth/bun-password-hasher.ts'
 import { createStaticFiles } from '../../src/infrastructure/http/static-files.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
+import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import { toProfileRow } from '../../src/infrastructure/sqlite/profile-repository.ts'
 import { toAccountRow } from '../../src/infrastructure/sqlite/account-repository.ts'
@@ -60,6 +64,7 @@ export const createAuthTestApp = ({
     },
   }
   const ids = createUuidV7Generator({ clock })
+  const jobRepository = createSqliteJobRepository({ db })
   const platform: Platform = {
     config: { port: 0, dataDir: '/nonexistent', trustProxy, logLevel: 'error' },
     paths: dataPathsFor('/nonexistent'),
@@ -70,9 +75,14 @@ export const createAuthTestApp = ({
     clock,
     ids,
     eventBus,
+    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
     db,
     jobQueue: createRecordingJobQueue().queue,
-    jobRepository: createSqliteJobRepository({ db }),
+    jobRepository,
+    jobControl: {
+      cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
+      wake: () => {},
+    },
     connectJobRunner: () => {},
   }
 
@@ -80,15 +90,12 @@ export const createAuthTestApp = ({
   const playbackSessions = { endWithin: (scope: PlaybackScope) => void endedPlayback.push(scope) }
   const auth = buildAuthModule(platform, { playbackSessions })
   const setup = buildSetupModule(platform)
-  const profilesModule = buildProfilesModule(platform, { playbackSessions })
+  const visibilityScopes = buildVisibilityScopes(platform)
+  const profilesModule = buildProfilesModule(platform, { playbackSessions, visibilityScopes })
   const events = buildEventsModule(platform, keepAliveMs === undefined ? {} : { keepAliveMs })
   const operations = buildOperationsModule(platform, {
     playbackSessions,
     metadataContext: { filesLeaving: () => () => {} },
-    jobControl: {
-      cancel: (id) => platform.jobRepository.cancel({ id, finishedAt: clock.now() }),
-      wake: () => {},
-    },
   })
   const baseline = subscriptions
   const api = createApi({
@@ -208,7 +215,7 @@ export const createAuthTestApp = ({
     eventBus,
     events: recording.events,
     operations,
-    visibilityScope: profilesModule.visibilityScope,
+    visibilityScope: visibilityScopes.resolve,
     endedPlayback,
     activeSubscriptions: () => subscriptions - baseline,
     stopEvents: events.stop,

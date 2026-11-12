@@ -2,7 +2,7 @@ import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { IdGenerator } from '../../core/ids.ts'
 import { jobDefaults } from '../../core/jobs/job.ts'
-import type { JobQueue, JobRepository } from '../../core/jobs/ports.ts'
+import type { JobControl, JobQueue, JobRepository } from '../../core/jobs/ports.ts'
 
 type Deps = {
   jobRepository: JobRepository
@@ -12,8 +12,18 @@ type Deps = {
   onEnqueued?: () => void
 }
 
+/**
+ * The queue modules enqueue into, and the control they cancel or wake jobs with. The runner
+ * needs every module's job handlers, so it is built last and connected afterwards: until then,
+ * `wake` does nothing and `cancel` cancels nothing.
+ */
 export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued }: Deps) => {
   let wake = onEnqueued
+  let runner: JobControl | undefined
+  const control: JobControl = {
+    cancel: (id) => runner?.cancel(id),
+    wake: () => runner?.wake(),
+  }
   const queue: JobQueue = {
     enqueue: (input) => {
       const defaults = jobDefaults[input.type]
@@ -41,8 +51,10 @@ export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued
   }
   return {
     queue,
-    connectRunner: (runnerWake: () => void) => {
-      wake = runnerWake
+    control,
+    connectRunner: (connected: JobControl) => {
+      runner = connected
+      wake = connected.wake
     },
   }
 }

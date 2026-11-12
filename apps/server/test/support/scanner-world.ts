@@ -15,6 +15,7 @@ import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { buildScannerModule } from '../../src/entrypoints/modules/scanner.ts'
 import { buildSourcesModule } from '../../src/entrypoints/modules/sources.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
+import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import {
   endPlaybackSessionFactory,
   endPlaybackSessionsWithinFactory,
@@ -46,9 +47,14 @@ export const createScannerWorld = () => {
     clock,
     ids,
     eventBus,
+    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
     db,
     jobQueue,
     jobRepository,
+    jobControl: {
+      cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
+      wake: () => {},
+    },
     connectJobRunner: () => {},
   }
   const playbackSessionRepository = createSqlitePlaybackSessionRepository({ db })
@@ -80,7 +86,6 @@ export const createScannerWorld = () => {
       changed: (input) => metadataContextLater.current?.changed(input),
       filesLeaving: (files) => metadataContextLater.current?.filesLeaving(files) ?? (() => {}),
     },
-    jobControl: { cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }) },
   })
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)

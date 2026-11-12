@@ -36,7 +36,6 @@ import {
 import { createFileKeyframeStore } from '../../infrastructure/playback/keyframe-store.ts'
 import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createTrickplayStore } from '../../infrastructure/playback/trickplay-store.ts'
-import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
@@ -52,7 +51,7 @@ import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
 export const buildPlaybackModule = (
-  { db, clock, ids, logger, eventBus, jobQueue, paths }: Platform,
+  { db, clock, ids, logger, eventBus, notifier, jobQueue, paths }: Platform,
   { visibilityScope }: ScopeDeps,
 ) => {
   const catalogRepository = createSqliteCatalogRepository({ db })
@@ -68,7 +67,7 @@ export const buildPlaybackModule = (
   const segmenter = createHlsSegmenter({
     transcodeDir: paths.cache.transcode,
     logger,
-    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
+    notifier,
   })
   const transcodeCache = createTranscodeCache({ transcodeDir: paths.cache.transcode })
   const trickplayUrl = trickplayUrlFactory({

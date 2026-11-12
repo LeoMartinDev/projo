@@ -18,7 +18,8 @@ import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'
 
-type Sections = {
+/** One section per owning module: metadata, segments, operations (playback and server). */
+export type AdminSettingsSections = {
   metadata: MetadataSettingsAdmin
   segments: SegmentSettingsAdmin
   playback: PlaybackSettingsAdmin
@@ -46,7 +47,12 @@ const toSegmentsDto = (segments: SegmentSettingsView): AdminSettingsDto['segment
   contribution: segments.contribution,
 })
 
-const toDto = ({ metadata, segments, playback, server }: Sections): AdminSettingsDto => {
+const toDto = ({
+  metadata,
+  segments,
+  playback,
+  server,
+}: AdminSettingsSections): AdminSettingsDto => {
   const current = playback.get()
   return {
     playback: {
@@ -63,7 +69,7 @@ const toDto = ({ metadata, segments, playback, server }: Sections): AdminSetting
   }
 }
 
-export const adminSettingsRoutes = (sections: Sections) =>
+export const adminSettingsRoutes = (sections: AdminSettingsSections) =>
   new Hono<AppEnv>()
     .get('/settings', (c) => c.json(toDto(sections), 200))
     .patch('/settings', validate('json', updateAdminSettingsBodySchema), async (c) => {

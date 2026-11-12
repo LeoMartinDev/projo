@@ -4,9 +4,13 @@ import { everything } from '../../src/core/catalog/catalog.ts'
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { ImageReencoder } from '../../src/core/metadata/editing.ts'
+import type { PlaybackSessionTerminator } from '../../src/core/playback/session.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { type JobHandler, mergeJobHandlers } from '../../src/entrypoints/jobs/handler.ts'
 import { buildMetadataModule } from '../../src/entrypoints/modules/metadata.ts'
+import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
+import { buildSegmentsModule } from '../../src/entrypoints/modules/segments.ts'
+import { buildSettingsModule } from '../../src/entrypoints/modules/settings.ts'
 import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
 import { createTempDir } from './database.ts'
 import { silentLogger } from './logger.ts'
@@ -26,18 +30,30 @@ export const createMetadataWorld = ({
   const endedItems: string[][] = []
   const platform = { ...scanner.platform, paths: dataPathsFor(data.path) }
   const catalog = createSqliteCatalogRepository({ db: scanner.db })
-  const metadata = buildMetadataModule(platform, {
-    playbackSessions: {
-      endWithin: (scope) => {
-        if ('itemIds' in scope) endedItems.push([...scope.itemIds])
-      },
+  const playbackSessions: PlaybackSessionTerminator = {
+    endWithin: (scope) => {
+      if ('itemIds' in scope) endedItems.push([...scope.itemIds])
     },
+  }
+  const metadata = buildMetadataModule(platform, {
+    playbackSessions,
     canViewImage:
       canViewImage ?? (({ imageId }) => catalog.isImageVisible({ imageId, scope: everything })),
     ...(imageReencoder === undefined ? {} : { imageReencoder }),
     tmdb: { apiBaseUrl: tmdb.apiBaseUrl, imageBaseUrl: tmdb.imageBaseUrl, sleep: async () => {} },
   })
   scanner.metadataContextLater.current = metadata.libraryMetadataContext
+  const segments = buildSegmentsModule(platform, { visibilityScope: () => everything })
+  const operations = buildOperationsModule(platform, {
+    playbackSessions,
+    metadataContext: metadata.libraryMetadataContext,
+  })
+  const settings = buildSettingsModule({
+    metadata: metadata.settings,
+    segments: segments.settings,
+    playback: operations.settings.playback,
+    server: operations.settings.server,
+  })
   const handlers = mergeJobHandlers(scanner.scanner.jobHandlers, metadata.jobHandlers)
 
   const app = new Hono<AppEnv>()
@@ -50,7 +66,7 @@ export const createMetadataWorld = ({
     .route('/api/v1', metadata.routes.images)
     .route('/api/v1/admin', metadata.routes.adminSourceReview)
     .route('/api/v1/admin', metadata.routes.adminItems)
-    .route('/api/v1/admin', metadata.routes.adminSettings)
+    .route('/api/v1/admin', settings.routes)
 
   const ours =
     /^\/(settings|tmdb\/|items\/|images\/optimize|sources\/[^/]+\/(assign|reject|restore)|libraries\/[^/]+\/refresh-metadata)/u
@@ -105,6 +121,7 @@ export const createMetadataWorld = ({
     runJobs,
     setKey,
     stop: async () => {
+      await segments.stop()
       await scanner.stop()
       tmdb.stop()
       data.cleanup()

@@ -2,14 +2,11 @@ import { type AppError, ok, type Result } from '@projo/shared'
 import { maxImageUploadBytes } from '@projo/shared/api/metadata'
 
 import { notifyJobFailureFactory } from '../application/jobs/notify-job-failure.ts'
-import type { LibraryMetadataContextObserver } from '../core/library/library.ts'
-import type { PlaybackSessionTerminator } from '../core/playback/session.ts'
 import { SWITCH_EXIT_CODE } from '../core/updates/update.ts'
 
 import { systemClock } from '../infrastructure/clock/system-clock.ts'
 import { createStaticFiles } from '../infrastructure/http/static-files.ts'
 import { createJsonLogger } from '../infrastructure/logger/json-logger.ts'
-import { createSqliteAdminNotifier } from '../infrastructure/sqlite/admin-notifier.ts'
 import { closeDatabase } from '../infrastructure/sqlite/database.ts'
 import { readManifestVersion } from '../infrastructure/system/app-version.ts'
 import { type AppPaths, resolveAppPaths, sourceVersion } from './app-paths.ts'
@@ -17,7 +14,7 @@ import { loadConfig } from './config.ts'
 import { createApi } from './http/api.ts'
 import { createHttpApp } from './http/app.ts'
 import { mergeJobHandlers, requireAllJobHandlers } from './jobs/handler.ts'
-import { createJobRunner, type JobRunner } from './jobs/runner.ts'
+import { createJobRunner } from './jobs/runner.ts'
 import { createScheduler } from './jobs/scheduler.ts'
 import { buildAdminPlaybackModule } from './modules/admin-playback.ts'
 import { buildAssistantsModule } from './modules/assistants.ts'
@@ -32,10 +29,11 @@ import { buildMetadataModule } from './modules/metadata.ts'
 import { buildOperationsModule } from './modules/operations.ts'
 import { buildPlatform, type BuildPlatformError } from './modules/platform.ts'
 import { buildPlaybackModule } from './modules/playback.ts'
-import { buildProfilesModule } from './modules/profiles.ts'
+import { buildProfilesModule, buildVisibilityScopes } from './modules/profiles.ts'
 import { buildProgressModule } from './modules/progress.ts'
 import { buildScannerModule } from './modules/scanner.ts'
 import { buildSegmentsModule } from './modules/segments.ts'
+import { buildSettingsModule } from './modules/settings.ts'
 import { buildSetupModule } from './modules/setup.ts'
 import { buildSourcesModule } from './modules/sources.ts'
 import type { ModuleContribution } from './modules/types.ts'
@@ -79,18 +77,18 @@ export const startProjo = ({
   if (!built.ok) return built
   const platform = built.value
 
-  const playbackLater: { current?: PlaybackSessionTerminator } = {}
-  const endPlaybackWithin: PlaybackSessionTerminator = {
-    endWithin: (scope) => playbackLater.current?.endWithin(scope),
-  }
-  const auth = buildAuthModule(platform, { playbackSessions: endPlaybackWithin })
-  const setup = buildSetupModule(platform)
-  const profiles = buildProfilesModule(platform, { playbackSessions: endPlaybackWithin })
-  const { visibilityScope } = profiles
-  const events = buildEventsModule(platform)
+  // Each module receives what it needs from those built above it. Two late bindings remain,
+  // both genuinely cyclic: the job runner needs every module's job handlers (modules reach it
+  // through `platform.jobControl`, bound by `connectJobRunner` below), and the version switch
+  // needs `stop` (`switchLater`, bound at the end).
+  const visibilityScopes = buildVisibilityScopes(platform)
+  const visibilityScope = visibilityScopes.resolve
   const playback = buildPlaybackModule(platform, { visibilityScope })
   const { playbackSessions } = playback
-  playbackLater.current = playbackSessions
+  const auth = buildAuthModule(platform, { playbackSessions })
+  const setup = buildSetupModule(platform)
+  const profiles = buildProfilesModule(platform, { playbackSessions, visibilityScopes })
+  const events = buildEventsModule(platform)
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)
   const mediaAssets = buildMediaAssetsModule(platform, {
@@ -105,37 +103,28 @@ export const startProjo = ({
   })
   const segments = buildSegmentsModule(platform, { visibilityScope })
   const fingerprint = buildFingerprintModule(platform)
-  const runnerLater: { current?: JobRunner } = {}
-  const metadataContextLater: { current?: LibraryMetadataContextObserver } = {}
-  const operations = buildOperationsModule(platform, {
+  const metadata = buildMetadataModule(platform, {
     playbackSessions,
-    metadataContext: {
-      filesLeaving: (files) => metadataContextLater.current?.filesLeaving(files) ?? (() => {}),
-    },
-    jobControl: {
-      cancel: (id) => runnerLater.current?.cancel(id),
-      wake: () => runnerLater.current?.wake(),
-    },
+    canViewImage: catalog.imageAccess.canView,
   })
+  const metadataContext = metadata.libraryMetadataContext
+  const operations = buildOperationsModule(platform, { playbackSessions, metadataContext })
+  const settings = buildSettingsModule({
+    metadata: metadata.settings,
+    segments: segments.settings,
+    playback: operations.settings.playback,
+    server: operations.settings.server,
+  })
+  const libraries = buildLibrariesModule(platform, { playbackSessions, metadataContext })
+  const scanner = buildScannerModule(platform, {
+    playbackSessions,
+    requestMatch: metadata.requestMatch,
+  })
+  const progress = buildProgressModule(platform, { visibilityScope })
   const switchLater: { request?: () => void } = {}
   const updates = buildUpdatesModule(platform, {
     exitForSwitch: () => switchLater.request?.(),
   })
-  const metadata = buildMetadataModule(platform, {
-    playbackSessions,
-    canViewImage: catalog.imageAccess.canView,
-    segmentSettings: segments.segmentSettings,
-    operationsSettings: operations.settings,
-  })
-  const { requestMatch } = metadata
-  metadataContextLater.current = metadata.libraryMetadataContext
-  const libraries = buildLibrariesModule(platform, {
-    playbackSessions,
-    metadataContext: metadata.libraryMetadataContext,
-    jobControl: { cancel: (id) => runnerLater.current?.cancel(id) },
-  })
-  const scanner = buildScannerModule(platform, { playbackSessions, requestMatch })
-  const progress = buildProgressModule(platform, { visibilityScope })
   const assistants = buildAssistantsModule(platform, { assistantPorts: metadata.assistantPorts })
 
   const modules: ModuleContribution[] = [
@@ -148,6 +137,7 @@ export const startProjo = ({
     sources,
     scanner,
     metadata,
+    settings,
     catalog,
     progress,
     playback,
@@ -186,7 +176,7 @@ export const startProjo = ({
       adminSourceReview: metadata.routes.adminSourceReview,
       adminItems: metadata.routes.adminItems,
       adminSegments: segments.routes.adminSegments,
-      adminSettings: metadata.routes.adminSettings,
+      adminSettings: settings.routes,
       adminAccounts: auth.adminAccountRoutes,
       adminProfiles: profiles.adminRoutes,
       adminPlayback: adminPlayback.routes,
@@ -216,17 +206,9 @@ export const startProjo = ({
     clock: platform.clock,
     logger,
     eventBus: platform.eventBus,
-    onFinalFailure: notifyJobFailureFactory({
-      notifier: createSqliteAdminNotifier({
-        db: platform.db,
-        ids: platform.ids,
-        clock: platform.clock,
-        eventBus: platform.eventBus,
-      }),
-    }),
+    onFinalFailure: notifyJobFailureFactory({ notifier: platform.notifier }),
   })
-  platform.connectJobRunner(runner.wake)
-  runnerLater.current = runner
+  platform.connectJobRunner(runner)
   const scheduler = createScheduler({ logger })
   for (const task of modules.flatMap((module) => module.scheduledTasks)) {
     scheduler.register(task)

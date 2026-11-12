@@ -4,12 +4,14 @@ import type { Clock } from '../../core/clock.ts'
 import { type DataPaths, dataPathsFor } from '../../core/data-paths.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { IdGenerator } from '../../core/ids.ts'
-import type { JobQueue, JobRepository } from '../../core/jobs/ports.ts'
+import type { JobControl, JobQueue, JobRepository } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
+import type { AdminNotifier } from '../../core/scanner/ports.ts'
 import { systemClock } from '../../infrastructure/clock/system-clock.ts'
 import { createInMemoryEventBus } from '../../infrastructure/events/in-memory-event-bus.ts'
 import { ensureDataLayout } from '../../infrastructure/fs/data-layout.ts'
 import { createUuidV7Generator } from '../../infrastructure/ids/uuid-v7.ts'
+import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { type Db, openDatabase } from '../../infrastructure/sqlite/database.ts'
 import { createSqliteJobRepository } from '../../infrastructure/sqlite/job-repository.ts'
 import type { AppPaths } from '../app-paths.ts'
@@ -26,10 +28,15 @@ export type Platform = {
   clock: Clock
   ids: IdGenerator
   eventBus: EventBus
+  /** Admin notifications (§15), shared by every module like the event bus. */
+  notifier: AdminNotifier
   db: Db
   jobQueue: JobQueue
   jobRepository: JobRepository
-  connectJobRunner: (wake: () => void) => void
+  /** Cancels or wakes jobs through the runner, once `connectJobRunner` has bound it. */
+  jobControl: JobControl
+  /** Binds the runner, built last because it needs every module's job handlers. */
+  connectJobRunner: (runner: JobControl) => void
 }
 
 type BuildPlatformInput = {
@@ -68,7 +75,12 @@ export const buildPlatform = ({
       const ids = createUuidV7Generator({ clock })
       const eventBus = createInMemoryEventBus({ logger })
       const jobRepository = createSqliteJobRepository({ db })
-      const { queue, connectRunner } = createJobQueue({ jobRepository, ids, clock, eventBus })
+      const { queue, control, connectRunner } = createJobQueue({
+        jobRepository,
+        ids,
+        clock,
+        eventBus,
+      })
       return {
         config,
         paths,
@@ -79,9 +91,11 @@ export const buildPlatform = ({
         clock,
         ids,
         eventBus,
+        notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
         db,
         jobQueue: queue,
         jobRepository,
+        jobControl: control,
         connectJobRunner: connectRunner,
       }
     },

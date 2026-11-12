@@ -14,22 +14,19 @@ import { createSqliteLocalItemRepository } from '../../infrastructure/sqlite/loc
 import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-run-repository.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { adminLibrariesRoutes } from '../http/routes/admin-libraries.ts'
-import type { JobControl } from '../../core/jobs/ports.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
 export const buildLibrariesModule = (
-  { db, ids, clock, logger, jobQueue, jobRepository, eventBus }: Platform,
+  { db, ids, clock, logger, jobQueue, jobRepository, jobControl, eventBus }: Platform,
   {
     playbackSessions,
     metadataContext,
-    jobControl,
   }: {
     playbackSessions: PlaybackSessionTerminator
     metadataContext: LibraryMetadataContextObserver
-    jobControl: Pick<JobControl, 'cancel'>
   },
 ) => {
   const libraryRepository = createSqliteLibraryRepository({ db })

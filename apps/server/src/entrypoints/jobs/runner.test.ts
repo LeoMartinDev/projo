@@ -56,7 +56,7 @@ const setup = (handlers: JobHandlers, options: { onFinalFailure?: (job: Job) => 
     retryDelay: () => 0,
     ...options,
   })
-  connectRunner(runner.wake)
+  connectRunner(runner)
   runners.push(runner)
   return { clock, queue, runner, jobRepository, events }
 }
@@ -335,7 +335,7 @@ describe('createJobRunner', () => {
       clock,
       eventBus,
     })
-    connectRunner(runner.wake)
+    connectRunner(runner)
     runner.start()
     const { job } = queue.enqueue({ type: 'fetch_images', payload: { itemId: 'i1' } })
     await runner.idle()

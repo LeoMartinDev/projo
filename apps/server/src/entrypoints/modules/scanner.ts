@@ -15,7 +15,6 @@ import { createNodeFileSystem } from '../../infrastructure/fs/node-file-system.t
 import { createFfmpegDecoder } from '../../infrastructure/media/ffmpeg-decoder.ts'
 import { createFfprobeProber } from '../../infrastructure/media/ffprobe.ts'
 import { createInMemoryDirectoryCache } from '../../infrastructure/scanner/in-memory-directory-cache.ts'
-import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteLocalItemRepository } from '../../infrastructure/sqlite/local-item-repository.ts'
 import { createSqliteScanRunRepository } from '../../infrastructure/sqlite/scan-run-repository.ts'
@@ -42,7 +41,7 @@ export const probeSourcePayloadSchema = z.object({
 })
 
 export const buildScannerModule = (
-  { db, ids, clock, logger, eventBus, jobQueue, jobRepository }: Platform,
+  { db, ids, clock, logger, eventBus, notifier, jobQueue, jobRepository }: Platform,
   {
     playbackSessions,
     requestMatch = ({ sourceId }) =>
@@ -67,7 +66,6 @@ export const buildScannerModule = (
   })
   if (interrupted > 0) moduleLogger.warn('closed interrupted scan runs', { count: interrupted })
   const localItems = createSqliteLocalItemRepository({ db })
-  const notifier = createSqliteAdminNotifier({ db, ids, clock, eventBus })
   const directoryCache = createInMemoryDirectoryCache()
   const prober = createFfprobeProber({ processPriority: 'background' })
   const decoder = createFfmpegDecoder({ processPriority: 'background' })
