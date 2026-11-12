@@ -1,4 +1,14 @@
 import type { Account, AccountRepository } from '../../src/core/auth/account.ts'
+import type {
+  AssistantToken,
+  AssistantTokenRepository,
+} from '../../src/core/auth/assistant-token.ts'
+import type {
+  OAuthClient,
+  OAuthCode,
+  OAuthRepository,
+  OAuthToken,
+} from '../../src/core/auth/oauth.ts'
 import type { Pairing, PairingCodes, PairingRepository } from '../../src/core/auth/pairing.ts'
 import type { PasswordHasher, RateLimiter, SessionTokens } from '../../src/core/auth/ports.ts'
 import type { Session, SessionRepository } from '../../src/core/auth/session.ts'
@@ -239,4 +249,78 @@ export const createInMemorySetup = () => {
     },
   }
   return { repository, state }
+}
+
+export const createInMemoryAssistantTokens = (initial: AssistantToken[] = []) => {
+  const tokens = new Map(initial.map((token) => [token.id, token]))
+  const repository: AssistantTokenRepository = {
+    create: (token) => {
+      tokens.set(token.id, token)
+      return token
+    },
+    findById: (id) => tokens.get(id),
+    findByTokenHash: (tokenHash) =>
+      [...tokens.values()].find((token) => token.tokenHash === tokenHash),
+    listActiveByAccount: (accountId) =>
+      [...tokens.values()].filter(
+        (token) => token.accountId === accountId && token.revokedAt === undefined,
+      ),
+    revoke: ({ id, accountId, revokedAt }) => {
+      const token = tokens.get(id)
+      if (token === undefined || token.revokedAt !== undefined) return false
+      if (accountId !== undefined && token.accountId !== accountId) return false
+      tokens.set(id, { ...token, revokedAt })
+      return true
+    },
+    touch: ({ id, lastUsedAt }) => {
+      const token = tokens.get(id)
+      if (token !== undefined) tokens.set(id, { ...token, lastUsedAt })
+    },
+  }
+  return { repository, tokens }
+}
+
+/** In-memory OAuthRepository; codes are consumed once and refresh tokens rotated once. */
+export const createInMemoryOAuth = (initialClients: OAuthClient[] = []) => {
+  const clients = new Map(initialClients.map((client) => [client.id, client]))
+  const codes = new Map<string, OAuthCode>()
+  const tokens = new Map<string, OAuthToken>()
+  const touched: { id: string; at: Date }[] = []
+  const purged: { now: Date; unusedBefore: Date }[] = []
+  const repository: OAuthRepository = {
+    findClient: (clientId) => [...clients.values()].find((client) => client.clientId === clientId),
+    findClientById: (id) => clients.get(id),
+    saveClient: (client) => {
+      clients.set(client.id, client)
+      return client
+    },
+    touchClient: ({ id, at }) => {
+      touched.push({ id, at })
+      const client = clients.get(id)
+      if (client !== undefined) clients.set(id, { ...client, lastUsedAt: at })
+    },
+    createCode: (code) => {
+      codes.set(code.codeHash, code)
+    },
+    consumeCode: ({ codeHash, usedAt }) => {
+      const code = codes.get(codeHash)
+      if (code === undefined || code.usedAt !== undefined) return undefined
+      codes.set(codeHash, { ...code, usedAt })
+      return code
+    },
+    createToken: (token) => {
+      tokens.set(token.tokenHash, token)
+    },
+    findToken: (tokenHash) => tokens.get(tokenHash),
+    markRotated: ({ tokenHash, at }) => {
+      const token = tokens.get(tokenHash)
+      if (token === undefined || token.rotatedAt !== undefined) return false
+      tokens.set(tokenHash, { ...token, rotatedAt: at })
+      return true
+    },
+    purge: (input) => {
+      purged.push(input)
+    },
+  }
+  return { repository, clients, codes, tokens, touched, purged }
 }
