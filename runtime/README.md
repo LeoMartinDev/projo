@@ -94,6 +94,16 @@ On `github.com/LeoMartinDev/projo/releases`, tag `v<semver>`, three assets:
 
 The app only downloads asset URLs starting with `https://github.com/LeoMartinDev/projo/releases/download/`.
 
+## Publishing a release
+
+CI publishes from `main`: when the `package.json` version has no release yet, once lint, types, tests and e2e have passed on the commit, it creates the `vX.Y.Z` tag and the release. Never push a `v*` tag yourself.
+
+1. On an up-to-date and green `main`, bump the version in `package.json` (`"version": "X.Y.Z"`, semver, above the previous release) and commit: `chore(release): X.Y.Z`.
+2. If the image changed since the previous release (`runtime/` except `scripts/` and tests), also bump `runtime/VERSION`, otherwise CI rejects the release. The application then requires that image (`runtimeMin`): installations will need a `docker compose pull` before they can update.
+3. Push: `git push origin main`.
+
+Installations offer the new version within a day. To republish the image alone (Debian or ffmpeg security fix without an application change), tag the commit of the latest `vX.Y.Z` release with `runtime-<runtime/VERSION>`. Only stable `vX.Y.Z` versions are published (no pre-releases).
+
 ## Release in CI (PRODUCT.md §22)
 
 Jobs `release-plan`, `runtime-image` and `release` of `.github/workflows/ci.yml`, on a push to `main` or a `runtime-*` tag, after `checks`, `test`, `e2e` and `docker`. The `v*` tags are created by the `release` job, never pushed (the workflow does not run on them: a pushed tag would mean a second run of the same commit).

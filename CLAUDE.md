@@ -233,7 +233,7 @@ beforeEach(() => {
 
 ## Misc
 
-- Release (README "Publishing a release", runtime/README.md): bump `version` in the root `package.json` (and `runtime/VERSION` if the image changed), commit `chore(release): X.Y.Z`, push `main`. CI creates the `vX.Y.Z` tag and the release once the run is green; never create or push a `v*` tag (one run per commit). Only `runtime-X.Y.Z` tags are pushed by hand (image alone).
+- Release (runtime/README.md, "Publishing a release"): bump `version` in the root `package.json` (and `runtime/VERSION` if the image changed), commit `chore(release): X.Y.Z`, push `main`. CI creates the `vX.Y.Z` tag and the release once the run is green; never create or push a `v*` tag (one run per commit). Only `runtime-X.Y.Z` tags are pushed by hand (image alone).
 - Config: only `PORT`, `DATA_DIR`, `TRUST_PROXY`, `LOG_LEVEL` (`entrypoints/config.ts`). Everything else: `settings` table. `PROJO_RUNTIME_VERSION` (set by the supervisor) feeds `runtime` of `/health`.
 - Logger: `logger.info('msg', { code, jobId, sessionId, error })`, JSON on stdout; `c.get('logger')` carries `requestId`.
 - SSE: `Bun.serve` has `idleTimeout: 120` s ⇒ send a keep-alive at least every 30 s.
