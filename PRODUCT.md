@@ -3,7 +3,7 @@
 > A self-hosted media server for movies and TV shows, built for a household, with the user experience as its only differentiator.
 > This document bounds the project: anything not in it is not in projo. It is written to be carried out from A to Z by a developer or an agent, milestone by milestone.
 
-Document version: 1.2 (2026-11-04: MCP server for the admin, §27). Product language: French first, English shipped.
+Document version: 1.3 (2026-11-13: player engines, `@projo/player` and the desktop app, §10.2, §10.4, §10.7, §28). Product language: French first, English shipped.
 
 ---
 
@@ -36,6 +36,7 @@ Document version: 1.2 (2026-11-04: MCP server for the admin, §27). Product lang
 25. [References](#25-references)
 26. [Mobile app (iOS, iPadOS)](#26-mobile-app-ios-ipados)
 27. [MCP server](#27-mcp-server)
+28. [Desktop app (Windows)](#28-desktop-app-windows)
 
 ---
 
@@ -57,6 +58,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 
 - Movies and shows, identified through TMDB.
 - Responsive web app (desktop, mobile, tablet), installable as a PWA, served by the server itself.
+- A desktop app for Windows (§28): the server's web app in a native window, playing every file directly through libmpv (MKV, HEVC and AV1 10-bit, HDR10, Dolby Vision, DTS, TrueHD, PGS, ASS), with no remux nor transcode at original quality.
 - Untyped multi-folder libraries, messy content accepted, automatic per-file classification.
 - Robust scanning: detection of files being written, missing files, unreachable folders, moves, multiple versions.
 - Playback: direct play, remux, audio transcoding, video transcoding (software, or VAAPI as an admin option) with a quality picker and HDR to SDR tone mapping, text and burned-in subtitles, timeline thumbnails.
@@ -92,7 +94,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 - NFO files and local images (`poster.jpg`, `fanart.jpg`).
 - Disc folders (`VIDEO_TS`, `BDMV`), ISO images, 3D files.
 - Offline mode, download for offline playback.
-- Connecting one client to several servers.
+- Connecting one client to several servers (the desktop app's "Change server", §28.3, replaces the one it has).
 
 ---
 
@@ -140,7 +142,9 @@ These five journeys are the ones the Playwright suite covers end to end. They de
 | Validation | Zod, schemas shared between server and web |
 | API client | Hono's typed RPC (`hc`) from the server app's type |
 | Web | Vite, React, TanStack Router, TanStack Query, hls.js |
+| Player logic (§10.7) | `@projo/player`: pure TypeScript, no DOM, no React, driven through a `PlayerEngine` port (web `<video>` + hls.js, libmpv in the desktop app, later `expo-video`) |
 | Mobile (§26) | Expo (React Native), Expo Router, TanStack Query, `expo-video` (AVPlayer) |
+| Desktop (§28) | Tauri 2 (Rust, WebView2 on Windows), libmpv through projo's own binding (`libloading`) |
 | Real time | SSE (Server-Sent Events), one stream per authenticated client |
 | Media | `ffmpeg`, `ffprobe`, `fpcalc` (Chromaprint) called as subprocesses |
 | Jobs | In-process queue, persisted in SQLite, no Redis |
@@ -165,13 +169,25 @@ projo/
     web/               # React application
       src/
         features/      # home, browse, item, player, profiles, settings, admin, auth
+          player/
+            engines/   # html-video (<video> + hls.js), mpv (Tauri bridge): PlayerEngine adapters
+            ui/        # PlayerPage and its components, on the controller of @projo/player
         shared/        # components, hooks, API client, i18n
     mobile/            # iPhone and iPad app, Expo (§26)
       src/             # same layout as web: app, features, shared
       modules/         # native code (Expo Modules, Swift), the only exception to §5.3
+    desktop/           # Windows app, Tauri 2 (§28)
+      src-tauri/       # Rust: window, server URL, libmpv binding, IPC; lib/ holds libmpv-2.dll (not committed)
+      ui/              # the bundled first-launch page (server URL), plain HTML and TypeScript
   packages/
     shared/            # Result, error codes, Zod schemas, naming conventions, API types
     i18n/              # fr/en strings and pure label helpers, shared by web and mobile (§26.2)
+    design/            # fonts, tokens, base stylesheet and backdrops of web, www and mobile
+    player/            # @projo/player: playback logic shared by every player (§10.7)
+      src/
+        core/          # MediaState and its reducer, PlayerEngine port, pure playback rules
+        application/   # createPlayerController and its ports (PlaybackApi, Timers, Clock, KeyValueStorage)
+        testing/       # fake engine, engine contract suite
   runtime/             # Dockerfile, supervisor, image scripts
   design/              # the reference design (provided by Léo), visual source of truth
   e2e/                 # Playwright
@@ -236,7 +252,20 @@ type AppError<Code extends string = string> = {
 
 Codes are stable `domain/reason` strings, declared in `packages/shared/errors.ts`, shared with the web for message translation. Each use case declares the exact union of codes it can produce: `ScanLibraryError = AppError<'library/not_found' | 'library/root_unreachable'>`. A single table in `entrypoints/http/error-mapping.ts` maps each code to an HTTP status; a code missing from the table is a bug and gives 500.
 
-**On the web**: same bans (classes, `null`), same `Result` for API calls, same error codes for messages. Organised by feature, no layers: the front end has no domain to protect.
+**On the web**: same bans (classes, `null`), same `Result` for API calls, same error codes for messages. Organised by feature, no layers: the front end has no domain to protect. The player is the exception: its logic is shared by several engines and apps, so it lives in a package with layers, and the web player keeps engines and interface apart.
+
+**Layers of the player** (§10.7):
+
+| Layer | Contains | May import |
+|---|---|---|
+| `packages/player/src/core/` | `MediaState`, `MediaEvent` and the pure reducer `MediaState × MediaEvent → MediaState`, the `PlayerEngine` port and `EngineCapabilities`, the pure playback rules (timeline, segment skip, next up, track memory, trickplay index, seek stall, heartbeat schedule, session ends and requests, playlist wait) | `@projo/shared` |
+| `packages/player/src/application/` | `createPlayerController({ engine, api, clock, timers, storage, … })` → a store (`subscribe`, `get`) and its actions; ports for the outside world (`PlaybackApi`: create, heartbeat and end a session, track preferences…; `Timers`; `Clock`; `KeyValueStorage`) | `core` |
+| `packages/player/src/testing/` | `fake-engine.ts` (a scripted engine replaying `MediaEvent` sequences), `engine-contract.ts` (the conformance suite every engine passes) | `core`, `bun:test`; imported by tests only |
+| `apps/web/src/features/player/engines/<engine>/` | `PlayerEngine` adapters: `html-video` (`<video>`, hls.js, Picture-in-Picture, AirPlay, native full screen, `MediaSource`/`decodingInfo` probing, HLS text tracks), `mpv` (the Tauri bridge of §28.6, loaded by dynamic import only, and `mpv-events.ts`, pure: mpv property or event → `MediaEvent`) | `@projo/player`, the web's `shared/`; never another engine, never `ui/` |
+| `apps/web/src/features/player/ui/` | `PlayerPage` and its components: read the controller's store, act through its actions, decide on `EngineCapabilities` (never on an engine's name) | `@projo/player`, the web's `shared/`; never `engines/` |
+| the player route (composition) | the only place that picks the engine: `window.__TAURI_INTERNALS__` present → `mpv` (dynamic import, never in the browser bundle's main chunk), otherwise `html-video` | everything above |
+
+`@projo/player` imports nothing but itself, `@projo/shared` and `bun:test`: no DOM, no `fetch`, no `window` or `document`, no React or React Native, and nothing Hermes lacks (`Intl.DisplayNames`, `Intl.Locale`, `Intl.RelativeTimeFormat`, `Array.prototype.toSorted`), since the iOS app will run it (§26.6). `bun lint` checks it: `no-restricted-imports` on `packages/player/**` (relative, `@projo/shared`, `bun:test`), and `import/no-restricted-paths` zones `core/` ↛ `application/`, `packages/player` ↛ `apps/`, `ui/` ↛ `engines/`, `engines/mpv` ↮ `engines/html-video`. Classes and `null` are banned there as everywhere.
 
 **Validation at the boundaries.** Every HTTP input, every job payload, every external API response goes through a Zod schema before entering `application`.
 
@@ -591,11 +620,11 @@ A refresh never creates an episode without a file and never deletes an item.
 
 ### 10.1 Starting constraints
 
-A browser does not play the MKV container, nor AC3/EAC3/DTS/TrueHD audio (Safari plays AC3/EAC3), nor HEVC without hardware decoding, nor bitmap subtitles. Most of a household's files are MKVs. The server must therefore always be able to remux and transcode audio, and to transcode video when needed.
+A browser does not play the MKV container, nor AC3/EAC3/DTS/TrueHD audio (Safari plays AC3/EAC3), nor HEVC without hardware decoding, nor bitmap subtitles. Most of a household's files are MKVs. The server must therefore always be able to remux and transcode audio, and to transcode video when needed. The desktop app (§28) is the exception: libmpv reads every container, codec and subtitle format the library holds, so at original quality it plays the file itself.
 
 ### 10.2 Choosing the playback mode
 
-At every playback start, the client sends its **capabilities**: the result of `MediaSource.isTypeSupported` and `navigator.mediaCapabilities.decodingInfo` for a fixed list of codecs (`avc1`, `hvc1`/`hev1`, `av01`, `vp09`, `mp4a.40.2`, `ec-3`, `ac-3`, `opus`, `flac`), plus the screen height, and how it shows text subtitles: `subtitleDelivery = overlay` (default, the web: WebVTT `<track>`) or `hls` (the iOS app, and the web in Safari on iPhone and iPad with native HLS, §10.4). The iOS app declares `hls: native` and the codecs AVFoundation decodes on the device. The server chooses:
+At every playback start, the client sends its **capabilities**: the result of `MediaSource.isTypeSupported` and `navigator.mediaCapabilities.decodingInfo` for a fixed list of codecs (`avc1`, `hvc1`/`hev1`, `av01`, `vp09`, `mp4a.40.2`, `ec-3`, `ac-3`, `opus`, `flac`), plus the screen height, how it shows text subtitles: `subtitleDelivery = overlay` (default, the web: WebVTT `<track>`), `hls` (the iOS app, and the web in Safari on iPhone and iPad with native HLS, §10.4) or `engine` (the player engine draws every subtitle itself, §10.4), and the engine that plays: `engine = browser` (default when absent: `<video>`, AVPlayer) or `mpv` (the desktop app, §28). The iOS app declares `hls: native` and the codecs AVFoundation decodes on the device. The desktop app declares `engine: mpv`, `hls: native`, every codec of both lists, the screen height and `subtitleDelivery: engine`. For a `browser` engine the server chooses:
 
 | Condition | Mode |
 |---|---|
@@ -605,7 +634,14 @@ At every playback start, the client sends its **capabilities**: the result of `M
 
 Qualities offered in the player: Original, 1080p (8 Mb/s), 720p (4 Mb/s), 480p (1.5 Mb/s). "Original" in transcode mode keeps the source resolution. Multichannel audio is downmixed to stereo by default (`settings.audio_downmix = stereo | keep`).
 
-Changing the audio track, burned-in subtitles, quality or version starts a new playback session at the current position.
+Changing the audio track, burned-in subtitles, quality or version starts a new playback session at the current position (except an audio change made in place by the `mpv` engine, below).
+
+**Engine `mpv`** (`clientCapabilitiesSchema.engine`, `@projo/shared/api/playback`): libmpv plays any container (MKV, MP4, AVI, TS, M2TS…), any video codec (H.264 including 10-bit, HEVC, AV1, VP9, VC-1, MPEG-2; HDR10, HLG, Dolby Vision) and any audio codec (AAC, AC-3, E-AC-3, DTS and DTS-HD, TrueHD, FLAC, Opus…), and draws every subtitle format. For such a client:
+- Quality `original` ⇒ always `direct`, whatever the container, the codecs, the chosen audio track and the chosen subtitle track (bitmap included). The `hev1` rule above does not apply. `stream.mimeType` comes from the file's extension (`fileMimeType` of `core/playback/decide-mode.ts`: the `direct` containers above, then `mkv` → `video/x-matroska`, `avi` → `video/x-msvideo`, `ts`/`m2ts`/`mts` → `video/mp2t`, `mpg` → `video/mpeg`…), `application/octet-stream` otherwise; the `direct` route serves any container with `Range`, under the session's capability URL (§20, libmpv sends no cookie).
+- A lower quality ⇒ `hls_transcode` as today (libmpv plays HLS through its own demuxer: the media playlist `index.m3u8`, no `master.m3u8`).
+- Never burn-in: `burnIn` is always `false` and a bitmap track never forces `hls_transcode` (§10.4 for what the engine draws in each mode). `settings.burn_in_enabled` does not apply to such a client.
+- A `direct` session takes no transcode slot (§10.3): neither `max_concurrent_transcodes` nor `0` keeps it from playing; `playback/transcode_limit_reached` only concerns its lower qualities.
+- Audio change in a `direct` session: the engine switches in place (mpv `aid` set to the track whose `ff-index` is the `audioTracks[].index` of the session, the absolute stream index of the probe) and the client only reports the manual change (§11.3): no new session, no new stream. In an `hls_transcode` session, which carries a single audio track, it starts a new session as for the browser.
 
 A quality above the source is brought down to the best offered one (never upscaling); `availableQualities` = Original + the qualities ≤ the source height (16:9 equivalent height: a 1920×800 is 1080p). Without HLS on the client, a file that must be transcoded gives `playback/mode_unsupported` (`playback/transcode_unavailable` no longer exists). An HEVC tagged `hev1` (probe: `codec_tag_string`) does not go `direct`: Safari only plays `hvc1`, `hls_remux` retags it.
 
@@ -619,7 +655,7 @@ A quality above the source is brought down to the best offered one (never upscal
 - The playlist is served complete from the start (`#EXT-X-PLAYLIST-TYPE:VOD`), which gives a complete playback bar and immediate seeking. A request for a segment not yet produced and outside the current production window (current segment + 3) kills ffmpeg and restarts it at the requested segment's keyframe (`-ss <t> -copyts -start_number <n>`).
 - A requested segment not yet written is awaited up to 20 s before 503, only if it is coming in the current run; a segment already passed (deleted behind the player) restarts ffmpeg. Only the latest segment request can restart ffmpeg, a request abandoned by the client stops, and a run that finished without producing the requested segment gives an error (no restart).
 - End of session (explicit stop, or 60 s without heartbeat): ffmpeg killed, folder deleted after a 5 min grace period. The `cleanup_cache` job caps `cache/transcode` at `settings.transcode_cache_max_gb` (default 10) by deleting the oldest finished sessions.
-- Maximum number of simultaneous transcodes: `settings.max_concurrent_transcodes` (default 2, configurable without a ceiling). Remuxing does not count. Beyond it: error `playback/transcode_limit_reached`, the player shows "Too many playbacks running on the server". Also not counted: sessions without heartbeat for 60 s, and the most recent one of the same authentication session on the same item (the player replacing its session, whether it stops the old one before or after); only one is exempted, other tabs of the same browser on the same title count. `0` disables transcoding.
+- Maximum number of simultaneous transcodes: `settings.max_concurrent_transcodes` (default 2, configurable without a ceiling). Remuxing and direct play (the desktop app's included, §10.2) do not count. Beyond it: error `playback/transcode_limit_reached`, the player shows "Too many playbacks running on the server". Also not counted: sessions without heartbeat for 60 s, and the most recent one of the same authentication session on the same item (the player replacing its session, whether it stops the old one before or after); only one is exempted, other tabs of the same browser on the same title count. `0` disables transcoding.
 - HDR to SDR: a source whose video is HDR or Dolby Vision (`dynamicRange` of §7.7, from the probe: transfer `smpte2084` or `arib-std-b67`, or Dolby Vision side data or tag) comes out of `hls_transcode` as SDR BT.709. The picture is scaled to the quality first, then tone mapped on the CPU (`zscale` linearization, `tonemap=hable:desat=0`, back to BT.709, tagged BT.709), then the burned-in subtitles are drawn over it. Only if the ffmpeg binary has `zscale` (libzimg) and `tonemap`, as the image's does; otherwise the picture is only converted to 8 bits and comes out washed out. Tone mapping is the costliest part of a transcode, worst at Original on a 4K source: each run logs `playback/hdr_tonemap`. `direct` and `hls_remux` pass HDR through unchanged. Dolby Vision profile 5 (no HDR10 base layer) comes out with wrong colours.
 - Hardware transcoding: `settings.hw_accel = off | vaapi` (default `off`, §15 "Playback"). With `vaapi`, a transcode without burn-in is decoded, scaled (`scale_vaapi`) and encoded (`h264_vaapi`, QP 21 at Original, otherwise the quality's bitrate, the same forced IDRs on the segment cuts) on the render node `/dev/dri/renderD128`: an Intel iGPU through the image's iHD driver, the container given the device and its group (README). A source the GPU cannot decode (H.264 10-bit, which no iGPU decodes; a codec or profile its driver lacks) is decoded on the CPU, ffmpeg falling back by itself, then converted to NV12 (P010 for HDR) and uploaded (`format=nv12|vaapi,hwupload`, a no-op on frames already on the GPU) to be scaled and encoded on the GPU all the same. HDR: scaled on the GPU keeping 10 bits, downloaded, tone mapped on the CPU as above (on the scaled frame), uploaded back to the encoder; never `tonemap_vaapi` (Gen9 iGPUs have none: one rule for every GPU). Burn-in: software. Fallback to software, decided per session: a render node missing or not readable and writable by the process makes the session's first run software; a VAAPI run that fails before the session has an `init.mp4` (device, driver) is retried at once in software. Both log `playback/hw_accel_failed` (warning) and raise the notification of the same name, resolved by the next VAAPI run that writes its init. A failure once the init exists is an ordinary stream failure: a session never changes encoder.
 - On Safari (iOS, macOS), HLS is played natively; elsewhere through hls.js.
@@ -630,7 +666,7 @@ A quality above the source is brought down to the best offered one (never upscal
 |---|---|
 | External text (`srt`, `ass`, `ssa`, `vtt`) | converted to WebVTT by ffmpeg on first request, cache `/data/cache/subtitles/<source>/<n>.vtt`, served as a `<track>` of the player, whatever the mode. ASS styling is lost (v2: libass). |
 | Embedded text (`subrip`, `ass`, `webvtt`, `mov_text`) | extracted by ffmpeg (`-map 0:s:<n>`) as WebVTT, same cache, same `<track>` |
-| Bitmap (`hdmv_pgs_subtitle`, `dvd_subtitle`, external `sup`, `sub`/`idx`) | **burn-in**: `hls_transcode` mode forced with an `overlay`/`subtitles` filter; the player shows "Burned-in subtitles, reduced quality". Can be turned off: `settings.burn_in_enabled` (default true); if off, these tracks are listed greyed out as "not supported". A bitmap track picked by the cascade (§11.2, not explicitly requested) that cannot be burned in (transcode limit reached, client without HLS) is left aside: the session starts without subtitles rather than failing. |
+| Bitmap (`hdmv_pgs_subtitle`, `dvd_subtitle`, external `sup`, `sub`/`idx`) | **burn-in**: `hls_transcode` mode forced with an `overlay`/`subtitles` filter; the player shows "Burned-in subtitles, reduced quality". Can be turned off: `settings.burn_in_enabled` (default true); if off, these tracks are listed greyed out as "not supported". A bitmap track picked by the cascade (§11.2, not explicitly requested) that cannot be burned in (transcode limit reached, client without HLS) is left aside: the session starts without subtitles rather than failing. Never for `subtitleDelivery = engine` (below). |
 
 Subtitle delay and size: adjustable in the player, remembered per device.
 
@@ -641,6 +677,13 @@ Subtitle delay and size: adjustable in the player, remembered per device.
 - The web in Safari on iPhone and iPad: no `<track>` nor drawn cues; the subtitle menu shows the `video.textTracks` entry whose label is the rendition `NAME`; picking a track from a `direct` session starts a new session; the size setting is hidden.
 - A track picked in the app's player is a manual change (§11.3), reported by the client.
 - Bitmap tracks: unchanged (burn-in).
+
+**Delivery by the engine** (`subtitleDelivery = engine`: the desktop app, §28, whose libmpv draws text and bitmap subtitles itself): no `<track>`, no master playlist, no rendition, never burn-in. `subtitleTrackDtoSchema` gains `delivery: 'engine'` and `streamIndex` (the absolute stream index of the probe, `source_subtitles.stream_index`, which is mpv's `ff-index`, set on embedded tracks only). Per mode:
+- `direct` session: an embedded track, text or bitmap, is `delivery: 'engine'` with its `streamIndex` and no `url`; the engine selects it in the file (mpv `sid` set to the track whose `ff-index` is `streamIndex`), with its full styling (ASS, PGS). An external text track is `delivery: 'vtt'` with `url` = its WebVTT under the session's capability prefix (`/stream/:sessionId/:secret/subtitles/:trackId.vtt`, §20: libmpv sends no cookie), the same conversion and cache as the `<track>`; the engine loads it (mpv `sub-add <url> select`). An external bitmap track (`sup`, `sub`/`idx`) is `delivery: 'unsupported'` (no route serves the raw file).
+- `hls_transcode` session (a lower quality): the HLS output carries no subtitle stream, so every text track, embedded or external, is `delivery: 'vtt'` with its capability WebVTT `url`, loaded by the engine as above; every bitmap track is `delivery: 'unsupported'`, and one picked by the cascade or named by the request is left aside (the session starts without subtitles, no error).
+- Cues stay on the source timeline: libmpv shows an external track on its own playback position, which starts at 0 for an HLS session too (mpv `rebase-start-time`, its default), so the 10 s output offset of §10.3 needs no compensation.
+- The engine applies the session's resolved tracks (§11.2) when the file is loaded (`aid`, `sid` or `sub-add`, `sid=no` for none), never libmpv's own choice. A change of subtitle track is always made in place (no new session) and reported as a manual change (§11.3).
+- Delay and size: in the engine (mpv `sub-delay`, `sub-scale`), remembered per device as above; `subtitleOffsetMs` is not used.
 
 Cache: `<track>.vtt` (`source_subtitles` id) next to `<track>.json` (size and mtime of the converted file: the external one, or the video for an embedded one); converted again when it changes, concurrent conversions of a track shared. An external file not in UTF-8 (BOM, otherwise invalid UTF-8 ⇒ Windows-1252, a superset of Latin-1) is re-encoded to UTF-8 before ffmpeg. Access: the active profile (last profile of the auth session for `<track>`) sees the source (same rule as `listReadySources`), otherwise 404 `playback/subtitle_not_found`; bitmap ⇒ 422 `playback/subtitle_unsupported`. `pre_extract_subtitles`: `extract_subtitles` job (priority 15) on `source.ready`, all embedded text tracks in one ffmpeg pass.
 
@@ -659,13 +702,32 @@ Implementation: queued on `source.ready` (priority 10: runs after matching and i
 
 ### 10.7 Player
 
-Home-made component on top of `<video>` and hls.js, no Video.js. Matches the `Player` and `PlayerNext` artboards: full-frame video, top (exit) and bottom chrome fading out after 3 s without movement, playback bar with visible segment zones, buffer, trickplay on hover and remaining time, then the row of controls: play/pause, −10 s, +10 s, volume, title and "S2 · E4 “Title”" in the middle, next episode, episode list, chapters (when the file has some), speed, quality (when there is a choice of quality or version), subtitles and audio, Picture-in-Picture (where supported, not on phones), full screen. Each of chapters, speed (a slider with four steps, 0.5×, 1×, 1.5× and 2×, resisting between them), quality (with the versions) and subtitles and audio (audio and subtitle tracks, subtitle size and delay) opens its own small, nearly opaque menu, sized to its content. A chapter with the muxer's default name (`Chapter 01`, `Chapitre 3`, `07`) arrives without a title (filtered at the API output, the stored `probe` is intact): the player shows "Chapter 3" from its position, in the menu as in the bar preview. "Skip intro" at the bottom right with its 8 s bar, "Intro skipped · Undo" toast at the bottom left. In the credits, the "Next episode in N s" bubble takes the place of "Skip intro" at the bottom right, glass with a countdown ring and a close button ("Watch the credits"), without hiding the video nor the controls; subtitles move above it (§12.4). At the end of the file, the "Next episode" screen shrinks the video to a thumbnail, shows the next episode (number, runtime, title, overview, cast, direction, writing, music) and the "Next episode" button (with countdown).
+Home-made, no Video.js, in three parts (layers in §5.3): `@projo/player`, the playback logic; engines, which play; the interface, which shows. Matches the `Player` and `PlayerNext` artboards: full-frame video, top (exit) and bottom chrome fading out after 3 s without movement, playback bar with visible segment zones, buffer, trickplay on hover and remaining time, then the row of controls: play/pause, −10 s, +10 s, volume, title and "S2 · E4 “Title”" in the middle, next episode, episode list, chapters (when the file has some), speed, quality (when there is a choice of quality or version), subtitles and audio, Picture-in-Picture (where supported, not on phones), full screen. Each of chapters, speed (a slider with four steps, 0.5×, 1×, 1.5× and 2×, resisting between them), quality (with the versions) and subtitles and audio (audio and subtitle tracks, subtitle size and delay) opens its own small, nearly opaque menu, sized to its content. A chapter with the muxer's default name (`Chapter 01`, `Chapitre 3`, `07`) arrives without a title (filtered at the API output, the stored `probe` is intact): the player shows "Chapter 3" from its position, in the menu as in the bar preview. "Skip intro" at the bottom right with its 8 s bar, "Intro skipped · Undo" toast at the bottom left. In the credits, the "Next episode in N s" bubble takes the place of "Skip intro" at the bottom right, glass with a countdown ring and a close button ("Watch the credits"), without hiding the video nor the controls; subtitles move above it (§12.4). At the end of the file, the "Next episode" screen shrinks the video to a thumbnail, shows the next episode (number, runtime, title, overview, cast, direction, writing, music) and the "Next episode" button (with countdown).
 
 System integration: Now Playing through the Media Session API (title, series, poster; play/pause, ±10 s, seek, next episode on the lock screen, in Control Center and from headset keys); an AirPlay button next to Picture-in-Picture when Safari reports a receiver (`webkitShowPlaybackTargetPicker`, streams under the capability URLs of §20); full screen locks landscape where the browser allows it (Android).
 
 Shortcuts: `space` play/pause, `←`/`→` ±10 s, `↑`/`↓` volume, `M` mute, `F` full screen, `S` skip the current segment, `N` next episode, `C` subtitles on/off, `Esc` exit. Mobile: double tap left/right ±10 s, repeated taps add up, shown by a light ripple on that side; never shows the controls (a single tap toggles them once no second tap can follow). Vertical swipe for volume. Pinch in to close the player, like the close button (the video shrinks with the fingers; let go small enough or fast enough and it closes, otherwise it springs back; not while a menu or panel is open; pinching out does nothing). Volume remembered per device (`localStorage`).
 
 States to handle explicitly: initial loading, buffering, network error (automatic resume at the position), transcode limit reached, session stopped by the admin, end of the item without a next one (back to the title page after 5 s).
+
+**Logic and engines.** `@projo/player` holds everything that does not depend on what plays nor on what draws: playback sessions and heartbeats (§10.6), track, quality and version changes, the §12.4 automatic skips and countdown, next episode, chained parts, track memory reports (§11.3), the timeline, seek stalls. `createPlayerController` drives a `PlayerEngine` and exposes a store and actions; the interface reads the store and acts only through the actions, the same logic for every engine. An engine (`PlayerEngine`) holds the media state (`MediaState`: paused, ended, waiting, current time, duration, buffered end, volume, muted, ready, playback rate, folded from `MediaEvent`s by the pure reducer), plays, pauses, seeks, sets volume and rate, loads a stream (HLS or direct URL, start position, autoplay), selects an audio or subtitle track in itself when it can, gives the `ClientCapabilities` of §10.2 for `POST /playback/sessions`, and declares its `EngineCapabilities`:
+
+| Capability | Meaning | `html-video` (browser) | `mpv` (desktop app, §28) |
+|---|---|---|---|
+| `pictureInPicture` | Picture-in-Picture (and document Picture-in-Picture) | where supported, not on phones | no |
+| `airPlay` | AirPlay button | when Safari reports a receiver | no |
+| `nativeFullscreen` | the element's full screen through the browser | yes | no: full screen is the window's (§28.4) |
+| `subtitles` | who draws subtitles: `overlay` (the interface, from the `<track>` cues), `hls` (the platform, inside HLS), `engine` (the engine) | `overlay`, or `hls` in Safari on iPhone and iPad | `engine` |
+| `switchesAudioInPlace` | an audio change in a `direct` session needs no new session (§10.2) | no | yes |
+| `rendersBehindPage` | the picture is drawn under the page, not in it | no | yes |
+| `backdropBlur` | `backdrop-filter` sees the picture | yes | no |
+
+The interface decides on these capabilities, never on the engine's name. Over an engine that `rendersBehindPage` and lacks `backdropBlur` (mpv):
+- No Picture-in-Picture and no AirPlay button (no Now Playing either: no media element, §28.9).
+- The page is transparent over the picture: the player page, its ancestors and the document background let it through, and only the chrome, menus, toasts, the "Skip intro" button, the countdown bubble and the "Next episode" screen are painted. Where the interface sizes the video (the "Next episode" thumbnail), the engine places the picture in that rectangle (mpv `video-margin-ratio-left|right|top|bottom`) and the page leaves it transparent.
+- Glass materials (`--material-glass*`, `--blur-glass*`) become an opaque material (`--material-opaque`): `backdrop-filter` cannot see a native picture and would only leave a flat tint. Panels and menus that are nearly opaque already keep their colour.
+- Subtitles are the engine's (§10.4); the interface moves them above the countdown bubble (§12.4) through the engine (mpv `sub-pos`).
+- An audio change in a `direct` session is made in the engine (§10.2); the player still reports it as a manual change (§11.3, toast included). A subtitle change is always made in the engine (§10.4).
 
 ---
 
@@ -698,7 +760,7 @@ From most specific to most general:
 
 ### 11.3 Manual change during playback
 
-A change of audio or subtitle track (turning them off included) writes `track_preferences` for the show (or the movie) and shows an "Applied to the whole show" toast with the actions "Set as default for my profile" (which updates the profile settings) and "Undo". A change never modifies the profile defaults without that explicit action. API: `PUT /items/:id/track-preferences` (`:id` = movie or episode, stored on the movie or the show; languages normalised to ISO 639-1), "Undo" = `DELETE /items/:id/track-preferences` (204, idempotent); "Set as default" = `PATCH /profiles/:id` (`audioLanguage`, `subtitleLanguage`, `subtitleMode`).
+A change of audio or subtitle track (turning them off included) writes `track_preferences` for the show (or the movie) and shows an "Applied to the whole show" toast with the actions "Set as default for my profile" (which updates the profile settings) and "Undo". A change never modifies the profile defaults without that explicit action. A change the engine makes in place, without a new session (the desktop app, §10.2, §10.4), is reported and shown the same way. API: `PUT /items/:id/track-preferences` (`:id` = movie or episode, stored on the movie or the show; languages normalised to ISO 639-1), "Undo" = `DELETE /items/:id/track-preferences` (204, idempotent); "Set as default" = `PATCH /profiles/:id` (`audioLanguage`, `subtitleLanguage`, `subtitleMode`).
 
 ---
 
@@ -966,8 +1028,9 @@ Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of delet
 - Rate limiting: 10 login attempts per 15 min per IP and per username (the slot is taken before the password check; a success resets the username counter, not the IP one), 5 PIN checks per minute per profile, 20 invitation acceptances per hour per IP.
 - `TRUST_PROXY=false` by default: the client IP and scheme come from the direct connection. Behind a reverse proxy, the host sets it to `true` and the README explains why.
 - Admin file browser: read-only, folders only, refuses paths outside `/`, does not follow symbolic links outside the browsed folder.
-- Streams and images: every media URL is tied to a playback session or to an item visible to the account; no guessable URL without auth. The media a platform player loads for a playback session (direct file, playlists, segments, subtitle renditions) are **capability URLs**: `/stream/:sessionId/:secret/…`, a random secret of 256 bits created with the session (only its hash stored), enough on its own (no cookie or bearer: AirPlay receivers and AVPlayer sub-requests carry no credentials), valid while the session is active (60 s without heartbeat ends it), and only for that session's source. The web uses them too. The request logs replace the secret with `***`. Images, previews, trickplay and the web's `<track>` WebVTT stay authenticated by cookie or bearer. The rest of a playback session (heartbeats, end) can only be used by its account, from a resolved active profile that is its own or that sees its item (`<video>`/HLS streams and `sendBeacon` without `X-Profile-Id` take the auth session's last profile, updated by `X-Profile-Id` and `POST /profiles/:id/select`).
+- Streams and images: every media URL is tied to a playback session or to an item visible to the account; no guessable URL without auth. The media a platform player loads for a playback session (direct file, playlists, segments, subtitle renditions) are **capability URLs**: `/stream/:sessionId/:secret/…`, a random secret of 256 bits created with the session (only its hash stored), enough on its own (no cookie or bearer: AirPlay receivers, AVPlayer sub-requests and the desktop app's libmpv carry no credentials), valid while the session is active (60 s without heartbeat ends it), and only for that session's source. The web uses them too. The request logs replace the secret with `***`. Images, previews, trickplay and the web's `<track>` WebVTT stay authenticated by cookie or bearer. The rest of a playback session (heartbeats, end) can only be used by its account, from a resolved active profile that is its own or that sees its item (`<video>`/HLS streams and `sendBeacon` without `X-Profile-Id` take the auth session's last profile, updated by `X-Profile-Id` and `POST /profiles/:id/select`).
 - MCP server (§27): its credentials (assistant tokens, OAuth access tokens) are accepted on `/mcp` only and `/mcp` accepts nothing else; all hashed; admin role and unrestricted profile re-checked on every request; foreign `Origin` refused; 120 requests per minute per assistant. OAuth 2.1 with S256 PKCE, public clients, refresh tokens rotated with reuse detection, consent always shown by projo with the host the code goes back to, client metadata fetched over HTTPS only and never from a private address. Hosted clients (ChatGPT, Claude connectors) call from their cloud: `/mcp`, `/.well-known/*` and `/oauth/*` must be reachable from the internet (Anthropic: `160.79.104.0/21`).
+- Desktop app (§28.4): its IPC (libmpv, window) is granted at runtime to the one server origin the user chose, never to another page; the server's `Content-Security-Policy` is not loosened for it.
 - Image uploads: type checked by magic signature, max size 10 MB, re-encoded by ffmpeg before storage.
 - Subprocesses: arguments passed as an array, never through a shell; file paths never interpreted.
 - Updates: SHA-256 check of the archive and of each file through the manifest, download only from `github.com/LeoMartinDev/projo/releases`.
@@ -990,6 +1053,7 @@ Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of delet
 | Server memory | < 300 MB excluding ffmpeg |
 | Browsers | last two versions of Chrome, Edge, Firefox, Safari; iOS Safari; Android Chrome. No guarantee on TV browsers. |
 | Mobile app | iOS and iPadOS 17 and later (§26). Android builds from the same code, without a guarantee. |
+| Desktop app | Windows 10 and 11, x86_64, WebView2 (§28). macOS and Linux untested. |
 | Server platforms | Linux x86_64 and arm64, Docker. |
 | Observability | structured JSON logs on stdout with `code`, `jobId`, `sessionId`; `/health`; counters in the admin dashboard. No outgoing telemetry. |
 | Backup | all of `/data`; "Export the database" runs a `VACUUM INTO` into `db/backups/`. |
@@ -1003,6 +1067,8 @@ Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of delet
 - **E2E (Playwright)**: the five journeys of §4 on Chromium, then a WebKit smoke test (playback and resume of a MKV on desktop Safari, the journeys tagged `@mobile` on the iPhone viewport), one at a time against a single server started with a fixture library. What a background job produces without a screen of its own (timeline thumbnails, fingerprints) is covered by the integration tests.
 - **Lint and types**: `bun lint` (layers, classes, `null`), strict `bun check`, `exactOptionalPropertyTypes`, `bun fmt`.
 - **Mobile app** (§26.8): `bun test` on its logic kept in modules without React Native, lint and types like the web; no component tests, no mobile E2E.
+- **Player** (§10.7): `@projo/player` is tested once for every engine: the reducer and the pure rules by unit tests, `createPlayerController` against the fake engine of `packages/player/src/testing/` (scripted `MediaEvent` sequences) and in-memory ports (`PlaybackApi`, manual `Timers` and `Clock`, `KeyValueStorage`): sessions and heartbeats, track, quality and version changes, in-place audio and subtitle changes, automatic skips, countdown and next episode, parts, error states. The engine contract suite (`engine-contract.ts`) runs against the fake engine and against `mpv-events.ts` fed with recorded libmpv property and event sequences (JSON fixtures beside `mpv-events.ts`, captured from the desktop app). The web's E2E covers the `html-video` engine.
+- **Desktop app** (§28.8): the Rust side has unit tests (`cargo test`: libmpv node → JSON conversion, server URL validation, capability URL pattern); no automated test drives libmpv nor the window; manual checks before each desktop release.
 - **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a push to `main` whose `package.json` version has no release yet, once the above passed: bundle build, generation of the manifest and `SHA256SUMS`, `v<version>` tag and GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`.
 - **Versioning**: semver, `main` the only long-lived branch, mandatory PRs, Conventional Commits.
 
@@ -1212,7 +1278,8 @@ A native app for iPhone and iPad, on the same server and API as the web. The PWA
 
 ### 26.6 Playback
 
-- **Engine**: AVPlayer through `expo-video`. The client declares `hls: native`, the codecs the device decodes and `subtitleDelivery: hls` (§10.2, §10.4). MKV and the codecs AVPlayer does not read go through `hls_remux` or `hls_transcode` as on Safari. An advanced engine reading MKV, DTS, TrueHD and ASS directly (libmpv or VLCKit, with a `containers` capability) stays a later option, not M6.
+- **Engine**: AVPlayer through `expo-video`. The client declares `hls: native`, the codecs the device decodes and `subtitleDelivery: hls` (§10.2, §10.4), `engine` absent (`browser`). MKV and the codecs AVPlayer does not read go through `hls_remux` or `hls_transcode` as on Safari. An advanced engine reading MKV, DTS, TrueHD and ASS directly (libmpv or VLCKit, declared as the desktop app's is, through the `engine` capability of §10.2) stays a later option, not M6.
+- **One playback logic with the web**: the app's player is driven by `@projo/player` (§10.7) through an `expo-video` engine (a `PlayerEngine` adapter in `apps/mobile/src/features/player/`, passing the contract suite of §22), with the app's own React Native interface on its controller: sessions, heartbeats, track and quality changes, §12.4 skips, next episode and parts are the web's code, not a second implementation. Planned with the playback slice; the package already keeps to Hermes (§5.3).
 - **Streams**: the session's capability URLs (§20), which AirPlay receivers can fetch.
 - **Subtitles**: inside the HLS stream (§10.4), so they show in Picture-in-Picture and over AirPlay; delay through the server, size through the iOS accessibility settings.
 - **Quality**: a per-device setting for Wi-Fi (default Original) and for cellular (default 720p), changeable by the user, sent as `quality` when the session starts.
@@ -1227,7 +1294,7 @@ Pairing and sign-in returning a token (§14, §6.1 `pairings`, §17.2), the comp
 
 ### 26.8 Tests
 
-The app's logic (playback state machine, quality choice, version check, parsing of the pairing QR code) lives in modules without React Native, tested with `bun test`. No component tests, no mobile E2E. Server changes follow §22 as usual.
+The app's logic (quality choice, version check, parsing of the pairing QR code; the playback logic is `@projo/player`'s, tested there, §22) lives in modules without React Native, tested with `bun test`. No component tests, no mobile E2E. Server changes follow §22 as usual.
 
 ---
 
@@ -1299,3 +1366,79 @@ Read tools carry `readOnlyHint`, `hide_source` carries `destructiveHint`, so the
 - Tools (`test/integration/mcp.test.ts`): the metadata world (TMDB replayed, §22), sources inserted as rows: `initialize`, `tools/list`, every tool, a dry run leaves the tables unchanged, the real run writes; 401 with its `WWW-Authenticate`, foreign `Origin`, 405; revoked token, demoted admin, restricted profile.
 - OAuth (`test/integration/oauth.test.ts`): discovery documents; DCR and a CIMD served by a local server (mismatched `client_id`, plain HTTP and private address refused); consent errors, a restricted profile cannot allow; code exchange (wrong verifier, reused code), access expiry, refresh rotation and reuse detection, revocation by the admin.
 - Never a real assistant in tests; ChatGPT and Claude connectors are checked by hand before the release.
+
+---
+
+## 28. Desktop app (Windows)
+
+### 28.1 Goal and scope
+
+The household's computers play every file as it is: no remux, no transcode, no burn-in at original quality, HDR10 and Dolby Vision kept, DTS and TrueHD decoded on the computer, PGS and ASS drawn with their styling. The app is the server's own web app (same screens, same version as the server, updated with it, §16.4) in a native window, playing through libmpv drawn under the page (§10.7). A throwaway prototype proved the approach on Windows 11 (HTML chrome over the native picture, hardware HEVC 10-bit HDR10, Dolby Vision and AV1 decoding, PGS, DTS-HD MA, resize, full screen, HTTP `Range` and seeking); it also proved that `backdrop-filter` cannot see the picture.
+
+- **Targets**: Windows 10 and 11, x86_64, first and only for now. macOS and Linux are later work, untested (embedding libmpv in the window differs on each).
+- **Everything the web does**, viewer and admin alike: the window is the web app. Only what §28.9 lists is left out.
+
+### 28.2 Stack, repository, distribution
+
+- Tauri 2 (Rust, WebView2). `apps/desktop`: workspace `@projo/desktop` (private), scripts `dev` and `build` (Tauri CLI) and `fetch-libmpv` (§28.5); `src-tauri/` holds the Rust app, `ui/` the bundled first-launch page (§28.3): plain HTML and TypeScript, no framework, the `@projo/design` tokens where they import as they are, plain CSS on the same values otherwise. The §5.3 rules apply to its TypeScript (no class, no `null`, `Result`). Rust: a `Result` for every expected failure, never a panic across the FFI nor out of a command.
+- Identity: name "projo", identifier `dev.leomartin.projo.desktop`, its own semver from 0.1.0, independent of the server's.
+- Distribution: `bun run --cwd apps/desktop build` gives the release executable and the Tauri bundler's Windows installer, libmpv included as a resource. Not signed, no auto-update of the app itself and no CI build in this version (the web part updates with the server anyway).
+
+### 28.3 Server connection
+
+- **First launch**: the window shows the bundled page: the server URL (`http://` or `https://`, a host and an optional port; any path is dropped, the origin is kept) and "Connect". The app checks that `GET <origin>/health` answers projo's health document within 5 s, otherwise the page shows why (unreachable, not a projo server), then saves `{ "serverUrl": "<origin>" }` in `server.json` of the app's config directory (`%APPDATA%\dev.leomartin.projo.desktop\`) and navigates the window to the origin.
+- **Later launches**: straight to the saved origin. Unreachable (the navigation fails): the bundled page again, with the saved URL, "Retry" and "Change server".
+- **Change server**: an entry of the app's tray icon menu ("Change server", "Quit"; no menu bar over the player) and of the unreachable page. It shows the bundled page; a new origin is saved and the app restarts on it, so the previous origin's IPC grant (§28.4) never survives. One server at a time (§2.3).
+- Sign-in, profiles and PIN are the web's: the WebView2 profile keeps the server's cookies between launches.
+
+### 28.4 Window and security
+
+- One transparent window (`transparent: true`, the webview's background transparent), which navigates to the server origin: the real web app, same origin, same cookies, same `Content-Security-Policy` (§20, not loosened). A link to another origin opens in the system browser; the window never leaves the server origin except for the bundled page.
+- **IPC to the server origin only, granted at runtime**: the static configuration grants no remote URL. Once the origin is known (first launch or start), the app adds one capability (`app.add_capability`) for the main window with `remote.urls = ["<origin>/*"]` and the permissions: the commands of §28.6, `core:event:default` (to listen to its events), `core:window:allow-set-fullscreen` and `core:window:allow-is-fullscreen`. The bundled page only gets its own commands (read and save the server URL). Tauri's IPC falls back to its `postMessage` transport when the server's `connect-src 'self'` blocks its custom protocol.
+- **Full screen** is the window's (Tauri `setFullscreen`), from the player's button and `F`; `Esc` leaves it (`nativeFullscreen: false`, §10.7).
+- **Input** goes to the page only (libmpv `osc=no`, `input-default-bindings=no`, `input-vo-keyboard=no`): the shortcuts and gestures of §10.7 are the web's.
+- **Navigation**: every page load of the window stops and hides libmpv (as `mpv_destroy`), so a reload, a crashed page or a server update never leaves a picture under another page.
+
+### 28.5 libmpv
+
+- **Own binding**, no wrapper crate nor plugin (the prototype's wrapper crashed reading `MPV_FORMAT_NODE` properties): `libloading` loads `libmpv-2.dll` (the bundled `lib/` resource; next to the executable in development) and declares only the C functions used: `mpv_create`, `mpv_set_option_string`, `mpv_initialize`, `mpv_command`, `mpv_set_property_string`, `mpv_get_property` (`MPV_FORMAT_NODE`), `mpv_observe_property` (`MPV_FORMAT_NODE`), `mpv_wait_event`, `mpv_error_string`, `mpv_free`, `mpv_free_node_contents`, `mpv_terminate_destroy`. A DLL missing or unloadable: `mpv_init` fails and the player shows its error state; never a crash of the app.
+- **One instance at a time**, created by `mpv_init`, embedded in the window with `wid` = the window's `HWND`, under the webview. Options: `vo=gpu-next`, `hwdec=auto-safe`, `keep-open=yes`, `force-window=yes`, `target-colorspace-hint=yes` (an HDR picture reaches a display in Windows HDR mode as HDR, otherwise libmpv tone maps it), `osc=no`, `input-default-bindings=no`, `input-vo-keyboard=no`, then the `options` of `mpv_init`, all set with `mpv_set_option_string` before `mpv_initialize`.
+- **Event thread**: one thread per instance loops on `mpv_wait_event` and emits to the window: a property change as `mpv://property`; `MPV_EVENT_FILE_LOADED`, `PLAYBACK_RESTART`, `SEEK`, `END_FILE` (its reason, and the `mpv_error_string` of its error) and `SHUTDOWN` as `mpv://event`; it ends after `SHUTDOWN`. Nodes become JSON: `NONE` → absent, `STRING` → string, `FLAG` → boolean, `INT64` and `DOUBLE` → number, `NODE_ARRAY` → array, `NODE_MAP` → object, `BYTE_ARRAY` → absent; every node is freed (`mpv_free_node_contents`).
+- **Distribution**: the build expects `apps/desktop/src-tauri/lib/libmpv-2.dll`, never committed (`.gitignore`). `bun run --cwd apps/desktop fetch-libmpv` downloads it from the GitHub releases of `zhongfly/mpv-winbuild`, asset `mpv-dev-lgpl-x86_64-*` of a release pinned in the script and checked against its SHA-256 (§20: pinned dependencies). The LGPL build only, never a GPL one: libmpv is linked dynamically, shipped unmodified as a resource with its licence text and the location of its source.
+
+### 28.6 IPC contract
+
+The web's `mpv` engine relies on exactly this contract. It is additive (a later app adds commands, events or fields, never changes these), and the web checks `desktop_info().version` before relying on an addition. A failing command rejects with a message (the `mpv_error_string` of libmpv's error, or why the instance is missing).
+
+| Kind | Name | Payload → result |
+|---|---|---|
+| command | `mpv_init` | `{ options?: Record<string, string> }` → nothing. Idempotent: creates the instance if there is none. |
+| command | `mpv_command` | `{ args: string[] }` → nothing (`mpv_command`, e.g. `["loadfile", url, "replace", "start=42,pause=yes"]`, `["sub-add", url, "select"]`). |
+| command | `mpv_set_property` | `{ name: string, value: string }` → nothing (`mpv_set_property_string`). |
+| command | `mpv_get_property` | `{ name: string }` → the property as JSON (node format), or `undefined` when it has no value. |
+| command | `mpv_observe` | `{ names: string[] }` → nothing; each name observed once, in node format, reported by `mpv://property`. |
+| command | `mpv_destroy` | `{}` → nothing: stops playback, hides the picture, destroys the instance (`mpv_terminate_destroy`); the next `mpv_init` creates a new one. |
+| command | `desktop_info` | `{}` → `{ version: string, mpv: string }` (the app's version, libmpv's `mpv-version`). |
+| event | `mpv://property` | `{ name: string, value: unknown }` (JSON from the node; absent when the property has no value). |
+| event | `mpv://event` | `{ event: 'file-loaded' \| 'playback-restart' \| 'seek' \| 'end-file' \| 'shutdown', reason?: 'eof' \| 'stop' \| 'quit' \| 'error' \| 'redirect', error?: string }` (`reason` and `error` on `end-file` only). |
+
+### 28.7 Playback
+
+- The player route picks the `mpv` engine when `window.__TAURI_INTERNALS__` exists (§5.3); everything above the engine is the web player of §10.7, with the capabilities of its `mpv` column.
+- The engine declares the capabilities of §10.2 (`engine: mpv`, `subtitleDelivery: engine`), gets `direct` at original quality and `hls_transcode` below it, loads the session's stream URL resolved against the page's origin (`loadfile`, start position and pause from the session), then applies the resolved tracks (§10.4). `mpv-events.ts` turns the observed properties and events into `MediaEvent`s for the reducer of `@projo/player`.
+- Volume and mute are libmpv's (`volume` 0 to 100, `mute`), remembered per device like the browser's. Leaving the player calls `mpv_destroy`.
+- Closing the window ends the session like closing a tab: the page's beacon (§10.6), otherwise the 60 s without heartbeat.
+
+### 28.8 Tests
+
+- The playback logic is tested once for every engine (§22): the controller against the fake engine, the engine contract suite against the fake engine and against `mpv-events.ts` fed with libmpv sequences recorded from the desktop app.
+- Rust unit tests (`cargo test`): node → JSON conversion, server URL validation and origin normalisation, the remote URL pattern of the IPC grant.
+- The TypeScript of `apps/desktop/ui` goes through `bun lint`, `bun run typecheck` and `bun fmt` with the rest. No automated test drives libmpv or the window, no Windows CI runner in this version.
+- Manual checks on Windows before each desktop release: MKV HEVC 10-bit HDR10, Dolby Vision and AV1 files; PGS, ASS and an external SRT; DTS-HD MA and TrueHD; a lower quality (HLS) with subtitles on time; seek, pause, resume and heartbeat; an audio change in place with its toast; the "Next episode" thumbnail; full screen, resize, moving between monitors of different DPI; "Change server"; server unreachable at launch; a server update reloading the web app.
+
+### 28.9 What it does not do
+
+- No Picture-in-Picture, no AirPlay, no Now Playing nor system media controls over libmpv (no media element; later work).
+- No offline playback nor download (§2.3), no several servers at once, no auto-update of the app itself.
+- No audio passthrough to an amplifier: libmpv decodes to PCM.
+- No macOS nor Linux build yet.
