@@ -1,5 +1,9 @@
 @import '@projo/design/media.css';
 
+html:has(.auth) {
+  overflow-y: auto;
+}
+
 .auth {
   position: relative;
   min-height: 100vh;

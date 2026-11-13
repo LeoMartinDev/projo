@@ -12,7 +12,7 @@ mod state;
 use std::sync::{Arc, OnceLock};
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use tauri::webview::{NewWindowResponse, PageLoadEvent};
+use tauri::webview::{NewWindowResponse, PageLoadEvent, ScrollBarStyle};
 use tauri::{
     Emitter, EventTarget, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
@@ -179,6 +179,9 @@ fn main() {
                     .title("projo")
                     .inner_size(1280.0, 720.0)
                     .min_inner_size(640.0, 360.0)
+                    // Overlay scroll bars (shown while scrolling), like Windows 11's own apps,
+                    // instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
+                    .scroll_bar_style(ScrollBarStyle::FluentOverlay)
                     .transparent(true);
             if let Some((x, y)) = hooks.window_position {
                 builder = builder.position(x, y).focused(false);
