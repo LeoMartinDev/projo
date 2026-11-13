@@ -28,7 +28,11 @@ import {
   tmdbSeries,
 } from './metadata-fakes.ts'
 
-/** Fixtures and fakes of the review use cases: search, assign, reject, restore, rematch. */
+/**
+ * Fixtures and in-memory fakes of the review use cases (search, assign, reject, restore,
+ * rematch), for their unit tests. `metadata-world.ts` is the real one: modules, SQLite and the
+ * replayed TMDB server.
+ */
 
 export const now = new Date('2026-04-01T10:00:00.000Z')
 export const readyAt = new Date('2026-03-30T09:00:00.000Z')

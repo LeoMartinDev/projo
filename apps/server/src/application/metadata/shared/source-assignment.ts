@@ -1,12 +1,10 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../../core/clock.ts'
-import type { LibraryRepository } from '../../../core/library/library.ts'
+import type { LeavingFiles, LibraryRepository } from '../../../core/library/library.ts'
 import type { ManualMatchRepository, MetadataSettings } from '../../../core/metadata/ports.ts'
 import type { TmdbError } from '../../../core/metadata/tmdb.ts'
 import type { Source } from '../../../core/source/source.ts'
-import type { ObserveLeavingFiles } from '../observe-leaving-files.ts'
-import type { QueueRefreshIfContextDiffers } from '../queue-refresh-if-context-differs.ts'
 import type { ApplyMatch } from './apply-match.ts'
 import type { Resolution, ResolveMatch } from './resolve-match.ts'
 
@@ -21,15 +19,9 @@ export type Assignment =
     }
   | { kind: 'series'; tmdbId: number }
 
-export type AssignError =
-  | TmdbError
-  | AppError<
-      | 'source/not_found'
-      | 'item/not_found'
-      | 'item/invalid_kind'
-      | 'metadata/episode_number_required'
-      | 'metadata/episode_not_found'
-    >
+/** The failures of resolving an assignment on TMDB, common to assigning a file and an item. */
+export type AssignmentError =
+  TmdbError | AppError<'metadata/episode_number_required' | 'metadata/episode_not_found'>
 
 export type EpisodeNotFound = { sourceId: string; seasonNumber: number; episodeNumber: number }
 
@@ -83,7 +75,7 @@ export const prepareAssignmentFactory =
     source: Source,
     assignment: Assignment,
     current?: { seasonNumber?: number; episodeNumber?: number },
-  ): Promise<Result<Prepared, AssignError>> => {
+  ): Promise<Result<Prepared, AssignmentError>> => {
     const library = libraryRepository.findById(source.libraryId)
     const language = library?.metadataLanguage ?? settings.language()
     const ratingCountry = library?.ratingCountry ?? 'FR'
@@ -143,8 +135,12 @@ export const commitAssignmentFactory =
     clock,
   }: {
     applyMatch: Pick<ApplyMatch, 'apply'>
-    observeLeavingFiles: ObserveLeavingFiles
-    queueRefreshIfContextDiffers: QueueRefreshIfContextDiffers
+    observeLeavingFiles: (files: LeavingFiles) => () => void
+    queueRefreshIfContextDiffers: (input: {
+      itemId: string
+      language: string
+      ratingCountry: string
+    }) => void
     manualMatches: Pick<ManualMatchRepository, 'save'>
     clock: Clock
   }) =>

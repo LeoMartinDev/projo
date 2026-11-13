@@ -1,4 +1,4 @@
-import { appError, err, ok, type Result } from '@projo/shared'
+import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
@@ -16,7 +16,7 @@ import type { ApplyMatch } from './shared/apply-match.ts'
 import { requestImages } from './shared/request-images.ts'
 import type { ResolveMatch } from './shared/resolve-match.ts'
 import {
-  type AssignError,
+  type AssignmentError,
   type Assignment,
   type AssignResult,
   commitAssignmentFactory,
@@ -42,7 +42,7 @@ type Deps = {
   logger: Logger
 }
 
-export type RematchItemError = AssignError
+export type RematchItemError = AssignmentError | AppError<'item/not_found' | 'item/invalid_kind'>
 
 export const rematchItemFactory = ({
   resolveMatch,

@@ -29,7 +29,10 @@ import { createRecordingEventBus, createRecordingJobQueue, createSequentialIds }
 import { createCapturingLogger } from './logger.ts'
 import { createFakeTmdb } from './metadata-fakes.ts'
 
-/** Fixtures and fakes of the metadata editing use cases (§9.3–9.4). */
+/**
+ * Fixtures and in-memory fakes of the metadata editing use cases (§9.3–9.4), for their unit
+ * tests. `metadata-world.ts` is the real one: modules, SQLite and the replayed TMDB server.
+ */
 
 export const now = new Date('2026-05-01T12:00:00.000Z')
 

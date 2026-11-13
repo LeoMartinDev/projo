@@ -42,11 +42,8 @@ export const updateMetadataSettingsFactory = ({
   clock,
   logger,
 }: Deps) => {
-  const relaunchMatching = (libraryId?: string): number => {
-    const sourceIds = items.sourcesAwaitingMatch({
-      ...(libraryId === undefined ? {} : { libraryId }),
-      reviewReasons: tmdbReviewReasons,
-    })
+  const relaunchMatching = (): number => {
+    const sourceIds = items.sourcesAwaitingMatch({ reviewReasons: tmdbReviewReasons })
     for (const sourceId of sourceIds) requestMatch({ sourceId })
     return sourceIds.length
   }

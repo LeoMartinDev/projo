@@ -29,6 +29,11 @@ const inception: TmdbMovie = {
   ],
 }
 
+/*
+ * In-memory fakes of the metadata refresh use cases, for their unit tests. `metadata-world.ts`
+ * is the real one: modules, SQLite and the replayed TMDB server.
+ */
+
 /** The `refresh_metadata` job a library-wide change queues for one item. */
 export const lowPriorityRefresh = (itemId: string) => ({
   payload: { itemId },
