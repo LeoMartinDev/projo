@@ -9,7 +9,7 @@ mod origin;
 mod server;
 mod state;
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tauri::webview::{NewWindowResponse, PageLoadEvent};
@@ -25,14 +25,37 @@ use crate::state::AppState;
 
 pub const MAIN: &str = "main";
 
-/// The bundled page's origin (Windows and Android serve it over http://tauri.localhost).
+/// Set once at startup: the dev server under `tauri dev`, else the bundled assets' origin.
+static LOCAL_PAGE: OnceLock<Url> = OnceLock::new();
+
+/// The bundled page's origin: `tauri dev` serves it from the CLI's dev server
+/// (`build.devUrl`, e.g. http://127.0.0.1:1430); a build serves it over http://tauri.localhost
+/// (Windows, Android) or tauri://localhost.
 pub fn local_page_url() -> Url {
+    LOCAL_PAGE.get().cloned().unwrap_or_else(bundled_page_url)
+}
+
+fn bundled_page_url() -> Url {
     let url = if cfg!(any(windows, target_os = "android")) {
         "http://tauri.localhost/"
     } else {
         "tauri://localhost/"
     };
     Url::parse(url).unwrap_or_else(|_| unreachable!("constant URL"))
+}
+
+fn init_local_page(dev_url: Option<&Url>) -> Url {
+    let url = match dev_url {
+        Some(dev) if tauri::is_dev() => {
+            let mut origin = dev.clone();
+            origin.set_path("/");
+            origin.set_query(None);
+            origin.set_fragment(None);
+            origin
+        }
+        _ => bundled_page_url(),
+    };
+    LOCAL_PAGE.get_or_init(|| url).clone()
 }
 
 /// Ctrl+Shift+U on any page of the main window: back to the server picker.
@@ -104,6 +127,8 @@ fn main() {
             commands::change_server,
         ])
         .setup(|app| {
+            let local_page = init_local_page(app.config().build.dev_url.as_ref());
+            log::info!("bundled page served from {local_page}");
             let handle = app.handle().clone();
             let config_dir = app.path().app_config_dir()?;
             let config_path = config::config_path(&config_dir);
