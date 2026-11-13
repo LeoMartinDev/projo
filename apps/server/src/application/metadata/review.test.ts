@@ -106,7 +106,10 @@ type Options = {
   links?: Record<string, string[]>
   /** Episodes TMDB does not have, as `season x episode` (`1x3`). */
   missing?: string[]
-  movie?: (tmdbId: number, language: string) => Promise<Result<Resolution, TmdbError>>
+  movie?: (
+    tmdbId: number,
+    language: string,
+  ) => Promise<Result<Extract<Resolution, { kind: 'movie' }>, TmdbError>>
   episodes?: EpisodesStub
 }
 
@@ -795,7 +798,7 @@ describe('correcting the identification of an item', () => {
     nothingWritten(world)
   })
 
-  test('a series: all or nothing, the episodes the new series lacks go to review', async () => {
+  test('a series: in one transaction, the files whose episode it lacks go to review', async () => {
     const dark = localDark([1, 2, 3])
     const world = setup({
       sources: [episodeSource(1), episodeSource(2), episodeSource(3)],
@@ -815,6 +818,54 @@ describe('correcting the identification of an item', () => {
     expect(world.resolveCalls.episodes.map((call) => call.seriesTmdbId)).toEqual([1399, 1399, 1399])
     expect(world.reviewed).toEqual([{ sourceId: 'e3', reason: 'episode_not_found' }])
     expect(world.timeline.filter((entry) => entry === 'transaction')).toHaveLength(1)
+  })
+
+  test('a series: TMDB failing on a later file fails the whole correction', async () => {
+    const dark = localDark([1, 2, 3])
+    const world = setup({
+      sources: [episodeSource(1), episodeSource(2), episodeSource(3)],
+      ...dark,
+      episodes: async (seriesTmdbId, _parsed, _language, at) =>
+        at?.episodeNumber === 3
+          ? tmdbFailure()
+          : ok({
+              kind: 'episodes',
+              series: tmdbSeries({ tmdbId: seriesTmdbId }),
+              season: tmdbSeason(),
+              episodes: [tmdbEpisode(at?.episodeNumber ?? 1)],
+            }),
+    })
+    const result = await world.review.rematchItem({
+      itemId: 'l-series',
+      assignment: { kind: 'series', tmdbId: 1399 },
+      accountId: 'account-1',
+    })
+    expect(result).toMatchObject({ ok: false, error: { code: 'metadata/tmdb_unavailable' } })
+    expect(world.resolveCalls.episodes).toHaveLength(3)
+    nothingWritten(world)
+  })
+
+  test('a file holding episodes 2 and 1 is identified from its first episode', async () => {
+    const dark = localDark([1, 2])
+    const world = setup({
+      sources: [
+        episodeSource(1, {
+          relativePath: 'Dark/Season 1/Dark S01E01-E02.mkv',
+          parsed: { series: 'Dark', season: 1, episode: 1, episodeEnd: 2 },
+        }),
+      ],
+      items: dark.items,
+      links: { e1: ['l-ep2', 'l-ep1'] },
+    })
+    const result = await world.review.rematchItem({
+      itemId: 'l-series',
+      assignment: { kind: 'series', tmdbId: DARK },
+      accountId: 'account-1',
+    })
+    expect(world.resolveCalls.episodes).toEqual([
+      { seriesTmdbId: DARK, language: 'de-DE', at: { seasonNumber: 1, episodeNumber: 1 } },
+    ])
+    expect(result.ok && result.value.sourceIds).toEqual(['e1'])
   })
 
   test('a dry run lists what would change and writes nothing', async () => {

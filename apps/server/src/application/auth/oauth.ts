@@ -71,7 +71,7 @@ export type TokenResponse = {
   scope: string
 }
 
-export type TokenError = AppError<'oauth/invalid_grant' | 'oauth/invalid_client'>
+export type TokenError = AppError<'oauth/invalid_grant'>
 
 const invalidGrant = (message: string) => err(appError('oauth/invalid_grant', message))
 
@@ -149,12 +149,14 @@ export const oauthFactory = ({
       tokenHash: tokens.hash(access),
       assistantId,
       kind: 'access',
+      scope,
       expiresAt: new Date(now + oauthLifetimes.accessTokenMs),
     })
     oauthRepository.createToken({
       tokenHash: tokens.hash(refresh),
       assistantId,
       kind: 'refresh',
+      scope,
       expiresAt: new Date(now + oauthLifetimes.refreshTokenMs),
     })
     return {
@@ -325,14 +327,16 @@ export const oauthFactory = ({
       if (assistant === undefined || assistant.revokedAt !== undefined) {
         return invalidGrant('assistant revoked')
       }
-      if (stored.rotatedAt !== undefined || !oauthRepository.markRotated({ tokenHash, at: now })) {
+      const reused = () => {
         assistantTokenRepository.revoke({ id: assistant.id, revokedAt: now })
         logger.warn('oauth refresh token reused, assistant revoked', {
           assistantTokenId: assistant.id,
         })
         return invalidGrant('refresh token already used')
       }
+      if (stored.rotatedAt !== undefined) return reused()
       if (stored.expiresAt.getTime() <= now.getTime()) return invalidGrant('expired refresh token')
+      if (!oauthRepository.markRotated({ tokenHash, at: now })) return reused()
       const client =
         assistant.clientId === undefined
           ? undefined
@@ -343,7 +347,7 @@ export const oauthFactory = ({
       if (!assistantTokens.administers(assistant).ok)
         return invalidGrant('access no longer allowed')
       if (client !== undefined) oauthRepository.touchClient({ id: client.id, at: now })
-      return ok(issueTokens(assistant.id, grantedScope('review offline_access')))
+      return ok(issueTokens(assistant.id, stored.scope))
     },
 
     authenticateAccess: (

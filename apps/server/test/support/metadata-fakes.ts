@@ -125,12 +125,26 @@ export const createFakeTmdb = (overrides: Partial<TmdbApi> = {}) => {
   return { tmdb, calls, callsTo }
 }
 
-export type FakeItem = LinkedItemInfo & { title?: string; sortTitle?: string }
+export type FakeItem = LinkedItemInfo & { title?: string; sortTitle?: string; createdAt?: Date }
+
+/** SQLite ascending order: an absent value (NULL) sorts first. */
+const ascending = (a: number | string | undefined, b: number | string | undefined): number => {
+  if (a === b) return 0
+  if (a === undefined) return -1
+  if (b === undefined) return 1
+  return a < b ? -1 : 1
+}
+
+const byCreation = (a: FakeItem, b: FakeItem) =>
+  ascending(a.createdAt?.getTime() ?? 0, b.createdAt?.getTime() ?? 0) || ascending(a.id, b.id)
 
 /**
  * In-memory MetadataItemRepository: items, source links and the writes made to them.
- * `pruneOrphans` follows the SQLite adapter: only local items without file nor child go,
- * then their parents, level by level.
+ * Filters and orders follow the SQLite adapter: `linkedItems` by episode number then id,
+ * `sourcesUnder` one row per source (its lowest season and episode under the item, two levels
+ * deep), ordered by source id; `findByTmdb` top-level items only and `findChild` the oldest
+ * match; `pruneOrphans` only local items without file nor child, then their parents, level
+ * by level.
  */
 export const createInMemoryMetadataItems = (
   initial: readonly FakeItem[] = [],
@@ -151,15 +165,31 @@ export const createInMemoryMetadataItems = (
   }
 
   const info = (item: FakeItem): LinkedItemInfo => {
-    const { title: _title, sortTitle: _sortTitle, ...rest } = item
+    const { title: _title, sortTitle: _sortTitle, createdAt: _createdAt, ...rest } = item
     return rest
   }
   const childrenOf = (id: string) => [...items.values()].filter((item) => item.parentId === id)
-  const subtree = (id: string): string[] => [id, ...childrenOf(id).flatMap((c) => subtree(c.id))]
+  const twoLevelsUnder = (id: string): Set<string> => {
+    const children = childrenOf(id).map((child) => child.id)
+    return new Set([
+      id,
+      ...children,
+      ...children.flatMap((child) => childrenOf(child).map((c) => c.id)),
+    ])
+  }
   const sourcesUnder = (itemId: string) => {
-    const within = new Set(subtree(itemId))
-    return [...links.entries()].flatMap(([sourceId, ids]) => {
-      const first = ids.map((id) => items.get(id)).find((item) => item && within.has(item.id))
+    const within = twoLevelsUnder(itemId)
+    return [...links.keys()].sort(ascending).flatMap((sourceId) => {
+      const [first] = (links.get(sourceId) ?? [])
+        .flatMap((id) => {
+          const item = items.get(id)
+          return item !== undefined && within.has(id) ? [item] : []
+        })
+        .sort(
+          (a, b) =>
+            ascending(a.seasonNumber, b.seasonNumber) ||
+            ascending(a.episodeNumber, b.episodeNumber),
+        )
       if (first === undefined) return []
       return [
         {
@@ -182,23 +212,31 @@ export const createInMemoryMetadataItems = (
       return item && info(item)
     },
     linkedItems: (sourceId) =>
-      (links.get(sourceId) ?? []).flatMap((id) => {
-        const item = items.get(id)
-        return item === undefined ? [] : [info(item)]
-      }),
+      (links.get(sourceId) ?? [])
+        .flatMap((id) => {
+          const item = items.get(id)
+          return item === undefined ? [] : [item]
+        })
+        .sort((a, b) => ascending(a.episodeNumber, b.episodeNumber) || ascending(a.id, b.id))
+        .map(info),
     findByTmdb: ({ kind, tmdbId }) =>
-      [...items.values()].find((item) => item.kind === kind && item.tmdbId === tmdbId)?.id,
+      [...items.values()]
+        .filter(
+          (item) => item.kind === kind && item.tmdbId === tmdbId && item.parentId === undefined,
+        )
+        .sort(byCreation)[0]?.id,
     findChild: ({ parentId, kind, number }) =>
-      [...items.values()].find(
-        (item) =>
-          item.parentId === parentId &&
-          item.kind === kind &&
-          (kind === 'season' ? item.seasonNumber : item.episodeNumber) === number,
-      )?.id,
+      [...items.values()]
+        .filter(
+          (item) =>
+            item.parentId === parentId &&
+            item.kind === kind &&
+            (kind === 'season' ? item.seasonNumber : item.episodeNumber) === number,
+        )
+        .sort(byCreation)[0]?.id,
     create: (item) => {
       log.created.push(item)
-      const { createdAt: _createdAt, ...rest } = item
-      items.set(item.id, rest)
+      items.set(item.id, { ...item })
     },
     setTmdbId: ({ id, tmdbId }) => {
       log.tmdbIdsSet.push({ id, tmdbId })

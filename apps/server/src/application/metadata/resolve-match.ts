@@ -283,7 +283,10 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
       input.classification === 'movie'
         ? resolveMovie(input.parsed, input.language)
         : resolveEpisode(input.parsed, input.language),
-    movie: async (tmdbId: number, language: string): Promise<Result<Resolution, TmdbError>> => {
+    movie: async (
+      tmdbId: number,
+      language: string,
+    ): Promise<Result<Extract<Resolution, { kind: 'movie' }>, TmdbError>> => {
       const movie = await movieById(tmdbId, language)
       return movie.ok ? ok({ kind: 'movie', movie: movie.value }) : err(movie.error)
     },

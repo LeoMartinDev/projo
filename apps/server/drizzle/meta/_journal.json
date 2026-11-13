@@ -148,6 +148,13 @@
       "when": 1793827029370,
       "tag": "0020_assistants_and_oauth",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1794554278612,
+      "tag": "0021_oauth_token_scope",
+      "breakpoints": true
     }
   ]
 }

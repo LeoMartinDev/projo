@@ -169,6 +169,7 @@ export const oauthTokens = sqliteTable(
       .notNull()
       .references(() => assistantTokens.id, { onDelete: 'cascade' }),
     kind: text({ enum: ['access', 'refresh'] }).notNull(),
+    scope: text().notNull().default('review offline_access'),
     expiresAt: text().notNull(),
     rotatedAt: text(),
   },

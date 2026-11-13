@@ -331,9 +331,16 @@ describe('the decision', () => {
   })
 
   test('the granted scope is always review, offline_access only when asked', async () => {
-    const world = setup()
-    await allow(world, { scope: 'admin everything' })
-    expect([...world.oauth.codes.values()][0]?.scope).toBe('review')
+    for (const [asked, granted] of [
+      ['admin everything', 'review'],
+      ['', 'review'],
+      ['offline_access', 'review offline_access'],
+      ['offline_access admin review', 'review offline_access'],
+    ] as const) {
+      const world = setup()
+      await allow(world, { scope: asked })
+      expect([...world.oauth.codes.values()][0]?.scope).toBe(granted)
+    }
   })
 
   test('allow without a profile, or on a profile the account cannot administer: access_denied', async () => {
@@ -389,12 +396,14 @@ describe('exchanging the code', () => {
         tokenHash: 'h(token-2)',
         assistantId: 'oauth-1',
         kind: 'access',
+        scope: 'review offline_access',
         expiresAt: new Date(start.getTime() + 60 * minute),
       },
       {
         tokenHash: 'h(token-3)',
         assistantId: 'oauth-1',
         kind: 'refresh',
+        scope: 'review offline_access',
         expiresAt: new Date(start.getTime() + 90 * day),
       },
     ])
@@ -487,7 +496,10 @@ describe('refreshing', () => {
     )
     expect(world.assistants.tokens.get('oauth-1')?.revokedAt).toEqual(start)
     expect(world.lines).toContainEqual(
-      expect.objectContaining({ level: 'warn', fields: { assistantTokenId: 'oauth-1' } }),
+      expect.objectContaining({
+        level: 'warn',
+        fields: expect.objectContaining({ assistantTokenId: 'oauth-1' }),
+      }),
     )
     expect(await refresh(world, 'token-5')).toMatchObject(invalidGrant('assistant revoked'))
   })
@@ -499,11 +511,46 @@ describe('refreshing', () => {
     expect(await refresh(world, 'token-2')).toMatchObject(invalidGrant('unknown refresh token'))
   })
 
-  test('after 90 days', async () => {
+  test('after 90 days, and again on retry: expired, the connection kept', async () => {
     const world = setup()
     await connect(world)
     world.clock.advance(90 * day)
     expect(await refresh(world, 'token-3')).toMatchObject(invalidGrant('expired refresh token'))
+    expect(await refresh(world, 'token-3')).toMatchObject(invalidGrant('expired refresh token'))
+    expect(world.oauth.tokens.get('h(token-3)')?.rotatedAt).toBeUndefined()
+    expect(world.assistants.tokens.get('oauth-1')?.revokedAt).toBeUndefined()
+  })
+
+  test('the scope granted at consent is kept: a review-only connection stays review-only', async () => {
+    const world = setup()
+    const decided = await allow(world, { scope: 'review' })
+    const code = decided.ok ? codeOf(decided.value.redirectTo) : 'refused'
+    expect(await exchange(world, code)).toMatchObject({ ok: true, value: { scope: 'review' } })
+    const first = await refresh(world, 'token-3')
+    expect(first).toMatchObject({ ok: true, value: { scope: 'review', refresh_token: 'token-5' } })
+    expect(await refresh(world, 'token-5')).toMatchObject({ ok: true, value: { scope: 'review' } })
+  })
+
+  test('a connection without a client refuses a refresh naming one', async () => {
+    const world = setup()
+    world.assistants.repository.create({
+      id: 'no-client',
+      accountId: 'account-1',
+      profileId: 'profile-1',
+      kind: 'oauth',
+      name: 'Legacy',
+      createdAt: start,
+    })
+    world.oauth.repository.createToken({
+      tokenHash: 'h(legacy)',
+      assistantId: 'no-client',
+      kind: 'refresh',
+      scope: 'review',
+      expiresAt: new Date(start.getTime() + day),
+    })
+    expect(await refresh(world, 'legacy', 'client-abc')).toMatchObject(
+      invalidGrant('the refresh token was issued to another client'),
+    )
   })
 
   test('presented by another client', async () => {
@@ -552,12 +599,13 @@ describe('authenticating an access token', () => {
     })
   })
 
-  test('a token whose connection is gone: auth/unauthenticated', () => {
+  test('defensive: a token left without its connection row: auth/unauthenticated', () => {
     const world = setup()
     world.oauth.repository.createToken({
       tokenHash: 'h(orphan)',
       assistantId: 'gone',
       kind: 'access',
+      scope: 'review',
       expiresAt: new Date(start.getTime() + minute),
     })
     expect(world.service.authenticateAccess('orphan')).toMatchObject({

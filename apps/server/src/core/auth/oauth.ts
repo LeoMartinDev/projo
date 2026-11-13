@@ -40,6 +40,8 @@ export type OAuthToken = {
   tokenHash: string
   assistantId: string
   kind: 'access' | 'refresh'
+  /** The scope granted at consent, carried through every rotation. */
+  scope: string
   expiresAt: Date
   rotatedAt?: Date
 }

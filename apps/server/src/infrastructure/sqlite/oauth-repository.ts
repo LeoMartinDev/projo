@@ -105,6 +105,7 @@ export const createSqliteOAuthRepository = ({ db }: { db: Db }): OAuthRepository
         tokenHash: token.tokenHash,
         assistantId: token.assistantId,
         kind: token.kind,
+        scope: token.scope,
         expiresAt: toIso(token.expiresAt),
         rotatedAt: toNullable(token.rotatedAt === undefined ? undefined : toIso(token.rotatedAt)),
       })

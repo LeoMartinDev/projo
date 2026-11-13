@@ -111,49 +111,46 @@ export const reviewFactory = ({
     const library = libraryRepository.findById(source.libraryId)
     const language = library?.metadataLanguage ?? settings.language()
     const ratingCountry = library?.ratingCountry ?? 'FR'
-    let tmdbId: number
-    let at: { seasonNumber: number; episodeNumber: number } | undefined
     if (assignment.kind === 'movie') {
-      tmdbId = assignment.tmdbId
-    } else {
-      tmdbId = assignment.kind === 'series' ? assignment.tmdbId : assignment.seriesTmdbId
-      const explicit: { seasonNumber?: number | undefined; episodeNumber?: number | undefined } =
-        assignment.kind === 'episode' ? assignment : {}
-      const episodeNumber =
-        explicit.episodeNumber ??
-        current?.episodeNumber ??
-        source.parsed.episode ??
-        source.parsed.absoluteEpisode
-      if (episodeNumber === undefined) {
-        return err(
-          appError('metadata/episode_number_required', 'no episode number to assign', {
-            context: { sourceId: source.id },
-          }),
-        )
-      }
-      at = {
-        seasonNumber: explicit.seasonNumber ?? current?.seasonNumber ?? source.parsed.season ?? 1,
-        episodeNumber,
-      }
+      const { tmdbId } = assignment
+      const resolution = await resolveMatch.movie(tmdbId, language)
+      if (!resolution.ok) return resolution
+      return ok({
+        kind: 'matched',
+        source,
+        tmdbId,
+        resolution: resolution.value,
+        language,
+        ratingCountry,
+      })
     }
-    const resolution =
-      at === undefined
-        ? await resolveMatch.movie(tmdbId, language)
-        : await resolveMatch.episodes(tmdbId, source.parsed, language, at)
-    if (!resolution.ok) return resolution
-    if (resolution.value.kind === 'review') {
-      if (at !== undefined) return ok({ kind: 'not_found', source, at })
+    const tmdbId = assignment.kind === 'series' ? assignment.tmdbId : assignment.seriesTmdbId
+    const explicit: { seasonNumber?: number | undefined; episodeNumber?: number | undefined } =
+      assignment.kind === 'episode' ? assignment : {}
+    const episodeNumber =
+      explicit.episodeNumber ??
+      current?.episodeNumber ??
+      source.parsed.episode ??
+      source.parsed.absoluteEpisode
+    if (episodeNumber === undefined) {
       return err(
-        appError('metadata/episode_not_found', 'TMDB has no such season or episode', {
-          context: { sourceId: source.id, seriesTmdbId: tmdbId },
+        appError('metadata/episode_number_required', 'no episode number to assign', {
+          context: { sourceId: source.id },
         }),
       )
     }
+    const at = {
+      seasonNumber: explicit.seasonNumber ?? current?.seasonNumber ?? source.parsed.season ?? 1,
+      episodeNumber,
+    }
+    const resolution = await resolveMatch.episodes(tmdbId, source.parsed, language, at)
+    if (!resolution.ok) return resolution
+    if (resolution.value.kind === 'review') return ok({ kind: 'not_found', source, at })
     return ok({
       kind: 'matched',
       source,
       tmdbId,
-      ...(at === undefined ? {} : { at }),
+      at,
       resolution: resolution.value,
       language,
       ratingCountry,

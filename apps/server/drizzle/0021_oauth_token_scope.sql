@@ -1,0 +1,1 @@
+ALTER TABLE `oauth_tokens` ADD `scope` text DEFAULT 'review offline_access' NOT NULL;

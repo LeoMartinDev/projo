@@ -55,14 +55,28 @@ const poster = (path: string, overrides: Partial<TmdbImage> = {}): TmdbImage => 
   ...overrides,
 })
 
+const storedImage = (id: string, overrides: Partial<StoredImage> = {}): StoredImage => ({
+  id,
+  kind: 'poster',
+  origin: 'tmdb',
+  localPath: `posters/${id}.jpg`,
+  width: 500,
+  height: 750,
+  ...overrides,
+})
+
 type EditingDeps = Parameters<typeof metadataEditingFactory>[0]
 
 type Options = {
   items?: EditableItem[]
   contexts?: ItemImageContext[]
   tmdb?: Partial<TmdbApi>
-  currentImages?: Record<string, { imageId: string; tmdbPath?: string }>
+  /** Image shown in each slot, keyed `<itemId>:<slot>` (the items' `*_image_id` columns). */
+  slots?: Record<string, string>
   storedImages?: StoredImage[]
+  /** Images used as people's profile pictures. */
+  profileImages?: string[]
+  storedOverrides?: Record<string, ItemOverrides>
   currentMetadata?: EditingDeps['refresh']['currentMetadata']
   fetchImages?: EditingDeps['fetchImages']
   reencoder?: ImageReencoder
@@ -74,8 +88,10 @@ const setup = ({
   items = [movieItem, localItem],
   contexts = [{ id: 'movie', kind: 'movie', tmdbId: 27205 }],
   tmdb: tmdbOverrides = {},
-  currentImages = {},
+  slots: initialSlots = {},
   storedImages = [],
+  profileImages = [],
+  storedOverrides = {},
   currentMetadata = async () => ok(undefined),
   fetchImages = async () => ok({ downloaded: 1 }),
   reencoder = {
@@ -86,7 +102,8 @@ const setup = ({
   libraries = [],
 }: Options = {}) => {
   const rows = new Map(items.map((item) => [item.id, item]))
-  const stored = new Map<string, ItemOverrides>()
+  const stored = new Map(Object.entries(storedOverrides))
+  const slots = new Map(Object.entries(initialSlots))
   const overridesSet: Parameters<ItemOverrideRepository['set']>[0][] = []
   const overridesRemoved: Parameters<ItemOverrideRepository['remove']>[0][] = []
   const overrides: ItemOverrideRepository = {
@@ -95,6 +112,9 @@ const setup = ({
     set: (input) => {
       overridesSet.push(input)
       stored.set(input.itemId, { ...stored.get(input.itemId), ...input.overrides })
+      const { posterImageId, backdropImageId } = input.overrides
+      if (posterImageId !== undefined) slots.set(`${input.itemId}:poster`, posterImageId)
+      if (backdropImageId !== undefined) slots.set(`${input.itemId}:backdrop`, backdropImageId)
     },
     remove: (input) => {
       overridesRemoved.push(input)
@@ -104,6 +124,12 @@ const setup = ({
     },
   }
   const images = new Map(storedImages.map((image) => [image.id, image]))
+  const referenced = (id: string) =>
+    [...slots.values()].includes(id) ||
+    profileImages.includes(id) ||
+    [...stored.values()].some(
+      (values) => values.posterImageId === id || values.backdropImageId === id,
+    )
   const inserted: StoredImage[] = []
   const deleteAsked: string[] = []
   const written: string[] = []
@@ -120,8 +146,15 @@ const setup = ({
     images: {
       findById: (id) => images.get(id),
       itemImage: ({ itemId, slot }) => {
-        const current = currentImages[`${itemId}:${slot}`]
-        return current === undefined ? undefined : { ...current, origin: 'tmdb' }
+        const imageId = slots.get(`${itemId}:${slot}`)
+        const image = imageId === undefined ? undefined : images.get(imageId)
+        return image === undefined
+          ? undefined
+          : {
+              imageId: image.id,
+              origin: image.origin,
+              ...(image.tmdbPath === undefined ? {} : { tmdbPath: image.tmdbPath }),
+            }
       },
       insert: (image) => {
         inserted.push(image)
@@ -132,6 +165,7 @@ const setup = ({
       localPaths: () => [],
       deleteIfUnused: (id) => {
         deleteAsked.push(id)
+        if (referenced(id)) return undefined
         const image = images.get(id)
         images.delete(id)
         return image
@@ -166,6 +200,7 @@ const setup = ({
   return {
     editing,
     stored,
+    images,
     overridesSet,
     overridesRemoved,
     inserted,
@@ -307,7 +342,8 @@ describe('image alternatives', () => {
             logos: [],
           }),
       },
-      currentImages: { 'movie:poster': { imageId: 'p', tmdbPath: '/narrow.jpg' } },
+      slots: { 'movie:poster': 'p' },
+      storedImages: [storedImage('p', { tmdbPath: '/narrow.jpg' })],
     })
     const result = await world.editing.alternatives({ itemId: 'movie', kind: 'poster' })
     expect(result).toEqual(
@@ -402,17 +438,8 @@ describe('choosing a TMDB image', () => {
   test('downloaded, stored with its variants, locked; the previous file goes', async () => {
     const world = setup({
       tmdb: tmdbImages,
-      currentImages: { 'movie:poster': { imageId: 'old', tmdbPath: '/old.jpg' } },
-      storedImages: [
-        {
-          id: 'old',
-          kind: 'poster',
-          origin: 'tmdb',
-          localPath: 'posters/old.jpg',
-          width: 500,
-          height: 750,
-        },
-      ],
+      slots: { 'movie:poster': 'old' },
+      storedImages: [storedImage('old', { tmdbPath: '/old.jpg' })],
     })
     const result = await world.editing.setImage({
       itemId: 'movie',
@@ -439,8 +466,46 @@ describe('choosing a TMDB image', () => {
     ])
     expect(world.deleteAsked).toEqual(['old'])
     expect(world.removedFiles).toEqual(['posters/old.jpg'])
+    expect(world.images.has('old')).toBe(false)
     expect(world.events).toEqual([{ type: 'catalog.changed', payload: {} }])
     expect(result.ok && result.value.locked).toEqual(['poster'])
+  })
+
+  test('the previous image still shown elsewhere stays, with its file', async () => {
+    for (const elsewhere of [
+      { slots: { 'other:backdrop': 'shared' } },
+      { profileImages: ['shared'] },
+      { storedOverrides: { other: { posterImageId: 'shared' } } },
+    ]) {
+      const world = setup({
+        tmdb: tmdbImages,
+        storedImages: [storedImage('shared')],
+        ...elsewhere,
+        slots: { 'movie:poster': 'shared', ...('slots' in elsewhere ? elsewhere.slots : {}) },
+      })
+      expect(
+        (
+          await world.editing.setImage({
+            itemId: 'movie',
+            choice: { kind: 'poster', tmdbPath: '/chosen.jpg' },
+          })
+        ).ok,
+      ).toBe(true)
+      expect(world.deleteAsked).toEqual(['shared'])
+      expect(world.images.has('shared')).toBe(true)
+      expect(world.removedFiles).toEqual([])
+    }
+  })
+
+  test('an unknown item: item/not_found, nothing downloaded', async () => {
+    const world = setup({ tmdb: tmdbImages })
+    expect(
+      await world.editing.setImage({
+        itemId: 'nope',
+        choice: { kind: 'poster', tmdbPath: '/chosen.jpg' },
+      }),
+    ).toMatchObject(notFound)
+    expect(world.tmdbCallsTo('downloadImage')).toEqual([])
   })
 
   test('a backdrop is downloaded at w1280 into backdrops/, its extension from the path', async () => {
@@ -537,8 +602,11 @@ describe('uploading an image', () => {
     expect(world.inserted).toEqual([])
   })
 
-  test('re-encoded into images/custom and locked; the same image is never deleted', async () => {
-    const world = setup({ currentImages: { 'movie:poster': { imageId: 'img-1' } } })
+  test('re-encoded into images/custom and locked; the previous custom image goes', async () => {
+    const world = setup({
+      slots: { 'movie:poster': 'mine' },
+      storedImages: [storedImage('mine', { origin: 'custom', localPath: 'custom/mine.jpg' })],
+    })
     const result = await world.editing.setImage(upload(JPEG))
     expect(world.written).toEqual(['custom/img-1.webp'])
     expect(world.encoded).toEqual(['custom/img-1.webp'])
@@ -555,7 +623,8 @@ describe('uploading an image', () => {
     expect(world.overridesSet).toEqual([
       { itemId: 'movie', overrides: { posterImageId: 'img-1' }, at: now },
     ])
-    expect(world.deleteAsked).toEqual([])
+    expect(world.deleteAsked).toEqual(['mine'])
+    expect(world.removedFiles).toEqual(['custom/mine.jpg'])
     expect(result.ok && result.value.locked).toEqual(['poster'])
   })
 })
