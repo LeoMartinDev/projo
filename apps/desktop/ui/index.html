@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>projo</title>
+    <link rel="stylesheet" href="./src/style.css" />
+    <script type="module" src="./src/main.ts"></script>
+  </head>
+  <body>
+    <main class="setup">
+      <h1 class="setup__brand">projo</h1>
+      <form class="setup__form" id="form" novalidate>
+        <label class="setup__label" for="url" id="url-label"></label>
+        <input
+          class="setup__input"
+          id="url"
+          name="url"
+          type="text"
+          inputmode="url"
+          autocomplete="url"
+          spellcheck="false"
+          autocapitalize="off"
+          placeholder="http://192.168.1.10:8080"
+        />
+        <p class="setup__message" id="message" role="status"></p>
+        <button class="setup__button" id="submit" type="submit"></button>
+      </form>
+    </main>
+  </body>
+</html>

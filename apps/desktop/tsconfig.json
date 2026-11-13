@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["bun"]
+  },
+  "include": ["ui/src/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "ui/dist", "src-tauri"]
+}
