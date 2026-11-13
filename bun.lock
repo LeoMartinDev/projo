@@ -44,7 +44,7 @@
         "expo-secure-store": "58.0.2",
         "expo-symbols": "58.0.4",
         "expo-video": "58.0.12",
-        "hono": "4.13.13",
+        "hono": "4.13.16",
         "i18next": "26.5.6",
         "react": "19.3.0",
         "react-dom": "19.3.0",
@@ -66,7 +66,7 @@
         "@hono/zod-validator": "0.9.1",
         "@projo/shared": "workspace:*",
         "drizzle-orm": "0.45.4",
-        "hono": "4.13.13",
+        "hono": "4.13.16",
         "zod": "4.6.7",
       },
       "devDependencies": {
@@ -85,7 +85,7 @@
         "@tanstack/react-query": "5.104.5",
         "@tanstack/react-router": "1.170.46",
         "hls.js": "1.7.3",
-        "hono": "4.13.13",
+        "hono": "4.13.16",
         "i18next": "26.5.6",
         "react": "19.3.1",
         "react-dom": "19.3.1",
@@ -984,7 +984,7 @@
 
     "hls.js": ["hls.js@1.7.3", "", {}, "sha512-MsPlx6yVW4Qv4C7mEVou4/gk/5cN2dVxOTnrNjPSmyH2f0Ln+/UkG10Ax1PE6OvrmTVPKgQYozTtBaPOuCzq7A=="],
 
-    "hono": ["hono@4.13.13", "", {}, "sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA=="],
+    "hono": ["hono@4.13.16", "", {}, "sha512-AOLOEhvrV+iH92xXCnFr/5+3KjPKcI3xP63XJtX5spAnkznPdHijlIsUTpi7/9EhWqrTCekw5c5zh1K+YsVw7A=="],
 
     "hosted-git-info": ["hosted-git-info@7.0.2", "", { "dependencies": { "lru-cache": "^10.0.1" } }, "sha512-puUZAUKT5m8Zzvs72XWy3HtvVbTWljRE66cP60bxJzAqf2DgICo7lYTY2IHUmLnNpjYvw5bvmoHvPc0QO2a62w=="],
 
