@@ -51,7 +51,7 @@ import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
 export const buildPlaybackModule = (
-  { db, clock, ids, logger, eventBus, notifier, jobQueue, paths }: Platform,
+  { db, clock, ids, logger, eventBus, afterCommit, notifier, jobQueue, paths }: Platform,
   { visibilityScope }: ScopeDeps,
 ) => {
   const catalog = createSqliteCatalog({ db })
@@ -79,6 +79,7 @@ export const buildPlaybackModule = (
     sessionRepository,
     segmenter,
     eventBus,
+    afterCommit,
     clock,
     logger,
     onEnded: (sessionId) => hlsStream.forget(sessionId),

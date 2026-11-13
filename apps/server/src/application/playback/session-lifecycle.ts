@@ -2,7 +2,7 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import { everything, type PlayableSources } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
-import type { EventBus } from '../../core/events.ts'
+import type { AfterCommit, EventBus } from '../../core/events.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { HlsSegmenter, TranscodeCache } from '../../core/playback/ports.ts'
 import {
@@ -40,6 +40,7 @@ export const endPlaybackSessionFactory =
     sessionRepository,
     segmenter,
     eventBus,
+    afterCommit,
     clock,
     logger,
     onEnded,
@@ -47,6 +48,8 @@ export const endPlaybackSessionFactory =
     sessionRepository: PlaybackSessionRepository
     segmenter: HlsSegmenter
     eventBus: EventBus
+    /** Linking and identification end sessions in their transaction: ffmpeg stops on commit. */
+    afterCommit: AfterCommit
     clock: Clock
     logger: Logger
     onEnded?: (sessionId: string) => void
@@ -55,8 +58,10 @@ export const endPlaybackSessionFactory =
     if (session.endedAt !== undefined) return { ...session, endedAt: session.endedAt }
     const endedAt = clock.now()
     sessionRepository.end({ id: session.id, at: endedAt })
-    segmenter.stop(session.id)
-    onEnded?.(session.id)
+    afterCommit(() => {
+      segmenter.stop(session.id)
+      onEnded?.(session.id)
+    })
     eventBus.publish('playback.session_terminated', {
       playbackSessionId: session.id,
       sessionId: session.authSessionId,

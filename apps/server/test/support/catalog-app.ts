@@ -9,7 +9,12 @@ import { buildCatalogModule } from '../../src/entrypoints/modules/catalog.ts'
 import { buildProgressModule } from '../../src/entrypoints/modules/progress.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
-import { createRecordingEventBus, createRecordingJobQueue, createSequentialIds } from './fakes.ts'
+import {
+  createRecordingEventBus,
+  createRecordingJobQueue,
+  createSequentialIds,
+  createTestAfterCommit,
+} from './fakes.ts'
 import { silentLogger } from './logger.ts'
 import { createTestPlatform } from './platform.ts'
 
@@ -29,7 +34,7 @@ export const createCatalogTestApp = ({
     clock,
     ids: createSequentialIds('t-'),
     logger: silentLogger,
-    eventBus: createRecordingEventBus().bus,
+    eventBus: createRecordingEventBus({ afterCommit: createTestAfterCommit(db) }).bus,
     jobQueue: createRecordingJobQueue().queue,
     paths: dataPathsFor('/nonexistent'),
   })

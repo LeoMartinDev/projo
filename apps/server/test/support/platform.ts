@@ -8,17 +8,16 @@ import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
 import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
-import { afterCommit } from '../../src/infrastructure/sqlite/transactions.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
-import { createRecordingEventBus } from './fakes.ts'
+import { createRecordingEventBus, createTestAfterCommit } from './fakes.ts'
 import { silentLogger } from './logger.ts'
 
 /**
  * A complete `Platform` for tests that build modules by hand: every field has a test default
- * (in-memory database, manual clock, recording event bus delivering after commit like the real
- * one, real queue, no runner), and the defaults derived from another field (notifier, job
- * repository, queue…) use its override.
+ * (in-memory database, manual clock, the real after-commit deferral, a recording event bus
+ * delivering through it, real queue, no runner), and the defaults derived from another field
+ * (notifier, job repository, queue…) use its override.
  *
  * `jobControl` stands in for the runner: `cancel` cancels a queued or running job in the
  * repository and publishes `job.updated` like `runner.cancel` (without waiting for a running
@@ -28,9 +27,8 @@ export const createTestPlatform = (overrides: Partial<Platform> = {}): Platform 
   const db = overrides.db ?? createTestDatabase()
   const clock = overrides.clock ?? createManualClock(new Date('2026-06-01T10:00:00.000Z'))
   const ids = overrides.ids ?? createUuidV7Generator({ clock })
-  const eventBus =
-    overrides.eventBus ??
-    createRecordingEventBus({ afterCommit: (effect) => afterCommit(db, effect) }).bus
+  const afterCommit = overrides.afterCommit ?? createTestAfterCommit(db)
+  const eventBus = overrides.eventBus ?? createRecordingEventBus({ afterCommit }).bus
   const jobRepository = overrides.jobRepository ?? createSqliteJobRepository({ db })
   const jobQueue =
     overrides.jobQueue ?? createJobQueue({ jobRepository, ids, clock, eventBus }).queue
@@ -60,6 +58,7 @@ export const createTestPlatform = (overrides: Partial<Platform> = {}): Platform 
     clock,
     ids,
     eventBus,
+    afterCommit,
     notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
     db,
     jobQueue,

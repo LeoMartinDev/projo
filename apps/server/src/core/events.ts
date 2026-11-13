@@ -22,6 +22,12 @@ export type InternalEventPayloads = {
   'job.finished': { jobId: string; type: JobType; state: 'done' | 'failed'; payload: unknown }
 }
 
+type MustHold<T extends true> = T
+/** Does not compile when an internal event takes a client event's name. */
+export type InternalEventNamesAreFree = MustHold<
+  [Extract<keyof InternalEventPayloads, ServerEventType>] extends [never] ? true : false
+>
+
 export type EventPayloads = ServerEventPayloads & InternalEventPayloads
 export type EventType = keyof EventPayloads
 

@@ -119,6 +119,7 @@ const build = () => {
     sessionRepository: sessions,
     segmenter,
     eventBus: bus,
+    afterCommit: (effect) => effect(),
     clock,
     logger: silentLogger,
   })

@@ -8,6 +8,18 @@ export const silentLogger: Logger = {
   child: () => silentLogger,
 }
 
+/**
+ * Silent, except that an error log throws: what production only logs (a throwing event listener,
+ * a failing effect after commit) fails the test instead.
+ */
+export const throwingLogger: Logger = {
+  ...silentLogger,
+  error: (message, fields) => {
+    throw fields?.error instanceof Error ? fields.error : new Error(message, { cause: fields })
+  },
+  child: () => throwingLogger,
+}
+
 export type CapturedLine = { level: LogLevel; message: string; fields: LogFields }
 
 export const createCapturingLogger = (bindings: LogFields = {}, lines: CapturedLine[] = []) => {

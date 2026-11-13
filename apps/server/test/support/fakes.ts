@@ -3,7 +3,9 @@ import type { IdGenerator } from '../../src/core/ids.ts'
 import { jobDefaults, type Job } from '../../src/core/jobs/job.ts'
 import type { EnqueueJobInput, JobQueue } from '../../src/core/jobs/ports.ts'
 import { createInMemoryEventBus } from '../../src/infrastructure/events/in-memory-event-bus.ts'
-import { silentLogger } from './logger.ts'
+import type { Db } from '../../src/infrastructure/sqlite/database.ts'
+import { createSqliteAfterCommit } from '../../src/infrastructure/sqlite/transactions.ts'
+import { throwingLogger } from './logger.ts'
 
 export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
   let counter = 0
@@ -16,12 +18,20 @@ export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
 }
 
 /**
+ * The after-commit deferral of `db` (the real one), whose failing effects fail the test instead
+ * of being logged.
+ */
+export const createTestAfterCommit = (db: Db): AfterCommit =>
+  createSqliteAfterCommit({ db, logger: throwingLogger })
+
+/**
  * The real bus, recording each client event as it is delivered (after commit when `afterCommit`
- * defers it, as `createTestPlatform` does). Internal events are observed with `bus.on`.
+ * defers it: `createTestAfterCommit(db)`, as `createTestPlatform` does). Internal events are
+ * observed with `bus.on`. A throwing listener fails the publish instead of being logged.
  */
 export const createRecordingEventBus = ({ afterCommit }: { afterCommit?: AfterCommit } = {}) => {
   const bus = createInMemoryEventBus({
-    logger: silentLogger,
+    logger: throwingLogger,
     ...(afterCommit === undefined ? {} : { afterCommit }),
   })
   const events: ServerEvent[] = []

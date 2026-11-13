@@ -2,7 +2,7 @@ import { andThen, type AppError, map, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
 import { type DataPaths, dataPathsFor } from '../../core/data-paths.ts'
-import type { EventBus } from '../../core/events.ts'
+import type { AfterCommit, EventBus } from '../../core/events.ts'
 import type { IdGenerator } from '../../core/ids.ts'
 import type { JobControl, JobQueue, JobRepository } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -14,7 +14,7 @@ import { createUuidV7Generator } from '../../infrastructure/ids/uuid-v7.ts'
 import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { type Db, openDatabase } from '../../infrastructure/sqlite/database.ts'
 import { createSqliteJobRepository } from '../../infrastructure/sqlite/job-repository.ts'
-import { afterCommit } from '../../infrastructure/sqlite/transactions.ts'
+import { createSqliteAfterCommit } from '../../infrastructure/sqlite/transactions.ts'
 import type { AppPaths } from '../app-paths.ts'
 import type { Config } from '../config.ts'
 import { createJobQueue } from '../jobs/job-queue.ts'
@@ -29,6 +29,11 @@ export type Platform = {
   clock: Clock
   ids: IdGenerator
   eventBus: EventBus
+  /**
+   * Defers an effect that must not outlive a rollback until the open SQLite transaction commits
+   * (at once outside one); the event bus delivers through it.
+   */
+  afterCommit: AfterCommit
   /** Admin notifications (§15), shared by every module like the event bus. */
   notifier: AdminNotifier
   db: Db
@@ -74,10 +79,8 @@ export const buildPlatform = ({
     ),
     (db) => {
       const ids = createUuidV7Generator({ clock })
-      const eventBus = createInMemoryEventBus({
-        logger,
-        afterCommit: (effect) => afterCommit(db, effect),
-      })
+      const afterCommit = createSqliteAfterCommit({ db, logger })
+      const eventBus = createInMemoryEventBus({ logger, afterCommit })
       const jobRepository = createSqliteJobRepository({ db })
       const { queue, control, connectRunner } = createJobQueue({
         jobRepository,
@@ -95,6 +98,7 @@ export const buildPlatform = ({
         clock,
         ids,
         eventBus,
+        afterCommit,
         notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
         db,
         jobQueue: queue,

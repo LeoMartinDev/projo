@@ -5,6 +5,7 @@ import {
   type ParsedName,
   unstackedTitle,
 } from '../naming/index.ts'
+import type { Transaction } from '../transaction.ts'
 
 export type MovieTarget = { kind: 'movie'; title: string; year?: number }
 export type EpisodeTarget = {
@@ -107,7 +108,7 @@ export type LinkedItem = {
 
 export type LocalItemRepository = {
   /** Events published inside are delivered once it commits, never if it rolls back. */
-  transaction: <T>(run: () => T) => T
+  transaction: Transaction
   linksOf: (sourceId: string) => LinkedItem[]
   parentOf: (id: string) => string | undefined
   moveItemRows: (input: { from: string; into: string }) => void

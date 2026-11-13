@@ -12,7 +12,7 @@ import {
 } from '../../../../test/support/catalog-fixtures.ts'
 import { createManualClock, type ManualClock } from '../../../../test/support/clock.ts'
 import { createTestDatabase } from '../../../../test/support/database.ts'
-import { createRecordingEventBus } from '../../../../test/support/fakes.ts'
+import { createRecordingEventBus, createTestAfterCommit } from '../../../../test/support/fakes.ts'
 import { silentLogger } from '../../../../test/support/logger.ts'
 import { endPlaybackSessionFactory } from '../../../application/playback/session-lifecycle.ts'
 import type { ServerEvent } from '../../../core/events.ts'
@@ -41,6 +41,7 @@ beforeEach(() => {
     sessionRepository,
     segmenter: { stop: (id: string) => void stopped.push(id) } as unknown as HlsSegmenter,
     eventBus: bus.bus,
+    afterCommit: createTestAfterCommit(db),
     clock,
     logger: silentLogger,
   })

@@ -3,6 +3,7 @@ import type { ReviewReason } from '@projo/shared/api/metadata'
 
 import type { ImageSlot, LockableField, MetadataPatch, PersonCredit } from './enrichment.ts'
 import type { LinkedItemInfo } from './linking.ts'
+import type { Transaction } from '../transaction.ts'
 
 export type ItemKind = 'movie' | 'series' | 'season' | 'episode'
 
@@ -45,7 +46,7 @@ export type ItemPersonImage = { personId: string; tmdbId: number; profileImageId
 
 export type MetadataItemRepository = {
   /** Events published inside are delivered once it commits, never if it rolls back. */
-  transaction: <T>(run: () => T) => T
+  transaction: Transaction
   findItem: (id: string) => LinkedItemInfo | undefined
   linkedItems: (sourceId: string) => LinkedItemInfo[]
   findByTmdb: (input: { kind: 'movie' | 'series'; tmdbId: number }) => string | undefined

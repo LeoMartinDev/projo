@@ -21,7 +21,7 @@ import { stripNulls } from '../../src/infrastructure/sqlite/rows.ts'
 import { seedViewer } from './catalog-fixtures.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
-import { createRecordingEventBus } from './fakes.ts'
+import { createRecordingEventBus, createTestAfterCommit } from './fakes.ts'
 import { silentLogger } from './logger.ts'
 import { createTestPlatform } from './platform.ts'
 
@@ -29,10 +29,19 @@ export const createScannerWorld = () => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-06-01T10:00:00.000Z'))
   const ids = createUuidV7Generator({ clock })
-  const { bus: eventBus, events } = createRecordingEventBus()
+  const afterCommit = createTestAfterCommit(db)
+  const { bus: eventBus, events } = createRecordingEventBus({ afterCommit })
   const jobRepository = createSqliteJobRepository({ db })
   const { queue: jobQueue } = createJobQueue({ jobRepository, ids, clock, eventBus })
-  const platform = createTestPlatform({ db, clock, ids, eventBus, jobRepository, jobQueue })
+  const platform = createTestPlatform({
+    db,
+    clock,
+    ids,
+    eventBus,
+    afterCommit,
+    jobRepository,
+    jobQueue,
+  })
   const playbackSessionRepository = createSqlitePlaybackSessionRepository({ db })
   const stoppedStreams: string[] = []
   const segmenter: HlsSegmenter = {
@@ -50,6 +59,7 @@ export const createScannerWorld = () => {
         sessionRepository: playbackSessionRepository,
         segmenter,
         eventBus,
+        afterCommit,
         clock,
         logger: silentLogger,
       }),
