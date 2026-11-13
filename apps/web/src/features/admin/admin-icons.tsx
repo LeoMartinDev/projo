@@ -110,6 +110,20 @@ export const JobsIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
+export const LogsIcon = ({ size }: IconProps) => (
+  <Icon size={size ?? 18}>
+    <path d="M7 4.5h10A1.5 1.5 0 0 1 18.5 6v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5z" />
+    <path d="M8.5 9h1M11.5 9h4M8.5 12h1M11.5 12h4M8.5 15h1M11.5 15h2.5" />
+  </Icon>
+)
+
+export const DownloadIcon = ({ size }: IconProps) => (
+  <Icon size={size ?? 18}>
+    <path d="M12 4.5v10M8 10.5l4 4 4-4" />
+    <path d="M5 16.5v1.5A1.5 1.5 0 0 0 6.5 19.5h11a1.5 1.5 0 0 0 1.5-1.5v-1.5" />
+  </Icon>
+)
+
 export const BellIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />

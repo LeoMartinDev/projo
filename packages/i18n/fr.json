@@ -1031,6 +1031,44 @@
       "restore": "Afficher à nouveau",
       "restoreNamed": "Afficher à nouveau {{name}}"
     },
+    "logs": {
+      "title": "Journaux",
+      "refresh": "Actualiser",
+      "export": "Exporter",
+      "levelLabel": "Niveau minimum",
+      "levelFilter": {
+        "all": "Tout",
+        "info": "Infos",
+        "warn": "Alertes",
+        "error": "Erreurs"
+      },
+      "level": {
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Alerte",
+        "error": "Erreur"
+      },
+      "period": "Période",
+      "periods": {
+        "hour": "Dernière heure",
+        "day": "Dernières 24 h",
+        "week": "7 derniers jours",
+        "all": "Tout (14 jours)",
+        "custom": "Dates précises"
+      },
+      "from": "Du",
+      "to": "Au",
+      "search": "Rechercher dans les journaux",
+      "searchPlaceholder": "Rechercher",
+      "columns": {
+        "time": "Date",
+        "level": "Niveau",
+        "message": "Message"
+      },
+      "code": "Code",
+      "line": "Ligne du journal",
+      "empty": "Aucune ligne"
+    },
     "jobs": {
       "title": "Jobs",
       "filterLabel": "Afficher",

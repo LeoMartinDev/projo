@@ -18,6 +18,7 @@ import { purgeExpiredOAuthFactory } from '../../application/auth/purge-expired-o
 import { registerOAuthClientFactory } from '../../application/auth/register-oauth-client.ts'
 import { revokeAssistantTokenFactory } from '../../application/auth/revoke-assistant-token.ts'
 import { assistantAccessFactory } from '../../application/auth/shared/assistant-access.ts'
+import type { ListLogs } from '../../application/logs/list-logs.ts'
 import type { TmdbDetails } from '../../application/metadata/shared/tmdb-details.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import { verifyPkceS256 } from '../../infrastructure/auth/pkce.ts'
@@ -62,9 +63,12 @@ export const buildAssistantsModule = (
   platform: Platform,
   {
     assistantPorts,
+    listLogs,
     clientMetadata = createClientMetadataFetcher(),
   }: {
     assistantPorts: AssistantPorts
+    /** The log viewer's use case (logs module), behind the `search_logs` tool. */
+    listLogs: ListLogs
     clientMetadata?: ClientMetadataFetcher
   },
 ) => {
@@ -157,6 +161,7 @@ export const buildAssistantsModule = (
       rematchItem,
       rejectSource,
       restoreSource,
+      listLogs,
     }),
     server: { name: 'projo', version, instructions: assistantInstructions },
     onToolCall: ({ tool, targets, durationMs, errorCode }) =>

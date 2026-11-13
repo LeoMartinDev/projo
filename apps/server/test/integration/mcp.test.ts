@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { buildAssistantsModule } from '../../src/entrypoints/modules/assistants.ts'
+import { buildLogsModule } from '../../src/entrypoints/modules/logs.ts'
 import { insertItem, insertLibrary, insertSource, seedViewer } from '../support/catalog-fixtures.ts'
 import { silentLogger } from '../support/logger.ts'
 import { createMetadataWorld, type MetadataWorld } from '../support/metadata-world.ts'
@@ -12,14 +13,17 @@ setDefaultTimeout(90_000)
 
 let world: MetadataWorld
 let assistants: ReturnType<typeof buildAssistantsModule>
+let logs: ReturnType<typeof buildLogsModule>
 let app: Hono<AppEnv>
 let token: string
 let viewer: ReturnType<typeof seedViewer>
 
 beforeEach(() => {
   world = createMetadataWorld()
+  logs = buildLogsModule(world.platform, { file: ':memory:' })
   assistants = buildAssistantsModule(world.platform, {
     assistantPorts: world.metadata.assistantPorts,
+    listLogs: logs.listLogs,
   })
   viewer = seedViewer(world.db, 'admin-1')
   token = createToken()
@@ -31,6 +35,7 @@ beforeEach(() => {
     .route('/', assistants.mcpRoutes)
 })
 afterEach(async () => {
+  logs.stop()
   await world.stop()
 })
 
@@ -153,12 +158,57 @@ describe('POST /mcp (§27.2, §27.3)', () => {
       'rematch_item',
       'hide_source',
       'restore_source',
+      'search_logs',
     ])
     expect(tools.every((tool) => tool.inputSchema.type === 'object')).toBe(true)
     expect(tools.find((tool) => tool.name === 'assign_source')?.annotations.readOnlyHint).toBe(
       false,
     )
     expect((await rpc('nope')).error?.code).toBe(-32601)
+  })
+
+  test('search_logs: the stored lines, newest first, filtered (§27.4)', async () => {
+    logs.logStore.append([
+      {
+        time: new Date('2026-11-13T10:00:00.000Z'),
+        level: 'info',
+        message: 'scan finished',
+        fields: { module: 'scanner' },
+      },
+      {
+        time: new Date('2026-11-13T10:01:00.000Z'),
+        level: 'error',
+        message: 'probe failed',
+        code: 'scan/probe_failed',
+        fields: { path: 'Movies/Dune.mkv' },
+      },
+    ])
+    const all = await call('search_logs')
+    expect(all.structuredContent).toEqual({
+      items: [
+        {
+          id: expect.any(String),
+          time: '2026-11-13T10:01:00.000Z',
+          level: 'error',
+          message: 'probe failed',
+          code: 'scan/probe_failed',
+          fields: { path: 'Movies/Dune.mkv' },
+        },
+        {
+          id: expect.any(String),
+          time: '2026-11-13T10:00:00.000Z',
+          level: 'info',
+          message: 'scan finished',
+          fields: { module: 'scanner' },
+        },
+      ],
+    })
+    const errors = await call('search_logs', { level: 'warn', q: 'dune' })
+    expect((errors.structuredContent?.['items'] as unknown[]).length).toBe(1)
+    const paged = await call('search_logs', { limit: 1 })
+    expect(paged.structuredContent?.['nextCursor']).toEqual(expect.any(String))
+    const invalid = await rpc('tools/call', { name: 'search_logs', arguments: { level: 'fatal' } })
+    expect(invalid.error?.code).toBe(-32602)
   })
 
   test('without a token: 401 with the OAuth pointer; a foreign Origin: 403; GET: 405', async () => {

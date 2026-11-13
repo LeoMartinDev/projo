@@ -124,6 +124,10 @@ const JobsPage = lazyRouteComponent(
   () => import('../features/admin/operations/JobsPage.tsx'),
   'JobsPage',
 )
+const LogsPage = lazyRouteComponent(
+  () => import('../features/admin/operations/LogsPage.tsx'),
+  'LogsPage',
+)
 const NotificationsPage = lazyRouteComponent(
   () => import('../features/admin/operations/NotificationsPage.tsx'),
   'NotificationsPage',
@@ -543,6 +547,13 @@ const adminJobsRoute = createRoute({
   },
 })
 
+const adminLogsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/logs',
+  loader: () => LogsPage.preload?.(),
+  component: LogsPage,
+})
+
 const adminNotificationsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/notifications',
@@ -589,6 +600,7 @@ export const routeTree = rootRoute.addChildren([
       adminMissingRoute,
       adminHiddenRoute,
       adminJobsRoute,
+      adminLogsRoute,
       adminNotificationsRoute,
     ]),
   ]),

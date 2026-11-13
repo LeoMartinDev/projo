@@ -161,6 +161,7 @@ beforeEach(() => {
       adminPlayback: unwired<'adminPlayback'>(),
       adminMissingSources: unwired<'adminMissingSources'>(),
       adminJobs: unwired<'adminJobs'>(),
+      adminLogs: unwired<'adminLogs'>(),
       adminNotifications: unwired<'adminNotifications'>(),
       adminSystem: unwired<'adminSystem'>(),
       adminUpdates: unwired<'adminUpdates'>(),

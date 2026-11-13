@@ -7,6 +7,7 @@ import { createHttpApp } from '../../src/entrypoints/http/app.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { buildAuthModule } from '../../src/entrypoints/modules/auth.ts'
 import { buildEventsModule } from '../../src/entrypoints/modules/events.ts'
+import { buildLogsModule } from '../../src/entrypoints/modules/logs.ts'
 import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
 import {
   buildProfilesModule,
@@ -81,6 +82,7 @@ export const createAuthTestApp = ({
     playbackSessions,
     metadataContext: { filesLeaving: () => () => {} },
   })
+  const logs = buildLogsModule(platform, { file: ':memory:' })
   const baseline = subscriptions
   const api = createApi({
     middleware: auth.middleware,
@@ -114,6 +116,7 @@ export const createAuthTestApp = ({
       adminPlayback: unwired<'adminPlayback'>(),
       adminMissingSources: operations.routes.missingSources,
       adminJobs: operations.routes.jobs,
+      adminLogs: logs.routes,
       adminNotifications: operations.routes.notifications,
       adminSystem: operations.routes.system,
       adminUpdates: unwired<'adminUpdates'>(),

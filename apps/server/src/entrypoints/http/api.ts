@@ -11,6 +11,7 @@ import type { AdminSegmentsRoutes } from './routes/admin-segments.ts'
 import type { AdminItemsRoutes } from './routes/admin-items.ts'
 import type { AdminSettingsRoutes } from './routes/admin-settings.ts'
 import type { AdminJobsRoutes } from './routes/admin-jobs.ts'
+import type { AdminLogsRoutes } from './routes/admin-logs.ts'
 import type { AdminNotificationsRoutes } from './routes/admin-notifications.ts'
 import type {
   AdminMissingSourcesRoutes,
@@ -68,6 +69,7 @@ export type ApiRoutes = {
   adminPlayback: AdminPlaybackRoutes
   adminMissingSources: AdminMissingSourcesRoutes
   adminJobs: AdminJobsRoutes
+  adminLogs: AdminLogsRoutes
   adminNotifications: AdminNotificationsRoutes
   adminSystem: AdminSystemRoutes
   adminUpdates: AdminUpdatesRoutes
@@ -120,6 +122,7 @@ export const createApi = ({
     .route('/admin', routes.adminPlayback)
     .route('/admin', routes.adminMissingSources)
     .route('/admin', routes.adminJobs)
+    .route('/admin', routes.adminLogs)
     .route('/admin', routes.adminNotifications)
     .route('/admin', routes.adminSystem)
     .route('/admin', routes.adminUpdates)

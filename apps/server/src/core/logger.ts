@@ -1,4 +1,6 @@
-export const logLevels = ['debug', 'info', 'warn', 'error'] as const
+import { logLevels } from '@projo/shared/api/logs'
+
+export { logLevels }
 export type LogLevel = (typeof logLevels)[number]
 
 export type LogFields = {
@@ -18,3 +20,6 @@ export type Logger = {
   error: LogFn
   child: (fields: LogFields) => Logger
 }
+
+/** Order of the levels: a filter on a level keeps it and the ones above. */
+export const levelWeight: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 }

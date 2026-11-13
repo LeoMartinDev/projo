@@ -7,6 +7,7 @@ import { SWITCH_EXIT_CODE } from '../core/updates/update.ts'
 import { systemClock } from '../infrastructure/clock/system-clock.ts'
 import { createStaticFiles } from '../infrastructure/http/static-files.ts'
 import { createJsonLogger } from '../infrastructure/logger/json-logger.ts'
+import { createLogRecorder } from '../infrastructure/logger/log-recorder.ts'
 import { closeDatabase } from '../infrastructure/sqlite/database.ts'
 import { readManifestVersion } from '../infrastructure/system/app-version.ts'
 import { type AppPaths, resolveAppPaths, sourceVersion } from './app-paths.ts'
@@ -24,6 +25,7 @@ import { buildEventsModule } from './modules/events.ts'
 import { buildFingerprintModule } from './modules/fingerprint.ts'
 import { buildFsModule } from './modules/fs.ts'
 import { buildLibrariesModule } from './modules/libraries.ts'
+import { buildLogsModule } from './modules/logs.ts'
 import { buildMediaAssetsModule } from './modules/media-assets.ts'
 import { buildMetadataModule } from './modules/metadata.ts'
 import { buildOperationsModule } from './modules/operations.ts'
@@ -66,7 +68,16 @@ export const startProjo = ({
   const config = loadConfig(env)
   if (!config.ok) return config
 
-  const logger = createJsonLogger({ level: config.value.logLevel, clock: systemClock })
+  const recorder = createLogRecorder()
+  const logger = createJsonLogger({
+    level: config.value.logLevel,
+    clock: systemClock,
+    write: (line, record) => {
+      process.stdout.write(`${line}
+`)
+      recorder.record(record)
+    },
+  })
   const version =
     (appPaths.manifestFile === undefined
       ? undefined
@@ -81,6 +92,7 @@ export const startProjo = ({
   // both genuinely cyclic: the job runner needs every module's job handlers (modules reach it
   // through `platform.jobControl`, bound by `connectJobRunner` below), and the version switch
   // needs `stop` (`switchLater`, bound at the end).
+  const logs = buildLogsModule(platform, { recorder })
   const visibilityScopes = buildVisibilityScopes(platform)
   const visibilityScope = visibilityScopes.resolve
   const playback = buildPlaybackModule(platform, { visibilityScope })
@@ -130,7 +142,10 @@ export const startProjo = ({
   const updates = buildUpdatesModule(platform, {
     exitForSwitch: () => switchLater.request?.(),
   })
-  const assistants = buildAssistantsModule(platform, { assistantPorts: metadata.assistantPorts })
+  const assistants = buildAssistantsModule(platform, {
+    assistantPorts: metadata.assistantPorts,
+    listLogs: logs.listLogs,
+  })
 
   const modules: ModuleContribution[] = [
     auth,
@@ -153,6 +168,8 @@ export const startProjo = ({
     operations,
     updates,
     assistants,
+    // Last: stopping it flushes the lines the other modules log while they stop.
+    logs,
   ]
 
   const api = createApi({
@@ -187,6 +204,7 @@ export const startProjo = ({
       adminPlayback: adminPlayback.routes,
       adminMissingSources: operations.routes.missingSources,
       adminJobs: operations.routes.jobs,
+      adminLogs: logs.routes,
       adminNotifications: operations.routes.notifications,
       adminSystem: operations.routes.system,
       adminUpdates: updates.routes,

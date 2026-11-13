@@ -1031,6 +1031,44 @@
       "restore": "Show again",
       "restoreNamed": "Show {{name}} again"
     },
+    "logs": {
+      "title": "Logs",
+      "refresh": "Refresh",
+      "export": "Export",
+      "levelLabel": "Minimum level",
+      "levelFilter": {
+        "all": "All",
+        "info": "Info",
+        "warn": "Warnings",
+        "error": "Errors"
+      },
+      "level": {
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warning",
+        "error": "Error"
+      },
+      "period": "Period",
+      "periods": {
+        "hour": "Last hour",
+        "day": "Last 24 hours",
+        "week": "Last 7 days",
+        "all": "All (14 days)",
+        "custom": "Custom range"
+      },
+      "from": "From",
+      "to": "To",
+      "search": "Search the logs",
+      "searchPlaceholder": "Search",
+      "columns": {
+        "time": "Date",
+        "level": "Level",
+        "message": "Message"
+      },
+      "code": "Code",
+      "line": "Log line",
+      "empty": "No lines"
+    },
     "jobs": {
       "title": "Jobs",
       "filterLabel": "Show",

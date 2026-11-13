@@ -12,6 +12,7 @@ import {
   BellIcon,
   DashboardIcon,
   JobsIcon,
+  LogsIcon,
   MissingIcon,
   PendingIcon,
   PlaybackIcon,
@@ -214,6 +215,14 @@ export const AdminLayout = () => {
           >
             <JobsIcon />
             <span className="admin__nav-label">{t('admin.jobs.title')}</span>
+          </Link>
+          <Link
+            to="/admin/logs"
+            className="admin__nav-link"
+            activeProps={{ 'aria-current': 'page' }}
+          >
+            <LogsIcon />
+            <span className="admin__nav-label">{t('admin.logs.title')}</span>
           </Link>
           <Link
             to="/admin/notifications"

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
+import type { LogRecord } from '../../core/logs/log.ts'
 import { createJsonLogger } from './json-logger.ts'
 
 const capture = (level: 'debug' | 'info' | 'warn' | 'error' = 'debug') => {
@@ -41,6 +42,31 @@ describe('createJsonLogger', () => {
     const { logger, lines } = capture()
     logger.child({ sessionId: 's1' }).child({ jobId: 'j1' }).warn('hello')
     expect(lines[0]).toMatchObject({ sessionId: 's1', jobId: 'j1', msg: 'hello' })
+  })
+
+  test('hands the same line to the store as a record, the code apart', () => {
+    const records: LogRecord[] = []
+    const logger = createJsonLogger({
+      level: 'info',
+      clock: createManualClock(new Date('2026-10-23T10:00:00.000Z')),
+      write: (_line, record) => records.push(record),
+    })
+    logger.debug('dropped')
+    logger
+      .child({ module: 'scanner' })
+      .error('scan failed', { code: 'scan/root_unreachable', error: new Error('gone') })
+    expect(records).toEqual([
+      {
+        time: new Date('2026-10-23T10:00:00.000Z'),
+        level: 'error',
+        message: 'scan failed',
+        code: 'scan/root_unreachable',
+        fields: {
+          module: 'scanner',
+          error: { name: 'Error', message: 'gone', stack: expect.any(String) },
+        },
+      },
+    ])
   })
 
   test('serializes errors and their causes', () => {

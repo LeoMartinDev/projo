@@ -2,6 +2,7 @@ import { infiniteQueryOptions, queryOptions, useQueryClient } from '@tanstack/re
 import { useEffect, useState } from 'react'
 
 import type { JobStateDto, JobTypeDto } from '@projo/shared/api/jobs'
+import type { LogFilters } from '@projo/shared/api/logs'
 import type { NotificationStatus } from '@projo/shared/api/notifications'
 
 import { api, request } from '../../../shared/api/client.ts'
@@ -48,6 +49,38 @@ export const jobsQuery = ({ state, type }: JobsFilter) =>
       ),
     getNextPageParam: (page) => page.nextCursor,
   })
+
+export const logsQueryKey = ['admin', 'logs'] as const
+
+/** Query of `GET /admin/logs` and `GET /admin/logs/export`: only the filters that are set. */
+export const logsFilterQuery = (filters: LogFilters): Record<string, string> => ({
+  ...(filters.level === undefined ? {} : { level: filters.level }),
+  ...(filters.from === undefined ? {} : { from: filters.from }),
+  ...(filters.to === undefined ? {} : { to: filters.to }),
+  ...(filters.q === undefined ? {} : { q: filters.q }),
+})
+
+export const logsQuery = (filters: LogFilters) =>
+  infiniteQueryOptions({
+    queryKey: [...logsQueryKey, logsFilterQuery(filters)],
+    initialPageParam: '',
+    queryFn: ({ pageParam }) =>
+      request(() =>
+        api.admin.logs.$get({
+          query: {
+            ...logsFilterQuery(filters),
+            limit: String(100),
+            ...(pageParam === '' ? {} : { cursor: pageParam }),
+          },
+        }),
+      ),
+    getNextPageParam: (page) => page.nextCursor,
+  })
+
+export const logsExportUrl = (filters: LogFilters): string => {
+  const query = new URLSearchParams(logsFilterQuery(filters)).toString()
+  return `/api/v1/admin/logs/export${query === '' ? '' : `?${query}`}`
+}
 
 export const notificationsQuery = (status: NotificationStatus | undefined) =>
   infiniteQueryOptions({

@@ -4,6 +4,7 @@ import { Hono } from 'hono'
 import type { AuthorizationRequest } from '../../src/application/auth/shared/oauth-request.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { buildAssistantsModule } from '../../src/entrypoints/modules/assistants.ts'
+import { buildLogsModule } from '../../src/entrypoints/modules/logs.ts'
 import { createClientMetadataFetcher } from '../../src/infrastructure/oauth/client-metadata-fetcher.ts'
 import { insertProfile, seedViewer } from '../support/catalog-fixtures.ts'
 import { silentLogger } from '../support/logger.ts'
@@ -39,6 +40,7 @@ beforeEach(() => {
   })
   assistants = buildAssistantsModule(world.platform, {
     assistantPorts: world.metadata.assistantPorts,
+    listLogs: buildLogsModule(world.platform, { file: ':memory:' }).listLogs,
     clientMetadata: createClientMetadataFetcher({ allowPrivateAddresses: true }),
   })
   viewer = seedViewer(world.db, 'admin-1')

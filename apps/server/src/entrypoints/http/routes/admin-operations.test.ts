@@ -31,6 +31,8 @@ const operationsRoutes: [string, string][] = [
   ['GET', '/api/v1/admin/jobs'],
   ['POST', `/api/v1/admin/jobs/${uuid(1)}/retry`],
   ['POST', `/api/v1/admin/jobs/${uuid(1)}/cancel`],
+  ['GET', '/api/v1/admin/logs'],
+  ['GET', '/api/v1/admin/logs/export'],
   ['GET', '/api/v1/admin/notifications'],
   ['POST', `/api/v1/admin/notifications/${uuid(1)}/read`],
   ['GET', '/api/v1/admin/stats'],
