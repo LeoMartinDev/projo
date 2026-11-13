@@ -8,7 +8,8 @@ import {
 
 import type { GetMe } from '../../../application/auth/get-me.ts'
 import type { OpenSession } from '../../../application/auth/open-session.ts'
-import type { Invitations } from '../../../application/invitation/invitations.ts'
+import type { AcceptInvitation } from '../../../application/invitation/accept-invitation.ts'
+import type { CheckInvitation } from '../../../application/invitation/check-invitation.ts'
 import { describeUserAgent } from '../../../core/auth/user-agent.ts'
 import type { Clock } from '../../../core/clock.ts'
 import { type InvitationListing, invitationState } from '../../../core/invitation/invitation.ts'
@@ -33,7 +34,8 @@ export const toInvitationDto = (invitation: InvitationListing, now: Date): Invit
 })
 
 type Deps = {
-  invitations: Invitations
+  checkInvitation: CheckInvitation
+  acceptInvitation: AcceptInvitation
   openSession: OpenSession
   getMe: GetMe
   serverName: () => string | undefined
@@ -42,7 +44,8 @@ type Deps = {
 }
 
 export const invitationsRoutes = ({
-  invitations,
+  checkInvitation,
+  acceptInvitation,
   openSession,
   getMe,
   serverName,
@@ -51,7 +54,7 @@ export const invitationsRoutes = ({
 }: Deps) =>
   new Hono<AppEnv>()
     .get('/invitations/:token', (c) => {
-      const result = invitations.check({ token: c.req.param('token') })
+      const result = checkInvitation({ token: c.req.param('token') })
       if (!result.ok) return respondError(c, result.error)
       const name = serverName()
       return c.json(
@@ -65,7 +68,7 @@ export const invitationsRoutes = ({
     .post('/invitations/:token/accept', validate('json', acceptInvitationBodySchema), async (c) => {
       const client = clientInfo(c, { trustProxy })
       const body = c.req.valid('json')
-      const result = await invitations.accept({
+      const result = await acceptInvitation({
         token: c.req.param('token'),
         ip: client.ip,
         username: body.username,

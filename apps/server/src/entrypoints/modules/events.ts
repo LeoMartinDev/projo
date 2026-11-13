@@ -1,4 +1,4 @@
-import { eventSubscriberFactory } from '../../application/auth/event-subscriber.ts'
+import { resolveEventSubscriberFactory } from '../../application/auth/resolve-event-subscriber.ts'
 import { createSqliteAccountRepository } from '../../infrastructure/sqlite/account-repository.ts'
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
 import { createSqliteSessionRepository } from '../../infrastructure/sqlite/session-repository.ts'
@@ -23,7 +23,7 @@ export const buildEventsModule = (
     exposes: {
       routes: eventsRoutes({
         eventBus,
-        currentSubscriber: eventSubscriberFactory({
+        currentSubscriber: resolveEventSubscriberFactory({
           accountRepository: createSqliteAccountRepository({ db }),
           sessionRepository: createSqliteSessionRepository({ db }),
           profileRepository: createSqliteProfileRepository({ db }),

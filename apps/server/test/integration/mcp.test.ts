@@ -35,7 +35,7 @@ afterEach(async () => {
 })
 
 const createToken = (): string =>
-  assistants.assistantTokens.create({
+  assistants.createAssistantToken({
     accountId: viewer.accountId,
     profileId: viewer.profileId,
     name: 'Claude',

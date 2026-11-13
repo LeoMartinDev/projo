@@ -5,10 +5,10 @@ import { type AdminSettingsDto, updateAdminSettingsBodySchema } from '@projo/sha
 import type { GetMetadataSettings } from '../../../application/metadata/get-metadata-settings.ts'
 import type { MetadataSettingsView } from '../../../application/metadata/shared/metadata-settings-view.ts'
 import type { UpdateMetadataSettings } from '../../../application/metadata/update-metadata-settings.ts'
-import type {
-  PlaybackSettingsAdmin,
-  ServerSettingsAdmin,
-} from '../../../application/operations/types.ts'
+import type { GetPlaybackSettings } from '../../../application/operations/get-playback-settings.ts'
+import type { GetServerSettings } from '../../../application/operations/get-server-settings.ts'
+import type { UpdatePlaybackSettings } from '../../../application/operations/update-playback-settings.ts'
+import type { UpdateServerSettings } from '../../../application/operations/update-server-settings.ts'
 import type { GetSegmentSettings } from '../../../application/segments/get-segment-settings.ts'
 import type { SegmentSettingsView } from '../../../application/segments/shared/segment-settings-view.ts'
 import type { UpdateSegmentSettings } from '../../../application/segments/update-segment-settings.ts'
@@ -20,8 +20,8 @@ import { validate } from '../validation.ts'
 export type AdminSettingsSections = {
   metadata: { get: GetMetadataSettings; update: UpdateMetadataSettings }
   segments: { get: GetSegmentSettings; update: UpdateSegmentSettings }
-  playback: PlaybackSettingsAdmin
-  server: ServerSettingsAdmin
+  playback: { get: GetPlaybackSettings; update: UpdatePlaybackSettings }
+  server: { get: GetServerSettings; update: UpdateServerSettings }
 }
 
 const toMetadataDto = (metadata: MetadataSettingsView): AdminSettingsDto['metadata'] => ({

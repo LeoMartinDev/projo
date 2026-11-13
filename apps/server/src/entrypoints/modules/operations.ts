@@ -2,23 +2,25 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
-import { jobsAdminFactory } from '../../application/operations/jobs-admin.ts'
-import {
-  checkDiskSpaceFactory,
-  exportDatabaseFactory,
-  missingSourcesAdminFactory,
-  purgeExpiredMissingFactory,
-  purgeOldHistoryFactory,
-  purgeOldJobsFactory,
-  remindNeedsReviewFactory,
-} from '../../application/operations/maintenance.ts'
-import { notificationsAdminFactory } from '../../application/operations/notifications-admin.ts'
-import {
-  playbackSettingsAdminFactory,
-  serverSettingsAdminFactory,
-} from '../../application/operations/settings-admin.ts'
-import { getAdminStatsFactory } from '../../application/operations/stats.ts'
-import { measureStorageFactory } from '../../application/operations/storage.ts'
+import { cancelJobFactory } from '../../application/operations/cancel-job.ts'
+import { checkDiskSpaceFactory } from '../../application/operations/check-disk-space.ts'
+import { exportDatabaseFactory } from '../../application/operations/export-database.ts'
+import { getAdminStatsFactory } from '../../application/operations/get-admin-stats.ts'
+import { getPlaybackSettingsFactory } from '../../application/operations/get-playback-settings.ts'
+import { getServerSettingsFactory } from '../../application/operations/get-server-settings.ts'
+import { listJobsFactory } from '../../application/operations/list-jobs.ts'
+import { listNotificationsFactory } from '../../application/operations/list-notifications.ts'
+import { markNotificationReadFactory } from '../../application/operations/mark-notification-read.ts'
+import { measureStorageFactory } from '../../application/operations/measure-storage.ts'
+import { purgeAllMissingSourcesFactory } from '../../application/operations/purge-all-missing-sources.ts'
+import { purgeExpiredMissingFactory } from '../../application/operations/purge-expired-missing.ts'
+import { purgeMissingSourceFactory } from '../../application/operations/purge-missing-source.ts'
+import { purgeOldHistoryFactory } from '../../application/operations/purge-old-history.ts'
+import { purgeOldJobsFactory } from '../../application/operations/purge-old-jobs.ts'
+import { remindNeedsReviewFactory } from '../../application/operations/remind-needs-review.ts'
+import { retryJobFactory } from '../../application/operations/retry-job.ts'
+import { updatePlaybackSettingsFactory } from '../../application/operations/update-playback-settings.ts'
+import { updateServerSettingsFactory } from '../../application/operations/update-server-settings.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
@@ -54,19 +56,30 @@ const hour = 60 * minute
 const day = 24 * 60 * minute
 
 /** The "Playback" and "Server" sections of the admin settings (§15), served by `settings`. */
-const buildOperationsSettings = ({ db, config, clock }: Platform, logger: Logger) => ({
-  playback: playbackSettingsAdminFactory({
-    reader: createSqlitePlaybackSettings({ db }),
-    writer: createSqlitePlaybackSettingsWriter({ db }),
-    clock,
-    logger,
-  }),
-  server: serverSettingsAdminFactory({
-    store: createSqliteServerNameStore({ db }),
-    environment: { port: config.port, trustProxy: config.trustProxy, dataDir: config.dataDir },
-    clock,
-  }),
-})
+const buildOperationsSettings = ({ db, config, clock }: Platform, logger: Logger) => {
+  const reader = createSqlitePlaybackSettings({ db })
+  const store = createSqliteServerNameStore({ db })
+  const environment = {
+    port: config.port,
+    trustProxy: config.trustProxy,
+    dataDir: config.dataDir,
+  }
+  return {
+    playback: {
+      get: getPlaybackSettingsFactory({ reader }),
+      update: updatePlaybackSettingsFactory({
+        reader,
+        writer: createSqlitePlaybackSettingsWriter({ db }),
+        clock,
+        logger,
+      }),
+    },
+    server: {
+      get: getServerSettingsFactory({ store, environment }),
+      update: updateServerSettingsFactory({ store, environment, clock }),
+    },
+  }
+}
 
 export type OperationsModuleDeps = {
   playbackSessions: PlaybackSessionTerminator
@@ -93,6 +106,7 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
   const notificationRepository = createSqliteNotificationRepository({ db })
   const jobAdminRepository = createSqliteJobAdminRepository({ db })
   const statsQueries = createSqliteStatsQueries({ db })
+  const labels = createSqliteJobTargetLabels({ db })
   const measureStorage = measureStorageFactory({ diskUsage, paths, clock })
   const missingDeps = {
     missingSources: createSqliteMissingSourceRepository({ db }),
@@ -154,18 +168,21 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
       settings: buildOperationsSettings(platform, log),
       routes: {
         jobs: adminJobsRoutes({
-          jobs: jobsAdminFactory({
+          listJobs: listJobsFactory({ jobAdminRepository, labels }),
+          retryJob: retryJobFactory({
             jobAdminRepository,
             jobRepository,
-            labels: createSqliteJobTargetLabels({ db }),
+            labels,
             jobControl,
             clock,
             eventBus,
             logger: log,
           }),
+          cancelJob: cancelJobFactory({ jobRepository, labels, jobControl, logger: log }),
         }),
         notifications: adminNotificationsRoutes({
-          notifications: notificationsAdminFactory({ notificationRepository, clock }),
+          listNotifications: listNotificationsFactory({ notificationRepository }),
+          markNotificationRead: markNotificationReadFactory({ notificationRepository, clock }),
         }),
         system: adminSystemRoutes({
           getStats: getAdminStatsFactory({
@@ -185,7 +202,8 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
           }),
         }),
         missingSources: adminMissingSourcesRoutes({
-          missing: missingSourcesAdminFactory(missingDeps),
+          purgeMissingSource: purgeMissingSourceFactory(missingDeps),
+          purgeAllMissingSources: purgeAllMissingSourcesFactory(missingDeps),
         }),
       },
     },

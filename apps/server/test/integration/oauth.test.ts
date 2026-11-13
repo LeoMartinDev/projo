@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, setDefaultTimeout, test } from 'bun:test'
 import { Hono } from 'hono'
 
-import type { AuthorizationRequest } from '../../src/application/auth/oauth.ts'
+import type { AuthorizationRequest } from '../../src/application/auth/shared/oauth-request.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { buildAssistantsModule } from '../../src/entrypoints/modules/assistants.ts'
 import { createClientMetadataFetcher } from '../../src/infrastructure/oauth/client-metadata-fetcher.ts'
@@ -84,7 +84,7 @@ const requestFor = (
 })
 
 const allow = async (request: AuthorizationRequest) => {
-  const decided = await assistants.oauth.decide({
+  const decided = await assistants.decideOAuthConsent({
     request,
     decision: 'allow',
     mcpUrl,
@@ -137,7 +137,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
   test('registration, consent, code, tokens, /mcp, refresh rotation and reuse detection', async () => {
     const client = await register()
     const redirectUri = client.redirect_uris[0] ?? ''
-    const consent = await assistants.oauth.consent({
+    const consent = await assistants.getOAuthConsent({
       request: requestFor(client.client_id, redirectUri),
       mcpUrl,
       accountId: viewer.accountId,
@@ -184,7 +184,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     const first = (await exchanged.json()) as Tokens
     expect(first).toMatchObject({ expires_in: 3600, scope: 'review offline_access' })
     expect((await ping(first.access_token)).status).toBe(200)
-    expect(assistants.assistantTokens.list({ accountId: viewer.accountId })).toMatchObject([
+    expect(assistants.listAssistantTokens({ accountId: viewer.accountId })).toMatchObject([
       { kind: 'oauth', name: 'ChatGPT' },
     ])
 
@@ -203,7 +203,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     })
     expect(await replayed.json()).toMatchObject({ error: 'invalid_grant' })
     expect((await ping(second.access_token)).status).toBe(401)
-    expect(assistants.assistantTokens.list({ accountId: viewer.accountId })).toEqual([])
+    expect(assistants.listAssistantTokens({ accountId: viewer.accountId })).toEqual([])
   })
 
   test('an access token expires after an hour; the admin revokes a connection', async () => {
@@ -228,8 +228,8 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
       await token({ grant_type: 'refresh_token', refresh_token: tokens.refresh_token })
     ).json()) as Tokens
     expect((await ping(refreshed.access_token)).status).toBe(200)
-    const [assistant] = assistants.assistantTokens.list({ accountId: viewer.accountId })
-    assistants.assistantTokens.revoke({ id: assistant?.id ?? '', accountId: viewer.accountId })
+    const [assistant] = assistants.listAssistantTokens({ accountId: viewer.accountId })
+    assistants.revokeAssistantToken({ id: assistant?.id ?? '', accountId: viewer.accountId })
     expect((await ping(refreshed.access_token)).status).toBe(401)
     const afterRevoke = await token({
       grant_type: 'refresh_token',
@@ -242,7 +242,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     const client = await register()
     const redirectUri = client.redirect_uris[0] ?? ''
     const consent = (request: AuthorizationRequest) =>
-      assistants.oauth.consent({
+      assistants.getOAuthConsent({
         request,
         mcpUrl,
         accountId: viewer.accountId,
@@ -263,7 +263,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
       await consent(requestFor(client.client_id, redirectUri, { resource: 'https://other/mcp' })),
     ).toMatchObject({ ok: false, error: { code: 'oauth/invalid_request' } })
 
-    const denied = await assistants.oauth.decide({
+    const denied = await assistants.decideOAuthConsent({
       request: requestFor(client.client_id, redirectUri),
       decision: 'deny',
       mcpUrl,
@@ -286,14 +286,14 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     const redirectUri = client.redirect_uris[0] ?? ''
     const kid = insertProfile(world.db, viewer.accountId, 'kid')
     world.db.$client.query("UPDATE profiles SET max_content_rating = '10' WHERE id = 'kid'").run()
-    const asKid = await assistants.oauth.consent({
+    const asKid = await assistants.getOAuthConsent({
       request: requestFor(client.client_id, redirectUri),
       mcpUrl,
       accountId: viewer.accountId,
       profileId: kid,
     })
     expect(asKid).toMatchObject({ ok: true, value: { canAuthorize: false } })
-    const allowed = await assistants.oauth.decide({
+    const allowed = await assistants.decideOAuthConsent({
       request: requestFor(client.client_id, redirectUri),
       decision: 'allow',
       mcpUrl,
@@ -306,7 +306,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
   test('a Client ID Metadata Document: read, its loopback redirect matched without the port', async () => {
     const clientId = `http://127.0.0.1:${documents.port}/claude-code.json`
     const loopback = 'http://localhost:53682/callback'
-    const consent = await assistants.oauth.consent({
+    const consent = await assistants.getOAuthConsent({
       request: requestFor(clientId, loopback),
       mcpUrl,
       accountId: viewer.accountId,
@@ -327,7 +327,7 @@ describe('OAuth 2.1 of the MCP server (§27.3)', () => {
     expect(exchanged.status).toBe(200)
 
     documentBody = () => ({ client_id: 'https://someone.else/doc.json', redirect_uris: [] })
-    const mismatched = await assistants.oauth.consent({
+    const mismatched = await assistants.getOAuthConsent({
       request: requestFor(`http://127.0.0.1:${documents.port}/other.json`, loopback),
       mcpUrl,
       accountId: viewer.accountId,

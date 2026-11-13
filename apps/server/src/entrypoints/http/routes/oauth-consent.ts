@@ -9,7 +9,9 @@ import {
   oauthDecisionBodySchema,
 } from '@projo/shared/api/oauth'
 
-import type { AuthorizationRequest, OAuth } from '../../../application/auth/oauth.ts'
+import type { DecideOAuthConsent } from '../../../application/auth/decide-oauth-consent.ts'
+import type { GetOAuthConsent } from '../../../application/auth/get-oauth-consent.ts'
+import type { AuthorizationRequest } from '../../../application/auth/shared/oauth-request.ts'
 import { clientInfo } from '../client-info.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -27,12 +29,20 @@ const toRequest = (query: OAuthAuthorizeQuery): AuthorizationRequest => ({
   ...(query.resource === undefined ? {} : { resource: query.resource }),
 })
 
-export const oauthConsentRoutes = ({ oauth, trustProxy }: { oauth: OAuth; trustProxy: boolean }) =>
+export const oauthConsentRoutes = ({
+  getOAuthConsent,
+  decideOAuthConsent,
+  trustProxy,
+}: {
+  getOAuthConsent: GetOAuthConsent
+  decideOAuthConsent: DecideOAuthConsent
+  trustProxy: boolean
+}) =>
   new Hono<AppEnv>()
     .get('/oauth/authorize', validate('query', oauthAuthorizeQuerySchema), async (c) => {
       const { account } = currentPrincipal(c)
       const { origin } = clientInfo(c, { trustProxy })
-      const consent = await oauth.consent({
+      const consent = await getOAuthConsent({
         request: toRequest(c.req.valid('query')),
         mcpUrl: `${origin}${mcpPath}`,
         accountId: account.id,
@@ -46,7 +56,7 @@ export const oauthConsentRoutes = ({ oauth, trustProxy }: { oauth: OAuth; trustP
       const { account } = currentPrincipal(c)
       const { origin } = clientInfo(c, { trustProxy })
       const { decision, ...query } = c.req.valid('json')
-      const decided = await oauth.decide({
+      const decided = await decideOAuthConsent({
         request: toRequest(query),
         decision,
         mcpUrl: `${origin}${mcpPath}`,

@@ -1,7 +1,6 @@
-import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import { type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
-import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import { isNewerVersion, satisfiesMinimum } from '../../core/updates/semver.ts'
@@ -13,32 +12,8 @@ import {
   type UpdateCheckStore,
   type UpdateStateHolder,
 } from '../../core/updates/update.ts'
-import { isUpdateBusy } from './state.ts'
-import type { RequestUpdateCheck } from './types.ts'
-
-export const disabledError = () =>
-  appError('update/disabled', 'the updater is disabled (development, or no supervisor)')
-
-export const CHECK_UPDATES_DEDUPE_KEY = 'check_updates'
-
-export const requestUpdateCheckFactory =
-  ({
-    jobQueue,
-    processControl,
-  }: {
-    jobQueue: JobQueue
-    processControl: ProcessControl
-  }): RequestUpdateCheck =>
-  () =>
-    processControl.enabled
-      ? ok(
-          jobQueue.enqueue({
-            type: 'check_updates',
-            payload: {},
-            dedupeKey: CHECK_UPDATES_DEDUPE_KEY,
-          }).job,
-        )
-      : err(disabledError())
+import { disabledError } from './shared/update-guards.ts'
+import { isUpdateBusy } from './update-state-holder.ts'
 
 type Deps = {
   releaseSource: ReleaseSource
@@ -125,3 +100,5 @@ export const checkUpdatesFactory =
     })
     return ok(record)
   }
+
+export type CheckUpdates = ReturnType<typeof checkUpdatesFactory>

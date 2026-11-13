@@ -10,7 +10,13 @@ import {
 } from '@projo/shared/api/profiles'
 
 import type { GetMe } from '../../../application/auth/get-me.ts'
-import type { ProfileActor, Profiles } from '../../../application/profile/profiles.ts'
+import type { CreateProfile } from '../../../application/profile/create-profile.ts'
+import type { DeleteProfile } from '../../../application/profile/delete-profile.ts'
+import type { ListProfiles } from '../../../application/profile/list-profiles.ts'
+import type { SelectProfile } from '../../../application/profile/select-profile.ts'
+import type { ProfileActor } from '../../../application/profile/shared/profile-actor.ts'
+import type { UpdateProfile } from '../../../application/profile/update-profile.ts'
+import type { VerifyProfilePin } from '../../../application/profile/verify-profile-pin.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { currentPrincipal } from '../principal.ts'
@@ -19,7 +25,12 @@ import { validate } from '../validation.ts'
 import { respondErrorWithRetry, toMeResponse, toProfileDto } from './auth.ts'
 
 type Deps = {
-  profiles: Profiles
+  listProfiles: ListProfiles
+  createProfile: CreateProfile
+  updateProfile: UpdateProfile
+  deleteProfile: DeleteProfile
+  verifyProfilePin: VerifyProfilePin
+  selectProfile: SelectProfile
   getMe: GetMe
 }
 
@@ -34,23 +45,31 @@ const actorOf = (c: Context<AppEnv>): ProfileActor => {
   }
 }
 
-export const profilesRoutes = ({ profiles, getMe }: Deps) =>
+export const profilesRoutes = ({
+  listProfiles,
+  createProfile,
+  updateProfile,
+  deleteProfile,
+  verifyProfilePin,
+  selectProfile,
+  getMe,
+}: Deps) =>
   new Hono<AppEnv>()
     .get('/profiles', (c) => {
       const { account } = currentPrincipal(c)
       return c.json(
         {
-          items: profiles.list({ accountId: account.id }).map(toProfileDto),
+          items: listProfiles({ accountId: account.id }).map(toProfileDto),
         } satisfies ProfilesResponse,
         200,
       )
     })
     .post('/profiles', validate('json', createProfileBodySchema), async (c) => {
-      const result = await profiles.create({ actor: actorOf(c), input: c.req.valid('json') })
+      const result = await createProfile({ actor: actorOf(c), input: c.req.valid('json') })
       return result.ok ? c.json(toProfileDto(result.value), 201) : respondError(c, result.error)
     })
     .patch('/profiles/:id', validate('json', updateProfileBodySchema), async (c) => {
-      const result = await profiles.update({
+      const result = await updateProfile({
         actor: actorOf(c),
         profileId: c.req.param('id'),
         input: c.req.valid('json'),
@@ -61,7 +80,7 @@ export const profilesRoutes = ({ profiles, getMe }: Deps) =>
     })
     .delete('/profiles/:id', validate('json', deleteProfileBodySchema), async (c) => {
       const { currentPin } = c.req.valid('json')
-      const result = await profiles.delete({
+      const result = await deleteProfile({
         actor: actorOf(c),
         profileId: c.req.param('id'),
         ...(currentPin === undefined ? {} : { currentPin }),
@@ -69,7 +88,7 @@ export const profilesRoutes = ({ profiles, getMe }: Deps) =>
       return result.ok ? noContent(c) : respondErrorWithRetry(c, result.error)
     })
     .post('/profiles/:id/verify-pin', validate('json', verifyPinBodySchema), async (c) => {
-      const result = await profiles.verifyPin({
+      const result = await verifyProfilePin({
         actor: actorOf(c),
         profileId: c.req.param('id'),
         pin: c.req.valid('json').pin,
@@ -79,7 +98,7 @@ export const profilesRoutes = ({ profiles, getMe }: Deps) =>
     .post('/profiles/:id/select', validate('json', selectProfileBodySchema), async (c) => {
       const actor = actorOf(c)
       const { pin } = c.req.valid('json')
-      const result = await profiles.select({
+      const result = await selectProfile({
         actor,
         profileId: c.req.param('id'),
         ...(pin === undefined ? {} : { pin }),

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { streamSSE } from 'hono/streaming'
 
-import type { CurrentEventSubscriber } from '../../../application/auth/event-subscriber.ts'
+import type { ResolveEventSubscriber } from '../../../application/auth/resolve-event-subscriber.ts'
 import { canReceiveEvent } from '../../../core/auth/event-audience.ts'
 import type { EventBus } from '../../../core/events.ts'
 import type { AppEnv } from '../context.ts'
@@ -11,7 +11,7 @@ export const defaultKeepAliveMs = 25_000
 
 type Deps = {
   eventBus: EventBus
-  currentSubscriber: CurrentEventSubscriber
+  currentSubscriber: ResolveEventSubscriber
   openStreams: Set<() => void>
   keepAliveMs?: number
 }

@@ -6,11 +6,10 @@ import {
   setLibraryProfilesBodySchema,
 } from '@projo/shared/api/accounts'
 
-import type {
-  LibraryAccess,
-  LibraryProfileAccess,
-} from '../../../application/profile/library-access.ts'
-import type { Profiles } from '../../../application/profile/profiles.ts'
+import type { CreateAccountProfile } from '../../../application/profile/create-account-profile.ts'
+import type { ListLibraryAccess } from '../../../application/profile/list-library-access.ts'
+import type { SetLibraryAccess } from '../../../application/profile/set-library-access.ts'
+import type { LibraryProfileAccess } from '../../../application/profile/shared/library-profile-access.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'
@@ -29,26 +28,28 @@ const toAccessResponse = (items: LibraryProfileAccess[]): LibraryProfileAccessRe
 })
 
 export const adminProfilesRoutes = ({
-  profiles,
-  libraryAccess,
+  createAccountProfile,
+  listLibraryAccess,
+  setLibraryAccess,
 }: {
-  profiles: Profiles
-  libraryAccess: LibraryAccess
+  createAccountProfile: CreateAccountProfile
+  listLibraryAccess: ListLibraryAccess
+  setLibraryAccess: SetLibraryAccess
 }) =>
   new Hono<AppEnv>()
     .post('/accounts/:id/profiles', validate('json', createAccountProfileBodySchema), async (c) => {
-      const result = await profiles.createForAccount({
+      const result = await createAccountProfile({
         accountId: c.req.param('id'),
         input: c.req.valid('json'),
       })
       return result.ok ? c.json(toProfileDto(result.value), 201) : respondError(c, result.error)
     })
     .get('/libraries/:id/profiles', (c) => {
-      const result = libraryAccess.list({ libraryId: c.req.param('id') })
+      const result = listLibraryAccess({ libraryId: c.req.param('id') })
       return result.ok ? c.json(toAccessResponse(result.value), 200) : respondError(c, result.error)
     })
     .put('/libraries/:id/profiles', validate('json', setLibraryProfilesBodySchema), (c) => {
-      const result = libraryAccess.set({
+      const result = setLibraryAccess({
         libraryId: c.req.param('id'),
         profileIds: c.req.valid('json').profileIds,
       })

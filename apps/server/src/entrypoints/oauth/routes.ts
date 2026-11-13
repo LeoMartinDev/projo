@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { fromPromise } from '@projo/shared'
 import { mcpPath } from '@projo/shared/api/assistants'
 
-import type { OAuth } from '../../application/auth/oauth.ts'
+import type { ExchangeOAuthToken } from '../../application/auth/exchange-oauth-token.ts'
+import type { RegisterOAuthClient } from '../../application/auth/register-oauth-client.ts'
 import type { RateLimiter } from '../../core/auth/ports.ts'
 import { oauthScopes } from '../../core/auth/oauth.ts'
 import { clientInfo } from '../http/client-info.ts'
@@ -47,12 +48,14 @@ const errorStrings = {
 } as const
 
 export const oauthRoutes = ({
-  oauth,
+  registerOAuthClient,
+  exchangeOAuthToken,
   registrationLimiter,
   tokenFailureLimiter,
   trustProxy,
 }: {
-  oauth: OAuth
+  registerOAuthClient: RegisterOAuthClient
+  exchangeOAuthToken: ExchangeOAuthToken
   registrationLimiter: RateLimiter
   tokenFailureLimiter: RateLimiter
   trustProxy: boolean
@@ -106,7 +109,7 @@ export const oauthRoutes = ({
       )
       const body = registerBodySchema.safeParse(json.ok ? json.value : undefined)
       if (!body.success) return oauthError(c, 'invalid_client_metadata', 'invalid metadata', 400)
-      const client = oauth.register({
+      const client = registerOAuthClient({
         redirectUris: body.data.redirect_uris,
         ...(body.data.client_name === undefined ? {} : { clientName: body.data.client_name }),
       })
@@ -147,7 +150,7 @@ export const oauthRoutes = ({
           : oauthError(c, 'invalid_request', 'invalid token request', 400)
       }
       const data = parsed.data
-      const result = await oauth.token(
+      const result = await exchangeOAuthToken(
         data.grant_type === 'authorization_code'
           ? {
               grantType: 'authorization_code',

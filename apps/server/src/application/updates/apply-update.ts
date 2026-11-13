@@ -2,7 +2,6 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { Clock } from '../../core/clock.ts'
 import type { IdGenerator } from '../../core/ids.ts'
-import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import { isNewerVersion, satisfiesMinimum } from '../../core/updates/semver.ts'
@@ -12,63 +11,11 @@ import type {
   ReleaseInstaller,
   UpdateCheckStore,
   UpdateRepository,
-  UpdateRun,
   UpdateStateHolder,
 } from '../../core/updates/update.ts'
-import { disabledError } from './check-updates.ts'
-import { isUpdateBusy } from './state.ts'
-import type { RequestRollback, RequestUpdate } from './types.ts'
+import { alreadyCurrent, disabledError, runtimeTooOld } from './shared/update-guards.ts'
 
-export const APPLY_UPDATE_DEDUPE_KEY = 'apply_update'
-
-const isBusy = (state: UpdateStateHolder, repository: UpdateRepository): boolean =>
-  isUpdateBusy(state.current().state) || repository.pendingRun() !== undefined
-
-const inProgress = () => appError('update/in_progress', 'an update is already in progress')
-const alreadyCurrent = (version: string) =>
-  appError('update/already_current', 'this version is already running', { context: { version } })
-const runtimeTooOld = (version: string, runtimeMin: string, runtimeVersion: string) =>
-  appError('update/runtime_too_old', 'this version needs a newer runtime image', {
-    context: { version, runtimeMin, runtimeVersion },
-  })
-
-export const requestUpdateFactory =
-  ({
-    jobQueue,
-    checkStore,
-    repository,
-    state,
-    processControl,
-  }: {
-    jobQueue: JobQueue
-    checkStore: UpdateCheckStore
-    repository: UpdateRepository
-    state: UpdateStateHolder
-    processControl: ProcessControl
-  }): RequestUpdate =>
-  ({ version }) => {
-    const { enabled, appVersion, runtimeVersion } = processControl
-    if (!enabled) return err(disabledError())
-    if (version === appVersion) return err(alreadyCurrent(version))
-    const latest = checkStore.read()?.latest
-    if (latest === undefined || latest.version !== version || !isNewerVersion(version, appVersion))
-      return err(
-        appError('update/not_found', 'this version is not the available release', {
-          context: { version },
-        }),
-      )
-    if (!satisfiesMinimum(runtimeVersion, latest.runtimeMin))
-      return err(runtimeTooOld(version, latest.runtimeMin, runtimeVersion))
-    if (isBusy(state, repository)) return err(inProgress())
-    const { job, deduplicated } = jobQueue.enqueue({
-      type: 'apply_update',
-      payload: { version },
-      dedupeKey: APPLY_UPDATE_DEDUPE_KEY,
-    })
-    return deduplicated ? err(inProgress()) : ok(job)
-  }
-
-type ApplyDeps = {
+type Deps = {
   installer: ReleaseInstaller
   repository: UpdateRepository
   checkStore: UpdateCheckStore
@@ -101,7 +48,7 @@ export const applyUpdateFactory =
     clock,
     ids,
     logger,
-  }: ApplyDeps) =>
+  }: Deps) =>
   async ({
     version,
     signal,
@@ -184,52 +131,4 @@ export const applyUpdateFactory =
     return ok(undefined)
   }
 
-export const requestRollbackFactory =
-  ({
-    installer,
-    repository,
-    state,
-    processControl,
-    clock,
-    ids,
-    logger,
-  }: Omit<ApplyDeps, 'checkStore' | 'notifier'>): RequestRollback =>
-  async ({ version }) => {
-    const { enabled, appVersion, runtimeVersion } = processControl
-    if (!enabled) return err(disabledError())
-    if (version === appVersion) return err(alreadyCurrent(version))
-    if (isBusy(state, repository)) return err(inProgress())
-    const target = (await installer.installed()).find((entry) => entry.version === version)
-    if (target === undefined)
-      return err(
-        appError('update/not_found', 'this version is not installed on the disk', {
-          context: { version },
-        }),
-      )
-    if (!satisfiesMinimum(runtimeVersion, target.manifest.runtimeMin))
-      return err(runtimeTooOld(version, target.manifest.runtimeMin, runtimeVersion))
-
-    const run: UpdateRun = repository.startRun({
-      id: ids.next(),
-      kind: 'rollback',
-      fromVersion: appVersion,
-      toVersion: version,
-      requestedAt: clock.now(),
-    })
-    state.set({ state: 'applying', version })
-    const pending = await installer.writePending(version)
-    if (!pending.ok) {
-      repository.finishRun({
-        id: run.id,
-        outcome: 'failed',
-        finishedAt: clock.now(),
-        error: { code: pending.error.code, message: pending.error.message },
-      })
-      state.set({ state: 'failed', version })
-      return err(pending.error)
-    }
-    state.set({ state: 'restarting', version })
-    logger.info('restarting for a rollback', { from: appVersion, to: version, runId: run.id })
-    processControl.exitForSwitch()
-    return ok({ version })
-  }
+export type ApplyUpdate = ReturnType<typeof applyUpdateFactory>

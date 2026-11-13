@@ -2,7 +2,10 @@ import { Hono } from 'hono'
 
 import { type AdminJobDto, type AdminJobsPage, adminJobsQuerySchema } from '@projo/shared/api/jobs'
 
-import type { JobsAdmin, JobView } from '../../../application/operations/types.ts'
+import type { CancelJob } from '../../../application/operations/cancel-job.ts'
+import type { ListJobs } from '../../../application/operations/list-jobs.ts'
+import type { RetryJob } from '../../../application/operations/retry-job.ts'
+import type { JobView } from '../../../application/operations/shared/job-view.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'
@@ -31,11 +34,19 @@ export const toAdminJobDto = (job: JobView): AdminJobDto => ({
       }),
 })
 
-export const adminJobsRoutes = ({ jobs }: { jobs: JobsAdmin }) =>
+export const adminJobsRoutes = ({
+  listJobs,
+  retryJob,
+  cancelJob,
+}: {
+  listJobs: ListJobs
+  retryJob: RetryJob
+  cancelJob: CancelJob
+}) =>
   new Hono<AppEnv>()
     .get('/jobs', validate('query', adminJobsQuerySchema), (c) => {
       const { state, type, cursor, limit } = c.req.valid('query')
-      const page = jobs.list({
+      const page = listJobs({
         limit,
         ...(state === undefined ? {} : { state }),
         ...(type === undefined ? {} : { type }),
@@ -48,11 +59,11 @@ export const adminJobsRoutes = ({ jobs }: { jobs: JobsAdmin }) =>
       return c.json(body, 200)
     })
     .post('/jobs/:id/retry', (c) => {
-      const result = jobs.retry({ id: c.req.param('id') })
+      const result = retryJob({ id: c.req.param('id') })
       return result.ok ? c.json(toAdminJobDto(result.value), 200) : respondError(c, result.error)
     })
     .post('/jobs/:id/cancel', (c) => {
-      const result = jobs.cancel({ id: c.req.param('id') })
+      const result = cancelJob({ id: c.req.param('id') })
       return result.ok ? c.json(toAdminJobDto(result.value), 200) : respondError(c, result.error)
     })
 

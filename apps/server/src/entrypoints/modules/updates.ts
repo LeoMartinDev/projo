@@ -2,19 +2,17 @@ import { z } from 'zod'
 
 import { map } from '@projo/shared'
 
-import {
-  applyUpdateFactory,
-  requestRollbackFactory,
-  requestUpdateFactory,
-} from '../../application/updates/apply-update.ts'
+import { applyUpdateFactory } from '../../application/updates/apply-update.ts'
+import { checkUpdatesFactory } from '../../application/updates/check-updates.ts'
+import { getUpdatesStatusFactory } from '../../application/updates/get-updates-status.ts'
+import { reconcileAfterSwitchFactory } from '../../application/updates/reconcile-after-switch.ts'
+import { requestRollbackFactory } from '../../application/updates/request-rollback.ts'
+import { requestUpdateFactory } from '../../application/updates/request-update.ts'
 import {
   CHECK_UPDATES_DEDUPE_KEY,
-  checkUpdatesFactory,
   requestUpdateCheckFactory,
-} from '../../application/updates/check-updates.ts'
-import { reconcileAfterSwitchFactory } from '../../application/updates/reconcile.ts'
-import { createUpdateStateHolder } from '../../application/updates/state.ts'
-import { getUpdatesStatusFactory } from '../../application/updates/status.ts'
+} from '../../application/updates/request-update-check.ts'
+import { createUpdateStateHolder } from '../../application/updates/update-state-holder.ts'
 import type { ProcessControl } from '../../core/updates/update.ts'
 import { createSqliteUpdateCheckStore } from '../../infrastructure/sqlite/update-check-store.ts'
 import { createSqliteUpdateRepository } from '../../infrastructure/sqlite/update-repository.ts'

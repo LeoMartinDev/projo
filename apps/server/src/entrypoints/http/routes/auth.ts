@@ -18,11 +18,13 @@ import {
 } from '@projo/shared/api/auth'
 
 import type { ChangePassword } from '../../../application/auth/change-password.ts'
+import type { ClaimPairing } from '../../../application/auth/claim-pairing.ts'
+import type { CreatePairing } from '../../../application/auth/create-pairing.ts'
 import type { GetMe, Me } from '../../../application/auth/get-me.ts'
+import type { ListSessions } from '../../../application/auth/list-sessions.ts'
 import type { Login } from '../../../application/auth/login.ts'
 import type { OpenSession } from '../../../application/auth/open-session.ts'
-import type { Pairings } from '../../../application/auth/pairings.ts'
-import type { ListSessions, RevokeSession } from '../../../application/auth/sessions.ts'
+import type { RevokeSession } from '../../../application/auth/revoke-session.ts'
 import type { Session } from '../../../core/auth/session.ts'
 import type { Clock } from '../../../core/clock.ts'
 import type { Profile } from '../../../core/profile/profile.ts'
@@ -89,7 +91,8 @@ type Deps = {
   openSession: OpenSession
   listSessions: ListSessions
   revokeSession: RevokeSession
-  pairings: Pairings
+  createPairing: CreatePairing
+  claimPairing: ClaimPairing
   requireAccountActions: MiddlewareHandler<AppEnv>
   clock: Clock
   trustProxy: boolean
@@ -102,7 +105,8 @@ export const authRoutes = ({
   openSession,
   listSessions,
   revokeSession,
-  pairings,
+  createPairing,
+  claimPairing,
   requireAccountActions,
   clock,
   trustProxy,
@@ -172,7 +176,7 @@ export const authRoutes = ({
     })
     .post('/auth/pairings', requireAccountActions, (c) => {
       const { account, session } = currentPrincipal(c)
-      const result = pairings.create({ accountId: account.id, sessionId: session.id })
+      const result = createPairing({ accountId: account.id, sessionId: session.id })
       if (!result.ok) return respondError(c, result.error)
       const { pairing, code } = result.value
       return c.json(
@@ -186,7 +190,7 @@ export const authRoutes = ({
     })
     .post('/auth/pairings/claim', validate('json', claimPairingBodySchema), (c) => {
       const { code, deviceName } = c.req.valid('json')
-      const result = pairings.claim({
+      const result = claimPairing({
         code,
         deviceName,
         ip: clientInfo(c, { trustProxy }).ip,

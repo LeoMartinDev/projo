@@ -2,14 +2,14 @@ import { Hono } from 'hono'
 
 import type { AdminStatsDto, DbExportResponse, StorageDto } from '@projo/shared/api/system'
 
-import type {
-  AdminStats,
-  ExportDatabase,
-  GetAdminStats,
-  GetStorage,
-} from '../../../application/operations/types.ts'
+import type { ExportDatabase } from '../../../application/operations/export-database.ts'
+import type { AdminStats, GetAdminStats } from '../../../application/operations/get-admin-stats.ts'
+import type { StorageUsage } from '../../../core/stats/stats.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
+
+/** The measure of the storage, with the data directory it covers. */
+type GetStorage = () => Promise<StorageUsage & { dataDir: string }>
 
 const toDto = (stats: AdminStats): AdminStatsDto => ({
   counts: stats.counts,

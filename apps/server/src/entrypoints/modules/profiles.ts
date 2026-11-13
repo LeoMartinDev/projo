@@ -1,6 +1,13 @@
-import { libraryAccessFactory } from '../../application/profile/library-access.ts'
-import { checkPinFactory } from '../../application/profile/pin.ts'
-import { profilesFactory } from '../../application/profile/profiles.ts'
+import { checkPinFactory } from '../../application/profile/check-pin.ts'
+import { createAccountProfileFactory } from '../../application/profile/create-account-profile.ts'
+import { createProfileFactory } from '../../application/profile/create-profile.ts'
+import { deleteProfileFactory } from '../../application/profile/delete-profile.ts'
+import { listLibraryAccessFactory } from '../../application/profile/list-library-access.ts'
+import { listProfilesFactory } from '../../application/profile/list-profiles.ts'
+import { selectProfileFactory } from '../../application/profile/select-profile.ts'
+import { setLibraryAccessFactory } from '../../application/profile/set-library-access.ts'
+import { updateProfileFactory } from '../../application/profile/update-profile.ts'
+import { verifyProfilePinFactory } from '../../application/profile/verify-profile-pin.ts'
 import {
   type VisibilityScopes,
   visibilityScopeFactory,
@@ -41,32 +48,51 @@ export const buildProfilesModule = (
   const { accountRepository, profileRepository, sessionRepository, passwordHasher, getMe } =
     authServices
 
-  const profiles = profilesFactory({
-    profileRepository,
-    sessionRepository,
+  const checkPin = checkPinFactory({
     passwordHasher,
-    checkPin: checkPinFactory({
-      passwordHasher,
-      rateLimiter: createInMemoryRateLimiter({ ...pinRateLimit, clock }),
-      logger,
-    }),
-    playbackSessions,
-    accountRole: (accountId) => accountRepository.findById(accountId)?.role,
-    profileChanged: scopes.invalidate,
-    clock,
-    ids,
+    rateLimiter: createInMemoryRateLimiter({ ...pinRateLimit, clock }),
     logger,
   })
+  const accountRole = (accountId: string) => accountRepository.findById(accountId)?.role
+  const creation = { profileRepository, passwordHasher, clock, ids, logger }
+  const libraryRepository = createSqliteLibraryRepository({ db })
 
   return defineModule({
     exposes: {
-      routes: profilesRoutes({ profiles, getMe }),
+      routes: profilesRoutes({
+        listProfiles: listProfilesFactory({ profileRepository }),
+        createProfile: createProfileFactory(creation),
+        updateProfile: updateProfileFactory({
+          profileRepository,
+          passwordHasher,
+          checkPin,
+          accountRole,
+          profileChanged: scopes.invalidate,
+          logger,
+        }),
+        deleteProfile: deleteProfileFactory({
+          profileRepository,
+          checkPin,
+          playbackSessions,
+          accountRole,
+          profileChanged: scopes.invalidate,
+          logger,
+        }),
+        verifyProfilePin: verifyProfilePinFactory({ profileRepository, checkPin }),
+        selectProfile: selectProfileFactory({ profileRepository, sessionRepository, checkPin }),
+        getMe,
+      }),
       adminRoutes: adminProfilesRoutes({
-        profiles,
-        libraryAccess: libraryAccessFactory({
+        createAccountProfile: createAccountProfileFactory({ ...creation, accountRole }),
+        listLibraryAccess: listLibraryAccessFactory({
           profileRepository,
           accountRepository,
-          libraryRepository: createSqliteLibraryRepository({ db }),
+          libraryRepository,
+        }),
+        setLibraryAccess: setLibraryAccessFactory({
+          profileRepository,
+          accountRepository,
+          libraryRepository,
           profileChanged: scopes.invalidate,
           logger,
         }),

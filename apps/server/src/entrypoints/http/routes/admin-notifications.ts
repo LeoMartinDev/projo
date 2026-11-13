@@ -6,7 +6,8 @@ import {
   notificationsQuerySchema,
 } from '@projo/shared/api/notifications'
 
-import type { NotificationsAdmin } from '../../../application/operations/types.ts'
+import type { ListNotifications } from '../../../application/operations/list-notifications.ts'
+import type { MarkNotificationRead } from '../../../application/operations/mark-notification-read.ts'
 import type { Notification } from '../../../core/notifications/notification.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -26,14 +27,16 @@ export const toNotificationDto = (notification: Notification): NotificationDto =
 })
 
 export const adminNotificationsRoutes = ({
-  notifications,
+  listNotifications,
+  markNotificationRead,
 }: {
-  notifications: NotificationsAdmin
+  listNotifications: ListNotifications
+  markNotificationRead: MarkNotificationRead
 }) =>
   new Hono<AppEnv>()
     .get('/notifications', validate('query', notificationsQuerySchema), (c) => {
       const { status, cursor, limit } = c.req.valid('query')
-      const page = notifications.list({
+      const page = listNotifications({
         limit,
         ...(status === undefined ? {} : { status }),
         ...(cursor === undefined ? {} : { cursor }),
@@ -46,7 +49,7 @@ export const adminNotificationsRoutes = ({
       return c.json(body, 200)
     })
     .post('/notifications/:id/read', (c) => {
-      const result = notifications.markRead({ id: c.req.param('id') })
+      const result = markNotificationRead({ id: c.req.param('id') })
       return result.ok
         ? c.json(toNotificationDto(result.value), 200)
         : respondError(c, result.error)

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test'
 
-import { missingSourcesAdminFactory } from '../../src/application/operations/maintenance.ts'
+import { purgeMissingSourceFactory } from '../../src/application/operations/purge-missing-source.ts'
 import { createSqliteMissingSourceRepository } from '../../src/infrastructure/sqlite/missing-source-repository.ts'
 import { insertItem, insertLibrary, insertSource } from '../support/catalog-fixtures.ts'
 import { silentLogger } from '../support/logger.ts'
@@ -256,17 +256,17 @@ describe('the deciding library losing its files (§9.1, §9.4)', () => {
       `UPDATE sources SET state = 'missing', missing_since = '2026-01-01T00:00:00.000Z'
        WHERE id IN ('inception-file', 'inception-kids')`,
     )
-    const missing = missingSourcesAdminFactory({
+    const purgeMissingSource = purgeMissingSourceFactory({
       missingSources: createSqliteMissingSourceRepository({ db: world.db }),
       playbackSessions: { endWithin: () => {} },
       metadataContext: world.metadata.libraryMetadataContext,
       logger: silentLogger,
     })
-    expect(missing.purge({ sourceId: 'inception-file' }).ok).toBe(true)
+    expect(purgeMissingSource({ sourceId: 'inception-file' }).ok).toBe(true)
     expect(queuedRefreshes()).toEqual([inceptionRefresh])
     await world.runJobs(['refresh_metadata'])
     expect(languageOf('inception')).toBe('en-US')
-    expect(missing.purge({ sourceId: 'inception-kids' }).ok).toBe(true)
+    expect(purgeMissingSource({ sourceId: 'inception-kids' }).ok).toBe(true)
     expect(queuedRefreshes()).toEqual([])
   })
 })

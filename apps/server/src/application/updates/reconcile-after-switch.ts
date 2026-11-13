@@ -1,0 +1,133 @@
+import type { Clock } from '../../core/clock.ts'
+import type { Logger } from '../../core/logger.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
+import { isNewerVersion } from '../../core/updates/semver.ts'
+import type {
+  AppVersion,
+  ProcessControl,
+  ReleaseInstaller,
+  UpdateCheckStore,
+  UpdateRepository,
+  UpdateRun,
+  UpdateStateHolder,
+} from '../../core/updates/update.ts'
+
+type Deps = {
+  installer: ReleaseInstaller
+  repository: UpdateRepository
+  checkStore: UpdateCheckStore
+  notifier: AdminNotifier
+  state: UpdateStateHolder
+  processControl: ProcessControl
+  clock: Clock
+  logger: Logger
+}
+
+export const reconcileAfterSwitchFactory =
+  ({ installer, repository, checkStore, notifier, state, processControl, clock, logger }: Deps) =>
+  async (): Promise<void> => {
+    const now = clock.now()
+    const pending = repository.pendingRun()
+    const { appVersion } = processControl
+    const report = await installer.takeSwitchReport()
+    const installed = await installer.installed()
+    const runtimeMinOf = (version: string): string | undefined =>
+      installed.find((entry) => entry.version === version)?.manifest.runtimeMin ??
+      repository.versions().find((row) => row.version === version)?.runtimeMin
+
+    let run: UpdateRun | undefined
+    if (report !== undefined) {
+      run = pending?.toVersion === report.toVersion ? pending : undefined
+      if (report.outcome === 'switched') {
+        if (run !== undefined)
+          repository.finishRun({ id: run.id, outcome: 'succeeded', finishedAt: report.at })
+        logger.info('version switch succeeded', {
+          from: report.fromVersion,
+          to: report.toVersion,
+        })
+      } else {
+        if (run !== undefined)
+          repository.finishRun({ id: run.id, outcome: 'rolled_back', finishedAt: report.at })
+        const refused = repository.versions().find((row) => row.version === report.toVersion)
+        const runtimeMin = refused?.runtimeMin ?? runtimeMinOf(report.toVersion)
+        if (runtimeMin !== undefined)
+          repository.upsertVersion({
+            version: report.toVersion,
+            state: 'failed',
+            installedAt: refused?.installedAt ?? now,
+            runtimeMin,
+          })
+        notifier.notify({
+          kind: 'update/rolled_back',
+          severity: 'error',
+          key: run?.id ?? `${report.toVersion}@${report.at.toISOString()}`,
+          context: {
+            from: report.fromVersion,
+            to: report.toVersion,
+            ...(report.reason === undefined ? {} : { reason: report.reason }),
+          },
+        })
+        logger.error('version switch rolled back', {
+          code: 'update/rolled_back',
+          from: report.fromVersion,
+          to: report.toVersion,
+          reason: report.reason,
+        })
+      }
+    }
+
+    const stale = run === undefined ? pending : undefined
+    if (stale !== undefined) {
+      const reached = stale.toVersion === appVersion
+      repository.finishRun({
+        id: stale.id,
+        outcome: reached ? 'succeeded' : 'failed',
+        finishedAt: now,
+        ...(reached
+          ? {}
+          : {
+              error: {
+                code: 'update/install_failed',
+                message: 'the server restarted without switching version',
+              },
+            }),
+      })
+    }
+
+    const rows = new Map(repository.versions().map((row) => [row.version, row] as const))
+    for (const row of rows.values()) {
+      if (row.state === 'current' && row.version !== appVersion)
+        repository.setVersionState({ version: row.version, state: 'previous' })
+    }
+    const runtimeMin = runtimeMinOf(appVersion)
+    if (runtimeMin !== undefined)
+      repository.upsertVersion({
+        version: appVersion,
+        state: 'current',
+        installedAt: rows.get(appVersion)?.installedAt ?? now,
+        runtimeMin,
+      })
+    for (const entry of installed) {
+      if (rows.has(entry.version) || entry.version === appVersion) continue
+      const found: AppVersion = {
+        version: entry.version,
+        state: isNewerVersion(entry.version, appVersion) ? 'staged' : 'previous',
+        installedAt: now,
+        runtimeMin: entry.manifest.runtimeMin,
+      }
+      repository.upsertVersion(found)
+    }
+
+    notifier.resolve({ kind: 'update/available', key: appVersion })
+    notifier.resolve({ kind: 'update/runtime_too_old', key: appVersion })
+
+    if (state.current().state !== 'idle') return
+    const latest = checkStore.read()?.latest
+    state.set(
+      latest !== undefined && isNewerVersion(latest.version, appVersion)
+        ? { state: 'available', version: latest.version }
+        : { state: 'idle' },
+    )
+  }
+
+export type ReconcileAfterSwitch = ReturnType<typeof reconcileAfterSwitchFactory>

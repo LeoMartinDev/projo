@@ -10,11 +10,11 @@ import {
 
 import type {
   GetUpdatesStatus,
-  RequestRollback,
-  RequestUpdate,
-  RequestUpdateCheck,
   UpdatesStatus,
-} from '../../../application/updates/types.ts'
+} from '../../../application/updates/get-updates-status.ts'
+import type { RequestRollback } from '../../../application/updates/request-rollback.ts'
+import type { RequestUpdate } from '../../../application/updates/request-update.ts'
+import type { RequestUpdateCheck } from '../../../application/updates/request-update-check.ts'
 import { RUNTIME_PULL_COMMAND } from '../../../core/updates/update.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'

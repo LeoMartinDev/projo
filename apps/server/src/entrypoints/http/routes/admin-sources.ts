@@ -12,8 +12,10 @@ import type { AssignSource } from '../../../application/metadata/assign-source.t
 import type { RejectSource } from '../../../application/metadata/reject-source.ts'
 import type { RestoreSource } from '../../../application/metadata/restore-source.ts'
 import type { AssignResult } from '../../../application/metadata/shared/source-assignment.ts'
-import type { MissingSourcesAdmin } from '../../../application/operations/types.ts'
-import type { SourceAdmin } from '../../../application/scanner/source-admin.ts'
+import type { PurgeAllMissingSources } from '../../../application/operations/purge-all-missing-sources.ts'
+import type { PurgeMissingSource } from '../../../application/operations/purge-missing-source.ts'
+import type { ListSources } from '../../../application/scanner/list-sources.ts'
+import type { RecheckSource } from '../../../application/scanner/recheck-source.ts'
 import { sourceVersionOf } from '../../../core/media/version.ts'
 import type { SourceListItem } from '../../../core/source/source.ts'
 import type { AppEnv } from '../context.ts'
@@ -62,11 +64,17 @@ export const toSourceDto = (source: SourceListItem): SourceDto => ({
   ...(source.probe === undefined ? {} : { durationMs: Math.round(source.probe.durationMs) }),
 })
 
-export const adminSourcesRoutes = ({ sourceAdmin }: { sourceAdmin: SourceAdmin }) =>
+export const adminSourcesRoutes = ({
+  listSources,
+  recheckSource,
+}: {
+  listSources: ListSources
+  recheckSource: RecheckSource
+}) =>
   new Hono<AppEnv>()
     .get('/sources', validate('query', sourcesQuerySchema), (c) => {
       const { libraryId, state, matchState, cursor, limit } = c.req.valid('query')
-      const page = sourceAdmin.list({
+      const page = listSources({
         limit,
         ...(libraryId === undefined ? {} : { libraryId }),
         ...(state === undefined ? {} : { state }),
@@ -83,7 +91,7 @@ export const adminSourcesRoutes = ({ sourceAdmin }: { sourceAdmin: SourceAdmin }
       )
     })
     .post('/sources/:id/recheck', (c) => {
-      const result = sourceAdmin.recheck({ id: c.req.param('id') })
+      const result = recheckSource({ id: c.req.param('id') })
       return result.ok ? c.json(result.value, 202) : respondError(c, result.error)
     })
 
@@ -120,15 +128,21 @@ export const adminSourceReviewRoutes = ({
 
 export type AdminSourceReviewRoutes = ReturnType<typeof adminSourceReviewRoutes>
 
-export const adminMissingSourcesRoutes = ({ missing }: { missing: MissingSourcesAdmin }) =>
+export const adminMissingSourcesRoutes = ({
+  purgeMissingSource,
+  purgeAllMissingSources,
+}: {
+  purgeMissingSource: PurgeMissingSource
+  purgeAllMissingSources: PurgeAllMissingSources
+}) =>
   new Hono<AppEnv>()
     .post('/sources/purge-missing', validate('json', purgeMissingBodySchema), (c) => {
       const { libraryId } = c.req.valid('json')
-      const result = missing.purgeAll(libraryId === undefined ? {} : { libraryId })
+      const result = purgeAllMissingSources(libraryId === undefined ? {} : { libraryId })
       return c.json(result satisfies PurgeMissingResponse, 200)
     })
     .delete('/sources/:id', (c) => {
-      const result = missing.purge({ sourceId: c.req.param('id') })
+      const result = purgeMissingSource({ sourceId: c.req.param('id') })
       return result.ok ? noContent(c) : respondError(c, result.error)
     })
 

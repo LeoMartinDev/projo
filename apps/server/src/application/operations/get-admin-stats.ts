@@ -1,0 +1,58 @@
+import type { Clock } from '../../core/clock.ts'
+import type { JobAdminRepository } from '../../core/jobs/ports.ts'
+import type { NotificationRepository } from '../../core/notifications/notification.ts'
+import type { CatalogCounts, RunningScan, StatsQueries } from '../../core/stats/stats.ts'
+import { isNewerVersion, satisfiesMinimum } from '../../core/updates/semver.ts'
+import type { UpdateCheckStore } from '../../core/updates/update.ts'
+
+export const FAILED_JOBS_WINDOW_MS = 24 * 60 * 60_000
+
+export type AdminStats = {
+  counts: CatalogCounts
+  runningScans: RunningScan[]
+  activePlaybackSessions: number
+  unreadNotifications: number
+  failedJobs: number
+  version: { app: string; runtime: string }
+  updateAvailable?: { version: string; runtimeCompatible: boolean }
+}
+
+export const getAdminStatsFactory =
+  ({
+    statsQueries,
+    notificationRepository,
+    jobAdminRepository,
+    checkStore,
+    version,
+    clock,
+  }: {
+    statsQueries: StatsQueries
+    notificationRepository: Pick<NotificationRepository, 'unreadCount'>
+    jobAdminRepository: Pick<JobAdminRepository, 'countFailedSince'>
+    checkStore: Pick<UpdateCheckStore, 'read'>
+    version: { app: string; runtime: string }
+    clock: Clock
+  }) =>
+  (): AdminStats => {
+    const latest = checkStore.read()?.latest
+    return {
+      counts: statsQueries.counts(),
+      runningScans: statsQueries.runningScans(),
+      activePlaybackSessions: statsQueries.activePlaybackSessions(),
+      unreadNotifications: notificationRepository.unreadCount(),
+      failedJobs: jobAdminRepository.countFailedSince(
+        new Date(clock.now().getTime() - FAILED_JOBS_WINDOW_MS),
+      ),
+      version,
+      ...(latest === undefined || !isNewerVersion(latest.version, version.app)
+        ? {}
+        : {
+            updateAvailable: {
+              version: latest.version,
+              runtimeCompatible: satisfiesMinimum(version.runtime, latest.runtimeMin),
+            },
+          }),
+    }
+  }
+
+export type GetAdminStats = ReturnType<typeof getAdminStatsFactory>

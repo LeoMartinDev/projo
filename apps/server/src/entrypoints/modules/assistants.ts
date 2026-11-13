@@ -7,8 +7,17 @@ import { getReviewSummaryFactory } from '../../application/assistants/get-review
 import { getTmdbSeriesFactory } from '../../application/assistants/get-tmdb-series.ts'
 import { listHiddenSourcesFactory } from '../../application/assistants/list-hidden-sources.ts'
 import { listReviewQueueFactory } from '../../application/assistants/list-review-queue.ts'
-import { assistantTokensFactory } from '../../application/auth/assistant-tokens.ts'
-import { oauthFactory } from '../../application/auth/oauth.ts'
+import { authenticateAssistantTokenFactory } from '../../application/auth/authenticate-assistant-token.ts'
+import { authenticateOAuthAccessFactory } from '../../application/auth/authenticate-oauth-access.ts'
+import { createAssistantTokenFactory } from '../../application/auth/create-assistant-token.ts'
+import { decideOAuthConsentFactory } from '../../application/auth/decide-oauth-consent.ts'
+import { exchangeOAuthTokenFactory } from '../../application/auth/exchange-oauth-token.ts'
+import { getOAuthConsentFactory } from '../../application/auth/get-oauth-consent.ts'
+import { listAssistantTokensFactory } from '../../application/auth/list-assistant-tokens.ts'
+import { purgeExpiredOAuthFactory } from '../../application/auth/purge-expired-oauth.ts'
+import { registerOAuthClientFactory } from '../../application/auth/register-oauth-client.ts'
+import { revokeAssistantTokenFactory } from '../../application/auth/revoke-assistant-token.ts'
+import { assistantAccessFactory } from '../../application/auth/shared/assistant-access.ts'
 import type { TmdbDetails } from '../../application/metadata/shared/tmdb-details.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import { verifyPkceS256 } from '../../infrastructure/auth/pkce.ts'
@@ -63,34 +72,58 @@ export const buildAssistantsModule = (
   const moduleLogger = logger.child({ module: 'assistants' })
   const assistantTokenRepository = createSqliteAssistantTokenRepository({ db })
   const profileRepository = createSqliteProfileRepository({ db })
-  const assistantTokens = assistantTokensFactory({
+  const assistantAccess = assistantAccessFactory({
     assistantTokenRepository,
     accountRepository: createSqliteAccountRepository({ db }),
     profileRepository,
+    clock,
+  })
+  const createAssistantToken = createAssistantTokenFactory({
+    assistantTokenRepository,
     tokens: sessionTokens,
     clock,
     ids,
     logger: moduleLogger,
+  })
+  const listAssistantTokens = listAssistantTokensFactory({ assistantTokenRepository })
+  const revokeAssistantToken = revokeAssistantTokenFactory({
+    assistantTokenRepository,
+    clock,
+    logger: moduleLogger,
+  })
+  const authenticateAssistantToken = authenticateAssistantTokenFactory({
+    assistantTokenRepository,
+    assistantAccess,
+    tokens: sessionTokens,
   })
 
-  const oauth = oauthFactory({
-    oauthRepository: createSqliteOAuthRepository({ db }),
-    assistantTokenRepository,
-    assistantTokens,
+  const oauthRepository = createSqliteOAuthRepository({ db })
+  const oauthRequestDeps = { oauthRepository, clientMetadata, clock, ids }
+  const getOAuthConsent = getOAuthConsentFactory({
+    ...oauthRequestDeps,
+    assistantAccess,
     profileRepository,
-    clientMetadata,
-    pkce: verifyPkceS256,
+  })
+  const decideOAuthConsent = decideOAuthConsentFactory({
+    ...oauthRequestDeps,
+    assistantAccess,
     tokens: sessionTokens,
-    clock,
-    ids,
     logger: moduleLogger,
   })
+  const authenticateOAuthAccess = authenticateOAuthAccessFactory({
+    oauthRepository,
+    assistantTokenRepository,
+    assistantAccess,
+    tokens: sessionTokens,
+    clock,
+  })
+  const purgeExpiredOAuth = purgeExpiredOAuthFactory({ oauthRepository, clock })
 
   const authenticate: McpAuthenticate = (token) => {
-    const asToken = assistantTokens.authenticate(token)
+    const asToken = authenticateAssistantToken(token)
     const principal =
       !asToken.ok && asToken.error.code === 'auth/unauthenticated'
-        ? oauth.authenticateAccess(token)
+        ? authenticateOAuthAccess(token)
         : asToken
     if (!principal.ok) return principal
     const { tokenId, accountId, profileId } = principal.value
@@ -141,19 +174,46 @@ export const buildAssistantsModule = (
       initialDelayMs: 30 * 60_000,
       intervalMs: 24 * 60 * 60_000,
       run: () => {
-        oauth.purge()
+        purgeExpiredOAuth()
       },
     },
   ]
 
   return defineModule({
     exposes: {
-      assistantTokens,
-      oauth,
-      adminRoutes: adminAssistantsRoutes({ assistantTokens }),
-      oauthConsentRoutes: oauthConsentRoutes({ oauth, trustProxy: config.trustProxy }),
+      createAssistantToken,
+      listAssistantTokens,
+      revokeAssistantToken,
+      getOAuthConsent,
+      decideOAuthConsent,
+      adminRoutes: adminAssistantsRoutes({
+        listAssistantTokens,
+        createAssistantToken,
+        revokeAssistantToken,
+      }),
+      oauthConsentRoutes: oauthConsentRoutes({
+        getOAuthConsent,
+        decideOAuthConsent,
+        trustProxy: config.trustProxy,
+      }),
       oauthRoutes: oauthRoutes({
-        oauth,
+        registerOAuthClient: registerOAuthClientFactory({
+          oauthRepository,
+          tokens: sessionTokens,
+          clock,
+          ids,
+          logger: moduleLogger,
+        }),
+        exchangeOAuthToken: exchangeOAuthTokenFactory({
+          oauthRepository,
+          assistantTokenRepository,
+          assistantAccess,
+          pkce: verifyPkceS256,
+          tokens: sessionTokens,
+          clock,
+          ids,
+          logger: moduleLogger,
+        }),
         registrationLimiter: createInMemoryRateLimiter({ ...registrationRateLimit, clock }),
         tokenFailureLimiter: createInMemoryRateLimiter({ ...tokenFailureRateLimit, clock }),
         trustProxy: config.trustProxy,
