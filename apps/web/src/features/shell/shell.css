@@ -186,14 +186,17 @@ html:has(dialog:modal) .shell__header {
 }
 
 @media not (--compact) {
+  /* Merged into the pill: its hover keeps the pill's 4px inset, like the links beside it. */
   .shell__header[data-scrolled='true'] .shell__search {
+    padding: 3px;
     border-color: transparent;
+    background-clip: content-box;
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 
   .shell__header[data-scrolled='true'] .shell__search:not(:hover) {
-    background: transparent;
+    background-color: transparent;
   }
 }
 
