@@ -5,7 +5,7 @@ import { appError, err, ok } from '@projo/shared'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createRecordingEventBus, createSequentialIds } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type {
   AppVersion,
   ProcessControl,

@@ -16,7 +16,6 @@ import { segmentSettingsAdminFactory } from '../../application/segments/segment-
 import { submitSegmentFactory } from '../../application/segments/submit-segment.ts'
 import { segmentTargetFactory } from '../../application/segments/targets.ts'
 import { segmentTypes } from '../../core/segments/segment.ts'
-import type { SegmentSettingsStore } from '../../core/segments/settings-store.ts'
 import {
   createSegmentProviders,
   type SegmentProviders,
@@ -41,15 +40,17 @@ const submitPayload = z.object({ itemId: z.string().min(1), type: z.enum(segment
 
 const hour = 60 * 60_000
 
-type ProviderOptions = {
+export type SegmentsModuleOptions = ScopeDeps & {
   providerBaseUrls?: { theintrodb?: string; introdb?: string; skipdb?: string }
   segmentProviders?: SegmentProviders
 }
 
-const segmentInfrastructure = (
-  { db, clock, logger }: Platform,
-  { providerBaseUrls, segmentProviders }: ProviderOptions,
-): { store: SegmentSettingsStore; providers: SegmentProviders } => {
+export const buildSegmentsModule = (
+  platform: Platform,
+  { visibilityScope, providerBaseUrls, segmentProviders }: SegmentsModuleOptions,
+) => {
+  const { db, ids, clock, logger, eventBus, jobQueue, jobRepository } = platform
+  const moduleLogger = logger.child({ module: 'segments' })
   const store = createSqliteSegmentSettings({ db })
   const providers =
     segmentProviders ??
@@ -60,18 +61,6 @@ const segmentInfrastructure = (
       saveSkipdbAnonymousKey: (key) => store.saveSkipdbAnonymousKey(key, clock.now()),
       logger: logger.child({ module: 'segment-providers' }),
     })
-  return { store, providers }
-}
-
-export type SegmentsModuleOptions = ScopeDeps & ProviderOptions
-
-export const buildSegmentsModule = (
-  platform: Platform,
-  { visibilityScope, ...providerOptions }: SegmentsModuleOptions,
-) => {
-  const { db, ids, clock, logger, eventBus, jobQueue, jobRepository } = platform
-  const moduleLogger = logger.child({ module: 'segments' })
-  const { store, providers } = segmentInfrastructure(platform, providerOptions)
   const catalogRepository = createSqliteCatalogRepository({ db })
   const segmentCatalog = createSqliteSegmentCatalog({ db })
   const segmentRepository = createSqliteSegmentRepository({ db, ids, clock })

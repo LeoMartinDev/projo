@@ -6,12 +6,12 @@ import { type ApiRoutes, createApi } from '../../src/entrypoints/http/api.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import type { HomeResumeFramePort } from '../../src/entrypoints/http/routes/home.ts'
 import { buildCatalogModule } from '../../src/entrypoints/modules/catalog.ts'
-import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { buildProgressModule } from '../../src/entrypoints/modules/progress.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
 import { createRecordingEventBus, createRecordingJobQueue, createSequentialIds } from './fakes.ts'
 import { silentLogger } from './logger.ts'
+import { createTestPlatform } from './platform.ts'
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
@@ -24,7 +24,7 @@ export const createCatalogTestApp = ({
 } = {}) => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-03-01T12:00:00.000Z'))
-  const platform = {
+  const platform = createTestPlatform({
     db,
     clock,
     ids: createSequentialIds('t-'),
@@ -32,7 +32,7 @@ export const createCatalogTestApp = ({
     eventBus: createRecordingEventBus().bus,
     jobQueue: createRecordingJobQueue().queue,
     paths: dataPathsFor('/nonexistent'),
-  } as unknown as Platform
+  })
   const visibilityScope: VisibilityScopeResolver = (profileId) => scopes[profileId] ?? {}
   const catalog = buildCatalogModule(platform, {
     visibilityScope,

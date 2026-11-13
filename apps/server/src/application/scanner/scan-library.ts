@@ -12,7 +12,6 @@ import { type MediaProber, signatureOf } from '../../core/media/probe.ts'
 import type { MatchRequester } from '../../core/metadata/ports.ts'
 import { analyzeMediaPath } from '../../core/naming/index.ts'
 import {
-  type AdminNotifier,
   emptyScanStats,
   isFullScan,
   type ScanKind,
@@ -20,6 +19,7 @@ import {
   type ScanRun,
   type ScanRunRepository,
 } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import {
   assessRootContent,
   assessRootStat,

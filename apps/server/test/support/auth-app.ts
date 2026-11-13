@@ -1,18 +1,13 @@
-import { resolve } from 'node:path'
-
 import { Hono } from 'hono'
 
-import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { EventBus } from '../../src/core/events.ts'
 import type { PlaybackScope } from '../../src/core/playback/session.ts'
-import { resolveAppPaths } from '../../src/entrypoints/app-paths.ts'
 import { type ApiRoutes, createApi } from '../../src/entrypoints/http/api.ts'
 import { createHttpApp } from '../../src/entrypoints/http/app.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { buildAuthModule } from '../../src/entrypoints/modules/auth.ts'
 import { buildEventsModule } from '../../src/entrypoints/modules/events.ts'
 import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
-import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import {
   buildProfilesModule,
   buildVisibilityScopes,
@@ -20,9 +15,6 @@ import {
 import { buildSetupModule } from '../../src/entrypoints/modules/setup.ts'
 import { createBunPasswordHasher } from '../../src/infrastructure/auth/bun-password-hasher.ts'
 import { createStaticFiles } from '../../src/infrastructure/http/static-files.ts'
-import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
-import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
-import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import { toProfileRow } from '../../src/infrastructure/sqlite/profile-repository.ts'
 import { toAccountRow } from '../../src/infrastructure/sqlite/account-repository.ts'
 import { accounts, profiles } from '../../src/infrastructure/sqlite/schema/accounts.ts'
@@ -31,6 +23,7 @@ import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
 import { createRecordingEventBus, createRecordingJobQueue } from './fakes.ts'
 import { silentLogger } from './logger.ts'
+import { createTestPlatform } from './platform.ts'
 
 export const adminPassword = 'correct horse battery'
 
@@ -63,35 +56,25 @@ export const createAuthTestApp = ({
       }
     },
   }
-  const ids = createUuidV7Generator({ clock })
-  const jobRepository = createSqliteJobRepository({ db })
-  const platform: Platform = {
+  const platform = createTestPlatform({
     config: { port: 0, dataDir: '/nonexistent', trustProxy, logLevel: 'error' },
-    paths: dataPathsFor('/nonexistent'),
-    appPaths: resolveAppPaths(resolve(import.meta.dir, '../../src/entrypoints')),
-    version: 'test',
-    runtime: 'test',
-    logger: silentLogger,
     clock,
-    ids,
     eventBus,
-    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
     db,
     jobQueue: createRecordingJobQueue().queue,
-    jobRepository,
-    jobControl: {
-      cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
-      wake: () => {},
-    },
-    connectJobRunner: () => {},
-  }
+  })
+  const { ids } = platform
 
   const endedPlayback: PlaybackScope[] = []
   const playbackSessions = { endWithin: (scope: PlaybackScope) => void endedPlayback.push(scope) }
   const auth = buildAuthModule(platform, { playbackSessions })
-  const setup = buildSetupModule(platform)
+  const setup = buildSetupModule(platform, { authServices: auth.services })
   const visibilityScopes = buildVisibilityScopes(platform)
-  const profilesModule = buildProfilesModule(platform, { playbackSessions, visibilityScopes })
+  const profilesModule = buildProfilesModule(platform, {
+    playbackSessions,
+    visibilityScopes,
+    authServices: auth.services,
+  })
   const events = buildEventsModule(platform, keepAliveMs === undefined ? {} : { keepAliveMs })
   const operations = buildOperationsModule(platform, {
     playbackSessions,

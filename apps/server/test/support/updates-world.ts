@@ -1,23 +1,19 @@
-import { resolve } from 'node:path'
-
 import { Hono } from 'hono'
 
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { Job } from '../../src/core/jobs/job.ts'
-import { resolveAppPaths } from '../../src/entrypoints/app-paths.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import { createJobQueue } from '../../src/entrypoints/jobs/job-queue.ts'
-import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { buildUpdatesModule } from '../../src/entrypoints/modules/updates.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
-import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import { createManualClock } from './clock.ts'
 import { createTempDir, createTestDatabase } from './database.ts'
 import { createRecordingEventBus } from './fakes.ts'
 import { silentLogger } from './logger.ts'
+import { createTestPlatform } from './platform.ts'
 import type { startGithubReleasesServer } from './github-releases-server.ts'
 
 type ReleasesServer = ReturnType<typeof startGithubReleasesServer>
@@ -46,26 +42,18 @@ export const createUpdatesWorld = ({
   let exits = 0
 
   const build = (running: string) => {
-    const platform: Platform = {
+    const platform = createTestPlatform({
       config: { port: 0, dataDir: paths.root, trustProxy: false, logLevel: 'error' },
       paths,
-      appPaths: resolveAppPaths(resolve(import.meta.dir, '../../src/entrypoints')),
       version: running,
       runtime,
-      logger: silentLogger,
       clock,
       ids,
       eventBus,
-      notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
       db,
       jobQueue,
       jobRepository,
-      jobControl: {
-        cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
-        wake: () => {},
-      },
-      connectJobRunner: () => {},
-    }
+    })
     const module = buildUpdatesModule(platform, {
       enabled,
       releasesBaseUrl: server.apiBaseUrl,

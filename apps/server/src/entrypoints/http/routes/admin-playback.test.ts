@@ -21,8 +21,8 @@ import type { Db } from '../../../infrastructure/sqlite/database.ts'
 import { createSqlitePlaybackSessionRepository } from '../../../infrastructure/sqlite/playback-session-repository.ts'
 import { profiles, sessions } from '../../../infrastructure/sqlite/schema/accounts.ts'
 import { buildAdminPlaybackModule } from '../../modules/admin-playback.ts'
-import type { Platform } from '../../modules/platform.ts'
 import type { AppEnv } from '../context.ts'
+import { createTestPlatform } from '../../../../test/support/platform.ts'
 
 let db: Db
 let clock: ManualClock
@@ -44,10 +44,7 @@ beforeEach(() => {
     clock,
     logger: silentLogger,
   })
-  const module = buildAdminPlaybackModule(
-    { db, clock, logger: silentLogger } as unknown as Platform,
-    { endSession },
-  )
+  const module = buildAdminPlaybackModule(createTestPlatform({ db, clock }), { endSession })
   app = new Hono<AppEnv>()
     .use('*', async (c, next) => {
       c.set('account', { id: 'leo', username: 'leo', role: 'admin' })

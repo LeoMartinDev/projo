@@ -18,7 +18,7 @@ import {
 } from '../../core/media/probe.ts'
 import { MIN_VIDEO_SIZE_BYTES } from '../../core/naming/index.ts'
 import type { MatchRequester } from '../../core/metadata/ports.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type {
   PendingReason,
   Source,

@@ -4,7 +4,7 @@ import type { Clock } from '../../core/clock.ts'
 import type { IdGenerator } from '../../core/ids.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import { isNewerVersion, satisfiesMinimum } from '../../core/updates/semver.ts'
 import type {
   InstallReleaseError,

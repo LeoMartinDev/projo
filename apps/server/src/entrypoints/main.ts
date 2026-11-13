@@ -86,8 +86,13 @@ export const startProjo = ({
   const playback = buildPlaybackModule(platform, { visibilityScope })
   const { playbackSessions } = playback
   const auth = buildAuthModule(platform, { playbackSessions })
-  const setup = buildSetupModule(platform)
-  const profiles = buildProfilesModule(platform, { playbackSessions, visibilityScopes })
+  const authServices = auth.services
+  const setup = buildSetupModule(platform, { authServices })
+  const profiles = buildProfilesModule(platform, {
+    playbackSessions,
+    visibilityScopes,
+    authServices,
+  })
   const events = buildEventsModule(platform)
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)

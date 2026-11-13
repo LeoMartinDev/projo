@@ -7,7 +7,7 @@ import type { JobAdminRepository, JobControl, JobTargetName } from '../../core/j
 import type { LeavingFiles } from '../../core/library/library.ts'
 import type { Notification, NotificationRepository } from '../../core/notifications/notification.ts'
 import type { PlaybackScope } from '../../core/playback/session.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type { PlaybackSettings } from '../../core/settings/settings.ts'
 import type { MissingSourceRepository, SourceState } from '../../core/source/source.ts'
 import type { DiskUsage, StatsQueries } from '../../core/stats/stats.ts'

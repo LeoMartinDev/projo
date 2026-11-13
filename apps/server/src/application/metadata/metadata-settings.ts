@@ -8,7 +8,7 @@ import type {
   MetadataSettings,
 } from '../../core/metadata/ports.ts'
 import type { TmdbApi } from '../../core/metadata/tmdb.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import { TMDB_NOTIFICATION_KEY } from './match-source.ts'
 import type { RefreshMetadata } from './refresh-metadata.ts'
 import { tmdbReviewReasons } from './resolve-match.ts'

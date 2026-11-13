@@ -14,6 +14,7 @@ import { buildSettingsModule } from '../../src/entrypoints/modules/settings.ts'
 import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
 import { createTempDir } from './database.ts'
 import { silentLogger } from './logger.ts'
+import { fakeSegmentProviders } from './segments.ts'
 import { createScannerWorld } from './scanner-world.ts'
 import { startTmdbServer, TEST_TMDB_KEY } from './tmdb-server.ts'
 
@@ -43,7 +44,10 @@ export const createMetadataWorld = ({
     tmdb: { apiBaseUrl: tmdb.apiBaseUrl, imageBaseUrl: tmdb.imageBaseUrl, sleep: async () => {} },
   })
   scanner.metadataContextLater.current = metadata.libraryMetadataContext
-  const segments = buildSegmentsModule(platform, { visibilityScope: () => everything })
+  const segments = buildSegmentsModule(platform, {
+    visibilityScope: () => everything,
+    segmentProviders: fakeSegmentProviders().providers,
+  })
   const operations = buildOperationsModule(platform, {
     playbackSessions,
     metadataContext: metadata.libraryMetadataContext,

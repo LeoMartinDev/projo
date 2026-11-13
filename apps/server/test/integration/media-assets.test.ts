@@ -53,6 +53,7 @@ import {
 import { silentLogger } from '../support/logger.ts'
 import { generateVideo, hasFfmpeg, hasFfmpegEncoder } from '../support/media.ts'
 import { videoWithEmbeddedSubtitles } from '../support/media-fixtures.ts'
+import { createTestPlatform } from '../support/platform.ts'
 
 const latin1 = (text: string) => new Uint8Array([...text].map((char) => char.charCodeAt(0)))
 
@@ -119,7 +120,7 @@ beforeEach(() => {
   publish = bus.bus.publish
   jobs = createRecordingJobQueue()
   jobRepository = createSqliteJobRepository({ db })
-  const platform = {
+  const platform = createTestPlatform({
     db,
     clock: createManualClock(new Date()),
     ids: createSequentialIds('asset-'),
@@ -128,7 +129,7 @@ beforeEach(() => {
     jobQueue: jobs.queue,
     jobRepository,
     paths: dataPathsFor(data.path),
-  } as unknown as Platform
+  })
 
   seedViewer(db, 'leo')
   insertProfile(db, 'leo', 'profile-kid')

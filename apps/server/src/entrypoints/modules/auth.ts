@@ -34,7 +34,7 @@ const loginRateLimit = { limit: 10, windowMs: 15 * 60_000 }
 const pairingClaimRateLimit = { limit: 10, windowMs: 15 * 60_000 }
 const invitationRateLimit = { limit: 20, windowMs: 60 * 60_000 }
 
-export const buildAuthServices = ({ db, clock, ids }: Platform) => {
+const buildAuthServices = ({ db, clock, ids }: Platform) => {
   const accountRepository = createSqliteAccountRepository({ db })
   const profileRepository = createSqliteProfileRepository({ db })
   const sessionRepository = createSqliteSessionRepository({ db })
@@ -47,6 +47,9 @@ export const buildAuthServices = ({ db, clock, ids }: Platform) => {
     getMe: getMeFactory({ accountRepository, profileRepository }),
   }
 }
+
+/** Repositories and services the setup and profiles modules share with auth. */
+export type AuthServices = ReturnType<typeof buildAuthServices>
 
 export const buildAuthModule = (
   platform: Platform,
@@ -149,6 +152,7 @@ export const buildAuthModule = (
         clock,
       }),
       middleware,
+      services,
     },
   })
 }

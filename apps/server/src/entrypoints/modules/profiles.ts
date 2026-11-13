@@ -11,7 +11,7 @@ import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/libra
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
 import { adminProfilesRoutes } from '../http/routes/admin-profiles.ts'
 import { profilesRoutes } from '../http/routes/profiles.ts'
-import { buildAuthServices } from './auth.ts'
+import type { AuthServices } from './auth.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
@@ -30,11 +30,16 @@ export const buildProfilesModule = (
   {
     playbackSessions,
     visibilityScopes: scopes,
-  }: { playbackSessions: PlaybackSessionTerminator; visibilityScopes: VisibilityScopes },
+    authServices,
+  }: {
+    playbackSessions: PlaybackSessionTerminator
+    visibilityScopes: VisibilityScopes
+    authServices: AuthServices
+  },
 ) => {
   const { db, clock, ids, logger } = platform
   const { accountRepository, profileRepository, sessionRepository, passwordHasher, getMe } =
-    buildAuthServices(platform)
+    authServices
 
   const profiles = profilesFactory({
     profileRepository,

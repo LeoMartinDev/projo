@@ -44,15 +44,10 @@ export const buildScannerModule = (
   { db, ids, clock, logger, eventBus, notifier, jobQueue, jobRepository }: Platform,
   {
     playbackSessions,
-    requestMatch = ({ sourceId }) =>
-      void jobQueue.enqueue({
-        type: 'match_source',
-        payload: { sourceId },
-        dedupeKey: `match:${sourceId}`,
-      }),
+    requestMatch,
   }: {
     playbackSessions: PlaybackSessionTerminator
-    requestMatch?: MatchRequester
+    requestMatch: MatchRequester
   },
 ) => {
   const moduleLogger = logger.child({ module: 'scanner' })

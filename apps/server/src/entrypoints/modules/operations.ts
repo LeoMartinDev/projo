@@ -20,6 +20,7 @@ import {
 import { getAdminStatsFactory } from '../../application/operations/stats.ts'
 import { measureStorageFactory } from '../../application/operations/storage.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
+import type { Logger } from '../../core/logger.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { DiskUsage } from '../../core/stats/stats.ts'
 import { createNodeDiskUsage } from '../../infrastructure/fs/disk-usage.ts'
@@ -53,7 +54,7 @@ const hour = 60 * minute
 const day = 24 * 60 * minute
 
 /** The "Playback" and "Server" sections of the admin settings (§15), served by `settings`. */
-const buildOperationsSettings = ({ db, config, clock, logger }: Platform) => ({
+const buildOperationsSettings = ({ db, config, clock }: Platform, logger: Logger) => ({
   playback: playbackSettingsAdminFactory({
     reader: createSqlitePlaybackSettings({ db }),
     writer: createSqlitePlaybackSettingsWriter({ db }),
@@ -150,7 +151,7 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
 
   return defineModule({
     exposes: {
-      settings: buildOperationsSettings(platform),
+      settings: buildOperationsSettings(platform, log),
       routes: {
         jobs: adminJobsRoutes({
           jobs: jobsAdminFactory({

@@ -24,9 +24,9 @@ import {
 import { silentLogger } from '../../../../test/support/logger.ts'
 import { fakeSegmentProviders } from '../../../../test/support/segments.ts'
 import { buildSegmentsModule } from '../../modules/segments.ts'
-import type { Platform } from '../../modules/platform.ts'
 import { type ApiRoutes, createApi } from '../api.ts'
 import type { AppEnv } from '../context.ts'
+import { createTestPlatform } from '../../../../test/support/platform.ts'
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 const minute = 60_000
@@ -54,7 +54,7 @@ let call: (
 
 const build = (scopes: Record<string, VisibilityScope> = {}) => {
   const clock = createManualClock(new Date('2026-10-24T12:00:00.000Z'))
-  const platform = {
+  const platform = createTestPlatform({
     db,
     clock,
     ids: createSequentialIds('seg-'),
@@ -63,7 +63,7 @@ const build = (scopes: Record<string, VisibilityScope> = {}) => {
     jobQueue: jobs.queue,
     jobRepository: createSqliteJobRepository({ db }),
     paths: dataPathsFor('/nonexistent'),
-  } as unknown as Platform
+  })
   module = buildSegmentsModule(platform, {
     visibilityScope: (profileId) => scopes[profileId] ?? {},
     segmentProviders: fake.providers,

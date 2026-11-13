@@ -1,21 +1,15 @@
-import { resolve } from 'node:path'
-
 import { Hono } from 'hono'
 
-import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { LibraryMetadataContextObserver } from '../../src/core/library/library.ts'
-import { resolveAppPaths } from '../../src/entrypoints/app-paths.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import type { JobHandler, JobHandlers } from '../../src/entrypoints/jobs/handler.ts'
 import { createJobQueue } from '../../src/entrypoints/jobs/job-queue.ts'
 import { buildFsModule } from '../../src/entrypoints/modules/fs.ts'
 import { buildLibrariesModule } from '../../src/entrypoints/modules/libraries.ts'
-import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { buildScannerModule } from '../../src/entrypoints/modules/scanner.ts'
 import { buildSourcesModule } from '../../src/entrypoints/modules/sources.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
-import { createSqliteAdminNotifier } from '../../src/infrastructure/sqlite/admin-notifier.ts'
 import {
   endPlaybackSessionFactory,
   endPlaybackSessionsWithinFactory,
@@ -29,6 +23,7 @@ import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
 import { createRecordingEventBus } from './fakes.ts'
 import { silentLogger } from './logger.ts'
+import { createTestPlatform } from './platform.ts'
 
 export const createScannerWorld = () => {
   const db = createTestDatabase()
@@ -37,26 +32,7 @@ export const createScannerWorld = () => {
   const { bus: eventBus, events } = createRecordingEventBus()
   const jobRepository = createSqliteJobRepository({ db })
   const { queue: jobQueue } = createJobQueue({ jobRepository, ids, clock, eventBus })
-  const platform: Platform = {
-    config: { port: 0, dataDir: '/nonexistent', trustProxy: false, logLevel: 'error' },
-    paths: dataPathsFor('/nonexistent'),
-    appPaths: resolveAppPaths(resolve(import.meta.dir, '../../src/entrypoints')),
-    version: 'test',
-    runtime: 'test',
-    logger: silentLogger,
-    clock,
-    ids,
-    eventBus,
-    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus }),
-    db,
-    jobQueue,
-    jobRepository,
-    jobControl: {
-      cancel: (id) => jobRepository.cancel({ id, finishedAt: clock.now() }),
-      wake: () => {},
-    },
-    connectJobRunner: () => {},
-  }
+  const platform = createTestPlatform({ db, clock, ids, eventBus, jobRepository, jobQueue })
   const playbackSessionRepository = createSqlitePlaybackSessionRepository({ db })
   const stoppedStreams: string[] = []
   const segmenter: HlsSegmenter = {
@@ -89,7 +65,17 @@ export const createScannerWorld = () => {
   })
   const fs = buildFsModule(platform)
   const sources = buildSourcesModule(platform)
-  const scanner = buildScannerModule(platform, { playbackSessions })
+  // Straight to the queue: the metadata module's `requestMatch` (which first checks the TMDB key)
+  // is not part of this world.
+  const scanner = buildScannerModule(platform, {
+    playbackSessions,
+    requestMatch: ({ sourceId }) =>
+      void jobQueue.enqueue({
+        type: 'match_source',
+        payload: { sourceId },
+        dedupeKey: `match:${sourceId}`,
+      }),
+  })
 
   let viewer: ReturnType<typeof seedViewer> | undefined
   const startPlayback = (sourceId: string) => {

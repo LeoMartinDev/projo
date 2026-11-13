@@ -3,13 +3,15 @@ import { getSetupStatusFactory } from '../../application/setup/get-setup-status.
 import { createSqliteSettingsRepository } from '../../infrastructure/sqlite/settings-repository.ts'
 import { createSqliteSetupRepository } from '../../infrastructure/sqlite/setup-repository.ts'
 import { setupRoutes } from '../http/routes/setup.ts'
-import { buildAuthServices } from './auth.ts'
+import type { AuthServices } from './auth.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
-export const buildSetupModule = (platform: Platform) => {
-  const { db, clock, ids, logger, config } = platform
-  const { passwordHasher, openSession, getMe } = buildAuthServices(platform)
+export const buildSetupModule = (
+  { db, clock, ids, logger, config }: Platform,
+  { authServices }: { authServices: AuthServices },
+) => {
+  const { passwordHasher, openSession, getMe } = authServices
   const setupRepository = createSqliteSetupRepository({ db })
   return defineModule({
     exposes: {

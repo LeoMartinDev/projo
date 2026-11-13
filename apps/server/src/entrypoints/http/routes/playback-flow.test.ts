@@ -24,7 +24,6 @@ import {
 import { silentLogger } from '../../../../test/support/logger.ts'
 import { generateVideo, hasFfmpeg } from '../../../../test/support/media.ts'
 import { dataPathsFor } from '../../../core/data-paths.ts'
-import { createSqliteAdminNotifier } from '../../../infrastructure/sqlite/admin-notifier.ts'
 import type { Db } from '../../../infrastructure/sqlite/database.ts'
 import { profiles } from '../../../infrastructure/sqlite/schema/accounts.ts'
 import { sourceItems, sourceSubtitles } from '../../../infrastructure/sqlite/schema/libraries.ts'
@@ -32,11 +31,11 @@ import { settings } from '../../../infrastructure/sqlite/schema/ops.ts'
 import type { ServerEvent } from '../../../core/events.ts'
 import type { JobContext } from '../../jobs/handler.ts'
 import { allVisible, buildCatalogModule } from '../../modules/catalog.ts'
-import type { Platform } from '../../modules/platform.ts'
 import { buildPlaybackModule } from '../../modules/playback.ts'
 import { buildProgressModule } from '../../modules/progress.ts'
 import { type ApiRoutes, createApi } from '../api.ts'
 import type { AppEnv } from '../context.ts'
+import { createTestPlatform } from '../../../../test/support/platform.ts'
 
 const media = createTempDir('projo-flow-media-')
 let mkvPath = ''
@@ -82,16 +81,15 @@ beforeEach(() => {
   events = bus.events
   jobs = createRecordingJobQueue()
   const ids = createSequentialIds('ps-')
-  const platform = {
+  const platform = createTestPlatform({
     db,
     clock,
     ids,
     logger: silentLogger,
     eventBus: bus.bus,
-    notifier: createSqliteAdminNotifier({ db, ids, clock, eventBus: bus.bus }),
     jobQueue: jobs.queue,
     paths: dataPathsFor(data.path),
-  } as unknown as Platform
+  })
 
   for (const accountId of ['leo', 'intruder']) seedViewer(db, accountId)
   insertProfile(db, 'leo', 'profile-kid')

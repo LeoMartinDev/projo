@@ -5,7 +5,6 @@ import { join } from 'node:path'
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobContext, JobHandler } from '../../src/entrypoints/jobs/handler.ts'
 import { buildFingerprintModule } from '../../src/entrypoints/modules/fingerprint.ts'
-import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { createFpcalcFingerprinter } from '../../src/infrastructure/segments/fpcalc.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
 import { createSqliteSegmentRepository } from '../../src/infrastructure/sqlite/segment-repository.ts'
@@ -15,6 +14,7 @@ import { createTempDir, createTestDatabase } from '../support/database.ts'
 import { createRecordingJobQueue, createSequentialIds } from '../support/fakes.ts'
 import { silentLogger } from '../support/logger.ts'
 import { ffprobeJson, hasFfmpeg } from '../support/media.ts'
+import { createTestPlatform } from '../support/platform.ts'
 
 const canRun = hasFfmpeg() && (Bun.which('fpcalc') ?? '') !== ''
 
@@ -100,14 +100,14 @@ beforeAll(async () => {
       outcome: 'none',
     })
   }
-  const platform = {
+  const platform = createTestPlatform({
     db,
     clock: createManualClock(new Date('2026-10-24T12:00:00.000Z')),
     ids: createSequentialIds('fp-'),
     logger: silentLogger,
     paths: dataPathsFor(data.path),
     jobQueue: createRecordingJobQueue().queue,
-  } as unknown as Platform
+  })
   handler = buildFingerprintModule(platform, { cores: 8 }).jobHandlers.fingerprint_season
 })
 

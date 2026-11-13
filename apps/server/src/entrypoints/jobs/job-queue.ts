@@ -9,19 +9,21 @@ type Deps = {
   ids: IdGenerator
   clock: Clock
   eventBus: EventBus
-  onEnqueued?: () => void
 }
 
 /**
  * The queue modules enqueue into, and the control they cancel or wake jobs with. The runner
  * needs every module's job handlers, so it is built last and connected afterwards: until then,
- * `wake` does nothing and `cancel` cancels nothing.
+ * `wake` does nothing (the runner picks queued jobs up when it starts) and `cancel` throws, since
+ * nothing may cancel a job before startup is complete.
  */
-export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued }: Deps) => {
-  let wake = onEnqueued
+export const createJobQueue = ({ jobRepository, ids, clock, eventBus }: Deps) => {
   let runner: JobControl | undefined
   const control: JobControl = {
-    cancel: (id) => runner?.cancel(id),
+    cancel: (id) => {
+      if (runner === undefined) throw new Error('job cancelled before the runner was connected')
+      return runner.cancel(id)
+    },
     wake: () => runner?.wake(),
   }
   const queue: JobQueue = {
@@ -45,7 +47,7 @@ export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued
           attempts: output.job.attempts,
         })
       }
-      wake?.()
+      runner?.wake()
       return output
     },
   }
@@ -54,7 +56,6 @@ export const createJobQueue = ({ jobRepository, ids, clock, eventBus, onEnqueued
     control,
     connectRunner: (connected: JobControl) => {
       runner = connected
-      wake = connected.wake
     },
   }
 }

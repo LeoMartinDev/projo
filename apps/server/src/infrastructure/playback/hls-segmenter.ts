@@ -24,7 +24,7 @@ import {
   segmentFileName,
 } from '../../core/playback/hls-playlist.ts'
 import type { Logger } from '../../core/logger.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type {
   HlsJob,
   HlsSegmenter,

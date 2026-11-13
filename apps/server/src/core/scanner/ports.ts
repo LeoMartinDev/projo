@@ -1,8 +1,6 @@
 import type { ScanPhase } from '@projo/shared/api/events'
 import type { ScanKind, ScanStats } from '@projo/shared/api/libraries'
 
-import type { NotificationKind } from '../notifications/notification.ts'
-
 export type { ScanKind, ScanPhase, ScanStats }
 
 export const emptyScanStats = (): ScanStats => ({
@@ -43,18 +41,6 @@ export type ScanRunRepository = {
     nextCursor?: string
   }
   purgeFinishedBefore: (before: Date) => number
-}
-
-export type { NotificationKind }
-
-export type AdminNotifier = {
-  notify: (input: {
-    kind: NotificationKind
-    severity: 'info' | 'warning' | 'error'
-    key: string
-    context: Record<string, unknown>
-  }) => void
-  resolve: (input: { kind: NotificationKind; key: string }) => void
 }
 
 export type CachedDirectory = {

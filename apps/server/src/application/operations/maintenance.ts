@@ -12,7 +12,8 @@ import {
   type NotificationPurge,
 } from '../../core/notifications/notification.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
-import type { AdminNotifier, ScanRunRepository } from '../../core/scanner/ports.ts'
+import type { ScanRunRepository } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type { MissingSourceRepository } from '../../core/source/source.ts'
 import { type DatabaseExporter, type DiskUsage, exportFileName } from '../../core/stats/stats.ts'
 import type { ExportDatabase, MissingSourcesAdmin } from './types.ts'

@@ -6,7 +6,7 @@ import { createManualClock } from '../../../test/support/clock.ts'
 import { createRecordingJobQueue } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
 import type { FileSystem } from '../../core/fs/file-system.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type { PendingSourceView, SourcePatch, SourceRepository } from '../../core/source/source.ts'
 import { watchPendingFactory } from './watch-pending.ts'
 

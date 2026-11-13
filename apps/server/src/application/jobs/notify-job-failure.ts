@@ -1,5 +1,5 @@
 import type { Job } from '../../core/jobs/job.ts'
-import type { AdminNotifier } from '../../core/scanner/ports.ts'
+import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 
 export const notifyJobFailureFactory =
   ({ notifier }: { notifier: AdminNotifier }) =>
