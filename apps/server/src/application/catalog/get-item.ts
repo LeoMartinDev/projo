@@ -2,7 +2,8 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
   type CatalogItem,
-  type CatalogRepository,
+  type CatalogReadModel,
+  type PlayableSources,
   type ItemPerson,
   isPlayableKind,
   type MediaSummary,
@@ -24,7 +25,11 @@ export type ItemDetail = CatalogEntry & {
 }
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<
+    CatalogReadModel,
+    'findVisible' | 'listPeople' | 'describeMedia' | 'listSeriesEpisodes'
+  > &
+    Pick<PlayableSources, 'listReadySources'>
   catalogEntries: CatalogEntries
   seriesPlay: SeriesPlay
 }

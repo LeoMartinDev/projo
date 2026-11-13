@@ -1,4 +1,4 @@
-import type { CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
 import {
   categoryBatch,
   categoryKey,
@@ -23,7 +23,7 @@ export type HomeCategoriesView = {
 
 export type HomeCategoryDeps = {
   categoryQueries: HomeCategoryQueries
-  catalogRepository: Pick<CatalogRepository, 'findManyVisible' | 'listSeriesEpisodes'>
+  catalogRepository: Pick<CatalogReadModel, 'findManyVisible' | 'listSeriesEpisodes'>
   progressQueries: ProgressQueries
   catalogEntries: CatalogEntries
 }

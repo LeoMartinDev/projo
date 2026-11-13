@@ -1,7 +1,7 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
-  type CatalogRepository,
+  type CatalogReadModel,
   isPlayableKind,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
@@ -15,7 +15,7 @@ import {
 import type { ProgressView, ProgressViews } from './progress-views.ts'
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listVisibleEpisodeIds'>
   progressRepository: ProgressRepository
   progressViews: ProgressViews
   clock: Clock

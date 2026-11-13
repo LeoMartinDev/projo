@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository } from '../../core/catalog/catalog.ts'
+import type { PlayableSources } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { MediaProber } from '../../core/playback/media-info.ts'
@@ -25,7 +25,7 @@ export const requestKeyframes = (jobQueue: JobQueue, sourceId: string, priority:
 }
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<PlayableSources, 'findSource'>
   keyframeStore: KeyframeStore
   keyframeExtractor: KeyframeExtractor
   mediaProber: MediaProber

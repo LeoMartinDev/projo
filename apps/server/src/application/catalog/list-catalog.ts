@@ -3,7 +3,7 @@ import { type GenreId, genreIds } from '@projo/shared/api/genres'
 
 import {
   type CatalogFilters,
-  type CatalogRepository,
+  type CatalogReadModel,
   type CatalogSort,
   type SortOrder,
   sortKeys,
@@ -16,7 +16,10 @@ export type { CatalogEntry } from './catalog-entries.ts'
 
 export type CatalogPage = { entries: CatalogEntry[]; nextCursor?: string }
 
-type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntries }
+type Deps = {
+  catalogRepository: Pick<CatalogReadModel, 'listTopLevel'>
+  catalogEntries: CatalogEntries
+}
 
 export type ListCatalogError = AppError<'catalog/invalid_cursor'>
 
@@ -76,7 +79,11 @@ export const listCatalogFactory =
 export type ListCatalog = ReturnType<typeof listCatalogFactory>
 
 export const listGenresFactory =
-  ({ catalogRepository }: { catalogRepository: CatalogRepository }) =>
+  ({
+    catalogRepository,
+  }: {
+    catalogRepository: Pick<CatalogReadModel, 'listGenres' | 'yearRange'>
+  }) =>
   ({
     kind,
     scope,

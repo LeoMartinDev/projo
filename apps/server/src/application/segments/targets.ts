@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import { type CatalogRepository, everything, isPlayableKind } from '../../core/catalog/catalog.ts'
+import { type PlayableSources, everything, isPlayableKind } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { SegmentCatalog } from '../../core/segments/catalog.ts'
 import { type ItemTimeline, itemTimeline } from '../../core/segments/chapters.ts'
@@ -17,7 +17,7 @@ export type SegmentTarget = { ref: SegmentItemRef; timeline: ItemTimeline; share
 
 export type TargetDeps = {
   segmentCatalog: SegmentCatalog
-  catalogRepository: Pick<CatalogRepository, 'listReadySources'>
+  catalogRepository: Pick<PlayableSources, 'listReadySources'>
 }
 
 export type TargetError = AppError<'item/not_found' | 'item/invalid_kind'>

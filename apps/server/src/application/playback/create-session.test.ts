@@ -7,7 +7,12 @@ import { createFakeSessionTokens } from '../../../test/support/auth.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createRecordingJobQueue, createSequentialIds } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
-import type { CatalogItem, CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type {
+  CatalogItem,
+  PlayableSource,
+  PlayableSources,
+  VisibleItems,
+} from '../../core/catalog/catalog.ts'
 import type { MediaInfo, SubtitleStreamInfo } from '../../core/playback/media-info.ts'
 import type { ProfileTrackDefaults } from '../../core/playback/resolve-tracks.ts'
 import type { PlaybackSession } from '../../core/playback/session.ts'
@@ -121,7 +126,7 @@ const build = (world: World) => {
     listReadySources: () => world.sources,
     listMediaSegments: (itemId: string) => world.segments?.[itemId] ?? [],
     listSourceItemIds: (sourceId: string) => world.sourceItems?.[sourceId] ?? [],
-  } as unknown as CatalogRepository
+  } as unknown as VisibleItems & PlayableSources
   const progressRepository = {
     find: ({ profileId, itemId }: { profileId: string; itemId: string }) =>
       progress.get(`${profileId}|${itemId}`),

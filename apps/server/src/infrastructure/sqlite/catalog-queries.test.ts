@@ -13,7 +13,7 @@ import {
 } from '../../../test/support/catalog-fixtures.ts'
 import { createTestDatabase } from '../../../test/support/database.ts'
 import {
-  type CatalogRepository,
+  type CatalogReadModel,
   everything,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
@@ -26,7 +26,7 @@ import { items } from './schema/items.ts'
 import { sources, sourceSubtitles } from './schema/libraries.ts'
 
 let db: Db
-let repo: CatalogRepository
+let repo: ReturnType<typeof createSqliteCatalogRepository>
 
 beforeEach(() => {
   db = createTestDatabase()
@@ -159,7 +159,7 @@ describe('§13.4 sorts and filters', () => {
     movie('local', { title: 'Local', sortTitle: 'local' })
   })
 
-  const list = (input: Partial<Parameters<CatalogRepository['listTopLevel']>[0]>) =>
+  const list = (input: Partial<Parameters<CatalogReadModel['listTopLevel']>[0]>) =>
     titles(
       repo.listTopLevel({
         kind: 'movie',

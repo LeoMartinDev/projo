@@ -1,6 +1,6 @@
 import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
-import { type CatalogRepository, everything, type ItemKind } from '../../core/catalog/catalog.ts'
+import { type VisibleItems, everything, type ItemKind } from '../../core/catalog/catalog.ts'
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 import { directoryOf, showFolderOf } from '../../core/naming/index.ts'
 import type { Source, SourceListItem, SourceRepository } from '../../core/source/source.ts'
@@ -10,7 +10,7 @@ type Deps = {
   sources: Pick<SourceRepository, 'findById' | 'page'>
   libraries: LibraryNames
   items: Pick<MetadataItemRepository, 'findItem' | 'linkedItems'>
-  catalog: Pick<CatalogRepository, 'findVisible'>
+  catalog: Pick<VisibleItems, 'findVisible'>
 }
 
 export type ReviewItemLabel = {

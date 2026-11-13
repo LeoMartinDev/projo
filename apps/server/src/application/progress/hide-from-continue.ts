@@ -1,12 +1,12 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { VisibleItems, VisibilityScope } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { ProgressRepository } from '../../core/progress/progress.ts'
 import { hideFromContinue } from '../../core/progress/rows.ts'
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<VisibleItems, 'findVisible'>
   progressRepository: ProgressRepository
   clock: Clock
 }

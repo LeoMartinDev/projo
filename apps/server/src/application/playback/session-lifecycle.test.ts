@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import { createManualClock, type ManualClock } from '../../../test/support/clock.ts'
 import { createRecordingEventBus } from '../../../test/support/fakes.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
-import type { CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSource, PlayableSources } from '../../core/catalog/catalog.ts'
 import type { ServerEvent } from '../../core/events.ts'
 import type { HlsSegmenter, TranscodeCache } from '../../core/playback/ports.ts'
 import type { PlaybackSession, PlaybackSessionRepository } from '../../core/playback/session.ts'
@@ -88,7 +88,7 @@ const catalog = {
   listSourceItemIds: (id: string) => (id === double.id ? ['e1', 'e2'] : []),
   listMediaSegments: (itemId: string) =>
     itemId === 'movie-2' ? [{ type: 'credits', startMs: 3_000_000, endMs: 3_600_000 }] : [],
-} as unknown as CatalogRepository
+} as unknown as PlayableSources
 
 let clock: ManualClock
 let sessions: ReturnType<typeof inMemorySessions>

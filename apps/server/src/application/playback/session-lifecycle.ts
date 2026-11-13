@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import { type CatalogRepository, everything } from '../../core/catalog/catalog.ts'
+import { type PlayableSources, everything } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -159,7 +159,7 @@ export const authorizeStreamFactory =
 export type AuthorizeStream = ReturnType<typeof authorizeStreamFactory>
 
 const versionDurationMs = (
-  catalogRepository: CatalogRepository,
+  catalogRepository: Pick<PlayableSources, 'findSource' | 'listReadySources'>,
   session: PlaybackSession,
 ): number | undefined => {
   const source = catalogRepository.findSource(session.sourceId)
@@ -186,7 +186,7 @@ export const heartbeatFactory =
   }: {
     authorize: AuthorizePlayback
     sessionRepository: PlaybackSessionRepository
-    catalogRepository: CatalogRepository
+    catalogRepository: PlayableSources
     progressRepository: ProgressRepository
     clock: Clock
   }) =>

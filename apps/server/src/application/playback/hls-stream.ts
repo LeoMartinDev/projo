@@ -1,7 +1,7 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 import { subtitleRenditionNames } from '@projo/shared/api/playback'
 
-import type { CatalogRepository } from '../../core/catalog/catalog.ts'
+import type { PlayableSources } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import {
   parseSegmentName,
@@ -30,7 +30,7 @@ import type { AuthorizeStream, SessionAccessError, StreamAccess } from './sessio
 
 type Deps = {
   authorize: AuthorizeStream
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<PlayableSources, 'findSource'>
   keyframeStore: KeyframeStore
   mediaProber: MediaProber
   jobQueue: JobQueue

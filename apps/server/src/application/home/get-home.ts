@@ -1,4 +1,4 @@
-import type { CatalogItem, CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { CatalogItem, CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
 import { isResumable, type ProgressRepository } from '../../core/progress/progress.ts'
 import {
   continueWatching,
@@ -25,7 +25,10 @@ export type HomeView = {
 }
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<
+    CatalogReadModel,
+    'findManyVisible' | 'listRecentlyAdded' | 'listSeriesEpisodes'
+  >
   progressRepository: ProgressRepository
   progressQueries: ProgressQueries
   watchlistRepository: WatchlistRepository

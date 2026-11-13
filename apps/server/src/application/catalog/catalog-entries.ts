@@ -1,7 +1,7 @@
 import {
   bestQuality,
   type CatalogItem,
-  type CatalogRepository,
+  type CatalogReadModel,
   type EpisodeRef,
   isPlayableKind,
   type VideoQuality,
@@ -22,7 +22,7 @@ export type CatalogEntry = {
 }
 
 type Deps = {
-  catalogRepository: Pick<CatalogRepository, 'listSeriesEpisodes' | 'bestQualities'>
+  catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes' | 'bestQualities'>
   progressViews: ProgressViews
   watchlistRepository: WatchlistRepository
 }

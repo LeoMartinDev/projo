@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import type { CatalogRepository } from '../../core/catalog/catalog.ts'
 import type { SegmentSettings } from '../../core/settings/settings.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createCapturingLogger } from '../../../test/support/logger.ts'
@@ -29,7 +28,7 @@ const build = (
       segmentCatalog: inMemorySegmentCatalog([
         { itemId: 'm1', kind: 'movie', tmdbId: 603, detectSegments: true, sharesFile },
       ]),
-      catalogRepository: { listReadySources: () => [] } as unknown as CatalogRepository,
+      catalogRepository: { listReadySources: () => [] },
     }),
     segmentRepository: store.repository,
     submissions: submissions.repository,

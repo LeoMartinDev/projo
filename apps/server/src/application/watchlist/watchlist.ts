@@ -1,6 +1,6 @@
 import { andThen, appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { VisibleItems, VisibilityScope } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import { decodeCursor, encodeCursor } from '../../core/catalog/cursor.ts'
 import type { WatchlistEntry, WatchlistRepository } from '../../core/watchlist/watchlist.ts'
@@ -8,7 +8,7 @@ import type { CatalogEntries } from '../catalog/catalog-entries.ts'
 import type { CatalogPage } from '../catalog/list-catalog.ts'
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<VisibleItems, 'findVisible'>
   watchlistRepository: WatchlistRepository
   catalogEntries: CatalogEntries
   clock: Clock

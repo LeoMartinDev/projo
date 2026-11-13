@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSources, PlayableSource } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { MediaError } from '../../core/media/probe.ts'
@@ -59,7 +59,7 @@ export const generateTrickplayFactory =
     trickplayStore,
     logger,
   }: {
-    catalogRepository: CatalogRepository
+    catalogRepository: Pick<PlayableSources, 'findSource'>
     mediaCatalog: MediaAssetCatalog
     playbackSettings: PlaybackSettingsReader
     trickplayStore: TrickplayStore
@@ -101,7 +101,7 @@ export const trickplayUrlFactory =
     catalogRepository,
     trickplayStore,
   }: {
-    catalogRepository: Pick<CatalogRepository, 'findSource'>
+    catalogRepository: Pick<PlayableSources, 'findSource'>
     trickplayStore: TrickplayStore
   }) =>
   (sourceId: string): string | undefined => {
@@ -119,7 +119,7 @@ export const trickplayFilesFactory = ({
   trickplayStore,
   canAccessSource,
 }: {
-  catalogRepository: Pick<CatalogRepository, 'findSource'>
+  catalogRepository: Pick<PlayableSources, 'findSource'>
   trickplayStore: TrickplayStore
   canAccessSource: SourceAccess
 }) => {

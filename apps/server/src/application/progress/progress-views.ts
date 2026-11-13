@@ -1,6 +1,6 @@
 import {
   type CatalogItem,
-  type CatalogRepository,
+  type CatalogReadModel,
   isPlayableKind,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
@@ -14,7 +14,10 @@ import {
 export type ProgressView =
   { kind: 'playable'; progress?: ItemProgress } | { kind: 'aggregate'; status: WatchStatus }
 
-type Deps = { catalogRepository: CatalogRepository; progressRepository: ProgressRepository }
+type Deps = {
+  catalogRepository: Pick<CatalogReadModel, 'listVisibleEpisodeIds'>
+  progressRepository: ProgressRepository
+}
 
 export type ProgressViews = (input: {
   profileId: string

@@ -1,8 +1,8 @@
-import type { CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
 import { searchRules, toSearchExpression } from '../../core/catalog/search.ts'
 import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
 
-type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntries }
+type Deps = { catalogRepository: Pick<CatalogReadModel, 'search'>; catalogEntries: CatalogEntries }
 
 export type SearchResults = { movies: CatalogEntry[]; series: CatalogEntry[] }
 

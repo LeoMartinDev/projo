@@ -1,7 +1,9 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
-  type CatalogRepository,
+  type CatalogReadModel,
+  type VisibleItems,
+  type PlayableSources,
   everything,
   type PlayableSource,
   type VisibilityScopeResolver,
@@ -46,7 +48,10 @@ const playable = (source: PlayableSource | undefined): ClipSource | undefined =>
 }
 
 const clipSourceFactory =
-  (catalogRepository: CatalogRepository) =>
+  (
+    catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes'> &
+      Pick<PlayableSources, 'listReadySources'>,
+  ) =>
   (target: { id: string; kind: 'movie' | 'series' }): ClipSource | undefined => {
     if (target.kind === 'movie') {
       return playable(
@@ -72,7 +77,8 @@ export const generatePreviewClipFactory = ({
   previewStore,
   logger,
 }: {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes'> &
+    Pick<PlayableSources, 'listReadySources'>
   mediaCatalog: MediaAssetCatalog
   previewStore: PreviewStore
   logger: Logger
@@ -129,7 +135,7 @@ export const previewAccessFactory =
     scopeFor,
   }: {
     previewStore: PreviewStore
-    catalogRepository: Pick<CatalogRepository, 'findSource' | 'findVisible'>
+    catalogRepository: Pick<VisibleItems, 'findVisible'> & Pick<PlayableSources, 'findSource'>
     canAccessSource: SourceAccess
     scopeFor: VisibilityScopeResolver
   }) =>

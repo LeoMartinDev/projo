@@ -3,7 +3,7 @@ import type { GenreId } from '@projo/shared/api/genres'
 
 import {
   type CatalogItem,
-  type CatalogRepository,
+  type VisibleItems,
   isPlayableKind,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
@@ -22,7 +22,7 @@ export type MemoryTarget = {
 }
 
 export const memoryTargetOf = (
-  catalogRepository: CatalogRepository,
+  catalogRepository: Pick<VisibleItems, 'findVisible'>,
   item: CatalogItem,
   scope: VisibilityScope,
 ): MemoryTarget => {
@@ -46,7 +46,7 @@ export type TrackPreferencesError = AppError<'item/not_found' | 'item/invalid_ki
 type Target = { profileId: string; itemId: string; scope: VisibilityScope }
 
 const playableItem = (
-  catalogRepository: CatalogRepository,
+  catalogRepository: Pick<VisibleItems, 'findVisible'>,
   { itemId, scope }: Target,
 ): Result<CatalogItem, TrackPreferencesError> => {
   const item = catalogRepository.findVisible({ id: itemId, scope })
@@ -67,7 +67,7 @@ const normalized = (language: string | undefined): string | undefined =>
   language === undefined ? undefined : (normalizeLanguage(language) ?? language.toLowerCase())
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<VisibleItems, 'findVisible'>
   trackPreferenceRepository: TrackPreferenceRepository
   clock: Clock
   logger: Logger

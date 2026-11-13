@@ -1,7 +1,8 @@
 import { appError, err, ok } from '@projo/shared'
 
 import {
-  type CatalogRepository,
+  type VisibleItems,
+  type PlayableSources,
   isPlayableKind,
   type VisibilityScopeResolver,
 } from '../../core/catalog/catalog.ts'
@@ -37,7 +38,7 @@ export const getItemSegmentsFactory =
     segmentRepository,
     visibilityScope,
   }: {
-    catalogRepository: Pick<CatalogRepository, 'findVisible' | 'listReadySources'>
+    catalogRepository: Pick<VisibleItems, 'findVisible'> & Pick<PlayableSources, 'listReadySources'>
     segmentRepository: SegmentRepository
     visibilityScope: VisibilityScopeResolver
   }): GetItemSegments =>

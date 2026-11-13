@@ -1,13 +1,16 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
-  type CatalogRepository,
+  type CatalogReadModel,
   isPlayableKind,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
 import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
 
-type Deps = { catalogRepository: CatalogRepository; catalogEntries: CatalogEntries }
+type Deps = {
+  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listVisibleChildren'>
+  catalogEntries: CatalogEntries
+}
 
 export type ListChildrenError = AppError<'item/not_found' | 'item/invalid_kind'>
 

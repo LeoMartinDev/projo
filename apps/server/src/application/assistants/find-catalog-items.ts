@@ -1,9 +1,9 @@
-import { type CatalogItem, type CatalogRepository, everything } from '../../core/catalog/catalog.ts'
+import { type CatalogItem, type CatalogReadModel, everything } from '../../core/catalog/catalog.ts'
 import { toSearchExpression } from '../../core/catalog/search.ts'
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 
 type Deps = {
-  catalog: Pick<CatalogRepository, 'search'>
+  catalog: Pick<CatalogReadModel, 'search'>
   items: Pick<MetadataItemRepository, 'findItem' | 'sourcesUnder'>
 }
 

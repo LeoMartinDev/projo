@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import type { CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSource } from '../../core/catalog/catalog.ts'
 import { noSegmentKey, type SegmentLookup } from '../../core/segments/segment.ts'
 import type { SegmentSettings } from '../../core/settings/settings.ts'
 import { createManualClock, type ManualClock } from '../../../test/support/clock.ts'
@@ -48,7 +48,7 @@ const build = (
   const fake = fakeSegmentProviders(answers)
   const catalogRepository = {
     listReadySources: ({ itemId }: { itemId: string }) => sources[itemId] ?? [],
-  } as unknown as CatalogRepository
+  }
   const fetch = fetchSegmentsFactory({
     segmentTarget: segmentTargetFactory({
       segmentCatalog: inMemorySegmentCatalog(items),

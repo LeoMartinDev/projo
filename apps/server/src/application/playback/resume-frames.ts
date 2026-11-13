@@ -1,4 +1,4 @@
-import type { CatalogRepository, VisibilityScopeResolver } from '../../core/catalog/catalog.ts'
+import type { PlayableSources, VisibilityScopeResolver } from '../../core/catalog/catalog.ts'
 import {
   sameFingerprint,
   trickplayInstantAt,
@@ -15,7 +15,7 @@ export const resumeFramesFactory =
     trickplayStore,
     scopeFor,
   }: {
-    catalogRepository: Pick<CatalogRepository, 'listReadySources'>
+    catalogRepository: Pick<PlayableSources, 'listReadySources'>
     trickplayStore: TrickplayStore
     scopeFor: VisibilityScopeResolver
   }) =>

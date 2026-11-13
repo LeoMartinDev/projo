@@ -1,10 +1,13 @@
-import type { CatalogItem, CatalogRepository, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { CatalogItem, CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
 import type { ProgressRepository } from '../../core/progress/progress.ts'
 import { seriesPlayTarget } from '../../core/progress/rows.ts'
 
 export type PlayButton = { action: 'resume' | 'play'; item: CatalogItem; positionMs: number }
 
-type Deps = { catalogRepository: CatalogRepository; progressRepository: ProgressRepository }
+type Deps = {
+  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listSeriesEpisodes'>
+  progressRepository: ProgressRepository
+}
 
 export type SeriesPlay = (input: {
   profileId: string

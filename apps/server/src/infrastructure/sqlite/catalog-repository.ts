@@ -9,7 +9,7 @@ import {
   type CatalogFilters,
   type CatalogItem,
   type CatalogPosition,
-  type CatalogRepository,
+  type CatalogReadModel,
   type CatalogSort,
   episodeRangeEnd,
   type EpisodeRef,
@@ -17,6 +17,7 @@ import {
   isPlayableKind,
   missingSortValue,
   type PlayableSource,
+  type PlayableSources,
   resolutionOf,
   type SortOrder,
   type VideoQuality,
@@ -294,8 +295,12 @@ const sourceColumns = {
   rootState: libraryRoots.state,
 }
 
-export const createSqliteCatalogRepository = ({ db }: { db: Db }): CatalogRepository => {
-  const findManyVisible: CatalogRepository['findManyVisible'] = ({ ids, scope }) =>
+export const createSqliteCatalogRepository = ({
+  db,
+}: {
+  db: Db
+}): CatalogReadModel & PlayableSources => {
+  const findManyVisible: CatalogReadModel['findManyVisible'] = ({ ids, scope }) =>
     withDurations(
       db,
       scope,
@@ -310,7 +315,7 @@ export const createSqliteCatalogRepository = ({ db }: { db: Db }): CatalogReposi
       ),
     )
 
-  const listVisibleEpisodeIds: CatalogRepository['listVisibleEpisodeIds'] = ({
+  const listVisibleEpisodeIds: CatalogReadModel['listVisibleEpisodeIds'] = ({
     ancestorIds,
     scope,
   }) =>

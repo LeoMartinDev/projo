@@ -3,13 +3,13 @@ import { eq } from 'drizzle-orm'
 
 import { insertItem, insertLibrary, insertSource } from '../../../test/support/catalog-fixtures.ts'
 import { createTestDatabase } from '../../../test/support/database.ts'
-import { type CatalogRepository, everything } from '../../core/catalog/catalog.ts'
+import { type CatalogReadModel, everything } from '../../core/catalog/catalog.ts'
 import { createSqliteCatalogRepository } from './catalog-repository.ts'
 import type { Db } from './database.ts'
 import { sources } from './schema/libraries.ts'
 
 let db: Db
-let repo: CatalogRepository
+let repo: ReturnType<typeof createSqliteCatalogRepository>
 
 const movie = (id: string, extra: Omit<Parameters<typeof insertItem>[1], 'id' | 'kind'> = {}) =>
   insertItem(db, { id, kind: 'movie', ...extra })
@@ -133,7 +133,7 @@ describe('keyset pagination', () => {
     })
   })
 
-  const page = (input: Partial<Parameters<CatalogRepository['listTopLevel']>[0]>) =>
+  const page = (input: Partial<Parameters<CatalogReadModel['listTopLevel']>[0]>) =>
     repo
       .listTopLevel({
         kind: 'movie',

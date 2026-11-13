@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository } from '../../core/catalog/catalog.ts'
+import type { PlayableSources } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { MediaError } from '../../core/media/probe.ts'
@@ -30,7 +30,7 @@ export const getSubtitleVttFactory =
     subtitleCache,
   }: {
     subtitleTracks: SubtitleTrackRepository
-    catalogRepository: CatalogRepository
+    catalogRepository: Pick<PlayableSources, 'findSource'>
     canAccessSource: SourceAccess
     subtitleCache: SubtitleCache
   }) =>
@@ -114,7 +114,7 @@ export const preExtractSubtitlesFactory =
     logger,
   }: {
     subtitleTracks: SubtitleTrackRepository
-    catalogRepository: CatalogRepository
+    catalogRepository: Pick<PlayableSources, 'findSource'>
     mediaCatalog: MediaAssetCatalog
     subtitleCache: SubtitleCache
     logger: Logger

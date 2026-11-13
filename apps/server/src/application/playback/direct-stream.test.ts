@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { ok } from '@projo/shared'
 
-import type { CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSource } from '../../core/catalog/catalog.ts'
 import type { PlaybackSession } from '../../core/playback/session.ts'
 import { directStreamFactory } from './direct-stream.ts'
 
@@ -35,7 +35,7 @@ const session: PlaybackSession = {
 const streamOf = (current: PlayableSource) =>
   directStreamFactory({
     authorize: () => ok(session),
-    catalogRepository: { findSource: () => current } as unknown as CatalogRepository,
+    catalogRepository: { findSource: () => current },
   })({ sessionId: 's1', secret: 'secret-1' })
 
 describe('directStream', () => {

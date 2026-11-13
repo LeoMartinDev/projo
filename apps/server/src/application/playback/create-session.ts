@@ -3,7 +3,8 @@ import type { ClientCapabilities, PlaybackQuality } from '@projo/shared/api/play
 
 import {
   type CatalogItem,
-  type CatalogRepository,
+  type VisibleItems,
+  type PlayableSources,
   everything,
   isPlayableKind,
   type MediaSegment,
@@ -60,7 +61,8 @@ import { keyframePriority, requestKeyframes } from './index-keyframes.ts'
 import { memoryTargetOf } from './track-preferences.ts'
 
 type Deps = {
-  catalogRepository: CatalogRepository
+  catalogRepository: Pick<VisibleItems, 'findVisible'> &
+    Pick<PlayableSources, 'listReadySources' | 'listSourceItemIds' | 'listMediaSegments'>
   progressRepository: ProgressRepository
   sessionRepository: PlaybackSessionRepository
   subtitleTrackRepository: SubtitleTrackRepository

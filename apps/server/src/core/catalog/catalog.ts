@@ -92,7 +92,14 @@ export type PlayableSource = {
   media?: MediaInfo
 }
 
-export type CatalogRepository = {
+/** Items a profile may see, by id: shared by browsing and playback. */
+export type VisibleItems = {
+  findVisible: (input: { id: string; scope: VisibilityScope }) => CatalogItem | undefined
+  findManyVisible: (input: { ids: readonly string[]; scope: VisibilityScope }) => CatalogItem[]
+}
+
+/** The browsing read model: lists, search, filters, people and media summaries. */
+export type CatalogReadModel = VisibleItems & {
   listTopLevel: (input: {
     kind: 'movie' | 'series'
     sort: CatalogSort
@@ -104,8 +111,6 @@ export type CatalogRepository = {
     profileId?: string
   }) => CatalogItem[]
   listRecentlyAdded: (input: { limit: number; scope: VisibilityScope }) => CatalogItem[]
-  findVisible: (input: { id: string; scope: VisibilityScope }) => CatalogItem | undefined
-  findManyVisible: (input: { ids: readonly string[]; scope: VisibilityScope }) => CatalogItem[]
   listGenres: (input: { kind?: 'movie' | 'series'; scope: VisibilityScope }) => GenreId[]
   yearRange: (input: {
     kind?: 'movie' | 'series'
@@ -128,6 +133,10 @@ export type CatalogRepository = {
     ancestorIds: readonly string[]
     scope: VisibilityScope
   }) => { episodeId: string; ancestorId: string }[]
+}
+
+/** The files that play an item: lookup by item or by source, and their media segments. */
+export type PlayableSources = {
   listReadySources: (input: { itemId: string; scope: VisibilityScope }) => PlayableSource[]
   findSource: (sourceId: string) => PlayableSource | undefined
   listSourceItemIds: (sourceId: string) => string[]

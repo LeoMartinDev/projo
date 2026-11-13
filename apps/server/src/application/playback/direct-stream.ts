@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { CatalogRepository } from '../../core/catalog/catalog.ts'
+import type { PlayableSources } from '../../core/catalog/catalog.ts'
 import { directMimeType } from '../../core/playback/decide-mode.ts'
 import type { AuthorizeStream, SessionAccessError, StreamAccess } from './session-lifecycle.ts'
 
@@ -13,7 +13,7 @@ export const directStreamFactory =
     catalogRepository,
   }: {
     authorize: AuthorizeStream
-    catalogRepository: CatalogRepository
+    catalogRepository: Pick<PlayableSources, 'findSource'>
   }) =>
   async (
     access: StreamAccess,

@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import { appError, err, ok, type Result } from '@projo/shared'
 
 import { createRecordingJobQueue } from '../../../test/support/fakes.ts'
-import type { CatalogRepository, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSource } from '../../core/catalog/catalog.ts'
 import type {
   HlsJob,
   HlsSegmenter,
@@ -71,7 +71,7 @@ const streamFor = ({
     authorize: () => ok(playing),
     catalogRepository: {
       findSource: () => ({ ...source, ...(media === undefined ? {} : { media }) }),
-    } as unknown as CatalogRepository,
+    },
     keyframeStore: {
       read: () =>
         keyframes === 'missing'
@@ -191,7 +191,7 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
       authorize: () => ok(transcoding),
       catalogRepository: {
         findSource: () => ({ ...source, media }),
-      } as unknown as CatalogRepository,
+      },
       keyframeStore: { read: () => undefined, write: () => ok() },
       mediaProber: { probe: async () => err(appError('media/ffprobe_failed', 'unused')) },
       jobQueue: createRecordingJobQueue().queue,
@@ -294,7 +294,7 @@ describe('hlsStream: session ended while waiting for the keyframe index (§10.3,
     }
     const stream = hlsStreamFactory({
       authorize,
-      catalogRepository: { findSource: () => source } as unknown as CatalogRepository,
+      catalogRepository: { findSource: () => source },
       keyframeStore,
       mediaProber: {
         probe: async () => {
