@@ -287,6 +287,11 @@ export const createHtmlVideoEngine = (video: HTMLVideoElement): WebPlayerEngine 
       active: nativeFullscreen,
       enter: () => webkit(video).webkitEnterFullscreen?.(),
     },
+    // The picture is the page's own `<video>`; the overlay draws the subtitles.
+    picture: { showing: createStore(false), place: () => {} },
+    engineSubtitles: { setSize: () => {}, setBottom: () => {} },
+    // The `<video>` is kept for the next player (§10.7).
+    release: () => {},
   }
 }
 

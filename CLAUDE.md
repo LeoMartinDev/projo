@@ -78,10 +78,12 @@ apps/web/src/{app,features/<feature>,shared/{api,i18n,styles}}
 apps/web/src/features/player/   the web player (§10.7) on @projo/player:
   engines/html-video/      PlayerEngine on <video> + hls.js: PiP (document PiP too), AirPlay, native
                            full screen, MediaSource/decodingInfo capability probing, HLS text tracks
-  engines/mpv/             PlayerEngine over the desktop app's libmpv: Tauri bridge (dynamic import
-                           only, never in the main chunk; IPC contract §28.6), mpv-events.ts (pure:
-                           mpv property/event → MediaEvent, recorded sequences as fixtures beside it),
-                           its EngineCapabilities
+  engines/mpv/             PlayerEngine over the desktop app's libmpv (dynamic import only, never in
+                           the main chunk): bridge.ts (the IPC contract of §28.6 as a port),
+                           tauri-bridge.ts (__TAURI_INTERNALS__ invoke + event listen), mpv-events.ts
+                           (pure: mpv property/event → MediaEvent), mpv-tracks.ts (pure: session
+                           tracks → aid/sid/sub-add), mpv-engine.ts; tests replay fixtures/ (libmpv
+                           recorded by e2e/scripts/record-mpv-sequences.ts through recording/)
   ui/                      PlayerPage and components: read the controller's store, act through its
                            actions, decide on EngineCapabilities; never import engines/
   (route / composition)    the only place that picks the engine: window.__TAURI_INTERNALS__ → mpv
@@ -290,7 +292,7 @@ beforeEach(() => {
 - HTTP: `createHttpApp(...)` + `app.request('/api/v1/…')` (see `entrypoints/http/app.test.ts`); with real auth: `createAuthTestApp()` (`test/support/auth-app.ts`); full startup: `startProjo({ env: { PORT: '0', DATA_DIR: tmp, LOG_LEVEL: 'error' } })`.
 - TMDB: never the real one. `test/support/tmdb-server.ts` replays `test/fixtures/tmdb/` (key `TEST_TMDB_KEY`); `test/support/metadata-world.ts` = scanner world + metadata module against that server (`setKey()`, `runJobs(['match_source', 'fetch_images'])`, `requestApi('/images/:id')`).
 - Catalogue / playback without scanner: rows inserted by `test/support/catalog-fixtures.ts`; end-to-end playback: `entrypoints/http/routes/playback-flow.test.ts`. Mode per engine (§10.2: `engine: 'mpv'` → `direct` at Original whatever the container and codecs, never burn-in, no transcode slot): `core/playback/decide-mode.test.ts`, the `create-playback-session` tests, `playback-flow.test.ts`.
-- Player (§22): `@projo/player` logic tested once for every engine. Pure rules: unit tests beside them in `packages/player/src/core/`. Controller: against the fake engine (`packages/player/src/testing/fake-engine.ts`: scripts `MediaEvent` sequences) with in-memory `PlaybackApi`, manual `Timers` and `Clock`, in-memory `KeyValueStorage`; never a DOM, a `<video>` or the network. Engine contract (`packages/player/src/testing/engine-contract.ts`): a suite function every engine's test calls; it runs against the fake engine and against `engines/mpv/mpv-events.ts` fed with libmpv property and event sequences recorded from the desktop app (JSON fixtures beside it). The `html-video` engine is covered by the e2e (Chromium + WebKit).
+- Player (§22): `@projo/player` logic tested once for every engine. Pure rules: unit tests beside them in `packages/player/src/core/`. Controller: against the fake engine (`packages/player/src/testing/fake-engine.ts`: scripts `MediaEvent` sequences) with in-memory `PlaybackApi`, manual `Timers` and `Clock`, in-memory `KeyValueStorage`; never a DOM, a `<video>` or the network. Engine contract (`packages/player/src/testing/engine-contract.ts`): a suite function every engine's test calls; it runs against the fake engine and against the mpv engine over `replay-bridge.ts`, which replays `engines/mpv/fixtures/contract-recording.json` strictly (every call the engine makes must be the recorded one). Record it again whenever the engine's calls or the contract change: `bun e2e/scripts/record-mpv-sequences.ts` on Windows (debug desktop build in `C:	debug`, ffmpeg on the PATH; the app opens unfocused, libmpv with `ao=null`, its app data removed after; refuses to run if the app has data already). The `html-video` engine is covered by the e2e (Chromium + WebKit).
 - Desktop (§28.8): `cargo test` for the Rust (node → JSON, server URL, IPC grant pattern); libmpv and the window are checked by hand on Windows (list in §28.8).
 
 ## Misc

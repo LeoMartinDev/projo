@@ -1,5 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 
+import type { WindowFullscreen } from './web-engine.ts'
+
 const subscribeFullscreen = (notify: () => void) => {
   document.addEventListener('fullscreenchange', notify)
   document.addEventListener('webkitfullscreenchange', notify)
@@ -102,4 +104,24 @@ const playerScope = createFullscreenScope({
 // Fullscreen outlives a player only for the next one (the next episode).
 export const usePlayerFullscreenScope = (): void => {
   useEffect(() => playerScope.enter(), [])
+}
+
+const windowScopes = new WeakMap<WindowFullscreen, ReturnType<typeof createFullscreenScope>>()
+
+// The same for an engine's window full screen (the desktop app, §28.4).
+export const useWindowFullscreenScope = (control: WindowFullscreen | undefined): void => {
+  useEffect(() => {
+    if (control === undefined) return
+    let scope = windowScopes.get(control)
+    if (scope === undefined) {
+      scope = createFullscreenScope({
+        exit: () => {
+          if (control.active.get()) control.set(false)
+        },
+        defer: (callback) => void setTimeout(callback, 0),
+      })
+      windowScopes.set(control, scope)
+    }
+    return scope.enter()
+  }, [control])
 }

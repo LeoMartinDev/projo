@@ -2330,3 +2330,27 @@
     pointer-events: none;
   }
 }
+
+/* An engine drawing under the page (§10.7): the player paints its chrome
+   only, the picture shows through; its box is where the page wants it. */
+.player--behind-page {
+  background: transparent;
+}
+
+.player .player__video--behind,
+.player--next-up .player__video--behind {
+  border-radius: 0;
+  background: transparent;
+}
+
+/* A backdrop blur cannot see the engine's picture: glass becomes opaque, and
+   panels take their stand-in where blur cannot run (tokens.css). */
+.player--opaque-glass {
+  --material-panel: var(--material-opaque);
+  --blur-panel: none;
+  --material-glass: var(--material-opaque);
+  /* Hover: a fill step over the opaque material (a layer, used as `background`). */
+  --material-glass-hover: linear-gradient(var(--fill-2), var(--fill-2)), var(--material-opaque);
+  --blur-glass: none;
+  --blur-glass-dim: none;
+}

@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { PlaybackSessionDto } from '@projo/shared/api/playback'
-
 import type { EngineLoad, PlayerEngine } from '../core/engine.ts'
 import type { MediaEventType } from '../core/media-state.ts'
+import { contractDurationS, contractLoad } from './contract-session.ts'
 
 /**
  * Moves the media under an engine the way a real stream would. For a real
@@ -24,35 +23,6 @@ export type EngineDriver = {
 
 export type EngineUnderTest = { engine: PlayerEngine; driver: EngineDriver }
 
-export const contractSession: PlaybackSessionDto = {
-  id: 'contract',
-  itemId: 'item',
-  sourceId: 'source',
-  mode: 'direct',
-  stream: { type: 'direct', url: '/api/v1/stream/contract/secret/file', mimeType: 'video/mp4' },
-  startPositionMs: 0,
-  heartbeatIntervalMs: 10_000,
-  quality: 'original',
-  availableQualities: ['original'],
-  audioTracks: [],
-  subtitleTracks: [],
-  trackSelection: 'profile',
-  burnIn: false,
-  versions: [],
-  parts: [],
-  partOffsetMs: 0,
-  chapters: [],
-  segments: [],
-}
-
-const loadOf = (load: Partial<EngineLoad>): EngineLoad => ({
-  session: contractSession,
-  startSeconds: 0,
-  autoplay: true,
-  subtitleDelayMs: 0,
-  ...load,
-})
-
 const recorder = (engine: PlayerEngine) => {
   const events: MediaEventType[] = []
   const stop = engine.events.subscribe((event) => events.push(event.type))
@@ -72,10 +42,10 @@ export const runEngineContract = (name: string, create: () => EngineUnderTest): 
   const loaded = async (
     { engine, driver }: EngineUnderTest,
     load: Partial<EngineLoad> = {},
-    durationS = 60,
+    durationS = contractDurationS,
   ) => {
     const failures: string[] = []
-    const unload = engine.load(loadOf(load), (failure) => failures.push(failure.message))
+    const unload = engine.load(contractLoad(load), (failure) => failures.push(failure.message))
     await driver.loaded(durationS)
     await driver.settle?.()
     return { unload, failures }

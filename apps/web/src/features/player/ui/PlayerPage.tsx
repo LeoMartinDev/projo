@@ -19,6 +19,7 @@ import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import { createPlayerController } from '@projo/player/application/player-controller'
 import { type PlayerContext, playerView } from '@projo/player/application/player-view'
 import { countdownRatio, secondsLeft } from '@projo/player/core/next-up'
+import { createStore } from '@projo/player/core/store'
 import { segmentKey } from '@projo/player/core/segment-skip'
 import { vttTrackOf } from '@projo/player/core/subtitles'
 import {
@@ -52,7 +53,12 @@ import {
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { itemQuery } from '../../catalog/queries.ts'
 import { useUpdateProfile } from '../../profiles/queries.ts'
-import { toggleFullscreen, useIsFullscreen, usePlayerFullscreenScope } from '../fullscreen.ts'
+import {
+  toggleFullscreen,
+  useIsFullscreen,
+  usePlayerFullscreenScope,
+  useWindowFullscreenScope,
+} from '../fullscreen.ts'
 import {
   browserClock,
   browserPage,
@@ -108,12 +114,14 @@ import { idleGesture, type SeekSide, settled, type TapGesture, tapped } from './
 import { Timeline } from './Timeline.tsx'
 import { TrackToast } from './TrackToast.tsx'
 import { useControlsInset } from './use-controls-inset.ts'
+import { useEngineSubtitles, usePictureBehindPage } from './use-picture-behind-page.ts'
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import { useStore } from './use-store.ts'
 import './player.css'
 
 const seekStepMs = 10_000
+const notInWindowFullscreen = createStore(false)
 const volumeStep = 0.1
 const idleDelayMs = 3000
 const rippleFadeMs = 250
@@ -232,10 +240,13 @@ export const PlayerPage = ({
   const [controls, controlsRef] = useElement<HTMLDivElement>()
   useControlsInset(container, controls)
   usePlayerFullscreenScope()
+  useWindowFullscreenScope(engine.windowFullscreen)
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useStore(controller)
   const media = useStore(engine.state)
-  const fullscreen = useIsFullscreen()
+  const documentFullscreen = useIsFullscreen()
+  const windowFullscreen = useStore(engine.windowFullscreen?.active ?? notInWindowFullscreen)
+  const fullscreen = engine.windowFullscreen === undefined ? documentFullscreen : windowFullscreen
   const nativeFullscreen = useStore(engine.nativeFullscreen.active)
   const pip = useStore(engine.pictureInPicture.active)
   const pipStage = useStore(engine.pictureInPicture.stage)
@@ -256,6 +267,8 @@ export const PlayerPage = ({
     return () => controller.stop()
   }, [controller])
   useEffect(() => () => engine.pictureInPicture.leave(), [engine])
+  // After the controller's stop (declared above, cleaned up first).
+  useEffect(() => () => engine.release(), [engine])
 
   const chapters =
     session === undefined ? [] : chaptersOnItem(session.chapters, session.partOffsetMs)
@@ -368,11 +381,14 @@ export const PlayerPage = ({
   const seekBy = (deltaMs: number) => controller.seekBy(deltaMs)
   const setVolume = (volume: number) => controller.setVolume(volume)
   const toggleMute = () => controller.toggleMute()
-  const toggleFull = () =>
-    toggleFullscreen({
-      available: engine.capabilities.nativeFullscreen,
-      enter: engine.nativeFullscreen.enter,
-    })
+  const toggleFull = () => {
+    if (engine.windowFullscreen !== undefined) engine.windowFullscreen.set(!fullscreen)
+    else
+      toggleFullscreen({
+        available: engine.capabilities.nativeFullscreen,
+        enter: engine.nativeFullscreen.enter,
+      })
+  }
 
   const { skippable, skipView, nextUpView, countdown: activeCountdown, countdownStart } = view
   const skippableKey = skippable === undefined ? undefined : segmentKey(skippable)
@@ -409,6 +425,7 @@ export const PlayerPage = ({
       inOverlay: inOverlay(event.target ?? undefined),
       overlayOpen: overlay !== undefined,
       fullscreen,
+      ownFullscreen: engine.windowFullscreen !== undefined,
     })
     wake()
     if (command === undefined) return
@@ -656,6 +673,16 @@ export const PlayerPage = ({
   const showEnd = itemEnded && !blocked && !nextUpShown
   const chromeVisible =
     !idle || media.paused || blocked || overlay !== undefined || showEnd || nextUpShown
+  const behindPage = usePictureBehindPage({ engine, thumbnail: nextUpShown })
+  const captionsAboveToast =
+    (toast !== undefined || skipped !== undefined || nextUpView === 'bubble') && !blocked
+  useEngineSubtitles({
+    engine,
+    container,
+    size: subtitleSettings.size,
+    raised: chromeVisible,
+    aboveToast: captionsAboveToast,
+  })
   const canAct = session !== undefined && !blocked
   const muted = media.muted || media.volume === 0
   const landingFor = (ms: number) => (session === undefined ? ms : snapToSeekPoint(session, ms))
@@ -697,7 +724,7 @@ export const PlayerPage = ({
   return (
     <div
       ref={containerRef}
-      className={`player${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'languages' ? ' player--menu' : ''}${pinchStage === 'idle' ? '' : ` player--pinch-${pinchStage}`}`}
+      className={`player${behindPage ? ' player--behind-page' : ''}${engine.capabilities.backdropBlur ? '' : ' player--opaque-glass'}${chromeVisible ? '' : ' player--idle'}${nextUpShown ? ' player--next-up' : ''}${overlay === 'languages' ? ' player--menu' : ''}${pinchStage === 'idle' ? '' : ` player--pinch-${pinchStage}`}`}
       onPointerMove={(event) => {
         if (event.pointerType === 'mouse') wake()
       }}
@@ -720,16 +747,14 @@ export const PlayerPage = ({
             engine.media,
           )}
 
-      {pipStage === undefined ? (
+      {engine.capabilities.subtitles === 'engine' ? undefined : pipStage === undefined ? (
         <SubtitleOverlay
           key={vttTrack === undefined ? 'off' : `${session?.id ?? ''}-${vttTrack.id}`}
           element={vttTrack === undefined ? undefined : trackElement}
           delayMs={subtitleSettings.delayMs}
           size={subtitleSettings.size}
           raised={chromeVisible}
-          aboveToast={
-            (toast !== undefined || skipped !== undefined || nextUpView === 'bubble') && !blocked
-          }
+          aboveToast={captionsAboveToast}
           native={nativeFullscreen || (pip && engine.pictureInPicture.showsTextTracks())}
         />
       ) : (

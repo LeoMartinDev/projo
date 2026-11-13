@@ -43,6 +43,10 @@ describe('commandFor', () => {
   test('Escape closes an open menu first, and is left to the browser in fullscreen', () => {
     expect(commandFor(key('Escape'), { ...idle, overlayOpen: true })).toBe('close_overlay')
     expect(commandFor(key('Escape'), { ...idle, fullscreen: true })).toBeUndefined()
+    // The desktop window's full screen: the page leaves it (§28.4).
+    expect(commandFor(key('Escape'), { ...idle, fullscreen: true, ownFullscreen: true })).toBe(
+      'toggle_fullscreen',
+    )
   })
 
   test('inside the menu only Escape is the player’s', () => {

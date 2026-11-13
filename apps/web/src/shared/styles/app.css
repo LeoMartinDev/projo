@@ -8,3 +8,11 @@ html:has(.player) {
   min-height: 100vh;
   min-height: 100dvh;
 }
+
+/* A player engine drawing under the page (the desktop app's libmpv, §10.7):
+   the document lets its picture through while it plays. */
+html.picture-behind-page,
+html.picture-behind-page body,
+html.picture-behind-page #root {
+  background: transparent;
+}

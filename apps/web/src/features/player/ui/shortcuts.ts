@@ -24,6 +24,9 @@ export type KeyContext = {
   inOverlay: boolean
   overlayOpen: boolean
   fullscreen: boolean
+  // The page leaves its full screen itself on Escape (the desktop window's,
+  // §28.4); otherwise the browser does.
+  ownFullscreen?: boolean
 }
 
 const letters: Record<string, PlayerCommand> = {
@@ -47,7 +50,8 @@ export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand 
   if (input.altKey || input.ctrlKey || input.metaKey || context.editing) return undefined
   if (input.key === 'Escape') {
     if (context.overlayOpen) return 'close_overlay'
-    return context.fullscreen ? undefined : 'exit'
+    if (!context.fullscreen) return 'exit'
+    return context.ownFullscreen === true ? 'toggle_fullscreen' : undefined
   }
   if (context.inOverlay) return undefined
   return keys[input.key] ?? letters[input.key.toLowerCase()]

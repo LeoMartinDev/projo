@@ -9,11 +9,12 @@ import type { WebPlayerEngine } from './web-engine.ts'
  * engine: it decides on `engine.capabilities`.
  */
 const choosePlayerEngine = (): WebPlayerEngine | Promise<WebPlayerEngine> => {
-  // Desktop app (Tauri, §28): `window.__TAURI_INTERNALS__` will select the mpv
-  // engine here, loaded by a dynamic import so it never weighs on the browser
-  // bundle's main chunk:
-  //   if ('__TAURI_INTERNALS__' in window)
-  //     return import('./engines/mpv/mpv-engine.ts').then((module) => module.createMpvEngine())
+  // Desktop app (Tauri, §28): libmpv, loaded by a dynamic import so it never
+  // weighs on the browser bundle's main chunk.
+  if ('__TAURI_INTERNALS__' in window)
+    return import('./engines/mpv/mpv-engine.ts').then(
+      (module) => module.mpvEngine() ?? htmlVideoEngine(),
+    )
   return htmlVideoEngine()
 }
 
