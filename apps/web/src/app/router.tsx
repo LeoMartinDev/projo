@@ -25,6 +25,7 @@ import { loadItem } from '../features/item/load-item.ts'
 import { WhoIsWatching } from '../features/profiles/WhoIsWatching.tsx'
 import { AppShell } from '../features/shell/AppShell.tsx'
 import { UpdateBanner } from '../shared/app-update/UpdateBanner.tsx'
+import { WindowControls } from '../shared/desktop/WindowControls.tsx'
 import { isKeptTab } from '../features/shell/KeptTabs.tsx'
 import { canAdminister, canManageAccount } from '../shared/session/active-profile.ts'
 import { applyMe, sessionQuery, setupStatusQuery } from '../shared/session/session.ts'
@@ -164,6 +165,7 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
     <>
       <Outlet />
       <UpdateBanner />
+      <WindowControls />
     </>
   ),
   pendingComponent: FullPageSpinner,

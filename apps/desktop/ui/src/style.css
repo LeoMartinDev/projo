@@ -1,106 +1,169 @@
-/* Plain CSS with the values of @projo/design/tokens.css (the bundled page has no dependency). */
-:root {
-  color-scheme: dark;
-  --color-bg: #0a0a0b;
-  --color-field: #141416;
-  --color-field-focus: #17171a;
-  --color-border-field: #232326;
-  --color-border-focus: #9d9d9e;
-  --color-text: #f4f4f5;
-  --color-text-secondary: #a1a1aa;
-  --color-danger: #f87171;
-  --color-primary-bg: #f4f4f5;
-  --color-primary-text: #0a0a0b;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
+/* The bundled first-launch page, drawn like the web's sign-in page (@projo/design). Bun's bundler
+   inlines the fonts and the backdrop as data: URLs (font-src and img-src of tauri.conf.json). */
+@import '@projo/design/fonts.css';
+@import '@projo/design/tokens.css';
+@import '@projo/design/base.css';
 
 html,
 body {
   height: 100%;
-  margin: 0;
-  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* The web's backdrop, `ocean` with the `split` shade: the sign-in page that follows has the same. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.backdrop__image {
+  position: absolute;
+  inset: 0;
+  background: url('@projo/design/backdrops/ocean.webp') center / cover no-repeat;
+  filter: saturate(0.68) contrast(0.94);
+}
+
+.backdrop::before,
+.backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.backdrop::before {
+  background: linear-gradient(
+    90deg,
+    rgba(10, 10, 11, 0.55) 0%,
+    rgba(10, 10, 11, 0.18) 45%,
+    rgba(10, 10, 11, 0.72) 100%
+  );
+}
+
+.backdrop::after {
+  background:
+    radial-gradient(ellipse at 35% 42%, transparent 20%, var(--shade-2) 100%),
+    linear-gradient(0deg, var(--shade-2), transparent 60%);
+}
+
+/* The window has no native frame (§28.4): this strip moves it, its buttons act on it. */
+.titlebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: flex-end;
+  height: 32px;
+}
+
+.titlebar__button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-strong);
+  cursor: default;
+  transition: background-color 0.15s ease;
+}
+
+.titlebar__button svg {
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.titlebar__button:hover {
+  background: var(--fill-3);
+}
+
+.titlebar__button--close:hover {
+  background: #c42b1c;
+  color: #ffffff;
+}
+
+.setup__header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  padding: 24px var(--gutter);
+}
+
+.setup__logo {
   color: var(--color-text);
-  font: 15px/1.4 var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  pointer-events: none;
+}
+
+.setup__dot {
+  color: var(--color-accent);
 }
 
 .setup {
+  position: relative;
+  z-index: 2;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: min(420px, 100% - 32px);
+  align-items: center;
+  justify-content: flex-end;
   height: 100%;
-  margin: 0 auto;
+  padding: 112px clamp(16px, 6vw, 96px) 56px;
 }
 
-.setup__brand {
-  margin: 0 0 28px;
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
-.setup__form {
+.setup__panel {
   display: flex;
+  flex: 0 1 440px;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  min-width: 0;
+  padding: 32px;
 }
 
-.setup__label {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
+.setup__title {
+  margin-bottom: 6px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
 }
 
-.setup__input {
-  height: 48px;
-  padding: 0 16px;
-  border: 1px solid var(--color-border-field);
-  border-radius: 15px;
-  outline: none;
-  background: var(--color-field);
-  color: var(--color-text);
-  font: inherit;
+.spinner[hidden] {
+  display: none;
 }
 
-.setup__input:disabled {
-  color: var(--color-text-secondary);
-}
-
-.setup__input:focus {
-  border-color: var(--color-border-focus);
-  background: var(--color-field-focus);
-}
-
-/* Reserved height: the form does not move when a message appears. */
+/* Reserved height: the panel does not move when a message appears. */
 .setup__message {
   height: 40px;
-  margin: 0;
+  margin: -4px 0 -8px;
   overflow: hidden;
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
   font-size: 13px;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .setup__message[data-kind='error'] {
-  color: var(--color-danger);
+  color: var(--color-error-soft);
 }
 
-.setup__button {
-  height: 48px;
-  border: 0;
-  border-radius: 14px;
-  background: var(--color-primary-bg);
-  color: var(--color-primary-text);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
+/* `not (--wide)` of @projo/design/media.css: Bun's bundler does not resolve @custom-media. */
+@media (max-width: 1099px) {
+  .setup {
+    justify-content: center;
+  }
 
-.setup__button:disabled {
-  opacity: 0.38;
-  cursor: default;
+  .backdrop::before {
+    background: var(--shade-2);
+  }
 }

@@ -11,6 +11,9 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "typecheck": "bun check"
   },
+  "dependencies": {
+    "@projo/design": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "1.4.4"
   }

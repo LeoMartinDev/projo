@@ -15,7 +15,8 @@ import { contractDurationS, contractLoad } from '@projo/player/testing/contract-
 import type { WebPlayerEngine } from '../../../web-engine.ts'
 import { createMpvEngine } from '../mpv-engine.ts'
 import { type MpvRecording, recordingBridge, type RecordedEntry } from '../recorded.ts'
-import { createTauriBridge, tauriInternals } from '../tauri-bridge.ts'
+import { tauriInternals } from '../../../../../shared/desktop/tauri.ts'
+import { createTauriBridge } from '../tauri-bridge.ts'
 
 // Where the recording driver serves the media (any path) and its gate.
 export const recordingMediaBase = 'http://127.0.0.1:4891/'

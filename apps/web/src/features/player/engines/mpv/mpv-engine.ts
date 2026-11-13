@@ -33,7 +33,8 @@ import {
   subtitleSteps,
   type TrackStep,
 } from './mpv-tracks.ts'
-import { createTauriBridge, tauriInternals } from './tauri-bridge.ts'
+import { tauriInternals } from '../../../../shared/desktop/tauri.ts'
+import { createTauriBridge } from './tauri-bridge.ts'
 
 // libmpv decodes every codec of both lists (§10.2); the records keep the
 // lists complete when @projo/shared adds one.

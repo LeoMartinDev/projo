@@ -3,9 +3,10 @@
 export type Locale = 'en' | 'fr'
 
 const en = {
+  title: 'Your projo server',
   label: 'Server address',
   connect: 'Connect',
-  connecting: (url: string) => `Connecting to ${url}…`,
+  window: { minimize: 'Minimize', maximize: 'Maximize', close: 'Close' },
   errors: {
     'server/invalid_url': 'Enter an address like http://192.168.1.10:8080.',
     'server/unreachable': 'No answer from this address.',
@@ -18,9 +19,10 @@ const en = {
 export type Messages = typeof en
 
 const fr: Messages = {
+  title: 'Votre serveur projo',
   label: 'Adresse du serveur',
   connect: 'Se connecter',
-  connecting: (url) => `Connexion à ${url}…`,
+  window: { minimize: 'Réduire', maximize: 'Agrandir', close: 'Fermer' },
   errors: {
     'server/invalid_url': 'Saisissez une adresse comme http://192.168.1.10:8080.',
     'server/unreachable': 'Aucune réponse à cette adresse.',

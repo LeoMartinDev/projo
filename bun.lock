@@ -12,6 +12,9 @@
     "apps/desktop": {
       "name": "@projo/desktop",
       "version": "0.1.0",
+      "dependencies": {
+        "@projo/design": "workspace:*",
+      },
       "devDependencies": {
         "@types/bun": "1.4.4",
       },

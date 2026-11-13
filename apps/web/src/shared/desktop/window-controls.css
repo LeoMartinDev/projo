@@ -1,0 +1,51 @@
+/* The desktop app's window has no native frame (§28.4): the page fills it and
+   draws the window buttons, which pages keep clear of through this inset. */
+:root[data-window-controls] {
+  --window-controls-inset: 146px;
+}
+
+.window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 300;
+  display: flex;
+  height: 32px;
+  transition: opacity 0.3s ease;
+}
+
+/* Hidden with the player's chrome. */
+:root:has(.player--idle) .window-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.window-controls__button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-strong);
+  transition: background-color 0.15s ease;
+}
+
+.window-controls__button svg {
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.window-controls__button:hover {
+  background: var(--fill-3);
+}
+
+.window-controls__button--close:hover {
+  background: #c42b1c;
+  color: #ffffff;
+}

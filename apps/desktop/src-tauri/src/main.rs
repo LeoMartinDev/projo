@@ -182,7 +182,18 @@ fn main() {
                     // Overlay scroll bars (shown while scrolling), like Windows 11's own apps,
                     // instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
                     .scroll_bar_style(ScrollBarStyle::FluentOverlay)
+                    // No native frame: the page fills the window and draws its own buttons and
+                    // drag strip (§28.4); the edges still resize it.
+                    .decorations(false)
                     .transparent(true);
+            if cfg!(debug_assertions) {
+                // Dev builds only: Chrome DevTools Protocol on 127.0.0.1:9229 to inspect the page
+                // (wry's default flags kept).
+                builder = builder.additional_browser_args(
+                    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection \
+                     --remote-debugging-port=9229",
+                );
+            }
             if let Some((x, y)) = hooks.window_position {
                 builder = builder.position(x, y).focused(false);
             }

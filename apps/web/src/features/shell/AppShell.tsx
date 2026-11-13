@@ -194,7 +194,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
       <a className="skip-link" href="#main">
         {t('shell.skipToContent')}
       </a>
-      <header className="shell__header" data-scrolled={scrolled} ref={headerRef}>
+      <header className="shell__header" data-scrolled={scrolled} data-window-drag ref={headerRef}>
         <span className="pill-merge__glass" aria-hidden="true" />
         <svg className="pill-merge__paint" aria-hidden="true">
           <defs>

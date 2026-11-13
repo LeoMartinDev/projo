@@ -22,6 +22,11 @@
     "undo": "Undo",
     "valid": "Valid"
   },
+  "window": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "restore": "Restore"
+  },
   "nav": {
     "home": "Home",
     "movies": "Movies",

@@ -86,6 +86,8 @@ html:has(dialog:modal) .shell__header {
   display: flex;
   align-items: center;
   gap: 4px;
+  /* Clear of the desktop app's window buttons (§28.4). */
+  margin-right: max(0px, var(--window-controls-inset, 0px) - var(--gutter));
 }
 
 .pill-merge__paint {

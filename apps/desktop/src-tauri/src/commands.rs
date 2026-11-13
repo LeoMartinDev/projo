@@ -285,6 +285,12 @@ pub const SERVER_PERMISSIONS: &[&str] = &[
     "core:event:allow-unlisten",
     "core:window:allow-set-fullscreen",
     "core:window:allow-is-fullscreen",
+    "core:window:allow-is-maximized",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-internal-toggle-maximize",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close",
 ];
 
 /// Back to the bundled page to pick another server (also Ctrl+Shift+U, see `SHORTCUT_SCRIPT`).
