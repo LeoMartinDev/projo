@@ -114,7 +114,14 @@ describe('library watchers (§7.4)', () => {
     }
     const root = join(tmp.path, 'fallback')
     const { watchers, directoryCache } = setup([library(root)], fake)
-    const entry = { mtimeMs: 1, cachedAt: 0, directories: [], files: [], entryCount: 0 }
+    const entry = {
+      mtimeMs: 1,
+      cachedAt: 0,
+      settled: true,
+      directories: [],
+      files: [],
+      entryCount: 0,
+    }
     directoryCache.set('root', '', entry)
     directoryCache.set('root', 'Films', entry)
     watchers.sync()

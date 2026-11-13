@@ -11,6 +11,7 @@ import { requestScanFactory } from '../../application/scanner/request-scan.ts'
 import { scanLibraryFactory } from '../../application/scanner/scan-library.ts'
 import { walkRootFactory } from '../../application/scanner/walk-root.ts'
 import { watchPendingFactory } from '../../application/scanner/watch-pending.ts'
+import { systemClock } from '../../infrastructure/clock/system-clock.ts'
 import { createNodeFileSystem } from '../../infrastructure/fs/node-file-system.ts'
 import { createFfmpegDecoder } from '../../infrastructure/media/ffmpeg-decoder.ts'
 import { createFfprobeProber } from '../../infrastructure/media/ffprobe.ts'
@@ -71,7 +72,8 @@ export const buildScannerModule = (
     libraryRepository,
     sourceRepository,
     scanRunRepository,
-    walkRoot: walkRootFactory({ fileSystem, directoryCache, clock }),
+    // mtimes come from the host clock, whatever clock the platform runs on (a manual one in tests)
+    walkRoot: walkRootFactory({ fileSystem, directoryCache, clock, fileClock: systemClock }),
     fileSystem,
     prober,
     linkSourceItems,

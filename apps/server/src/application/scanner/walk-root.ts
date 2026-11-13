@@ -14,6 +14,13 @@ import type { FoundFile } from '../../core/scanner/scan-plan.ts'
 import type { CachedDirectory, DirectoryCache } from '../../core/scanner/ports.ts'
 
 export const DIRECTORY_CACHE_MAX_AGE_MS = 60 * 60 * 1000
+/**
+ * Filesystems stamp mtimes from a coarse clock (a kernel tick of a few ms, 1 to 2 s on FAT, exFAT
+ * and some network shares): a directory changed in the same tick as its listing was read keeps the
+ * same mtime. A listing is reused only when its mtime was older than this when it was read (git's
+ * "racily clean" entries); a recent one is read again on the next walk.
+ */
+export const MTIME_GRANULARITY_MS = 2_000
 
 const CANDIDATE_EXTENSIONS: ReadonlySet<string> = new Set([
   ...VIDEO_EXTENSIONS,
@@ -37,7 +44,13 @@ export type WalkResult = {
   aborted: boolean
 }
 
-type Deps = { fileSystem: FileSystem; directoryCache: DirectoryCache; clock: Clock }
+type Deps = {
+  fileSystem: FileSystem
+  directoryCache: DirectoryCache
+  clock: Clock
+  /** The clock mtimes are stamped with (the host's), compared to them to settle a listing. */
+  fileClock: Clock
+}
 
 type WalkInput = {
   rootId: string
@@ -48,7 +61,7 @@ type WalkInput = {
 }
 
 export const walkRootFactory =
-  ({ fileSystem, directoryCache, clock }: Deps) =>
+  ({ fileSystem, directoryCache, clock, fileClock }: Deps) =>
   async ({ rootId, rootPath, incremental, signal, onProgress }: WalkInput): Promise<WalkResult> => {
     const result: WalkResult = {
       videos: [],
@@ -65,6 +78,7 @@ export const walkRootFactory =
     const followedTargets = new Set<string>()
     const stack: string[] = ['']
     const now = clock.now().getTime()
+    const settledBefore = fileClock.now().getTime() - MTIME_GRANULARITY_MS
 
     const listing = async (relative: string): Promise<CachedDirectory | undefined> => {
       const absolute = joinAbsolute(rootPath, relative)
@@ -73,6 +87,7 @@ export const walkRootFactory =
       const cached = incremental ? directoryCache.get(rootId, relative) : undefined
       if (
         cached !== undefined &&
+        cached.settled &&
         cached.mtimeMs === stat.value.mtimeMs &&
         now - cached.cachedAt < DIRECTORY_CACHE_MAX_AGE_MS
       ) {
@@ -84,10 +99,12 @@ export const walkRootFactory =
         relativePath: relative,
         entryNames: entries.value.map((entry) => entry.name),
       })
+      const settled = stat.value.mtimeMs < settledBefore
       if (decision.kind === 'skip') {
         return {
           mtimeMs: stat.value.mtimeMs,
           cachedAt: now,
+          settled,
           directories: [],
           files: [],
           entryCount: 0,
@@ -110,6 +127,7 @@ export const walkRootFactory =
       const fresh: CachedDirectory = {
         mtimeMs: stat.value.mtimeMs,
         cachedAt: now,
+        settled,
         directories,
         files,
         entryCount: entries.value.length,

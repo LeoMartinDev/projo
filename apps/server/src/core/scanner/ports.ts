@@ -46,6 +46,8 @@ export type ScanRunRepository = {
 export type CachedDirectory = {
   mtimeMs: number
   cachedAt: number
+  /** The mtime was already older than the file clock's granularity when the listing was read. */
+  settled: boolean
   directories: string[]
   files: string[]
   entryCount: number
