@@ -18,6 +18,7 @@ import { createStaticFiles } from '../../src/infrastructure/http/static-files.ts
 import { toProfileRow } from '../../src/infrastructure/sqlite/profile-repository.ts'
 import { toAccountRow } from '../../src/infrastructure/sqlite/account-repository.ts'
 import { accounts, profiles } from '../../src/infrastructure/sqlite/schema/accounts.ts'
+import { afterCommit } from '../../src/infrastructure/sqlite/transactions.ts'
 import { sampleAccount, sampleProfile } from './auth.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
@@ -43,10 +44,11 @@ export const createAuthTestApp = ({
 }: { trustProxy?: boolean; keepAliveMs?: number } = {}) => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-05-01T12:00:00.000Z'))
-  const recording = createRecordingEventBus()
+  const recording = createRecordingEventBus({ afterCommit: (effect) => afterCommit(db, effect) })
   let subscriptions = 0
   const eventBus: EventBus = {
     publish: recording.bus.publish,
+    on: recording.bus.on,
     subscribe: (listener) => {
       subscriptions += 1
       const unsubscribe = recording.bus.subscribe(listener)

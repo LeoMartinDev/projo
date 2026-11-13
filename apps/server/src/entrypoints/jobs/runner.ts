@@ -73,6 +73,14 @@ export const createJobRunner = ({
         ? {}
         : { error: { code: job.error.code, message: job.error.message } }),
     })
+    if (job.state === 'done' || job.state === 'failed') {
+      eventBus.publish('job.finished', {
+        jobId: job.id,
+        type: job.type,
+        state: job.state,
+        payload: job.payload,
+      })
+    }
   }
 
   const runningCount = (type: JobType): number => {

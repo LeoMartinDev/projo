@@ -14,6 +14,7 @@ import { createUuidV7Generator } from '../../infrastructure/ids/uuid-v7.ts'
 import { createSqliteAdminNotifier } from '../../infrastructure/sqlite/admin-notifier.ts'
 import { type Db, openDatabase } from '../../infrastructure/sqlite/database.ts'
 import { createSqliteJobRepository } from '../../infrastructure/sqlite/job-repository.ts'
+import { afterCommit } from '../../infrastructure/sqlite/transactions.ts'
 import type { AppPaths } from '../app-paths.ts'
 import type { Config } from '../config.ts'
 import { createJobQueue } from '../jobs/job-queue.ts'
@@ -73,7 +74,10 @@ export const buildPlatform = ({
     ),
     (db) => {
       const ids = createUuidV7Generator({ clock })
-      const eventBus = createInMemoryEventBus({ logger })
+      const eventBus = createInMemoryEventBus({
+        logger,
+        afterCommit: (effect) => afterCommit(db, effect),
+      })
       const jobRepository = createSqliteJobRepository({ db })
       const { queue, control, connectRunner } = createJobQueue({
         jobRepository,

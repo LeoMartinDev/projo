@@ -445,15 +445,12 @@ describe.skipIf(!hasFfmpeg())('hero preview (§13.3)', () => {
   })
 
   test('a series: from its most recent episode, after the enrichment of an episode', async () => {
-    const { job } = jobRepository.enqueue({
-      id: 'job-images',
+    publish('job.finished', {
+      jobId: 'job-images',
       type: 'fetch_images',
+      state: 'done',
       payload: { itemId: 'episode' },
-      priority: 40,
-      maxAttempts: 3,
-      runAfter: new Date(0),
     })
-    publish('job.updated', { jobId: job.id, type: 'fetch_images', state: 'done', attempts: 1 })
     expect(jobs.enqueued).toEqual([
       { type: 'preview_clip', payload: { itemId: 'series' }, dedupeKey: 'preview:series' },
     ])

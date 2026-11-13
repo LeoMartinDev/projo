@@ -44,6 +44,7 @@ export type StoredImage = {
 export type ItemPersonImage = { personId: string; tmdbId: number; profileImageId?: string }
 
 export type MetadataItemRepository = {
+  /** Events published inside are delivered once it commits, never if it rolls back. */
   transaction: <T>(run: () => T) => T
   findItem: (id: string) => LinkedItemInfo | undefined
   linkedItems: (sourceId: string) => LinkedItemInfo[]

@@ -106,6 +106,7 @@ export type LinkedItem = {
 }
 
 export type LocalItemRepository = {
+  /** Events published inside are delivered once it commits, never if it rolls back. */
   transaction: <T>(run: () => T) => T
   linksOf: (sourceId: string) => LinkedItem[]
   parentOf: (id: string) => string | undefined

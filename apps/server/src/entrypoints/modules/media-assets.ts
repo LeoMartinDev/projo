@@ -49,7 +49,7 @@ const itemPayload = z.object({ itemId: z.string().min(1) })
 const hour = 60 * 60_000
 
 export const buildMediaAssetsModule = (
-  { db, clock, logger, eventBus, jobQueue, jobRepository, paths }: Platform,
+  { db, clock, logger, eventBus, jobQueue, paths }: Platform,
   {
     visibilityScope,
     authorizeStream,
@@ -126,25 +126,21 @@ export const buildMediaAssetsModule = (
     logger: moduleLogger,
   })
 
-  const unsubscribe = eventBus.subscribe((event) => {
-    if (event.type === 'source.ready') {
-      const { sourceId } = event.payload
+  const subscriptions = [
+    eventBus.on('source.ready', ({ sourceId }) => {
       const flags = mediaCatalog.libraryFlags(sourceId)
       if (flags?.trickplayEnabled === true && playbackSettings.read().trickplayEnabled) {
         requestTrickplay(jobQueue, sourceId)
       }
       if (flags?.preExtractSubtitles === true) requestSubtitleExtraction(jobQueue, sourceId)
-    }
-    if (
-      event.type === 'job.updated' &&
-      event.payload.type === 'fetch_images' &&
-      event.payload.state === 'done'
-    ) {
-      const payload = itemPayload.safeParse(jobRepository.findById(event.payload.jobId)?.payload)
+    }),
+    eventBus.on('job.finished', (job) => {
+      if (job.type !== 'fetch_images' || job.state !== 'done') return
+      const payload = itemPayload.safeParse(job.payload)
       const target = payload.success ? mediaCatalog.previewTargetOf(payload.data.itemId) : undefined
       if (target !== undefined) requestPreviewClip(jobQueue, target.id)
-    }
-  })
+    }),
+  ]
 
   return defineModule({
     exposes: {
@@ -226,7 +222,7 @@ export const buildMediaAssetsModule = (
       },
     ],
     stop: () => {
-      unsubscribe()
+      for (const unsubscribe of subscriptions) unsubscribe()
     },
   })
 }

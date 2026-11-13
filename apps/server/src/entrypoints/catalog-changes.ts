@@ -19,20 +19,16 @@ export const startCatalogChanges = ({
       eventBus.publish('catalog.changed', {})
     }, windowMs)
   }
-  const unsubscribe = eventBus.subscribe((event) => {
-    if (
-      event.type === 'source.ready' ||
-      event.type === 'scan.finished' ||
-      (event.type === 'job.updated' &&
-        event.payload.state === 'done' &&
-        catalogJobs.has(event.payload.type))
-    ) {
-      schedule()
-    }
-  })
+  const subscriptions = [
+    eventBus.on('source.ready', schedule),
+    eventBus.on('scan.finished', schedule),
+    eventBus.on('job.finished', (job) => {
+      if (job.state === 'done' && catalogJobs.has(job.type)) schedule()
+    }),
+  ]
   return {
     stop: () => {
-      unsubscribe()
+      for (const unsubscribe of subscriptions) unsubscribe()
       clearTimeout(pending)
       pending = undefined
     },

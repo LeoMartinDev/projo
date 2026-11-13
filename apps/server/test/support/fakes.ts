@@ -1,7 +1,9 @@
-import type { EventBus, EventListener, ServerEvent } from '../../src/core/events.ts'
+import type { AfterCommit, ServerEvent } from '../../src/core/events.ts'
 import type { IdGenerator } from '../../src/core/ids.ts'
 import { jobDefaults, type Job } from '../../src/core/jobs/job.ts'
 import type { EnqueueJobInput, JobQueue } from '../../src/core/jobs/ports.ts'
+import { createInMemoryEventBus } from '../../src/infrastructure/events/in-memory-event-bus.ts'
+import { silentLogger } from './logger.ts'
 
 export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
   let counter = 0
@@ -13,22 +15,19 @@ export const createSequentialIds = (prefix = 'id-'): IdGenerator => {
   }
 }
 
-export const createRecordingEventBus = () => {
+/**
+ * The real bus, recording each client event as it is delivered (after commit when `afterCommit`
+ * defers it, as `createTestPlatform` does). Internal events are observed with `bus.on`.
+ */
+export const createRecordingEventBus = ({ afterCommit }: { afterCommit?: AfterCommit } = {}) => {
+  const bus = createInMemoryEventBus({
+    logger: silentLogger,
+    ...(afterCommit === undefined ? {} : { afterCommit }),
+  })
   const events: ServerEvent[] = []
-  const listeners = new Set<EventListener>()
-  const bus: EventBus = {
-    publish: (type, payload) => {
-      const event = { type, payload } as ServerEvent
-      events.push(event)
-      for (const listener of listeners) listener(event)
-    },
-    subscribe: (listener) => {
-      listeners.add(listener)
-      return () => {
-        listeners.delete(listener)
-      }
-    },
-  }
+  bus.subscribe((event) => {
+    events.push(event)
+  })
   return { bus, events }
 }
 

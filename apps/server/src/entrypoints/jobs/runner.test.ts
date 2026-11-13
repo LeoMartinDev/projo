@@ -5,7 +5,7 @@ import { appError, err, ok } from '@projo/shared'
 
 import { createTestDatabase } from '../../../test/support/database.ts'
 import type { Clock } from '../../core/clock.ts'
-import type { ServerEventPayloads } from '../../core/events.ts'
+import type { EventPayloads, ServerEventPayloads } from '../../core/events.ts'
 import { type Job, jobDefaults, type JobType } from '../../core/jobs/job.ts'
 import type { JobRepository } from '../../core/jobs/ports.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
@@ -39,6 +39,8 @@ const setup = (handlers: JobHandlers, options: { onFinalFailure?: (job: Job) => 
   eventBus.subscribe((event) => {
     if (event.type === 'job.updated') events.push(event.payload)
   })
+  const finished: EventPayloads['job.finished'][] = []
+  eventBus.on('job.finished', (job) => finished.push(job))
   const jobRepository = createSqliteJobRepository({ db: createTestDatabase() })
   const { queue, connectRunner } = createJobQueue({
     jobRepository,
@@ -58,7 +60,7 @@ const setup = (handlers: JobHandlers, options: { onFinalFailure?: (job: Job) => 
   })
   connectRunner(runner)
   runners.push(runner)
-  return { clock, queue, runner, jobRepository, events }
+  return { clock, queue, runner, jobRepository, events, finished }
 }
 
 const runners: JobRunner[] = []
@@ -273,9 +275,9 @@ describe('createJobRunner', () => {
     expect(jobRepository.findById(second.job.id)?.state).toBe('done')
   })
 
-  test('retries a failing job and succeeds within max attempts', async () => {
+  test('retries a failing job and succeeds within max attempts, finished once', async () => {
     let calls = 0
-    const { queue, runner, jobRepository } = setup({
+    const { queue, runner, jobRepository, finished } = setup({
       match_source: {
         concurrency: 1,
         run: async () => {
@@ -289,11 +291,14 @@ describe('createJobRunner', () => {
     await runner.idle()
     expect(calls).toBe(3)
     expect(jobRepository.findById(job.id)).toMatchObject({ state: 'done', attempts: 3 })
+    expect(finished).toEqual([
+      { jobId: job.id, type: 'match_source', state: 'done', payload: { sourceId: 's1' } },
+    ])
   })
 
   test('fails for good after max attempts and reports it once', async () => {
     const finalFailures: Job[] = []
-    const { queue, runner, jobRepository } = setup(
+    const { queue, runner, jobRepository, finished } = setup(
       {
         match_source: {
           concurrency: 1,
@@ -312,6 +317,9 @@ describe('createJobRunner', () => {
       error: { code: 'source/not_found', message: 'gone', context: { sourceId: 's' } },
     })
     expect(finalFailures.map((failed) => failed.id)).toEqual([job.id])
+    expect(finished).toEqual([
+      { jobId: job.id, type: 'match_source', state: 'failed', payload: { sourceId: 's1' } },
+    ])
   })
 
   test('schedules retries with the backoff delay', async () => {

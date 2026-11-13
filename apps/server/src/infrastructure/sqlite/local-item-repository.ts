@@ -5,6 +5,7 @@ import type { Db } from './database.ts'
 import { toIso, toNullable } from './rows.ts'
 import { items } from './schema/items.ts'
 import { sourceItems, sources } from './schema/libraries.ts'
+import { transaction } from './transactions.ts'
 
 export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRepository => {
   const parentsOf = (ids: string[]): string[] =>
@@ -18,7 +19,8 @@ export const createSqliteLocalItemRepository = ({ db }: { db: Db }): LocalItemRe
           .flatMap((row) => (row.parentId === null ? [] : [row.parentId]))
 
   return {
-    transaction: (run) => db.transaction(() => run()),
+    /** Linking and identification publish events (ended playback sessions, queued jobs). */
+    transaction: (run) => transaction(db, run),
 
     linksOf: (sourceId) =>
       db

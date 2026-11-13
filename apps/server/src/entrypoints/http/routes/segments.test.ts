@@ -225,15 +225,12 @@ describe('fetch_segments job and its triggers', () => {
       outcome: 'found',
     })
     const finish = (itemId: string, state: 'done' | 'failed') => {
-      const { job } = platform.jobRepository.enqueue({
-        id: `images-${itemId}`,
+      bus.bus.publish('job.finished', {
+        jobId: `images-${itemId}`,
         type: 'fetch_images',
+        state,
         payload: { itemId },
-        priority: 40,
-        maxAttempts: 3,
-        runAfter: new Date(0),
       })
-      bus.bus.publish('job.updated', { jobId: job.id, type: 'fetch_images', state, attempts: 1 })
     }
     finish('e2', 'done')
     finish('m1', 'failed')
@@ -247,21 +244,16 @@ describe('fetch_segments job and its triggers', () => {
   })
 
   test('after match_source leaves a file unidentified: its chapters are read at once', async () => {
-    const platform = build()
+    build()
     db.update(sources).set({ matchState: 'needs_review' }).where(eq(sources.id, 'f1')).run()
     db.update(sources).set({ matchState: 'matched' }).where(eq(sources.id, 'f2')).run()
-    let counter = 0
     const finish = (sourceId: string, state: 'done' | 'failed') => {
-      counter += 1
-      const { job } = platform.jobRepository.enqueue({
-        id: `match-${counter}`,
+      bus.bus.publish('job.finished', {
+        jobId: `match-${sourceId}`,
         type: 'match_source',
+        state,
         payload: { sourceId },
-        priority: 60,
-        maxAttempts: 3,
-        runAfter: new Date(0),
       })
-      bus.bus.publish('job.updated', { jobId: job.id, type: 'match_source', state, attempts: 1 })
     }
     finish('f1', 'done')
     finish('f2', 'done')

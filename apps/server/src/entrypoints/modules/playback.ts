@@ -146,11 +146,9 @@ export const buildPlaybackModule = (
     endWithin: endPlaybackSessionsWithinFactory({ sessionRepository, endSession }),
   }
 
-  const unsubscribe = eventBus.subscribe((event) => {
-    if (event.type === 'source.ready') {
-      requestKeyframes(jobQueue, event.payload.sourceId, keyframePriority.background)
-    }
-  })
+  const unsubscribe = eventBus.on('source.ready', ({ sourceId }) =>
+    requestKeyframes(jobQueue, sourceId, keyframePriority.background),
+  )
 
   return defineModule({
     exposes: {

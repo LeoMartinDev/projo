@@ -49,7 +49,7 @@ export const buildSegmentsModule = (
   platform: Platform,
   { visibilityScope, providerBaseUrls, segmentProviders }: SegmentsModuleOptions,
 ) => {
-  const { db, ids, clock, logger, eventBus, jobQueue, jobRepository } = platform
+  const { db, ids, clock, logger, eventBus, jobQueue } = platform
   const moduleLogger = logger.child({ module: 'segments' })
   const store = createSqliteSegmentSettings({ db })
   const providers =
@@ -109,14 +109,12 @@ export const buildSegmentsModule = (
     jobQueue,
   })
 
-  const unsubscribe = eventBus.subscribe((event) => {
-    if (event.type !== 'job.updated') return
-    if (event.payload.state !== 'done' && event.payload.state !== 'failed') return
-    if (event.payload.type === 'fetch_images') {
-      const payload = itemPayload.safeParse(jobRepository.findById(event.payload.jobId)?.payload)
+  const unsubscribe = eventBus.on('job.finished', (job) => {
+    if (job.type === 'fetch_images') {
+      const payload = itemPayload.safeParse(job.payload)
       if (payload.success) requestAfterEnrichment(payload.data.itemId)
-    } else if (event.payload.type === 'match_source') {
-      const payload = sourcePayload.safeParse(jobRepository.findById(event.payload.jobId)?.payload)
+    } else if (job.type === 'match_source') {
+      const payload = sourcePayload.safeParse(job.payload)
       if (payload.success) requestForUnidentifiedSource(payload.data.sourceId)
     }
   })
