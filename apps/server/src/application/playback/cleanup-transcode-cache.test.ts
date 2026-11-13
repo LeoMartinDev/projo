@@ -4,7 +4,7 @@ import { createCapturingLogger, silentLogger } from '../../../test/support/logge
 import type { TranscodeCacheEntry, TranscodeCacheInventory } from '../../core/playback/ports.ts'
 import type { PlaybackSession } from '../../core/playback/session.ts'
 import { defaultPlaybackSettings } from '../../core/settings/settings.ts'
-import { cleanupCacheFactory } from './cleanup-cache.ts'
+import { cleanupTranscodeCacheFactory } from './cleanup-transcode-cache.ts'
 
 const gib = 1024 ** 3
 
@@ -36,7 +36,7 @@ const world = (
       present.delete(sessionId)
     },
   }
-  const cleanup = cleanupCacheFactory({
+  const cleanup = cleanupTranscodeCacheFactory({
     sessionRepository: { findById: (id) => sessions.find((session) => session.id === id) },
     transcodeCache,
     playbackSettings: { read: () => ({ ...defaultPlaybackSettings, transcodeCacheMaxGb }) },
@@ -104,7 +104,7 @@ describe('cleanup_cache (§10.3)', () => {
   test('the cap is read on every run (settings change without restart)', () => {
     let max = 10
     const present = new Map([['ended', { sessionId: 'ended', sizeBytes: 5 * gib }]])
-    const cleanup = cleanupCacheFactory({
+    const cleanup = cleanupTranscodeCacheFactory({
       sessionRepository: { findById: (id) => sessionWith(id, new Date(1)) },
       transcodeCache: {
         entries: () => [...present.values()],

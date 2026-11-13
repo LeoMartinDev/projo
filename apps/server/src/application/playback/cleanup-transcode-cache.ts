@@ -12,11 +12,15 @@ type Deps = {
   logger: Logger
 }
 
-export type CleanupCacheReport = { removed: string[]; freedBytes: number; totalBytes: number }
+export type CleanupTranscodeCacheReport = {
+  removed: string[]
+  freedBytes: number
+  totalBytes: number
+}
 
-export const cleanupCacheFactory =
+export const cleanupTranscodeCacheFactory =
   ({ sessionRepository, transcodeCache, playbackSettings, logger }: Deps) =>
-  (): CleanupCacheReport => {
+  (): CleanupTranscodeCacheReport => {
     const maxBytes = playbackSettings.read().transcodeCacheMaxGb * bytesPerGb
     const entries = transcodeCache.entries()
     let totalBytes = entries.reduce((sum, entry) => sum + entry.sizeBytes, 0)
@@ -51,4 +55,4 @@ export const cleanupCacheFactory =
     return { removed, freedBytes, totalBytes }
   }
 
-export type CleanupCache = ReturnType<typeof cleanupCacheFactory>
+export type CleanupTranscodeCache = ReturnType<typeof cleanupTranscodeCacheFactory>

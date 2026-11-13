@@ -31,7 +31,7 @@ const versionDurationMs = (
   return durations.reduce<number>((total, duration) => total + (duration ?? 0), 0)
 }
 
-export const heartbeatFactory =
+export const recordHeartbeatFactory =
   ({
     authorize,
     sessionRepository,
@@ -95,4 +95,4 @@ export const heartbeatFactory =
     return ok({ session: updated, ...(progress === undefined ? {} : { progress }) })
   }
 
-export type Heartbeat = ReturnType<typeof heartbeatFactory>
+export type RecordHeartbeat = ReturnType<typeof recordHeartbeatFactory>

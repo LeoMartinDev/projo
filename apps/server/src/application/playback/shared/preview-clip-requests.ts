@@ -1,6 +1,6 @@
 import type { JobQueue } from '../../../core/jobs/ports.ts'
 
-export const previewDedupeKey = (itemId: string) => `preview:${itemId}`
+const previewDedupeKey = (itemId: string) => `preview:${itemId}`
 
 export const requestPreviewClip = (jobQueue: JobQueue, itemId: string): void => {
   jobQueue.enqueue({

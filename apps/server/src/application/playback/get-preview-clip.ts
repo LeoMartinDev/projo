@@ -9,9 +9,9 @@ import { type PreviewStore, sameFingerprint } from '../../core/playback/media-as
 import type { SourceAccess } from './shared/source-access.ts'
 import { sourceFingerprint } from './shared/source-fingerprint.ts'
 
-export type PreviewAccessError = AppError<'playback/preview_not_found'>
+export type GetPreviewClipError = AppError<'playback/preview_not_found'>
 
-export const previewAccessFactory =
+export const getPreviewClipFactory =
   ({
     previewStore,
     visibleItems,
@@ -31,7 +31,7 @@ export const previewAccessFactory =
   }: {
     itemId: string
     profileId: string
-  }): Result<string, PreviewAccessError> => {
+  }): Result<string, GetPreviewClipError> => {
     const visible =
       visibleItems.findVisible({ id: itemId, scope: scopeFor(profileId) }) !== undefined
     const stored = visible ? previewStore.read(itemId) : undefined
@@ -50,4 +50,4 @@ export const previewAccessFactory =
     return ok(stored.path)
   }
 
-export type PreviewAccess = ReturnType<typeof previewAccessFactory>
+export type GetPreviewClip = ReturnType<typeof getPreviewClipFactory>

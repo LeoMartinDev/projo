@@ -5,9 +5,9 @@ import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { SegmentRepository, SegmentType } from '../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
-import { markAbsentFactory, markersView, markManualFactory } from './shared/segment-markers.ts'
+import { markAbsentFactory, markManualFactory } from './shared/segment-markers.ts'
 import type { SegmentTargetOf } from './shared/segment-target.ts'
-import type { ItemSegmentsView } from './shared/segments-view.ts'
+import { type ItemSegmentsView, markersView } from './shared/segments-view.ts'
 
 export type ManualMarker = { startMs: number; endMs: number } | { absent: true }
 

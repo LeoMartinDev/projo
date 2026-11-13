@@ -7,7 +7,7 @@ const isFresh = (store: TrickplayStore, source: PlayableSource): boolean => {
   return stored !== undefined && sameFingerprint(stored.fingerprint, sourceFingerprint(source))
 }
 
-export const trickplayUrlFactory =
+export const getTrickplayUrlFactory =
   ({
     playableSources,
     trickplayStore,
@@ -21,4 +21,4 @@ export const trickplayUrlFactory =
     return `/api/v1/trickplay/${encodeURIComponent(sourceId)}/index.json?v=${source.mtime}`
   }
 
-export type TrickplayUrl = ReturnType<typeof trickplayUrlFactory>
+export type GetTrickplayUrl = ReturnType<typeof getTrickplayUrlFactory>

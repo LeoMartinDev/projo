@@ -5,7 +5,7 @@ import {
   type TrickplayStore,
 } from '../../../core/playback/media-assets.ts'
 
-export const trickplayDedupeKey = (sourceId: string) => `trickplay:${sourceId}`
+const trickplayDedupeKey = (sourceId: string) => `trickplay:${sourceId}`
 
 export const trickplayInProgressPriority = 12
 

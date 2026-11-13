@@ -4,7 +4,7 @@ import type { SegmentCatalog } from '../../core/segments/catalog.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
 import { requestSegments } from './shared/segment-requests.ts'
 
-export const backfillBatch = 400
+const backfillBatch = 400
 
 export const requestMissingSegmentsFactory =
   ({

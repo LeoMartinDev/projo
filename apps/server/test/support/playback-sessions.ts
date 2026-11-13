@@ -2,7 +2,7 @@ import { authorizePlaybackFactory } from '../../src/application/playback/authori
 import { authorizeStreamFactory } from '../../src/application/playback/authorize-stream.ts'
 import { endPlaybackSessionFactory } from '../../src/application/playback/end-playback-session.ts'
 import { endPlaybackSessionsWithinFactory } from '../../src/application/playback/end-playback-sessions-within.ts'
-import { heartbeatFactory } from '../../src/application/playback/heartbeat.ts'
+import { recordHeartbeatFactory } from '../../src/application/playback/record-heartbeat.ts'
 import { stopPlaybackSessionFactory } from '../../src/application/playback/stop-playback-session.ts'
 import { sweepPlaybackSessionsFactory } from '../../src/application/playback/sweep-playback-sessions.ts'
 import type { PlayableSource, PlayableSources } from '../../src/core/catalog/catalog.ts'
@@ -140,7 +140,7 @@ export const createPlaybackSessionWorld = () => {
       hashSecret: (secret) => `h(${secret})`,
       clock,
     }),
-    heartbeat: heartbeatFactory({
+    heartbeat: recordHeartbeatFactory({
       authorize,
       sessionRepository: sessions,
       playableSources: catalog,

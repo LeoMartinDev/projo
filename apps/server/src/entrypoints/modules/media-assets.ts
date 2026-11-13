@@ -14,9 +14,9 @@ import { getTrickplayIndexFactory } from '../../application/playback/get-trickpl
 import { getTrickplaySheetFactory } from '../../application/playback/get-trickplay-sheet.ts'
 import { homePreviewsFactory } from '../../application/playback/home-previews.ts'
 import { preExtractSubtitlesFactory } from '../../application/playback/pre-extract-subtitles.ts'
-import { previewAccessFactory } from '../../application/playback/preview-access.ts'
+import { getPreviewClipFactory } from '../../application/playback/get-preview-clip.ts'
 import { requestMissingTrickplayFactory } from '../../application/playback/request-missing-trickplay.ts'
-import { resumeFramesFactory } from '../../application/playback/resume-frames.ts'
+import { findResumeFrameFactory } from '../../application/playback/find-resume-frame.ts'
 import { requestPreviewClip } from '../../application/playback/shared/preview-clip-requests.ts'
 import type { SourceAccess } from '../../application/playback/shared/source-access.ts'
 import { requestSubtitleExtraction } from '../../application/playback/shared/subtitle-extraction-requests.ts'
@@ -101,7 +101,7 @@ export const buildMediaAssetsModule = (
     subtitleCache,
     logger: moduleLogger,
   })
-  const previewAccess = previewAccessFactory({
+  const previewAccess = getPreviewClipFactory({
     previewStore,
     visibleItems: catalog,
     playableSources: catalog,
@@ -143,7 +143,7 @@ export const buildMediaAssetsModule = (
   return defineModule({
     exposes: {
       homePreviews: homePreviewsFactory({ previewAccess, mediaCatalog, jobQueue, clock }),
-      homeResumeFrames: resumeFramesFactory({
+      homeResumeFrames: findResumeFrameFactory({
         playableSources: catalog,
         trickplayStore,
         scopeFor: visibilityScope,

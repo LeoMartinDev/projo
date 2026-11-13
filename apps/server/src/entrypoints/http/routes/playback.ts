@@ -16,7 +16,7 @@ import type {
   CreatedPlaybackSession,
   CreatePlaybackSession,
 } from '../../../application/playback/create-playback-session.ts'
-import type { Heartbeat } from '../../../application/playback/heartbeat.ts'
+import type { RecordHeartbeat } from '../../../application/playback/record-heartbeat.ts'
 import type { SetTrackPreferences } from '../../../application/playback/set-track-preferences.ts'
 import type { StopPlaybackSession } from '../../../application/playback/stop-playback-session.ts'
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
@@ -123,7 +123,7 @@ export const toTrackPreferencesDto = (preferences: TrackPreferences): TrackPrefe
 
 type Deps = {
   createPlaybackSession: CreatePlaybackSession
-  heartbeat: Heartbeat
+  heartbeat: RecordHeartbeat
   stopPlaybackSession: StopPlaybackSession
   setTrackPreferences: SetTrackPreferences
   clearTrackPreferences: ClearTrackPreferences

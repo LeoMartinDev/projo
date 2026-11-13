@@ -6,9 +6,11 @@ import {
   isTextSubtitle,
   type MediaAssetCatalog,
   type SubtitleCache,
+  type SubtitleCacheError,
 } from '../../core/playback/media-assets.ts'
 import type { SubtitleTrackRepository } from '../../core/playback/subtitles.ts'
-import type { GetSubtitleVttError } from './get-subtitle-vtt.ts'
+
+export type PreExtractSubtitlesError = SubtitleCacheError
 
 export const preExtractSubtitlesFactory =
   ({
@@ -30,7 +32,7 @@ export const preExtractSubtitlesFactory =
   }: {
     sourceId: string
     signal?: AbortSignal
-  }): Promise<Result<{ extracted: number }, GetSubtitleVttError>> => {
+  }): Promise<Result<{ extracted: number }, PreExtractSubtitlesError>> => {
     if (mediaCatalog.libraryFlags(sourceId)?.preExtractSubtitles !== true) {
       return ok({ extracted: 0 })
     }

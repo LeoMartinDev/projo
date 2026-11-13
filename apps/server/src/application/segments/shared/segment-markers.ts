@@ -2,22 +2,19 @@ import type { Clock } from '../../../core/clock.ts'
 import type { JobQueue } from '../../../core/jobs/ports.ts'
 import {
   noSegmentKey,
+  type SegmentLookupKey,
   type SegmentRepository,
   type SegmentType,
+  segmentTypes,
 } from '../../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../../core/settings/settings.ts'
 import { requestSubmission } from './segment-requests.ts'
-import { segmentsView } from './segments-view.ts'
 
-/** The segments of an item as the admin editor shows them, chain lookups included. */
-export const markersView =
-  (segmentRepository: Pick<SegmentRepository, 'listByItem' | 'listLookups'>) =>
-  (itemId: string, durationMs: number | undefined) =>
-    segmentsView(segmentRepository, {
-      itemId,
-      ...(durationMs === undefined ? {} : { durationMs }),
-      withLookups: true,
-    })
+/** The type of a negative marker lookup (`no_segment:<type>`), undefined for a chain lookup. */
+export const negativeMarkerType = (key: SegmentLookupKey): SegmentType | undefined => {
+  const type = key.startsWith('no_segment:') ? key.slice('no_segment:'.length) : undefined
+  return segmentTypes.find((candidate) => candidate === type)
+}
 
 /** Negative marker: no segment of this type, set by the admin only. */
 export const markAbsentFactory =

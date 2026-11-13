@@ -4,7 +4,7 @@ import { ok } from '@projo/shared'
 
 import type { PlayableSource } from '../../core/catalog/catalog.ts'
 import type { PlaybackSession } from '../../core/playback/session.ts'
-import { directStreamFactory } from './direct-stream.ts'
+import { getDirectStreamFactory } from './get-direct-stream.ts'
 
 const source: PlayableSource = {
   id: 'source-1',
@@ -33,7 +33,7 @@ const session: PlaybackSession = {
 }
 
 const streamOf = (current: PlayableSource) =>
-  directStreamFactory({
+  getDirectStreamFactory({
     authorize: () => ok(session),
     playableSources: { findSource: () => current },
   })({ sessionId: 's1', secret: 'secret-1' })

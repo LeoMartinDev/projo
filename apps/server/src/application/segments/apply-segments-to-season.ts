@@ -10,11 +10,14 @@ import {
   segmentTypes,
 } from '../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
-import { markAbsentFactory, markManualFactory } from './shared/segment-markers.ts'
+import {
+  markAbsentFactory,
+  markManualFactory,
+  negativeMarkerType,
+} from './shared/segment-markers.ts'
 import type { SegmentTargetOf } from './shared/segment-target.ts'
-import { negativeMarkerType } from './shared/segments-view.ts'
 
-export type ApplyToSeasonError = AppError<'item/not_found' | 'segment/not_an_episode'>
+export type ApplySegmentsToSeasonError = AppError<'item/not_found' | 'segment/not_an_episode'>
 
 export const applySegmentsToSeasonFactory = ({
   segmentTarget,
@@ -42,7 +45,7 @@ export const applySegmentsToSeasonFactory = ({
   }: {
     itemId: string
     types?: SegmentType[]
-  }): Result<{ updated: number; skipped: number }, ApplyToSeasonError> => {
+  }): Result<{ updated: number; skipped: number }, ApplySegmentsToSeasonError> => {
     const target = segmentTarget(itemId)
     if (!target.ok && target.error.code === 'item/not_found') {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))

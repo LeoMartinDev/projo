@@ -9,7 +9,7 @@ import { sourceFingerprint } from './shared/source-fingerprint.ts'
 
 export type ResumeFrame = { sourceId: string; second: number }
 
-export const resumeFramesFactory =
+export const findResumeFrameFactory =
   ({
     playableSources,
     trickplayStore,
@@ -57,4 +57,4 @@ export const resumeFramesFactory =
     return undefined
   }
 
-export type ResumeFrames = ReturnType<typeof resumeFramesFactory>
+export type FindResumeFrame = ReturnType<typeof findResumeFrameFactory>

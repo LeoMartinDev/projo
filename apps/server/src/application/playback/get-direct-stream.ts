@@ -5,10 +5,10 @@ import { directMimeType } from '../../core/playback/decide-mode.ts'
 import type { AuthorizeStream, StreamAccess } from './authorize-stream.ts'
 import type { SessionAccessError } from './shared/session-access.ts'
 
-export type DirectStreamError =
+export type GetDirectStreamError =
   SessionAccessError | AppError<'playback/source_unavailable' | 'playback/mode_unsupported'>
 
-export const directStreamFactory =
+export const getDirectStreamFactory =
   ({
     authorize,
     playableSources,
@@ -18,7 +18,7 @@ export const directStreamFactory =
   }) =>
   async (
     access: StreamAccess,
-  ): Promise<Result<{ path: string; mimeType: string }, DirectStreamError>> => {
+  ): Promise<Result<{ path: string; mimeType: string }, GetDirectStreamError>> => {
     const { sessionId } = access
     const session = authorize(access)
     if (!session.ok) return session
@@ -45,4 +45,4 @@ export const directStreamFactory =
     return ok({ path: source.path, mimeType })
   }
 
-export type DirectStream = ReturnType<typeof directStreamFactory>
+export type GetDirectStream = ReturnType<typeof getDirectStreamFactory>

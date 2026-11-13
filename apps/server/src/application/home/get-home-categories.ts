@@ -8,7 +8,7 @@ import {
   selectCategories,
 } from '../../core/home/categories.ts'
 import type { CatalogEntry } from '../catalog/shared/catalog-entries.ts'
-import { type HomeCategoryDeps, watchedTitlesFor } from './shared/watched-titles.ts'
+import { type HomeCategoryDeps, watchedTitlesFor } from './shared/home-categories.ts'
 
 export type HomeCategoryRow = { category: HomeCategory; entries: CatalogEntry[] }
 

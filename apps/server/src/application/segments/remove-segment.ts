@@ -7,10 +7,10 @@ import {
   type SegmentRepository,
   type SegmentType,
 } from '../../core/segments/segment.ts'
-import { markersView } from './shared/segment-markers.ts'
+import { negativeMarkerType } from './shared/segment-markers.ts'
 import { requestSegments } from './shared/segment-requests.ts'
 import type { SegmentTargetOf } from './shared/segment-target.ts'
-import { type ItemSegmentsView, negativeMarkerType } from './shared/segments-view.ts'
+import { type ItemSegmentsView, markersView } from './shared/segments-view.ts'
 
 export type RemoveSegmentError = AppError<'item/not_found' | 'segment/not_found'>
 

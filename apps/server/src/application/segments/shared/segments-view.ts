@@ -1,11 +1,11 @@
 import {
   type Segment,
-  type SegmentLookupKey,
   type SegmentLookupRow,
   type SegmentRepository,
   type SegmentType,
   segmentTypes,
 } from '../../../core/segments/segment.ts'
+import { negativeMarkerType } from './segment-markers.ts'
 
 export type ItemSegmentsView = {
   itemId: string
@@ -13,11 +13,6 @@ export type ItemSegmentsView = {
   segments: Segment[]
   absent: SegmentType[]
   lookups: SegmentLookupRow[]
-}
-
-export const negativeMarkerType = (key: SegmentLookupKey): SegmentType | undefined => {
-  const type = key.startsWith('no_segment:') ? key.slice('no_segment:'.length) : undefined
-  return segmentTypes.find((candidate) => candidate === type)
 }
 
 export const segmentsView = (
@@ -43,3 +38,13 @@ export const segmentsView = (
       : [],
   }
 }
+
+/** The segments of an item as the admin editor shows them, chain lookups included. */
+export const markersView =
+  (segmentRepository: Pick<SegmentRepository, 'listByItem' | 'listLookups'>) =>
+  (itemId: string, durationMs: number | undefined) =>
+    segmentsView(segmentRepository, {
+      itemId,
+      ...(durationMs === undefined ? {} : { durationMs }),
+      withLookups: true,
+    })

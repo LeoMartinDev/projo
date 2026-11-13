@@ -16,7 +16,7 @@ import {
 import type { GetHome } from '../../../application/home/get-home.ts'
 import type { GetHomeCategories } from '../../../application/home/get-home-categories.ts'
 import type { GetHomeCategoryPage } from '../../../application/home/get-home-category-page.ts'
-import type { ResumeFrame } from '../../../application/playback/resume-frames.ts'
+import type { ResumeFrame } from '../../../application/playback/find-resume-frame.ts'
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'

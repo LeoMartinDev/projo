@@ -3,7 +3,7 @@ import { type Context, Hono } from 'hono'
 import { subtitleOffsetQuerySchema } from '@projo/shared/api/playback'
 
 import type { StreamAccess } from '../../../application/playback/authorize-stream.ts'
-import type { DirectStream } from '../../../application/playback/direct-stream.ts'
+import type { GetDirectStream } from '../../../application/playback/get-direct-stream.ts'
 import type { GetMasterPlaylist } from '../../../application/playback/get-master-playlist.ts'
 import type { HlsStreams } from '../../../application/playback/hls-streams.ts'
 import type { MediaFiles } from '../../../core/playback/ports.ts'
@@ -13,7 +13,7 @@ import { respondWithFile } from '../file-range.ts'
 import { validate } from '../validation.ts'
 
 type Deps = {
-  directStream: DirectStream
+  directStream: GetDirectStream
   getMasterPlaylist: GetMasterPlaylist
   hlsStreams: HlsStreams
   mediaFiles: MediaFiles

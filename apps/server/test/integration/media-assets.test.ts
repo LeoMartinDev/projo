@@ -21,7 +21,7 @@ import type { ServerEvent } from '../../src/core/events.ts'
 import type { JobRepository } from '../../src/core/jobs/ports.ts'
 import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import type { JobContext, JobHandler } from '../../src/entrypoints/jobs/handler.ts'
-import { trickplayUrlFactory } from '../../src/application/playback/trickplay-url.ts'
+import { getTrickplayUrlFactory } from '../../src/application/playback/get-trickplay-url.ts'
 import { buildMediaAssetsModule } from '../../src/entrypoints/modules/media-assets.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { createFfprobeProber } from '../../src/infrastructure/media/ffprobe.ts'
@@ -298,7 +298,7 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
 
 describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
   test('sprites and index after the probe, served to profiles that may play the source', async () => {
-    const trickplayUrl = trickplayUrlFactory({
+    const trickplayUrl = getTrickplayUrlFactory({
       playableSources: createSqliteCatalog({ db }),
       trickplayStore: createTrickplayStore({ trickplayDir: join(data.path, 'cache/trickplay') }),
     })

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import type { PlayableSource } from '../../core/catalog/catalog.ts'
 import type { TrickplayStore } from '../../core/playback/media-assets.ts'
-import { resumeFramesFactory } from './resume-frames.ts'
+import { findResumeFrameFactory } from './find-resume-frame.ts'
 
 const index = { interval: 10, width: 320, height: 180, columns: 10, rows: 10, sheets: [0, 1] }
 
@@ -21,7 +21,7 @@ const part = (id: string, durationMs: number, partIndex: number, stackGroupId?: 
   }) as unknown as PlayableSource
 
 const framesFor = (sources: PlayableSource[], withSprites: readonly string[]) =>
-  resumeFramesFactory({
+  findResumeFrameFactory({
     playableSources: { listReadySources: () => sources },
     trickplayStore: {
       read: (sourceId: string) =>
@@ -34,7 +34,7 @@ const framesFor = (sources: PlayableSource[], withSprites: readonly string[]) =>
 
 const ask = (positionMs: number) => ({ itemId: 'movie', positionMs, profileId: 'profile' })
 
-describe('resumeFramesFactory', () => {
+describe('findResumeFrameFactory', () => {
   test('the thumbnail instant of the position, never past the last one', () => {
     const frames = framesFor([part('a', 3_600_000, 0)], ['a'])
     expect(frames(ask(1_234_000))).toEqual({ sourceId: 'a', second: 1230 })

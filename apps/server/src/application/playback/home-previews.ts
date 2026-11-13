@@ -1,7 +1,7 @@
 import type { Clock } from '../../core/clock.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { MediaAssetCatalog } from '../../core/playback/media-assets.ts'
-import type { PreviewAccess } from './preview-access.ts'
+import type { GetPreviewClip } from './get-preview-clip.ts'
 import { requestPreviewClip } from './shared/preview-clip-requests.ts'
 
 const requestCooldownMs = 6 * 60 * 60_000
@@ -16,7 +16,7 @@ export const homePreviewsFactory = ({
   jobQueue,
   clock,
 }: {
-  previewAccess: PreviewAccess
+  previewAccess: GetPreviewClip
   mediaCatalog: Pick<MediaAssetCatalog, 'previewTargetOf'>
   jobQueue: JobQueue
   clock: Clock

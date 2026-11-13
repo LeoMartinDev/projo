@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 
 import { appError } from '@projo/shared'
 
-import type { PreviewAccess } from '../../../application/playback/preview-access.ts'
+import type { GetPreviewClip } from '../../../application/playback/get-preview-clip.ts'
 import type { MediaFiles } from '../../../core/playback/ports.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -13,7 +13,7 @@ export const previewsRoutes = ({
   previewAccess,
   mediaFiles,
 }: {
-  previewAccess: PreviewAccess
+  previewAccess: GetPreviewClip
   mediaFiles: MediaFiles
 }) =>
   new Hono<AppEnv>().get('/previews/:file', (c) => {

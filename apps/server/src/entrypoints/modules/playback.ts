@@ -4,14 +4,14 @@ import { ok } from '@projo/shared'
 
 import { authorizePlaybackFactory } from '../../application/playback/authorize-playback.ts'
 import { authorizeStreamFactory } from '../../application/playback/authorize-stream.ts'
-import { cleanupCacheFactory } from '../../application/playback/cleanup-cache.ts'
+import { cleanupTranscodeCacheFactory } from '../../application/playback/cleanup-transcode-cache.ts'
 import { clearTrackPreferencesFactory } from '../../application/playback/clear-track-preferences.ts'
 import { createPlaybackSessionFactory } from '../../application/playback/create-playback-session.ts'
-import { directStreamFactory } from '../../application/playback/direct-stream.ts'
+import { getDirectStreamFactory } from '../../application/playback/get-direct-stream.ts'
 import { endPlaybackSessionFactory } from '../../application/playback/end-playback-session.ts'
 import { endPlaybackSessionsWithinFactory } from '../../application/playback/end-playback-sessions-within.ts'
 import { getMasterPlaylistFactory } from '../../application/playback/get-master-playlist.ts'
-import { heartbeatFactory } from '../../application/playback/heartbeat.ts'
+import { recordHeartbeatFactory } from '../../application/playback/record-heartbeat.ts'
 import { hlsStreamsFactory } from '../../application/playback/hls-streams.ts'
 import { indexKeyframesFactory } from '../../application/playback/index-keyframes.ts'
 import { setTrackPreferencesFactory } from '../../application/playback/set-track-preferences.ts'
@@ -22,7 +22,7 @@ import {
 import type { ItemVisibility } from '../../application/playback/shared/session-access.ts'
 import { stopPlaybackSessionFactory } from '../../application/playback/stop-playback-session.ts'
 import { sweepPlaybackSessionsFactory } from '../../application/playback/sweep-playback-sessions.ts'
-import { trickplayUrlFactory } from '../../application/playback/trickplay-url.ts'
+import { getTrickplayUrlFactory } from '../../application/playback/get-trickplay-url.ts'
 import { type PlaybackSessionTerminator, sessionTimings } from '../../core/playback/session.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { createFfprobe } from '../../infrastructure/playback/ffprobe.ts'
@@ -67,7 +67,7 @@ export const buildPlaybackModule = (
     notifier,
   })
   const transcodeCache = createTranscodeCache({ transcodeDir: paths.cache.transcode })
-  const trickplayUrl = trickplayUrlFactory({
+  const trickplayUrl = getTrickplayUrlFactory({
     playableSources: catalog,
     trickplayStore: createTrickplayStore({ trickplayDir: paths.cache.trickplay }),
   })
@@ -134,7 +134,7 @@ export const buildPlaybackModule = (
     clock,
     logger,
   })
-  const cleanupCache = cleanupCacheFactory({
+  const cleanupCache = cleanupTranscodeCacheFactory({
     sessionRepository,
     transcodeCache,
     playbackSettings,
@@ -182,7 +182,7 @@ export const buildPlaybackModule = (
           ids,
           logger,
         }),
-        heartbeat: heartbeatFactory({
+        heartbeat: recordHeartbeatFactory({
           authorize,
           sessionRepository,
           playableSources: catalog,
@@ -207,7 +207,10 @@ export const buildPlaybackModule = (
         scopeFor: visibilityScope,
       }),
       streamRoutes: streamRoutes({
-        directStream: directStreamFactory({ authorize: authorizeStream, playableSources: catalog }),
+        directStream: getDirectStreamFactory({
+          authorize: authorizeStream,
+          playableSources: catalog,
+        }),
         getMasterPlaylist: getMasterPlaylistFactory({
           authorize: authorizeStream,
           playableSources: catalog,
