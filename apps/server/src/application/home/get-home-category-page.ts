@@ -1,7 +1,7 @@
 import type { VisibilityScope } from '../../core/catalog/catalog.ts'
 import { categoryKey, categoryRows, type HomeCategory } from '../../core/home/categories.ts'
-import type { CatalogEntry } from '../catalog/catalog-entries.ts'
-import { type HomeCategoryDeps, watchedTitlesFor } from './get-home-categories.ts'
+import type { CatalogEntry } from '../catalog/shared/catalog-entries.ts'
+import { type HomeCategoryDeps, watchedTitlesFor } from './shared/watched-titles.ts'
 
 export type HomeCategoryPageView = {
   entries: CatalogEntry[]

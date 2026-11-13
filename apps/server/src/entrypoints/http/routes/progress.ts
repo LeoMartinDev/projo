@@ -9,7 +9,7 @@ import {
 } from '@projo/shared/api/progress'
 
 import type { HideFromContinue } from '../../../application/progress/hide-from-continue.ts'
-import type { ProgressView } from '../../../application/progress/progress-views.ts'
+import type { ProgressView } from '../../../application/progress/shared/progress-views.ts'
 import type { RecordProgress } from '../../../application/progress/record-progress.ts'
 import type { SetWatched } from '../../../application/progress/set-watched.ts'
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'

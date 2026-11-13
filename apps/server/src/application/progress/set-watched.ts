@@ -12,7 +12,7 @@ import {
   markWatched,
   type ProgressRepository,
 } from '../../core/progress/progress.ts'
-import type { ProgressView, ProgressViews } from './progress-views.ts'
+import type { ProgressView, ProgressViews } from './shared/progress-views.ts'
 
 type Deps = {
   visibleItems: Pick<VisibleItems, 'findVisible' | 'listVisibleEpisodeIds'>

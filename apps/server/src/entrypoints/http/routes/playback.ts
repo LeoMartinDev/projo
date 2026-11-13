@@ -11,18 +11,14 @@ import {
   type TrackPreferencesDto,
 } from '@projo/shared/api/playback'
 
+import type { ClearTrackPreferences } from '../../../application/playback/clear-track-preferences.ts'
 import type {
   CreatedPlaybackSession,
   CreatePlaybackSession,
-} from '../../../application/playback/create-session.ts'
-import type {
-  Heartbeat,
-  StopPlaybackSession,
-} from '../../../application/playback/session-lifecycle.ts'
-import type {
-  ClearTrackPreferences,
-  SetTrackPreferences,
-} from '../../../application/playback/track-preferences.ts'
+} from '../../../application/playback/create-playback-session.ts'
+import type { Heartbeat } from '../../../application/playback/heartbeat.ts'
+import type { SetTrackPreferences } from '../../../application/playback/set-track-preferences.ts'
+import type { StopPlaybackSession } from '../../../application/playback/stop-playback-session.ts'
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
 import { chapterTitle } from '../../../core/catalog/generic-titles.ts'
 import { sessionTimings } from '../../../core/playback/session.ts'

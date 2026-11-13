@@ -5,7 +5,7 @@ import {
   isPlayableKind,
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
-import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
+import type { CatalogEntries, CatalogEntry } from './shared/catalog-entries.ts'
 
 type Deps = {
   catalogReadModel: Pick<CatalogReadModel, 'findVisible' | 'listVisibleChildren'>

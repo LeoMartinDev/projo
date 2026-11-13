@@ -2,10 +2,8 @@ import { Hono } from 'hono'
 
 import type { AdminPlaybackSessionDto } from '@projo/shared/api/playback'
 
-import type {
-  listActivePlaybackSessionsFactory,
-  stopPlaybackSessionAsAdminFactory,
-} from '../../../application/playback/admin-sessions.ts'
+import type { ListActivePlaybackSessions } from '../../../application/playback/list-active-playback-sessions.ts'
+import type { StopPlaybackSessionAsAdmin } from '../../../application/playback/stop-playback-session-as-admin.ts'
 import type { ActivePlaybackSessionView } from '../../../core/playback/admin-sessions.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -32,8 +30,8 @@ export const adminPlaybackRoutes = ({
   listActive,
   stop,
 }: {
-  listActive: ReturnType<typeof listActivePlaybackSessionsFactory>
-  stop: ReturnType<typeof stopPlaybackSessionAsAdminFactory>
+  listActive: ListActivePlaybackSessions
+  stop: StopPlaybackSessionAsAdmin
 }) =>
   new Hono<AppEnv>()
     .get('/playback/sessions', (c) => c.json(listActive().map(toDto), 200))

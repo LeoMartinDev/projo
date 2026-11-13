@@ -2,30 +2,27 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
+import { authorizePlaybackFactory } from '../../application/playback/authorize-playback.ts'
+import { authorizeStreamFactory } from '../../application/playback/authorize-stream.ts'
 import { cleanupCacheFactory } from '../../application/playback/cleanup-cache.ts'
-import { createPlaybackSessionFactory } from '../../application/playback/create-session.ts'
+import { clearTrackPreferencesFactory } from '../../application/playback/clear-track-preferences.ts'
+import { createPlaybackSessionFactory } from '../../application/playback/create-playback-session.ts'
 import { directStreamFactory } from '../../application/playback/direct-stream.ts'
-import { hlsStreamFactory } from '../../application/playback/hls-stream.ts'
-import { trickplayUrlFactory } from '../../application/playback/trickplay.ts'
+import { endPlaybackSessionFactory } from '../../application/playback/end-playback-session.ts'
+import { endPlaybackSessionsWithinFactory } from '../../application/playback/end-playback-sessions-within.ts'
+import { getMasterPlaylistFactory } from '../../application/playback/get-master-playlist.ts'
+import { heartbeatFactory } from '../../application/playback/heartbeat.ts'
+import { hlsStreamsFactory } from '../../application/playback/hls-streams.ts'
+import { indexKeyframesFactory } from '../../application/playback/index-keyframes.ts'
+import { setTrackPreferencesFactory } from '../../application/playback/set-track-preferences.ts'
 import {
-  indexKeyframesFactory,
   keyframePriority,
   requestKeyframes,
-} from '../../application/playback/index-keyframes.ts'
-import {
-  authorizePlaybackFactory,
-  authorizeStreamFactory,
-  endPlaybackSessionFactory,
-  endPlaybackSessionsWithinFactory,
-  heartbeatFactory,
-  type ItemVisibility,
-  stopPlaybackSessionFactory,
-  sweepPlaybackSessionsFactory,
-} from '../../application/playback/session-lifecycle.ts'
-import {
-  clearTrackPreferencesFactory,
-  setTrackPreferencesFactory,
-} from '../../application/playback/track-preferences.ts'
+} from '../../application/playback/shared/keyframe-requests.ts'
+import type { ItemVisibility } from '../../application/playback/shared/session-access.ts'
+import { stopPlaybackSessionFactory } from '../../application/playback/stop-playback-session.ts'
+import { sweepPlaybackSessionsFactory } from '../../application/playback/sweep-playback-sessions.ts'
+import { trickplayUrlFactory } from '../../application/playback/trickplay-url.ts'
 import { type PlaybackSessionTerminator, sessionTimings } from '../../core/playback/session.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { createFfprobe } from '../../infrastructure/playback/ffprobe.ts'
@@ -82,7 +79,7 @@ export const buildPlaybackModule = (
     afterCommit,
     clock,
     logger,
-    onEnded: (sessionId) => hlsStream.forget(sessionId),
+    onEnded: (sessionId) => hlsStreams.forget(sessionId),
   })
   const isItemVisible: ItemVisibility = ({ itemId, profileId }) =>
     catalog.findVisible({ id: itemId, scope: visibilityScope(profileId) }) !== undefined
@@ -98,7 +95,7 @@ export const buildPlaybackModule = (
     hashSecret: sessionTokens.hash,
     clock,
   })
-  const hlsStream = hlsStreamFactory({
+  const hlsStreams = hlsStreamsFactory({
     authorize: authorizeStream,
     playableSources: catalog,
     keyframeStore,
@@ -128,10 +125,10 @@ export const buildPlaybackModule = (
     transcodeCache,
     endSession,
     streams: {
-      sessionIds: () => [...new Set([...segmenter.sessionIds(), ...hlsStream.sessionIds()])],
+      sessionIds: () => [...new Set([...segmenter.sessionIds(), ...hlsStreams.sessionIds()])],
       release: (sessionId) => {
         segmenter.stop(sessionId)
-        hlsStream.forget(sessionId)
+        hlsStreams.forget(sessionId)
       },
     },
     clock,
@@ -211,7 +208,12 @@ export const buildPlaybackModule = (
       }),
       streamRoutes: streamRoutes({
         directStream: directStreamFactory({ authorize: authorizeStream, playableSources: catalog }),
-        hlsStream,
+        getMasterPlaylist: getMasterPlaylistFactory({
+          authorize: authorizeStream,
+          playableSources: catalog,
+          subtitleTrackRepository,
+        }),
+        hlsStreams,
         mediaFiles: createMediaFiles(),
       }),
     },

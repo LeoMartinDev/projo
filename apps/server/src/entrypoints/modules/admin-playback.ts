@@ -1,7 +1,5 @@
-import {
-  listActivePlaybackSessionsFactory,
-  stopPlaybackSessionAsAdminFactory,
-} from '../../application/playback/admin-sessions.ts'
+import { listActivePlaybackSessionsFactory } from '../../application/playback/list-active-playback-sessions.ts'
+import { stopPlaybackSessionAsAdminFactory } from '../../application/playback/stop-playback-session-as-admin.ts'
 import type { PlaybackSession, TerminationReason } from '../../core/playback/session.ts'
 import { createSqliteAdminPlaybackSessions } from '../../infrastructure/sqlite/admin-playback-sessions.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'

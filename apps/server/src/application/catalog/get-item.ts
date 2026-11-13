@@ -11,8 +11,8 @@ import {
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
 import { regularEpisodes } from '../../core/progress/rows.ts'
-import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
-import type { PlayButton, SeriesPlay } from './series-play.ts'
+import type { CatalogEntries, CatalogEntry } from './shared/catalog-entries.ts'
+import type { PlayButton, SeriesPlay } from './shared/series-play.ts'
 
 export type ItemDetail = CatalogEntry & {
   sources: PlayableSource[]

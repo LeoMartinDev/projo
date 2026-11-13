@@ -9,7 +9,7 @@ import type {
   SegmentType,
 } from '../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
-import type { SegmentTargetOf } from './targets.ts'
+import type { SegmentTargetOf } from './shared/segment-target.ts'
 
 type Deps = {
   segmentTarget: SegmentTargetOf

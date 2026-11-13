@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import {
-  endPlaybackSessionFactory,
-  endPlaybackSessionsWithinFactory,
-} from '../../src/application/playback/session-lifecycle.ts'
+import { endPlaybackSessionFactory } from '../../src/application/playback/end-playback-session.ts'
+import { endPlaybackSessionsWithinFactory } from '../../src/application/playback/end-playback-sessions-within.ts'
 import { linkSourceItemsFactory } from '../../src/application/scanner/link-source-items.ts'
 import type { HlsSegmenter } from '../../src/core/playback/ports.ts'
 import type { PlaybackScope } from '../../src/core/playback/session.ts'

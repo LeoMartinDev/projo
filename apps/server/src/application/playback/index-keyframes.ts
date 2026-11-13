@@ -1,7 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { PlayableSources } from '../../core/catalog/catalog.ts'
-import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { MediaProber } from '../../core/playback/media-info.ts'
 import {
@@ -10,19 +9,6 @@ import {
   type KeyframeStore,
   type StoredKeyframeIndex,
 } from '../../core/playback/ports.ts'
-
-export const keyframePriority = { interactive: 100, background: 20 } as const
-
-export const keyframesDedupeKey = (sourceId: string): string => `keyframes:${sourceId}`
-
-export const requestKeyframes = (jobQueue: JobQueue, sourceId: string, priority: number): void => {
-  jobQueue.enqueue({
-    type: 'index_keyframes',
-    payload: { sourceId },
-    dedupeKey: keyframesDedupeKey(sourceId),
-    priority,
-  })
-}
 
 type Deps = {
   playableSources: Pick<PlayableSources, 'findSource'>

@@ -5,7 +5,7 @@ import {
   type TrickplayStore,
 } from '../../core/playback/media-assets.ts'
 import { groupVersions, partAt, partsTimeline, rankVersions } from '../../core/playback/versions.ts'
-import { sourceFingerprint } from './trickplay.ts'
+import { sourceFingerprint } from './shared/source-fingerprint.ts'
 
 export type ResumeFrame = { sourceId: string; second: number }
 

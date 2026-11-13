@@ -10,10 +10,9 @@ import type {
   PlaybackSettingsAdmin,
   ServerSettingsAdmin,
 } from '../../../application/operations/types.ts'
-import type {
-  SegmentSettingsAdmin,
-  SegmentSettingsView,
-} from '../../../application/segments/types.ts'
+import type { GetSegmentSettings } from '../../../application/segments/get-segment-settings.ts'
+import type { SegmentSettingsView } from '../../../application/segments/shared/segment-settings-view.ts'
+import type { UpdateSegmentSettings } from '../../../application/segments/update-segment-settings.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'
@@ -21,7 +20,7 @@ import { validate } from '../validation.ts'
 /** One section per owning module: metadata, segments, operations (playback and server). */
 export type AdminSettingsSections = {
   metadata: MetadataSettingsAdmin
-  segments: SegmentSettingsAdmin
+  segments: { get: GetSegmentSettings; update: UpdateSegmentSettings }
   playback: PlaybackSettingsAdmin
   server: ServerSettingsAdmin
 }

@@ -7,11 +7,9 @@ import {
   segmentTypeParamSchema,
 } from '@projo/shared/api/segments'
 
-import type {
-  ApplySegmentsToSeason,
-  RemoveSegment,
-  SetManualSegment,
-} from '../../../application/segments/types.ts'
+import type { ApplySegmentsToSeason } from '../../../application/segments/apply-segments-to-season.ts'
+import type { RemoveSegment } from '../../../application/segments/remove-segment.ts'
+import type { SetManualSegment } from '../../../application/segments/set-manual-segment.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { validate } from '../validation.ts'

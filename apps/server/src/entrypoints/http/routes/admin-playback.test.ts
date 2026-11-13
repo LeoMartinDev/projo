@@ -14,7 +14,7 @@ import { createManualClock, type ManualClock } from '../../../../test/support/cl
 import { createTestDatabase } from '../../../../test/support/database.ts'
 import { createRecordingEventBus, createTestAfterCommit } from '../../../../test/support/fakes.ts'
 import { silentLogger } from '../../../../test/support/logger.ts'
-import { endPlaybackSessionFactory } from '../../../application/playback/session-lifecycle.ts'
+import { endPlaybackSessionFactory } from '../../../application/playback/end-playback-session.ts'
 import type { ServerEvent } from '../../../core/events.ts'
 import type { HlsSegmenter } from '../../../core/playback/ports.ts'
 import type { Db } from '../../../infrastructure/sqlite/database.ts'

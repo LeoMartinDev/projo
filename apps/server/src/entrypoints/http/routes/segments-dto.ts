@@ -1,6 +1,6 @@
 import type { ItemSegmentsDto, SegmentLookupDto } from '@projo/shared/api/segments'
 
-import type { ItemSegmentsView } from '../../../application/segments/types.ts'
+import type { ItemSegmentsView } from '../../../application/segments/shared/segments-view.ts'
 
 const lookupSources = new Set<string>(['chapter', 'theintrodb', 'introdb', 'skipdb', 'fingerprint'])
 

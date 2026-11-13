@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 
-import type { GetItemSegments } from '../../../application/segments/types.ts'
+import type { GetItemSegments } from '../../../application/segments/get-item-segments.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { currentPrincipal, currentProfileId } from '../principal.ts'

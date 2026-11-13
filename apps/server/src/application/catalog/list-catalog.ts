@@ -1,5 +1,4 @@
 import { andThen, type AppError, ok, type Result } from '@projo/shared'
-import { type GenreId, genreIds } from '@projo/shared/api/genres'
 
 import {
   type CatalogFilters,
@@ -10,9 +9,7 @@ import {
   type VisibilityScope,
 } from '../../core/catalog/catalog.ts'
 import { decodeCursor, encodeCursor } from '../../core/catalog/cursor.ts'
-import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
-
-export type { CatalogEntry } from './catalog-entries.ts'
+import type { CatalogEntries, CatalogEntry } from './shared/catalog-entries.ts'
 
 export type CatalogPage = { entries: CatalogEntry[]; nextCursor?: string }
 
@@ -23,7 +20,7 @@ type Deps = {
 
 export type ListCatalogError = AppError<'catalog/invalid_cursor'>
 
-export const defaultOrder = (sort: CatalogSort): SortOrder => (sort === 'title' ? 'asc' : 'desc')
+const defaultOrder = (sort: CatalogSort): SortOrder => (sort === 'title' ? 'asc' : 'desc')
 
 export const listCatalogFactory =
   ({ catalogReadModel, catalogEntries }: Deps) =>
@@ -77,26 +74,3 @@ export const listCatalogFactory =
   }
 
 export type ListCatalog = ReturnType<typeof listCatalogFactory>
-
-export const listGenresFactory =
-  ({
-    catalogReadModel,
-  }: {
-    catalogReadModel: Pick<CatalogReadModel, 'listGenres' | 'yearRange'>
-  }) =>
-  ({
-    kind,
-    scope,
-  }: {
-    kind?: 'movie' | 'series'
-    scope: VisibilityScope
-  }): { genres: GenreId[]; years?: { min: number; max: number } } => {
-    const present = new Set(
-      catalogReadModel.listGenres({ ...(kind === undefined ? {} : { kind }), scope }),
-    )
-    const genres = genreIds.filter((genre) => present.has(genre))
-    const years = catalogReadModel.yearRange({ ...(kind === undefined ? {} : { kind }), scope })
-    return { genres, ...(years === undefined ? {} : { years }) }
-  }
-
-export type ListGenres = ReturnType<typeof listGenresFactory>

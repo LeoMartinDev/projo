@@ -2,7 +2,8 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { PlayableSources } from '../../core/catalog/catalog.ts'
 import { directMimeType } from '../../core/playback/decide-mode.ts'
-import type { AuthorizeStream, SessionAccessError, StreamAccess } from './session-lifecycle.ts'
+import type { AuthorizeStream, StreamAccess } from './authorize-stream.ts'
+import type { SessionAccessError } from './shared/session-access.ts'
 
 export type DirectStreamError =
   SessionAccessError | AppError<'playback/source_unavailable' | 'playback/mode_unsupported'>

@@ -16,7 +16,8 @@ import {
   segmentTypes,
 } from '../../core/segments/segment.ts'
 import type { SegmentSettingsReader } from '../../core/settings/settings.ts'
-import { negativeMarkerType, type SegmentTargetOf } from './targets.ts'
+import type { SegmentTargetOf } from './shared/segment-target.ts'
+import { negativeMarkerType } from './shared/segments-view.ts'
 
 type Deps = {
   segmentTarget: SegmentTargetOf

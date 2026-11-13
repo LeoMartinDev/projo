@@ -2,9 +2,10 @@ import { type Context, Hono } from 'hono'
 
 import { subtitleOffsetQuerySchema } from '@projo/shared/api/playback'
 
+import type { StreamAccess } from '../../../application/playback/authorize-stream.ts'
 import type { DirectStream } from '../../../application/playback/direct-stream.ts'
-import type { HlsStream } from '../../../application/playback/hls-stream.ts'
-import type { StreamAccess } from '../../../application/playback/session-lifecycle.ts'
+import type { GetMasterPlaylist } from '../../../application/playback/get-master-playlist.ts'
+import type { HlsStreams } from '../../../application/playback/hls-streams.ts'
 import type { MediaFiles } from '../../../core/playback/ports.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -13,7 +14,8 @@ import { validate } from '../validation.ts'
 
 type Deps = {
   directStream: DirectStream
-  hlsStream: HlsStream
+  getMasterPlaylist: GetMasterPlaylist
+  hlsStreams: HlsStreams
   mediaFiles: MediaFiles
 }
 
@@ -28,7 +30,7 @@ const m3u8 = (c: Context<AppEnv>, playlist: string) =>
     'Cache-Control': 'no-cache',
   })
 
-export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
+export const streamRoutes = ({ directStream, getMasterPlaylist, hlsStreams, mediaFiles }: Deps) =>
   new Hono<AppEnv>()
     .get('/stream/:sessionId/:secret/direct', async (c) => {
       const file = await directStream(streamAccess(c))
@@ -43,7 +45,7 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
       '/stream/:sessionId/:secret/master.m3u8',
       validate('query', subtitleOffsetQuerySchema),
       (c) => {
-        const playlist = hlsStream.master({
+        const playlist = getMasterPlaylist({
           ...streamAccess(c),
           subtitleOffsetMs: c.req.valid('query').subtitleOffsetMs ?? 0,
         })
@@ -54,7 +56,7 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
       '/stream/:sessionId/:secret/subtitles/:file{.+\\.m3u8}',
       validate('query', subtitleOffsetQuerySchema),
       async (c) => {
-        const playlist = await hlsStream.subtitlePlaylist({
+        const playlist = await hlsStreams.subtitlePlaylist({
           ...streamAccess(c),
           trackId: c.req.param('file').slice(0, -'.m3u8'.length),
           subtitleOffsetMs: c.req.valid('query').subtitleOffsetMs ?? 0,
@@ -63,11 +65,11 @@ export const streamRoutes = ({ directStream, hlsStream, mediaFiles }: Deps) =>
       },
     )
     .get('/stream/:sessionId/:secret/index.m3u8', async (c) => {
-      const playlist = await hlsStream.playlist(streamAccess(c))
+      const playlist = await hlsStreams.playlist(streamAccess(c))
       return playlist.ok ? m3u8(c, playlist.value) : respondError(c, playlist.error)
     })
     .get('/stream/:sessionId/:secret/:segment', async (c) => {
-      const segment = await hlsStream.segment({
+      const segment = await hlsStreams.segment({
         ...streamAccess(c),
         name: c.req.param('segment'),
         signal: c.req.raw.signal,

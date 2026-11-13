@@ -17,11 +17,12 @@ import {
 } from '@projo/shared/api/catalog'
 import type { ContentRatingDto } from '@projo/shared/api/content-ratings'
 
-import type { CatalogEntry } from '../../../application/catalog/catalog-entries.ts'
+import type { CatalogEntry } from '../../../application/catalog/shared/catalog-entries.ts'
 import type { GetItem } from '../../../application/catalog/get-item.ts'
-import type { ListCatalog, ListGenres } from '../../../application/catalog/list-catalog.ts'
+import type { ListCatalog } from '../../../application/catalog/list-catalog.ts'
+import type { ListGenres } from '../../../application/catalog/list-genres.ts'
 import type { ListChildren } from '../../../application/catalog/list-children.ts'
-import type { PlayButton } from '../../../application/catalog/series-play.ts'
+import type { PlayButton } from '../../../application/catalog/shared/series-play.ts'
 import type {
   CatalogItem,
   ItemImageIds,

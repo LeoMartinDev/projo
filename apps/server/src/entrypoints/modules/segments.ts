@@ -2,19 +2,18 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
+import { applySegmentsToSeasonFactory } from '../../application/segments/apply-segments-to-season.ts'
 import { fetchSegmentsFactory } from '../../application/segments/fetch-segments.ts'
-import {
-  getItemSegmentsFactory,
-  segmentMarkersFactory,
-} from '../../application/segments/markers.ts'
-import {
-  requestMissingSegmentsFactory,
-  requestSegmentsAfterEnrichmentFactory,
-  requestSegmentsOfUnidentifiedSourceFactory,
-} from '../../application/segments/request-segments.ts'
-import { segmentSettingsAdminFactory } from '../../application/segments/segment-settings.ts'
+import { getItemSegmentsFactory } from '../../application/segments/get-item-segments.ts'
+import { getSegmentSettingsFactory } from '../../application/segments/get-segment-settings.ts'
+import { removeSegmentFactory } from '../../application/segments/remove-segment.ts'
+import { requestMissingSegmentsFactory } from '../../application/segments/request-missing-segments.ts'
+import { requestSegmentsAfterEnrichmentFactory } from '../../application/segments/request-segments-after-enrichment.ts'
+import { requestSegmentsOfUnidentifiedSourceFactory } from '../../application/segments/request-segments-of-unidentified-source.ts'
+import { setManualSegmentFactory } from '../../application/segments/set-manual-segment.ts'
+import { segmentTargetFactory } from '../../application/segments/shared/segment-target.ts'
 import { submitSegmentFactory } from '../../application/segments/submit-segment.ts'
-import { segmentTargetFactory } from '../../application/segments/targets.ts'
+import { updateSegmentSettingsFactory } from '../../application/segments/update-segment-settings.ts'
 import { segmentTypes } from '../../core/segments/segment.ts'
 import {
   createSegmentProviders,
@@ -85,15 +84,6 @@ export const buildSegmentsModule = (
     clock,
     logger: moduleLogger,
   })
-  const markers = segmentMarkersFactory({
-    segmentTarget,
-    segmentCatalog,
-    segmentRepository,
-    settings: store,
-    jobQueue,
-    clock,
-    logger: moduleLogger,
-  })
   const requestAfterEnrichment = requestSegmentsAfterEnrichmentFactory({
     segmentCatalog,
     jobQueue,
@@ -122,12 +112,15 @@ export const buildSegmentsModule = (
   return defineModule({
     exposes: {
       /** The "Intros and credits" section of the admin settings, served by the settings module. */
-      settings: segmentSettingsAdminFactory({
-        store,
-        validateTheintrodbKey: providers.validateTheintrodbKey,
-        clock,
-        logger: moduleLogger,
-      }),
+      settings: {
+        get: getSegmentSettingsFactory({ store }),
+        update: updateSegmentSettingsFactory({
+          store,
+          validateTheintrodbKey: providers.validateTheintrodbKey,
+          clock,
+          logger: moduleLogger,
+        }),
+      },
       routes: {
         segments: segmentsRoutes({
           getItemSegments: getItemSegmentsFactory({
@@ -138,9 +131,29 @@ export const buildSegmentsModule = (
           }),
         }),
         adminSegments: adminSegmentsRoutes({
-          setManualSegment: markers.setManualSegment,
-          removeSegment: markers.removeSegment,
-          applyToSeason: markers.applyToSeason,
+          setManualSegment: setManualSegmentFactory({
+            segmentTarget,
+            segmentRepository,
+            settings: store,
+            jobQueue,
+            clock,
+            logger: moduleLogger,
+          }),
+          removeSegment: removeSegmentFactory({
+            segmentTarget,
+            segmentRepository,
+            jobQueue,
+            logger: moduleLogger,
+          }),
+          applyToSeason: applySegmentsToSeasonFactory({
+            segmentTarget,
+            segmentCatalog,
+            segmentRepository,
+            settings: store,
+            jobQueue,
+            clock,
+            logger: moduleLogger,
+          }),
         }),
       },
     },

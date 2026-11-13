@@ -15,7 +15,7 @@ import {
   readySource,
 } from '../../../test/support/segments.ts'
 import { fetchSegmentsFactory } from './fetch-segments.ts'
-import { segmentTargetFactory } from './targets.ts'
+import { segmentTargetFactory } from './shared/segment-target.ts'
 
 const minute = 60_000
 const durationMs = 45 * minute

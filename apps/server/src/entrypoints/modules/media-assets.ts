@@ -4,27 +4,23 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
-import { cleanupMediaAssetsFactory } from '../../application/playback/media-assets-cleanup.ts'
-import {
-  generatePreviewClipFactory,
-  homePreviewsFactory,
-  previewAccessFactory,
-  requestPreviewClip,
-} from '../../application/playback/preview-clip.ts'
+import type { AuthorizeStream } from '../../application/playback/authorize-stream.ts'
+import { cleanupMediaAssetsFactory } from '../../application/playback/cleanup-media-assets.ts'
+import { generatePreviewClipFactory } from '../../application/playback/generate-preview-clip.ts'
+import { generateTrickplayFactory } from '../../application/playback/generate-trickplay.ts'
+import { getSubtitleVttFactory } from '../../application/playback/get-subtitle-vtt.ts'
+import { getTrickplayFrameFactory } from '../../application/playback/get-trickplay-frame.ts'
+import { getTrickplayIndexFactory } from '../../application/playback/get-trickplay-index.ts'
+import { getTrickplaySheetFactory } from '../../application/playback/get-trickplay-sheet.ts'
+import { homePreviewsFactory } from '../../application/playback/home-previews.ts'
+import { preExtractSubtitlesFactory } from '../../application/playback/pre-extract-subtitles.ts'
+import { previewAccessFactory } from '../../application/playback/preview-access.ts'
+import { requestMissingTrickplayFactory } from '../../application/playback/request-missing-trickplay.ts'
 import { resumeFramesFactory } from '../../application/playback/resume-frames.ts'
-import type { AuthorizeStream } from '../../application/playback/session-lifecycle.ts'
-import {
-  getSubtitleVttFactory,
-  preExtractSubtitlesFactory,
-  requestSubtitleExtraction,
-  type SourceAccess,
-} from '../../application/playback/subtitle-vtt.ts'
-import {
-  generateTrickplayFactory,
-  requestMissingTrickplayFactory,
-  requestTrickplay,
-  trickplayFilesFactory,
-} from '../../application/playback/trickplay.ts'
+import { requestPreviewClip } from '../../application/playback/shared/preview-clip-requests.ts'
+import type { SourceAccess } from '../../application/playback/shared/source-access.ts'
+import { requestSubtitleExtraction } from '../../application/playback/shared/subtitle-extraction-requests.ts'
+import { requestTrickplay } from '../../application/playback/shared/trickplay-requests.ts'
 import { createFileKeyframeStore } from '../../infrastructure/playback/keyframe-store.ts'
 import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createPreviewStore } from '../../infrastructure/playback/preview-store.ts'
@@ -77,6 +73,8 @@ export const buildMediaAssetsModule = (
 
   const canAccessSource: SourceAccess = ({ sourceId, profileId }) =>
     mediaCatalog.isSourceVisible({ sourceId, scope: visibilityScope(profileId) })
+
+  const trickplayAccess = { playableSources: catalog, trickplayStore, canAccessSource }
 
   const heavyJobsAllowed = () =>
     cores >= 4 ||
@@ -162,11 +160,9 @@ export const buildMediaAssetsModule = (
           mediaFiles,
         }),
         trickplay: trickplayRoutes({
-          trickplay: trickplayFilesFactory({
-            playableSources: catalog,
-            trickplayStore,
-            canAccessSource,
-          }),
+          getTrickplayIndex: getTrickplayIndexFactory(trickplayAccess),
+          getTrickplaySheet: getTrickplaySheetFactory(trickplayAccess),
+          getTrickplayFrame: getTrickplayFrameFactory(trickplayAccess),
           mediaFiles,
         }),
         previews: previewsRoutes({ previewAccess, mediaFiles }),

@@ -11,7 +11,7 @@ import {
   inMemorySubmissions,
 } from '../../../test/support/segments.ts'
 import { submitSegmentFactory } from './submit-segment.ts'
-import { segmentTargetFactory } from './targets.ts'
+import { segmentTargetFactory } from './shared/segment-target.ts'
 
 let store: ReturnType<typeof inMemorySegments>
 let submissions: ReturnType<typeof inMemorySubmissions>

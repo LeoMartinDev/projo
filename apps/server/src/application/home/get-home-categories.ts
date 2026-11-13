@@ -1,17 +1,14 @@
-import type { CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { VisibilityScope } from '../../core/catalog/catalog.ts'
 import {
   categoryBatch,
   categoryKey,
   categoryRows,
   countCategories,
   type HomeCategory,
-  type HomeCategoryQueries,
   selectCategories,
-  seriesWithWatchedEpisodes,
-  watchedTitles,
 } from '../../core/home/categories.ts'
-import type { ProgressQueries } from '../../core/progress/rows.ts'
-import type { CatalogEntries, CatalogEntry } from '../catalog/catalog-entries.ts'
+import type { CatalogEntry } from '../catalog/shared/catalog-entries.ts'
+import { type HomeCategoryDeps, watchedTitlesFor } from './shared/watched-titles.ts'
 
 export type HomeCategoryRow = { category: HomeCategory; entries: CatalogEntry[] }
 
@@ -20,28 +17,6 @@ export type HomeCategoriesView = {
   total: number
   nextOffset?: number
 }
-
-export type HomeCategoryDeps = {
-  categoryQueries: HomeCategoryQueries
-  catalogReadModel: Pick<CatalogReadModel, 'findManyVisible' | 'listSeriesEpisodes'>
-  progressQueries: ProgressQueries
-  catalogEntries: CatalogEntries
-}
-
-export const watchedTitlesFor =
-  ({
-    catalogReadModel,
-    progressQueries,
-  }: Pick<HomeCategoryDeps, 'catalogReadModel' | 'progressQueries'>) =>
-  ({ profileId, scope }: { profileId: string; scope: VisibilityScope }): Set<string> => {
-    const played = progressQueries.listPlayed({ profileId, scope })
-    const seriesIds = seriesWithWatchedEpisodes(played)
-    return watchedTitles({
-      played,
-      episodes:
-        seriesIds.length === 0 ? [] : catalogReadModel.listSeriesEpisodes({ seriesIds, scope }),
-    })
-  }
 
 export const getHomeCategoriesFactory =
   ({ categoryQueries, catalogReadModel, progressQueries, catalogEntries }: HomeCategoryDeps) =>

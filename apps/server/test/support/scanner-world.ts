@@ -10,10 +10,8 @@ import { buildLibrariesModule } from '../../src/entrypoints/modules/libraries.ts
 import { buildScannerModule } from '../../src/entrypoints/modules/scanner.ts'
 import { buildSourcesModule } from '../../src/entrypoints/modules/sources.ts'
 import { createUuidV7Generator } from '../../src/infrastructure/ids/uuid-v7.ts'
-import {
-  endPlaybackSessionFactory,
-  endPlaybackSessionsWithinFactory,
-} from '../../src/application/playback/session-lifecycle.ts'
+import { endPlaybackSessionFactory } from '../../src/application/playback/end-playback-session.ts'
+import { endPlaybackSessionsWithinFactory } from '../../src/application/playback/end-playback-sessions-within.ts'
 import type { HlsSegmenter } from '../../src/core/playback/ports.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import { createSqlitePlaybackSessionRepository } from '../../src/infrastructure/sqlite/playback-session-repository.ts'

@@ -1,9 +1,12 @@
-import { catalogEntriesFactory } from '../../application/catalog/catalog-entries.ts'
+import { catalogEntriesFactory } from '../../application/catalog/shared/catalog-entries.ts'
 import { hideFromContinueFactory } from '../../application/progress/hide-from-continue.ts'
-import { progressViewsFactory } from '../../application/progress/progress-views.ts'
 import { recordProgressFactory } from '../../application/progress/record-progress.ts'
 import { setWatchedFactory } from '../../application/progress/set-watched.ts'
-import { watchlistFactory } from '../../application/watchlist/watchlist.ts'
+import { progressViewsFactory } from '../../application/progress/shared/progress-views.ts'
+import { addToWatchlistFactory } from '../../application/watchlist/add-to-watchlist.ts'
+import { getWatchlistStatusFactory } from '../../application/watchlist/get-watchlist-status.ts'
+import { listWatchlistFactory } from '../../application/watchlist/list-watchlist.ts'
+import { removeFromWatchlistFactory } from '../../application/watchlist/remove-from-watchlist.ts'
 import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteProgressRepository } from '../../infrastructure/sqlite/progress-repository.ts'
 import { createSqliteWatchlistRepository } from '../../infrastructure/sqlite/watchlist-repository.ts'
@@ -41,16 +44,24 @@ export const buildProgressModule = ({ db, clock }: Platform, { visibilityScope }
         scopeFor: visibilityScope,
       }),
       watchlistRoutes: watchlistRoutes({
-        watchlist: watchlistFactory({
-          visibleItems: catalog,
+        listWatchlist: listWatchlistFactory({
           watchlistRepository,
           catalogEntries: catalogEntriesFactory({
             catalogReadModel: catalog,
             progressViews,
             watchlistRepository,
           }),
+        }),
+        getWatchlistStatus: getWatchlistStatusFactory({
+          visibleItems: catalog,
+          watchlistRepository,
+        }),
+        addToWatchlist: addToWatchlistFactory({
+          visibleItems: catalog,
+          watchlistRepository,
           clock,
         }),
+        removeFromWatchlist: removeFromWatchlistFactory({ watchlistRepository }),
         scopeFor: visibilityScope,
       }),
     },

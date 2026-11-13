@@ -8,8 +8,8 @@ import {
   upNextCandidates,
 } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
-import type { CatalogEntries, CatalogEntry } from '../catalog/catalog-entries.ts'
-import type { PlayButton, SeriesPlay } from '../catalog/series-play.ts'
+import type { CatalogEntries, CatalogEntry } from '../catalog/shared/catalog-entries.ts'
+import type { PlayButton, SeriesPlay } from '../catalog/shared/series-play.ts'
 
 export type HomeHero = {
   item: CatalogEntry

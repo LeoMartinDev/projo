@@ -3,7 +3,9 @@ import { Hono } from 'hono'
 import { appError } from '@projo/shared'
 import type { TrickplayIndexDto } from '@projo/shared/api/playback'
 
-import type { TrickplayFiles } from '../../../application/playback/trickplay.ts'
+import type { GetTrickplayFrame } from '../../../application/playback/get-trickplay-frame.ts'
+import type { GetTrickplayIndex } from '../../../application/playback/get-trickplay-index.ts'
+import type { GetTrickplaySheet } from '../../../application/playback/get-trickplay-sheet.ts'
 import type { MediaFiles } from '../../../core/playback/ports.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -15,10 +17,14 @@ const jpegNumber = (name: string): number | undefined => {
 }
 
 export const trickplayRoutes = ({
-  trickplay,
+  getTrickplayIndex,
+  getTrickplaySheet,
+  getTrickplayFrame,
   mediaFiles,
 }: {
-  trickplay: TrickplayFiles
+  getTrickplayIndex: GetTrickplayIndex
+  getTrickplaySheet: GetTrickplaySheet
+  getTrickplayFrame: GetTrickplayFrame
   mediaFiles: MediaFiles
 }) => {
   const notFound = (sourceId: string) =>
@@ -43,7 +49,7 @@ export const trickplayRoutes = ({
     .get('/trickplay/:sourceId/index.json', (c) => {
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
-      const index = trickplay.index({
+      const index = getTrickplayIndex({
         sourceId: c.req.param('sourceId'),
         profileId: profileId.value,
       })
@@ -57,7 +63,7 @@ export const trickplayRoutes = ({
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
       if (sheet === undefined) return respondError(c, notFound(sourceId))
-      const path = trickplay.sheet({ sourceId, sheet, profileId: profileId.value })
+      const path = getTrickplaySheet({ sourceId, sheet, profileId: profileId.value })
       if (!path.ok) return respondError(c, path.error)
       const response = image(path.value, 'image/jpeg')
       return response.ok ? response.value : respondError(c, response.error)
@@ -68,7 +74,7 @@ export const trickplayRoutes = ({
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
       if (second === undefined) return respondError(c, notFound(sourceId))
-      const path = await trickplay.frame({
+      const path = await getTrickplayFrame({
         sourceId,
         second: Number(second),
         profileId: profileId.value,

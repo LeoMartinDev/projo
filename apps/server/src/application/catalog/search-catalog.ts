@@ -1,6 +1,6 @@
 import type { CatalogReadModel, VisibilityScope } from '../../core/catalog/catalog.ts'
 import { searchRules, toSearchExpression } from '../../core/catalog/search.ts'
-import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
+import type { CatalogEntries, CatalogEntry } from './shared/catalog-entries.ts'
 
 type Deps = { catalogReadModel: Pick<CatalogReadModel, 'search'>; catalogEntries: CatalogEntries }
 
