@@ -13,8 +13,8 @@ import {
   type CatalogSort,
   episodeRangeEnd,
   type EpisodeRef,
-  type ItemPerson,
   isPlayableKind,
+  type ItemPerson,
   missingSortValue,
   type PlayableSource,
   type PlayableSources,
@@ -295,11 +295,7 @@ const sourceColumns = {
   rootState: libraryRoots.state,
 }
 
-export const createSqliteCatalogRepository = ({
-  db,
-}: {
-  db: Db
-}): CatalogReadModel & PlayableSources => {
+export const createSqliteCatalog = ({ db }: { db: Db }): CatalogReadModel & PlayableSources => {
   const findManyVisible: CatalogReadModel['findManyVisible'] = ({ ids, scope }) =>
     withDurations(
       db,

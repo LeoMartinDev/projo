@@ -83,12 +83,12 @@ const extended: PlayableSource = {
 }
 const sourcesById = new Map([source, ...parts, double, extended].map((entry) => [entry.id, entry]))
 const catalog = {
-  findSource: (id: string) => sourcesById.get(id),
-  listReadySources: ({ itemId }: { itemId: string }) => (itemId === 'movie-2' ? [source] : parts),
-  listSourceItemIds: (id: string) => (id === double.id ? ['e1', 'e2'] : []),
-  listMediaSegments: (itemId: string) =>
+  findSource: (id) => sourcesById.get(id),
+  listReadySources: ({ itemId }) => (itemId === 'movie-2' ? [source] : parts),
+  listSourceItemIds: (id) => (id === double.id ? ['e1', 'e2'] : []),
+  listMediaSegments: (itemId) =>
     itemId === 'movie-2' ? [{ type: 'credits', startMs: 3_000_000, endMs: 3_600_000 }] : [],
-} as unknown as PlayableSources
+} satisfies PlayableSources
 
 let clock: ManualClock
 let sessions: ReturnType<typeof inMemorySessions>
@@ -139,7 +139,7 @@ const build = () => {
     heartbeat: heartbeatFactory({
       authorize,
       sessionRepository: sessions,
-      catalogRepository: catalog,
+      playableSources: catalog,
       progressRepository: progress,
       clock,
     }),

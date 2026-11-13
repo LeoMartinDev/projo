@@ -22,7 +22,7 @@ const part = (id: string, durationMs: number, partIndex: number, stackGroupId?: 
 
 const framesFor = (sources: PlayableSource[], withSprites: readonly string[]) =>
   resumeFramesFactory({
-    catalogRepository: { listReadySources: () => sources },
+    playableSources: { listReadySources: () => sources },
     trickplayStore: {
       read: (sourceId: string) =>
         withSprites.includes(sourceId)

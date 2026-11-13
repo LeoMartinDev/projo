@@ -92,10 +92,14 @@ export type PlayableSource = {
   media?: MediaInfo
 }
 
-/** Items a profile may see, by id: shared by browsing and playback. */
+/** What a visibility scope lets a profile see: items by id, episodes under a show or season. */
 export type VisibleItems = {
   findVisible: (input: { id: string; scope: VisibilityScope }) => CatalogItem | undefined
   findManyVisible: (input: { ids: readonly string[]; scope: VisibilityScope }) => CatalogItem[]
+  listVisibleEpisodeIds: (input: {
+    ancestorIds: readonly string[]
+    scope: VisibilityScope
+  }) => { episodeId: string; ancestorId: string }[]
 }
 
 /** The browsing read model: lists, search, filters, people and media summaries. */
@@ -129,17 +133,14 @@ export type CatalogReadModel = VisibleItems & {
   describeMedia: (input: { itemId: string; scope: VisibilityScope }) => MediaSummary
   isImageVisible: (input: { imageId: string; scope: VisibilityScope }) => boolean
   listVisibleChildren: (input: { parentId: string; scope: VisibilityScope }) => CatalogItem[]
-  listVisibleEpisodeIds: (input: {
-    ancestorIds: readonly string[]
-    scope: VisibilityScope
-  }) => { episodeId: string; ancestorId: string }[]
 }
 
-/** The files that play an item: lookup by item or by source, and their media segments. */
+/** What playback reads: the files that play an item, by item or by source. */
 export type PlayableSources = {
   listReadySources: (input: { itemId: string; scope: VisibilityScope }) => PlayableSource[]
   findSource: (sourceId: string) => PlayableSource | undefined
   listSourceItemIds: (sourceId: string) => string[]
+  /** The intro, recap, credits and preview segments of an item, by start time. */
   listMediaSegments: (itemId: string) => MediaSegment[]
 }
 

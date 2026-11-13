@@ -11,11 +11,11 @@ export type ResumeFrame = { sourceId: string; second: number }
 
 export const resumeFramesFactory =
   ({
-    catalogRepository,
+    playableSources,
     trickplayStore,
     scopeFor,
   }: {
-    catalogRepository: Pick<PlayableSources, 'listReadySources'>
+    playableSources: Pick<PlayableSources, 'listReadySources'>
     trickplayStore: TrickplayStore
     scopeFor: VisibilityScopeResolver
   }) =>
@@ -28,7 +28,7 @@ export const resumeFramesFactory =
     positionMs: number
     profileId: string
   }): ResumeFrame | undefined => {
-    const sources = catalogRepository.listReadySources({ itemId, scope: scopeFor(profileId) })
+    const sources = playableSources.listReadySources({ itemId, scope: scopeFor(profileId) })
     for (const version of rankVersions(groupVersions(sources))) {
       const timeline = partsTimeline(
         version.parts.map((part) => ({

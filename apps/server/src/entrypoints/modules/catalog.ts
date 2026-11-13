@@ -9,7 +9,7 @@ import { getHomeCategoriesFactory } from '../../application/home/get-home-catego
 import { getHomeCategoryPageFactory } from '../../application/home/get-home-category-page.ts'
 import { progressViewsFactory } from '../../application/progress/progress-views.ts'
 import { everything, type VisibilityScopeResolver } from '../../core/catalog/catalog.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteHomeCategoryQueries } from '../../infrastructure/sqlite/home-category-queries.ts'
 import { createSqliteProgressRepository } from '../../infrastructure/sqlite/progress-repository.ts'
 import { createSqliteWatchlistRepository } from '../../infrastructure/sqlite/watchlist-repository.ts'
@@ -31,34 +31,39 @@ export const buildCatalogModule = (
     homeResumeFrames,
   }: ScopeDeps & { homePreviews?: HomePreviewPort; homeResumeFrames?: HomeResumeFramePort },
 ) => {
-  const catalogRepository = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const progressRepository = createSqliteProgressRepository({ db })
   const watchlistRepository = createSqliteWatchlistRepository({ db })
-  const progressViews = progressViewsFactory({ catalogRepository, progressRepository })
+  const progressViews = progressViewsFactory({ visibleItems: catalog, progressRepository })
   const catalogEntries = catalogEntriesFactory({
-    catalogRepository,
+    catalogReadModel: catalog,
     progressViews,
     watchlistRepository,
   })
-  const seriesPlay = seriesPlayFactory({ catalogRepository, progressRepository })
+  const seriesPlay = seriesPlayFactory({ catalogReadModel: catalog, progressRepository })
   const homeCategoryDeps = {
     categoryQueries: createSqliteHomeCategoryQueries({ db }),
-    catalogRepository,
+    catalogReadModel: catalog,
     progressQueries: progressRepository,
     catalogEntries,
   }
   return defineModule({
     exposes: {
       routes: catalogRoutes({
-        listCatalog: listCatalogFactory({ catalogRepository, catalogEntries }),
-        listGenres: listGenresFactory({ catalogRepository }),
-        getItem: getItemFactory({ catalogRepository, catalogEntries, seriesPlay }),
-        listChildren: listChildrenFactory({ catalogRepository, catalogEntries }),
+        listCatalog: listCatalogFactory({ catalogReadModel: catalog, catalogEntries }),
+        listGenres: listGenresFactory({ catalogReadModel: catalog }),
+        getItem: getItemFactory({
+          catalogReadModel: catalog,
+          playableSources: catalog,
+          catalogEntries,
+          seriesPlay,
+        }),
+        listChildren: listChildrenFactory({ catalogReadModel: catalog, catalogEntries }),
         scopeFor: visibilityScope,
       }),
       homeRoutes: homeRoutes({
         getHome: getHomeFactory({
-          catalogRepository,
+          catalogReadModel: catalog,
           progressRepository,
           progressQueries: progressRepository,
           watchlistRepository,
@@ -72,12 +77,12 @@ export const buildCatalogModule = (
         ...(homeResumeFrames === undefined ? {} : { resumeFrames: homeResumeFrames }),
       }),
       searchRoutes: searchRoutes({
-        searchCatalog: searchCatalogFactory({ catalogRepository, catalogEntries }),
+        searchCatalog: searchCatalogFactory({ catalogReadModel: catalog, catalogEntries }),
         scopeFor: visibilityScope,
       }),
       imageAccess: {
         canView: ({ imageId, profileId }: { imageId: string; profileId: string }): boolean =>
-          catalogRepository.isImageVisible({ imageId, scope: visibilityScope(profileId) }),
+          catalog.isImageVisible({ imageId, scope: visibilityScope(profileId) }),
       },
     },
   })

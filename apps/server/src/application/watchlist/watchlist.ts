@@ -1,6 +1,6 @@
 import { andThen, appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { VisibleItems, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { VisibilityScope, VisibleItems } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import { decodeCursor, encodeCursor } from '../../core/catalog/cursor.ts'
 import type { WatchlistEntry, WatchlistRepository } from '../../core/watchlist/watchlist.ts'
@@ -8,7 +8,7 @@ import type { CatalogEntries } from '../catalog/catalog-entries.ts'
 import type { CatalogPage } from '../catalog/list-catalog.ts'
 
 type Deps = {
-  catalogRepository: Pick<VisibleItems, 'findVisible'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
   watchlistRepository: WatchlistRepository
   catalogEntries: CatalogEntries
   clock: Clock
@@ -19,13 +19,13 @@ export type WatchlistItemError = AppError<'item/not_found' | 'item/invalid_kind'
 const cursorSort = { sort: 'added', order: 'desc' } as const
 
 export const watchlistFactory = ({
-  catalogRepository,
+  visibleItems,
   watchlistRepository,
   catalogEntries,
   clock,
 }: Deps) => {
   const listable = (itemId: string, scope: VisibilityScope): Result<string, WatchlistItemError> => {
-    const item = catalogRepository.findVisible({ id: itemId, scope })
+    const item = visibleItems.findVisible({ id: itemId, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))
     }

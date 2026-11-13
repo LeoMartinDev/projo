@@ -1,10 +1,10 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
-  type VisibleItems,
-  type PlayableSources,
   isPlayableKind,
+  type PlayableSources,
   type VisibilityScope,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import {
@@ -15,7 +15,8 @@ import {
 } from '../../core/progress/progress.ts'
 
 type Deps = {
-  catalogRepository: Pick<VisibleItems, 'findVisible'> & Pick<PlayableSources, 'listMediaSegments'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
+  playableSources: Pick<PlayableSources, 'listMediaSegments'>
   progressRepository: ProgressRepository
   clock: Clock
 }
@@ -25,7 +26,7 @@ export type RecordProgressError = AppError<
 >
 
 export const recordProgressFactory =
-  ({ catalogRepository, progressRepository, clock }: Deps) =>
+  ({ visibleItems, playableSources, progressRepository, clock }: Deps) =>
   async ({
     profileId,
     itemId,
@@ -39,7 +40,7 @@ export const recordProgressFactory =
     durationMs: number
     scope: VisibilityScope
   }): Promise<Result<ItemProgress, RecordProgressError>> => {
-    const item = catalogRepository.findVisible({ id: itemId, scope })
+    const item = visibleItems.findVisible({ id: itemId, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))
     }
@@ -63,7 +64,7 @@ export const recordProgressFactory =
       positionMs,
       durationMs,
       at: clock.now(),
-      ...creditsStartOf(catalogRepository.listMediaSegments(itemId)),
+      ...creditsStartOf(playableSources.listMediaSegments(itemId)),
     })
     progressRepository.save(next)
     progressRepository.showAncestorsAgain({ profileId, itemId })

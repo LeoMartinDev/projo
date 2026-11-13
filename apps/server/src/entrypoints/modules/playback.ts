@@ -36,7 +36,7 @@ import {
 import { createFileKeyframeStore } from '../../infrastructure/playback/keyframe-store.ts'
 import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createTrickplayStore } from '../../infrastructure/playback/trickplay-store.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
@@ -54,7 +54,7 @@ export const buildPlaybackModule = (
   { db, clock, ids, logger, eventBus, notifier, jobQueue, paths }: Platform,
   { visibilityScope }: ScopeDeps,
 ) => {
-  const catalogRepository = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const progressRepository = createSqliteProgressRepository({ db })
   const sessionRepository = createSqlitePlaybackSessionRepository({ db })
   const subtitleTrackRepository = createSqliteSubtitleTrackRepository({ db })
@@ -71,7 +71,7 @@ export const buildPlaybackModule = (
   })
   const transcodeCache = createTranscodeCache({ transcodeDir: paths.cache.transcode })
   const trickplayUrl = trickplayUrlFactory({
-    catalogRepository,
+    playableSources: catalog,
     trickplayStore: createTrickplayStore({ trickplayDir: paths.cache.trickplay }),
   })
 
@@ -84,7 +84,7 @@ export const buildPlaybackModule = (
     onEnded: (sessionId) => hlsStream.forget(sessionId),
   })
   const isItemVisible: ItemVisibility = ({ itemId, profileId }) =>
-    catalogRepository.findVisible({ id: itemId, scope: visibilityScope(profileId) }) !== undefined
+    catalog.findVisible({ id: itemId, scope: visibilityScope(profileId) }) !== undefined
   const authorize = authorizePlaybackFactory({
     sessionRepository,
     endSession,
@@ -99,7 +99,7 @@ export const buildPlaybackModule = (
   })
   const hlsStream = hlsStreamFactory({
     authorize: authorizeStream,
-    catalogRepository,
+    playableSources: catalog,
     keyframeStore,
     mediaProber: ffprobe,
     jobQueue,
@@ -109,14 +109,14 @@ export const buildPlaybackModule = (
     delay: (ms) => Bun.sleep(ms),
   })
   const indexKeyframes = indexKeyframesFactory({
-    catalogRepository,
+    playableSources: catalog,
     keyframeStore,
     keyframeExtractor: ffprobe,
     mediaProber: ffprobe,
     logger,
   })
   const indexKeyframesInBackground = indexKeyframesFactory({
-    catalogRepository,
+    playableSources: catalog,
     keyframeStore,
     keyframeExtractor: backgroundFfprobe,
     mediaProber: backgroundFfprobe,
@@ -159,7 +159,8 @@ export const buildPlaybackModule = (
       endSession,
       routes: playbackRoutes({
         createPlaybackSession: createPlaybackSessionFactory({
-          catalogRepository,
+          visibleItems: catalog,
+          playableSources: catalog,
           progressRepository,
           sessionRepository,
           subtitleTrackRepository,
@@ -188,7 +189,7 @@ export const buildPlaybackModule = (
         heartbeat: heartbeatFactory({
           authorize,
           sessionRepository,
-          catalogRepository,
+          playableSources: catalog,
           progressRepository,
           clock,
         }),
@@ -198,19 +199,19 @@ export const buildPlaybackModule = (
           isItemVisible,
         }),
         setTrackPreferences: setTrackPreferencesFactory({
-          catalogRepository,
+          visibleItems: catalog,
           trackPreferenceRepository,
           clock,
           logger,
         }),
         clearTrackPreferences: clearTrackPreferencesFactory({
-          catalogRepository,
+          visibleItems: catalog,
           trackPreferenceRepository,
         }),
         scopeFor: visibilityScope,
       }),
       streamRoutes: streamRoutes({
-        directStream: directStreamFactory({ authorize: authorizeStream, catalogRepository }),
+        directStream: directStreamFactory({ authorize: authorizeStream, playableSources: catalog }),
         hlsStream,
         mediaFiles: createMediaFiles(),
       }),

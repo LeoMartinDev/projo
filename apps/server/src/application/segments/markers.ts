@@ -1,10 +1,10 @@
 import { appError, err, ok } from '@projo/shared'
 
 import {
-  type VisibleItems,
-  type PlayableSources,
   isPlayableKind,
+  type PlayableSources,
   type VisibilityScopeResolver,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
@@ -34,17 +34,19 @@ import type {
 
 export const getItemSegmentsFactory =
   ({
-    catalogRepository,
+    visibleItems,
+    playableSources,
     segmentRepository,
     visibilityScope,
   }: {
-    catalogRepository: Pick<VisibleItems, 'findVisible'> & Pick<PlayableSources, 'listReadySources'>
+    visibleItems: Pick<VisibleItems, 'findVisible'>
+    playableSources: Pick<PlayableSources, 'listReadySources'>
     segmentRepository: SegmentRepository
     visibilityScope: VisibilityScopeResolver
   }): GetItemSegments =>
   ({ itemId, profileId, withLookups }) => {
     const scope = visibilityScope(profileId)
-    const item = catalogRepository.findVisible({ id: itemId, scope })
+    const item = visibleItems.findVisible({ id: itemId, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))
     }
@@ -55,7 +57,7 @@ export const getItemSegmentsFactory =
         }),
       )
     }
-    const { durationMs } = itemTimeline(catalogRepository.listReadySources({ itemId, scope }))
+    const { durationMs } = itemTimeline(playableSources.listReadySources({ itemId, scope }))
     return ok(
       segmentsView(segmentRepository, {
         itemId,

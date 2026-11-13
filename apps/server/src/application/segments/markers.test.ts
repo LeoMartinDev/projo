@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 
-import type { PlayableSource, PlayableSources, VisibleItems } from '../../core/catalog/catalog.ts'
+import type { PlayableSource, PlayableSources } from '../../core/catalog/catalog.ts'
 import { noSegmentKey } from '../../core/segments/segment.ts'
 import type { SegmentSettings } from '../../core/settings/settings.ts'
 import { createManualClock } from '../../../test/support/clock.ts'
@@ -41,11 +41,11 @@ let sources: Record<string, PlayableSource[]>
 const build = (settings: Partial<SegmentSettings> = {}) => {
   const clock = createManualClock(new Date('2026-10-24T12:00:00.000Z'))
   const segmentCatalog = inMemorySegmentCatalog(items)
-  const catalogRepository = {
-    listReadySources: ({ itemId }: { itemId: string }) => sources[itemId] ?? [],
-  } as unknown as VisibleItems & PlayableSources
+  const playableSources: Pick<PlayableSources, 'listReadySources'> = {
+    listReadySources: ({ itemId }) => sources[itemId] ?? [],
+  }
   return segmentMarkersFactory({
-    segmentTarget: segmentTargetFactory({ segmentCatalog, catalogRepository }),
+    segmentTarget: segmentTargetFactory({ segmentCatalog, playableSources }),
     segmentCatalog,
     segmentRepository: store.repository,
     settings: inMemorySegmentSettings(settings),

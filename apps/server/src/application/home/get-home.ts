@@ -25,7 +25,7 @@ export type HomeView = {
 }
 
 type Deps = {
-  catalogRepository: Pick<
+  catalogReadModel: Pick<
     CatalogReadModel,
     'findManyVisible' | 'listRecentlyAdded' | 'listSeriesEpisodes'
   >
@@ -40,7 +40,7 @@ const unique = <T>(values: Iterable<T>): T[] => [...new Set(values)]
 
 export const getHomeFactory =
   ({
-    catalogRepository,
+    catalogReadModel,
     progressRepository,
     progressQueries,
     watchlistRepository,
@@ -64,10 +64,10 @@ export const getHomeFactory =
     const candidates = [...upNextCandidates(played, hiddenSeries).keys()]
     const continueRow = continueWatching({
       played,
-      episodes: catalogRepository.listSeriesEpisodes({ seriesIds: candidates, scope }),
+      episodes: catalogReadModel.listSeriesEpisodes({ seriesIds: candidates, scope }),
       hiddenSeries,
     })
-    const recent = catalogRepository.listRecentlyAdded({ limit: homeRules.rowLimit, scope })
+    const recent = catalogReadModel.listRecentlyAdded({ limit: homeRules.rowLimit, scope })
     const listed = watchlistRepository.listVisible({ profileId, scope, limit: homeRules.rowLimit })
     const recentRows = progressRepository.findMany({
       profileId,
@@ -86,7 +86,7 @@ export const getHomeFactory =
       [...recent, ...listed.map((row) => row.item)].map((item) => [item.id, item]),
     )
     const missing = [...episodeIds, ...seriesIds].filter((id) => !known.has(id))
-    for (const item of catalogRepository.findManyVisible({ ids: missing, scope })) {
+    for (const item of catalogReadModel.findManyVisible({ ids: missing, scope })) {
       known.set(item.id, item)
     }
     const entries = new Map(

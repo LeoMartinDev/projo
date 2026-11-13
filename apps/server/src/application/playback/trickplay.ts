@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { PlayableSources, PlayableSource } from '../../core/catalog/catalog.ts'
+import type { PlayableSource, PlayableSources } from '../../core/catalog/catalog.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { MediaError } from '../../core/media/probe.ts'
@@ -53,13 +53,13 @@ const isCurrent = (
 
 export const generateTrickplayFactory =
   ({
-    catalogRepository,
+    playableSources,
     mediaCatalog,
     playbackSettings,
     trickplayStore,
     logger,
   }: {
-    catalogRepository: Pick<PlayableSources, 'findSource'>
+    playableSources: Pick<PlayableSources, 'findSource'>
     mediaCatalog: MediaAssetCatalog
     playbackSettings: PlaybackSettingsReader
     trickplayStore: TrickplayStore
@@ -74,7 +74,7 @@ export const generateTrickplayFactory =
   }): Promise<Result<'generated' | 'skipped', MediaError>> => {
     if (!playbackSettings.read().trickplayEnabled) return ok('skipped')
     if (mediaCatalog.libraryFlags(sourceId)?.trickplayEnabled !== true) return ok('skipped')
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return ok('skipped')
     }
@@ -98,14 +98,14 @@ export const generateTrickplayFactory =
 
 export const trickplayUrlFactory =
   ({
-    catalogRepository,
+    playableSources,
     trickplayStore,
   }: {
-    catalogRepository: Pick<PlayableSources, 'findSource'>
+    playableSources: Pick<PlayableSources, 'findSource'>
     trickplayStore: TrickplayStore
   }) =>
   (sourceId: string): string | undefined => {
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     if (source === undefined || !isFresh(trickplayStore, source)) return undefined
     return `/api/v1/trickplay/${encodeURIComponent(sourceId)}/index.json?v=${source.mtime}`
   }
@@ -115,11 +115,11 @@ export type TrickplayUrl = ReturnType<typeof trickplayUrlFactory>
 export type TrickplayAccessError = AppError<'playback/trickplay_not_found'>
 
 export const trickplayFilesFactory = ({
-  catalogRepository,
+  playableSources,
   trickplayStore,
   canAccessSource,
 }: {
-  catalogRepository: Pick<PlayableSources, 'findSource'>
+  playableSources: Pick<PlayableSources, 'findSource'>
   trickplayStore: TrickplayStore
   canAccessSource: SourceAccess
 }) => {
@@ -131,7 +131,7 @@ export const trickplayFilesFactory = ({
     )
   const fresh = (sourceId: string, profileId: string) => {
     if (!canAccessSource({ sourceId, profileId })) return undefined
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     const stored = source === undefined ? undefined : trickplayStore.read(sourceId)
     return source !== undefined &&
       stored !== undefined &&
@@ -173,7 +173,7 @@ export const trickplayFilesFactory = ({
       profileId: string
     }): Promise<Result<string, TrickplayAccessError | MediaError>> => {
       const stored = fresh(sourceId, profileId)
-      const source = stored === undefined ? undefined : catalogRepository.findSource(sourceId)
+      const source = stored === undefined ? undefined : playableSources.findSource(sourceId)
       const video = source?.media?.video[0]
       const durationS = (source?.media?.durationMs ?? 0) / 1000
       if (

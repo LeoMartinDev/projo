@@ -4,19 +4,19 @@ import { eq } from 'drizzle-orm'
 import { insertItem, insertLibrary, insertSource } from '../../../test/support/catalog-fixtures.ts'
 import { createTestDatabase } from '../../../test/support/database.ts'
 import { type CatalogReadModel, everything } from '../../core/catalog/catalog.ts'
-import { createSqliteCatalogRepository } from './catalog-repository.ts'
+import { createSqliteCatalog } from './catalog.ts'
 import type { Db } from './database.ts'
 import { sources } from './schema/libraries.ts'
 
 let db: Db
-let repo: ReturnType<typeof createSqliteCatalogRepository>
+let repo: ReturnType<typeof createSqliteCatalog>
 
 const movie = (id: string, extra: Omit<Parameters<typeof insertItem>[1], 'id' | 'kind'> = {}) =>
   insertItem(db, { id, kind: 'movie', ...extra })
 
 beforeEach(() => {
   db = createTestDatabase()
-  repo = createSqliteCatalogRepository({ db })
+  repo = createSqliteCatalog({ db })
   insertLibrary(db, { id: 'library-1', rootPath: '/media/films' })
   insertLibrary(db, { id: 'library-2', rootPath: '/media/kids' })
 })

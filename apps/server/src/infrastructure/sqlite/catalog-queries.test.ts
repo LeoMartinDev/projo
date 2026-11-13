@@ -19,18 +19,18 @@ import {
 } from '../../core/catalog/catalog.ts'
 import { toSearchExpression } from '../../core/catalog/search.ts'
 import { allowedRatingsByCountry } from '../../core/profile/content-rating.ts'
-import { createSqliteCatalogRepository } from './catalog-repository.ts'
+import { createSqliteCatalog } from './catalog.ts'
 import type { Db } from './database.ts'
 import { createSqliteProgressRepository } from './progress-repository.ts'
 import { items } from './schema/items.ts'
 import { sources, sourceSubtitles } from './schema/libraries.ts'
 
 let db: Db
-let repo: ReturnType<typeof createSqliteCatalogRepository>
+let repo: ReturnType<typeof createSqliteCatalog>
 
 beforeEach(() => {
   db = createTestDatabase()
-  repo = createSqliteCatalogRepository({ db })
+  repo = createSqliteCatalog({ db })
   insertLibrary(db, { id: 'library-1', rootPath: '/media/fr' })
   insertLibrary(db, { id: 'library-us', rootPath: '/media/us', ratingCountry: 'US' })
 })

@@ -7,7 +7,7 @@ import { findCatalogItemsFactory } from './find-catalog-items.ts'
 const setup = () => {
   const searches: unknown[] = []
   const find = findCatalogItemsFactory({
-    catalog: {
+    catalogReadModel: {
       search: (input) => {
         searches.push(input)
         return [
@@ -19,11 +19,15 @@ const setup = () => {
     items: inMemoryItems({
       items: [
         { id: 'show', kind: 'series', tmdbId: 42 },
+        { id: 'season', kind: 'season', parentId: 'show', seasonNumber: 1 },
+        { id: 'e1', kind: 'episode', parentId: 'season', seasonNumber: 1, episodeNumber: 1 },
+        { id: 'e2', kind: 'episode', parentId: 'season', seasonNumber: 1, episodeNumber: 2 },
         { id: 'local', kind: 'movie' },
       ],
       links: [
-        { itemId: 'show', sourceId: 's1', seasonNumber: 1, episodeNumber: 1 },
-        { itemId: 'show', sourceId: 's2', seasonNumber: 1, episodeNumber: 2 },
+        { itemId: 'e1', sourceId: 's1' },
+        { itemId: 'e2', sourceId: 's1' },
+        { itemId: 'e2', sourceId: 's2' },
       ],
     }),
   })

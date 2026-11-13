@@ -1,6 +1,6 @@
 import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
-import { type VisibleItems, everything, type ItemKind } from '../../core/catalog/catalog.ts'
+import { everything, type ItemKind, type VisibleItems } from '../../core/catalog/catalog.ts'
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
 import { type LibraryNames, libraryNamesOf } from './library-names.ts'
@@ -9,7 +9,7 @@ type Deps = {
   sources: Pick<SourceRepository, 'findById'>
   libraries: LibraryNames
   items: Pick<MetadataItemRepository, 'findItem' | 'sourcesUnder'>
-  catalog: Pick<VisibleItems, 'findVisible'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
 }
 
 export type ItemFile = {
@@ -31,13 +31,13 @@ export type ItemFilesView = {
 export type GetItemFilesError = AppError<'item/not_found'>
 
 export const getItemFilesFactory =
-  ({ sources, libraries, items, catalog }: Deps) =>
+  ({ sources, libraries, items, visibleItems }: Deps) =>
   ({ itemId }: { itemId: string }): Result<ItemFilesView, GetItemFilesError> => {
     const info = items.findItem(itemId)
     if (info === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { id: itemId } }))
     }
-    const item = catalog.findVisible({ id: itemId, scope: everything })
+    const item = visibleItems.findVisible({ id: itemId, scope: everything })
     const names = libraryNamesOf(libraries)
     return ok({
       id: itemId,

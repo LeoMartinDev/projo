@@ -1,9 +1,9 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
-  type CatalogReadModel,
   isPlayableKind,
   type VisibilityScope,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import {
@@ -15,7 +15,7 @@ import {
 import type { ProgressView, ProgressViews } from './progress-views.ts'
 
 type Deps = {
-  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listVisibleEpisodeIds'>
+  visibleItems: Pick<VisibleItems, 'findVisible' | 'listVisibleEpisodeIds'>
   progressRepository: ProgressRepository
   progressViews: ProgressViews
   clock: Clock
@@ -24,7 +24,7 @@ type Deps = {
 export type SetWatchedError = AppError<'item/not_found'>
 
 export const setWatchedFactory =
-  ({ catalogRepository, progressRepository, progressViews, clock }: Deps) =>
+  ({ visibleItems, progressRepository, progressViews, clock }: Deps) =>
   async ({
     profileId,
     itemId,
@@ -36,13 +36,13 @@ export const setWatchedFactory =
     watched: boolean
     scope: VisibilityScope
   }): Promise<Result<ProgressView, SetWatchedError>> => {
-    const item = catalogRepository.findVisible({ id: itemId, scope })
+    const item = visibleItems.findVisible({ id: itemId, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))
     }
     const episodeIds = isPlayableKind(item.kind)
       ? [item.id]
-      : catalogRepository
+      : visibleItems
           .listVisibleEpisodeIds({ ancestorIds: [item.id], scope })
           .map((episode) => episode.episodeId)
     const previous = progressRepository.findMany({ profileId, itemIds: episodeIds })

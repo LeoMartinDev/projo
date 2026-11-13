@@ -2,11 +2,11 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import {
   type CatalogReadModel,
-  type VisibleItems,
-  type PlayableSources,
   everything,
   type PlayableSource,
+  type PlayableSources,
   type VisibilityScopeResolver,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { JobQueue } from '../../core/jobs/ports.ts'
@@ -47,24 +47,24 @@ const playable = (source: PlayableSource | undefined): ClipSource | undefined =>
   return { source, durationMs }
 }
 
+type ClipSourceDeps = {
+  catalogReadModel: Pick<CatalogReadModel, 'listSeriesEpisodes'>
+  playableSources: Pick<PlayableSources, 'listReadySources'>
+}
+
 const clipSourceFactory =
-  (
-    catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes'> &
-      Pick<PlayableSources, 'listReadySources'>,
-  ) =>
+  ({ catalogReadModel, playableSources }: ClipSourceDeps) =>
   (target: { id: string; kind: 'movie' | 'series' }): ClipSource | undefined => {
     if (target.kind === 'movie') {
-      return playable(
-        catalogRepository.listReadySources({ itemId: target.id, scope: everything })[0],
-      )
+      return playable(playableSources.listReadySources({ itemId: target.id, scope: everything })[0])
     }
-    const episodes = catalogRepository.listSeriesEpisodes({
+    const episodes = catalogReadModel.listSeriesEpisodes({
       seriesIds: [target.id],
       scope: everything,
     })
     for (const episode of episodes.toReversed()) {
       const found = playable(
-        catalogRepository.listReadySources({ itemId: episode.id, scope: everything })[0],
+        playableSources.listReadySources({ itemId: episode.id, scope: everything })[0],
       )
       if (found !== undefined) return found
     }
@@ -72,18 +72,17 @@ const clipSourceFactory =
   }
 
 export const generatePreviewClipFactory = ({
-  catalogRepository,
+  catalogReadModel,
+  playableSources,
   mediaCatalog,
   previewStore,
   logger,
-}: {
-  catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes'> &
-    Pick<PlayableSources, 'listReadySources'>
+}: ClipSourceDeps & {
   mediaCatalog: MediaAssetCatalog
   previewStore: PreviewStore
   logger: Logger
 }) => {
-  const clipSource = clipSourceFactory(catalogRepository)
+  const clipSource = clipSourceFactory({ catalogReadModel, playableSources })
   return async ({
     itemId,
     signal,
@@ -130,12 +129,14 @@ export type PreviewAccessError = AppError<'playback/preview_not_found'>
 export const previewAccessFactory =
   ({
     previewStore,
-    catalogRepository,
+    visibleItems,
+    playableSources,
     canAccessSource,
     scopeFor,
   }: {
     previewStore: PreviewStore
-    catalogRepository: Pick<VisibleItems, 'findVisible'> & Pick<PlayableSources, 'findSource'>
+    visibleItems: Pick<VisibleItems, 'findVisible'>
+    playableSources: Pick<PlayableSources, 'findSource'>
     canAccessSource: SourceAccess
     scopeFor: VisibilityScopeResolver
   }) =>
@@ -147,9 +148,9 @@ export const previewAccessFactory =
     profileId: string
   }): Result<string, PreviewAccessError> => {
     const visible =
-      catalogRepository.findVisible({ id: itemId, scope: scopeFor(profileId) }) !== undefined
+      visibleItems.findVisible({ id: itemId, scope: scopeFor(profileId) }) !== undefined
     const stored = visible ? previewStore.read(itemId) : undefined
-    const source = stored === undefined ? undefined : catalogRepository.findSource(stored.sourceId)
+    const source = stored === undefined ? undefined : playableSources.findSource(stored.sourceId)
     if (
       stored === undefined ||
       source === undefined ||

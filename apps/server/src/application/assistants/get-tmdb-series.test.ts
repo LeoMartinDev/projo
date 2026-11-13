@@ -55,7 +55,7 @@ test('adds the season asked for, in the language asked for', async () => {
   const { get, calls } = setup()
 
   expect(await get({ tmdbId: 42, seasonNumber: 1, language: 'en-US' })).toEqual(
-    ok({ series, season }),
+    ok({ series, seasonNumber: 1, season }),
   )
   expect(calls.at(-1)).toEqual({
     kind: 'season',

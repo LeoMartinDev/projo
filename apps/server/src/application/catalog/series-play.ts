@@ -5,7 +5,7 @@ import { seriesPlayTarget } from '../../core/progress/rows.ts'
 export type PlayButton = { action: 'resume' | 'play'; item: CatalogItem; positionMs: number }
 
 type Deps = {
-  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listSeriesEpisodes'>
+  catalogReadModel: Pick<CatalogReadModel, 'findVisible' | 'listSeriesEpisodes'>
   progressRepository: ProgressRepository
 }
 
@@ -17,9 +17,9 @@ export type SeriesPlay = (input: {
 }) => PlayButton | undefined
 
 export const seriesPlayFactory =
-  ({ catalogRepository, progressRepository }: Deps): SeriesPlay =>
+  ({ catalogReadModel, progressRepository }: Deps): SeriesPlay =>
   ({ profileId, seriesId, seasonNumber, scope }) => {
-    const episodes = catalogRepository
+    const episodes = catalogReadModel
       .listSeriesEpisodes({ seriesIds: [seriesId], scope })
       .filter((episode) => seasonNumber === undefined || episode.seasonNumber === seasonNumber)
     const progress = progressRepository.findMany({
@@ -30,7 +30,7 @@ export const seriesPlayFactory =
     const item =
       target === undefined
         ? undefined
-        : catalogRepository.findVisible({ id: target.episode.id, scope })
+        : catalogReadModel.findVisible({ id: target.episode.id, scope })
     return target === undefined || item === undefined
       ? undefined
       : { action: target.action, item, positionMs: target.positionMs }

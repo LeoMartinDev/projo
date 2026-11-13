@@ -25,7 +25,7 @@ export const requestKeyframes = (jobQueue: JobQueue, sourceId: string, priority:
 }
 
 type Deps = {
-  catalogRepository: Pick<PlayableSources, 'findSource'>
+  playableSources: Pick<PlayableSources, 'findSource'>
   keyframeStore: KeyframeStore
   keyframeExtractor: KeyframeExtractor
   mediaProber: MediaProber
@@ -37,7 +37,7 @@ export type IndexKeyframesError = AppError<
 >
 
 export const indexKeyframesFactory =
-  ({ catalogRepository, keyframeStore, keyframeExtractor, mediaProber, logger }: Deps) =>
+  ({ playableSources, keyframeStore, keyframeExtractor, mediaProber, logger }: Deps) =>
   async ({
     sourceId,
     signal,
@@ -45,7 +45,7 @@ export const indexKeyframesFactory =
     sourceId: string
     signal?: AbortSignal
   }): Promise<Result<StoredKeyframeIndex, IndexKeyframesError>> => {
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     if (source === undefined || source.state === 'missing' || source.state === 'rejected') {
       return err(
         appError('playback/source_unavailable', 'source not playable', { context: { sourceId } }),

@@ -22,7 +22,7 @@ export type CatalogEntry = {
 }
 
 type Deps = {
-  catalogRepository: Pick<CatalogReadModel, 'listSeriesEpisodes' | 'bestQualities'>
+  catalogReadModel: Pick<CatalogReadModel, 'listSeriesEpisodes' | 'bestQualities'>
   progressViews: ProgressViews
   watchlistRepository: WatchlistRepository
 }
@@ -34,7 +34,7 @@ export type CatalogEntries = (input: {
 }) => CatalogEntry[]
 
 export const catalogEntriesFactory =
-  ({ catalogRepository, progressViews, watchlistRepository }: Deps): CatalogEntries =>
+  ({ catalogReadModel, progressViews, watchlistRepository }: Deps): CatalogEntries =>
   ({ profileId, items, scope }) => {
     const views = progressViews({ profileId, items, scope })
     const listable = items
@@ -48,7 +48,7 @@ export const catalogEntriesFactory =
     const seriesIds = items.filter((item) => item.kind === 'series').map((item) => item.id)
     const episodesBySeries = new Map<string, EpisodeRef[]>()
     if (seriesIds.length > 0) {
-      for (const episode of catalogRepository.listSeriesEpisodes({ seriesIds, scope })) {
+      for (const episode of catalogReadModel.listSeriesEpisodes({ seriesIds, scope })) {
         episodesBySeries.set(episode.seriesId, [
           ...(episodesBySeries.get(episode.seriesId) ?? []),
           episode,
@@ -62,7 +62,7 @@ export const catalogEntriesFactory =
     const qualities =
       playableIds.length === 0
         ? new Map<string, VideoQuality>()
-        : catalogRepository.bestQualities({ itemIds: playableIds, scope })
+        : catalogReadModel.bestQualities({ itemIds: playableIds, scope })
 
     const qualityOf = (item: CatalogItem): VideoQuality | undefined =>
       item.kind === 'series'

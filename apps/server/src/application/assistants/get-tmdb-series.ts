@@ -9,7 +9,8 @@ type Deps = {
   metadataLanguage: () => string
 }
 
-export type TmdbSeriesView = { series: TmdbSeries; season?: TmdbSeason }
+export type TmdbSeriesView =
+  { series: TmdbSeries } | { series: TmdbSeries; seasonNumber: number; season: TmdbSeason }
 
 export const getTmdbSeriesFactory =
   ({ tmdbDetails, metadataLanguage }: Deps) =>
@@ -32,7 +33,7 @@ export const getTmdbSeriesFactory =
       maxAgeMs: DETAILS_MAX_AGE_MS,
     })
     if (!season.ok) return season
-    return ok({ series: series.value, season: season.value })
+    return ok({ series: series.value, seasonNumber, season: season.value })
   }
 
 export type GetTmdbSeries = ReturnType<typeof getTmdbSeriesFactory>

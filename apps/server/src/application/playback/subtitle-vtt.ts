@@ -25,12 +25,12 @@ export type GetSubtitleVttError =
 export const getSubtitleVttFactory =
   ({
     subtitleTracks,
-    catalogRepository,
+    playableSources,
     canAccessSource,
     subtitleCache,
   }: {
     subtitleTracks: SubtitleTrackRepository
-    catalogRepository: Pick<PlayableSources, 'findSource'>
+    playableSources: Pick<PlayableSources, 'findSource'>
     canAccessSource: SourceAccess
     subtitleCache: SubtitleCache
   }) =>
@@ -64,7 +64,7 @@ export const getSubtitleVttFactory =
         }),
       )
     }
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return err(
         appError('playback/source_unavailable', 'source unavailable', { context: { sourceId } }),
@@ -108,13 +108,13 @@ export const requestSubtitleExtraction = (jobQueue: JobQueue, sourceId: string):
 export const preExtractSubtitlesFactory =
   ({
     subtitleTracks,
-    catalogRepository,
+    playableSources,
     mediaCatalog,
     subtitleCache,
     logger,
   }: {
     subtitleTracks: SubtitleTrackRepository
-    catalogRepository: Pick<PlayableSources, 'findSource'>
+    playableSources: Pick<PlayableSources, 'findSource'>
     mediaCatalog: MediaAssetCatalog
     subtitleCache: SubtitleCache
     logger: Logger
@@ -129,7 +129,7 @@ export const preExtractSubtitlesFactory =
     if (mediaCatalog.libraryFlags(sourceId)?.preExtractSubtitles !== true) {
       return ok({ extracted: 0 })
     }
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return ok({ extracted: 0 })
     }

@@ -35,7 +35,7 @@ const session: PlaybackSession = {
 const streamOf = (current: PlayableSource) =>
   directStreamFactory({
     authorize: () => ok(session),
-    catalogRepository: { findSource: () => current },
+    playableSources: { findSource: () => current },
   })({ sessionId: 's1', secret: 'secret-1' })
 
 describe('directStream', () => {

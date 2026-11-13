@@ -69,7 +69,7 @@ const streamFor = ({
   const recording = createRecordingJobQueue()
   const stream = hlsStreamFactory({
     authorize: () => ok(playing),
-    catalogRepository: {
+    playableSources: {
       findSource: () => ({ ...source, ...(media === undefined ? {} : { media }) }),
     },
     keyframeStore: {
@@ -189,7 +189,7 @@ describe('hlsStream: hls_transcode sessions (§10.2, §10.3)', () => {
     const controller = new AbortController()
     const recording = hlsStreamFactory({
       authorize: () => ok(transcoding),
-      catalogRepository: {
+      playableSources: {
         findSource: () => ({ ...source, media }),
       },
       keyframeStore: { read: () => undefined, write: () => ok() },
@@ -294,7 +294,7 @@ describe('hlsStream: session ended while waiting for the keyframe index (§10.3,
     }
     const stream = hlsStreamFactory({
       authorize,
-      catalogRepository: { findSource: () => source },
+      playableSources: { findSource: () => source },
       keyframeStore,
       mediaProber: {
         probe: async () => {

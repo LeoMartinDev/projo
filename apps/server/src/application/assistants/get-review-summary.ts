@@ -1,6 +1,4 @@
-import type { ReviewReason } from '@projo/shared/api/metadata'
-
-import type { SourceCounts, SourceRepository } from '../../core/source/source.ts'
+import type { SourceRepository } from '../../core/source/source.ts'
 import { type LibraryNames, libraryNamesOf } from './library-names.ts'
 
 type Deps = {
@@ -8,15 +6,12 @@ type Deps = {
   libraries: LibraryNames
 }
 
+type StoredSummary = ReturnType<SourceRepository['reviewSummary']>
+
 export type ReviewSummary = {
-  toReview: {
-    libraryId: string
-    reason?: ReviewReason
-    count: number
-    library: string | undefined
-  }[]
+  toReview: (StoredSummary['toReview'][number] & { library: string | undefined })[]
   totalToReview: number
-  byState: SourceCounts
+  byState: StoredSummary['byState']
 }
 
 export const getReviewSummaryFactory =

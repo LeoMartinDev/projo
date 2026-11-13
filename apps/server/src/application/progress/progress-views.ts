@@ -1,8 +1,8 @@
 import {
   type CatalogItem,
-  type CatalogReadModel,
   isPlayableKind,
   type VisibilityScope,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import {
   aggregateWatchStatus,
@@ -15,7 +15,7 @@ export type ProgressView =
   { kind: 'playable'; progress?: ItemProgress } | { kind: 'aggregate'; status: WatchStatus }
 
 type Deps = {
-  catalogRepository: Pick<CatalogReadModel, 'listVisibleEpisodeIds'>
+  visibleItems: Pick<VisibleItems, 'listVisibleEpisodeIds'>
   progressRepository: ProgressRepository
 }
 
@@ -26,11 +26,11 @@ export type ProgressViews = (input: {
 }) => Map<string, ProgressView>
 
 export const progressViewsFactory =
-  ({ catalogRepository, progressRepository }: Deps): ProgressViews =>
+  ({ visibleItems, progressRepository }: Deps): ProgressViews =>
   ({ profileId, items, scope }) => {
     const playableIds = items.filter((item) => isPlayableKind(item.kind)).map((item) => item.id)
     const containerIds = items.filter((item) => !isPlayableKind(item.kind)).map((item) => item.id)
-    const episodes = catalogRepository.listVisibleEpisodeIds({ ancestorIds: containerIds, scope })
+    const episodes = visibleItems.listVisibleEpisodeIds({ ancestorIds: containerIds, scope })
     const progress = progressRepository.findMany({
       profileId,
       itemIds: [...playableIds, ...episodes.map((episode) => episode.episodeId)],

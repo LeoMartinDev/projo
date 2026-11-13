@@ -23,28 +23,28 @@ export type HomeCategoriesView = {
 
 export type HomeCategoryDeps = {
   categoryQueries: HomeCategoryQueries
-  catalogRepository: Pick<CatalogReadModel, 'findManyVisible' | 'listSeriesEpisodes'>
+  catalogReadModel: Pick<CatalogReadModel, 'findManyVisible' | 'listSeriesEpisodes'>
   progressQueries: ProgressQueries
   catalogEntries: CatalogEntries
 }
 
 export const watchedTitlesFor =
   ({
-    catalogRepository,
+    catalogReadModel,
     progressQueries,
-  }: Pick<HomeCategoryDeps, 'catalogRepository' | 'progressQueries'>) =>
+  }: Pick<HomeCategoryDeps, 'catalogReadModel' | 'progressQueries'>) =>
   ({ profileId, scope }: { profileId: string; scope: VisibilityScope }): Set<string> => {
     const played = progressQueries.listPlayed({ profileId, scope })
     const seriesIds = seriesWithWatchedEpisodes(played)
     return watchedTitles({
       played,
       episodes:
-        seriesIds.length === 0 ? [] : catalogRepository.listSeriesEpisodes({ seriesIds, scope }),
+        seriesIds.length === 0 ? [] : catalogReadModel.listSeriesEpisodes({ seriesIds, scope }),
     })
   }
 
 export const getHomeCategoriesFactory =
-  ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: HomeCategoryDeps) =>
+  ({ categoryQueries, catalogReadModel, progressQueries, catalogEntries }: HomeCategoryDeps) =>
   async ({
     profileId,
     scope,
@@ -64,9 +64,9 @@ export const getHomeCategoriesFactory =
     })
     if (batch.length === 0) return page([])
 
-    const watched = watchedTitlesFor({ catalogRepository, progressQueries })({ profileId, scope })
+    const watched = watchedTitlesFor({ catalogReadModel, progressQueries })({ profileId, scope })
     const ids = categoryRows({ titles, categories: batch, watched })
-    const items = catalogRepository.findManyVisible({ ids: [...ids.values()].flat(), scope })
+    const items = catalogReadModel.findManyVisible({ ids: [...ids.values()].flat(), scope })
     const entries = new Map(
       catalogEntries({ profileId, items, scope }).map((entry) => [entry.item.id, entry]),
     )

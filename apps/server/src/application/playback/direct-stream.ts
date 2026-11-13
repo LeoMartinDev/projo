@@ -10,10 +10,10 @@ export type DirectStreamError =
 export const directStreamFactory =
   ({
     authorize,
-    catalogRepository,
+    playableSources,
   }: {
     authorize: AuthorizeStream
-    catalogRepository: Pick<PlayableSources, 'findSource'>
+    playableSources: Pick<PlayableSources, 'findSource'>
   }) =>
   async (
     access: StreamAccess,
@@ -29,7 +29,7 @@ export const directStreamFactory =
         }),
       )
     }
-    const source = catalogRepository.findSource(sourceId)
+    const source = playableSources.findSource(sourceId)
     const mimeType = source === undefined ? undefined : directMimeType(source.extension)
     if (
       source === undefined ||

@@ -188,7 +188,8 @@ export const buildAssistantTools = ({
         ...(language === undefined ? {} : { language }),
       })
       if (!found.ok) return found
-      const { series, season } = found.value
+      const view = found.value
+      const { series } = view
       const show = {
         tmdbId: series.tmdbId,
         title: series.title,
@@ -202,12 +203,12 @@ export const buildAssistantTools = ({
           ...(summary.airDate === undefined ? {} : { airDate: summary.airDate }),
         })),
       }
-      if (seasonNumber === undefined || season === undefined) return ok(show)
+      if (!('season' in view)) return ok(show)
       return ok({
         ...show,
         season: {
-          seasonNumber,
-          episodes: season.episodes.map((episode) => ({
+          seasonNumber: view.seasonNumber,
+          episodes: view.season.episodes.map((episode) => ({
             episodeNumber: episode.episodeNumber,
             ...(episode.name === undefined ? {} : { name: episode.name }),
             ...(episode.airDate === undefined ? {} : { airDate: episode.airDate }),

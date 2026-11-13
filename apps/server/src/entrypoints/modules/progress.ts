@@ -4,7 +4,7 @@ import { progressViewsFactory } from '../../application/progress/progress-views.
 import { recordProgressFactory } from '../../application/progress/record-progress.ts'
 import { setWatchedFactory } from '../../application/progress/set-watched.ts'
 import { watchlistFactory } from '../../application/watchlist/watchlist.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteProgressRepository } from '../../infrastructure/sqlite/progress-repository.ts'
 import { createSqliteWatchlistRepository } from '../../infrastructure/sqlite/watchlist-repository.ts'
 import { progressRoutes } from '../http/routes/progress.ts'
@@ -14,29 +14,38 @@ import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
 export const buildProgressModule = ({ db, clock }: Platform, { visibilityScope }: ScopeDeps) => {
-  const catalogRepository = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const progressRepository = createSqliteProgressRepository({ db })
   const watchlistRepository = createSqliteWatchlistRepository({ db })
-  const progressViews = progressViewsFactory({ catalogRepository, progressRepository })
+  const progressViews = progressViewsFactory({ visibleItems: catalog, progressRepository })
   return defineModule({
     exposes: {
       routes: progressRoutes({
-        recordProgress: recordProgressFactory({ catalogRepository, progressRepository, clock }),
+        recordProgress: recordProgressFactory({
+          visibleItems: catalog,
+          playableSources: catalog,
+          progressRepository,
+          clock,
+        }),
         setWatched: setWatchedFactory({
-          catalogRepository,
+          visibleItems: catalog,
           progressRepository,
           progressViews,
           clock,
         }),
-        hideFromContinue: hideFromContinueFactory({ catalogRepository, progressRepository, clock }),
+        hideFromContinue: hideFromContinueFactory({
+          visibleItems: catalog,
+          progressRepository,
+          clock,
+        }),
         scopeFor: visibilityScope,
       }),
       watchlistRoutes: watchlistRoutes({
         watchlist: watchlistFactory({
-          catalogRepository,
+          visibleItems: catalog,
           watchlistRepository,
           catalogEntries: catalogEntriesFactory({
-            catalogRepository,
+            catalogReadModel: catalog,
             progressViews,
             watchlistRepository,
           }),

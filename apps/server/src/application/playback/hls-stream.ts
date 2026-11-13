@@ -30,7 +30,7 @@ import type { AuthorizeStream, SessionAccessError, StreamAccess } from './sessio
 
 type Deps = {
   authorize: AuthorizeStream
-  catalogRepository: Pick<PlayableSources, 'findSource'>
+  playableSources: Pick<PlayableSources, 'findSource'>
   keyframeStore: KeyframeStore
   mediaProber: MediaProber
   jobQueue: JobQueue
@@ -57,7 +57,7 @@ type SubtitleError = AppError<'playback/subtitle_not_found' | 'playback/subtitle
 
 export const hlsStreamFactory = ({
   authorize,
-  catalogRepository,
+  playableSources,
   keyframeStore,
   mediaProber,
   jobQueue,
@@ -151,7 +151,7 @@ export const hlsStreamFactory = ({
         }),
       )
     }
-    const source = catalogRepository.findSource(session.sourceId)
+    const source = playableSources.findSource(session.sourceId)
     if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return err(
         appError('playback/source_unavailable', 'source unavailable', {
@@ -263,7 +263,7 @@ export const hlsStreamFactory = ({
       const session = authorize(input)
       if (!session.ok) return session
       const { sourceId, subtitleTrackId, mode } = session.value
-      const source = catalogRepository.findSource(sourceId)
+      const source = playableSources.findSource(sourceId)
       if (mode === 'direct' || source === undefined) {
         return err(
           appError('playback/mode_unsupported', 'not an HLS session', {

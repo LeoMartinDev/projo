@@ -16,10 +16,13 @@ const rows = [
   source('other-root', { relativePath: 'Ours/Season 1/e3.mkv', rootId: 'root-2' }),
   source('other-show', { relativePath: 'Theirs/e1.mkv' }),
   source('done', { relativePath: 'Ours/Season 1/e4.mkv', matchState: 'matched' }),
+  source('other-library', { relativePath: 'Ours/Season 1/e5.mkv', libraryId: 'lib-2' }),
 ]
 
+const { sources, queries } = inMemorySources(rows)
+
 const getReviewSource = getReviewSourceFactory({
-  sources: inMemorySources(rows).sources,
+  sources,
   libraries: { list: () => [library('lib-1', 'Shows')] },
   items: inMemoryItems({
     items: [
@@ -32,7 +35,7 @@ const getReviewSource = getReviewSourceFactory({
       { itemId: 'ghost', sourceId: 'e1' },
     ],
   }),
-  catalog: {
+  visibleItems: {
     findVisible: ({ id }) =>
       id === 'episode' ? catalogItem('episode', { kind: 'episode', title: 'Pilot' }) : undefined,
   },
@@ -49,6 +52,12 @@ test('describes the file, the items it sits under and its neighbours to review',
     { id: 'episode', kind: 'episode', title: 'Pilot', tmdbId: 7, episodeNumber: 1 },
   ])
   expect(result.value.sameFolderToReview.map((other) => other.id)).toEqual(['e2', 'e9'])
+  expect(queries.at(-1)).toEqual({
+    libraryId: 'lib-1',
+    state: 'ready',
+    matchState: 'needs_review',
+    limit: 500,
+  })
 })
 
 test('refuses an unknown source', () => {

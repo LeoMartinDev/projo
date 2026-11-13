@@ -9,6 +9,7 @@ import { createRecordingJobQueue, createSequentialIds } from '../../../test/supp
 import { silentLogger } from '../../../test/support/logger.ts'
 import type {
   CatalogItem,
+  MediaSegment,
   PlayableSource,
   PlayableSources,
   VisibleItems,
@@ -107,7 +108,7 @@ type World = {
   sessions?: PlaybackSession[]
   memory?: TrackPreferences[]
   progress?: ItemProgress[]
-  segments?: Record<string, { type: string; startMs: number; endMs: number }[]>
+  segments?: Record<string, MediaSegment[]>
   keyframes?: Record<string, number[]>
 }
 
@@ -121,12 +122,14 @@ const build = (world: World) => {
     (world.progress ?? []).map((entry) => [`${entry.profileId}|${entry.itemId}`, entry] as const),
   )
   const subtitles = world.subtitles ?? {}
-  const catalogRepository = {
-    findVisible: ({ id }: { id: string }) => items.get(id),
+  const visibleItems = {
+    findVisible: ({ id }) => items.get(id),
+  } satisfies Pick<VisibleItems, 'findVisible'>
+  const playableSources = {
     listReadySources: () => world.sources,
-    listMediaSegments: (itemId: string) => world.segments?.[itemId] ?? [],
-    listSourceItemIds: (sourceId: string) => world.sourceItems?.[sourceId] ?? [],
-  } as unknown as VisibleItems & PlayableSources
+    listMediaSegments: (itemId) => world.segments?.[itemId] ?? [],
+    listSourceItemIds: (sourceId) => world.sourceItems?.[sourceId] ?? [],
+  } satisfies Pick<PlayableSources, 'listReadySources' | 'listMediaSegments' | 'listSourceItemIds'>
   const progressRepository = {
     find: ({ profileId, itemId }: { profileId: string; itemId: string }) =>
       progress.get(`${profileId}|${itemId}`),
@@ -134,7 +137,8 @@ const build = (world: World) => {
     showAncestorsAgain: () => {},
   } as unknown as ProgressRepository
   const create = createPlaybackSessionFactory({
-    catalogRepository,
+    visibleItems,
+    playableSources,
     progressRepository,
     sessionRepository: {
       insert: (session) => void sessions.push({ ...session, accountId: 'account-1' }),

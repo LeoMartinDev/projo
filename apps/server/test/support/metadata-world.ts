@@ -11,7 +11,7 @@ import { buildMetadataModule } from '../../src/entrypoints/modules/metadata.ts'
 import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
 import { buildSegmentsModule } from '../../src/entrypoints/modules/segments.ts'
 import { buildSettingsModule } from '../../src/entrypoints/modules/settings.ts'
-import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../src/infrastructure/sqlite/catalog.ts'
 import { createTempDir } from './database.ts'
 import { silentLogger } from './logger.ts'
 import { fakeSegmentProviders } from './segments.ts'
@@ -30,7 +30,7 @@ export const createMetadataWorld = ({
   const tmdb = startTmdbServer()
   const endedItems: string[][] = []
   const platform = { ...scanner.platform, paths: dataPathsFor(data.path) }
-  const catalog = createSqliteCatalogRepository({ db: scanner.db })
+  const catalog = createSqliteCatalog({ db: scanner.db })
   const playbackSessions: PlaybackSessionTerminator = {
     endWithin: (scope) => {
       if ('itemIds' in scope) endedItems.push([...scope.itemIds])

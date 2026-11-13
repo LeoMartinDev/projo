@@ -27,7 +27,7 @@ import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { createFfprobeProber } from '../../src/infrastructure/media/ffprobe.ts'
 import type { Db } from '../../src/infrastructure/sqlite/database.ts'
 import { createTrickplayStore } from '../../src/infrastructure/playback/trickplay-store.ts'
-import { createSqliteCatalogRepository } from '../../src/infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../src/infrastructure/sqlite/catalog.ts'
 import { createSqliteJobRepository } from '../../src/infrastructure/sqlite/job-repository.ts'
 import {
   libraries,
@@ -299,7 +299,7 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
 describe.skipIf(!hasFfmpeg())('trickplay (§10.5)', () => {
   test('sprites and index after the probe, served to profiles that may play the source', async () => {
     const trickplayUrl = trickplayUrlFactory({
-      catalogRepository: createSqliteCatalogRepository({ db }),
+      playableSources: createSqliteCatalog({ db }),
       trickplayStore: createTrickplayStore({ trickplayDir: join(data.path, 'cache/trickplay') }),
     })
     expect(trickplayUrl('source-movie')).toBeUndefined()

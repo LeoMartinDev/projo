@@ -8,14 +8,14 @@ import {
 import type { CatalogEntries, CatalogEntry } from './catalog-entries.ts'
 
 type Deps = {
-  catalogRepository: Pick<CatalogReadModel, 'findVisible' | 'listVisibleChildren'>
+  catalogReadModel: Pick<CatalogReadModel, 'findVisible' | 'listVisibleChildren'>
   catalogEntries: CatalogEntries
 }
 
 export type ListChildrenError = AppError<'item/not_found' | 'item/invalid_kind'>
 
 export const listChildrenFactory =
-  ({ catalogRepository, catalogEntries }: Deps) =>
+  ({ catalogReadModel, catalogEntries }: Deps) =>
   async ({
     id,
     profileId,
@@ -25,7 +25,7 @@ export const listChildrenFactory =
     profileId: string
     scope: VisibilityScope
   }): Promise<Result<CatalogEntry[], ListChildrenError>> => {
-    const item = catalogRepository.findVisible({ id, scope })
+    const item = catalogReadModel.findVisible({ id, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId: id } }))
     }
@@ -36,7 +36,7 @@ export const listChildrenFactory =
         }),
       )
     }
-    const children = catalogRepository.listVisibleChildren({ parentId: id, scope })
+    const children = catalogReadModel.listVisibleChildren({ parentId: id, scope })
     return ok(catalogEntries({ profileId, items: children, scope }))
   }
 

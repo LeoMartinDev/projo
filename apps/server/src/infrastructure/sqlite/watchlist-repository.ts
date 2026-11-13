@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import type { WatchlistEntry, WatchlistRepository } from '../../core/watchlist/watchlist.ts'
-import { toCatalogItem } from './catalog-repository.ts'
+import { toCatalogItem } from './catalog.ts'
 import { visible } from './catalog-sql.ts'
 import type { Db } from './database.ts'
 import { fromIso, toIso } from './rows.ts'

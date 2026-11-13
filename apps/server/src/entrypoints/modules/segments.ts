@@ -20,7 +20,7 @@ import {
   createSegmentProviders,
   type SegmentProviders,
 } from '../../infrastructure/segments/providers.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteSegmentCatalog } from '../../infrastructure/sqlite/segment-catalog.ts'
 import {
   createSqliteSegmentRepository,
@@ -61,11 +61,11 @@ export const buildSegmentsModule = (
       saveSkipdbAnonymousKey: (key) => store.saveSkipdbAnonymousKey(key, clock.now()),
       logger: logger.child({ module: 'segment-providers' }),
     })
-  const catalogRepository = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const segmentCatalog = createSqliteSegmentCatalog({ db })
   const segmentRepository = createSqliteSegmentRepository({ db, ids, clock })
   const submissions = createSqliteSegmentSubmissionRepository({ db, ids })
-  const segmentTarget = segmentTargetFactory({ segmentCatalog, catalogRepository })
+  const segmentTarget = segmentTargetFactory({ segmentCatalog, playableSources: catalog })
 
   const fetchSegments = fetchSegmentsFactory({
     segmentTarget,
@@ -133,7 +133,8 @@ export const buildSegmentsModule = (
       routes: {
         segments: segmentsRoutes({
           getItemSegments: getItemSegmentsFactory({
-            catalogRepository,
+            visibleItems: catalog,
+            playableSources: catalog,
             segmentRepository,
             visibilityScope,
           }),

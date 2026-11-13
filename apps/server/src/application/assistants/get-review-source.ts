@@ -1,6 +1,6 @@
 import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
-import { type VisibleItems, everything, type ItemKind } from '../../core/catalog/catalog.ts'
+import { everything, type ItemKind, type VisibleItems } from '../../core/catalog/catalog.ts'
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 import { directoryOf, showFolderOf } from '../../core/naming/index.ts'
 import type { Source, SourceListItem, SourceRepository } from '../../core/source/source.ts'
@@ -10,7 +10,7 @@ type Deps = {
   sources: Pick<SourceRepository, 'findById' | 'page'>
   libraries: LibraryNames
   items: Pick<MetadataItemRepository, 'findItem' | 'linkedItems'>
-  catalog: Pick<VisibleItems, 'findVisible'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
 }
 
 export type ReviewItemLabel = {
@@ -33,9 +33,9 @@ export type GetReviewSourceError = AppError<'source/not_found'>
 
 const neighbourLimit = 500
 
-export const getReviewSourceFactory = ({ sources, libraries, items, catalog }: Deps) => {
+export const getReviewSourceFactory = ({ sources, libraries, items, visibleItems }: Deps) => {
   const itemLabel = (id: string): ReviewItemLabel => {
-    const item = catalog.findVisible({ id, scope: everything })
+    const item = visibleItems.findVisible({ id, scope: everything })
     const info = items.findItem(id)
     return {
       id,

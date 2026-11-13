@@ -30,7 +30,7 @@ import { createMediaFiles } from '../../infrastructure/playback/media-files.ts'
 import { createPreviewStore } from '../../infrastructure/playback/preview-store.ts'
 import { createSubtitleCache } from '../../infrastructure/playback/subtitle-cache.ts'
 import { createTrickplayStore } from '../../infrastructure/playback/trickplay-store.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteMediaAssetCatalog } from '../../infrastructure/sqlite/media-asset-catalog.ts'
 import { createSqlitePlaybackSessionRepository } from '../../infrastructure/sqlite/playback-session-repository.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
@@ -59,7 +59,7 @@ export const buildMediaAssetsModule = (
   { cores = availableParallelism() }: { cores?: number } = {},
 ) => {
   const moduleLogger = logger.child({ module: 'media-assets' })
-  const catalogRepository = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const mediaCatalog = createSqliteMediaAssetCatalog({ db })
   const subtitleTracks = createSqliteSubtitleTrackRepository({ db })
   const playbackSettings = createSqlitePlaybackSettings({ db })
@@ -83,28 +83,30 @@ export const buildMediaAssetsModule = (
     !sessionRepository.listActive().some((session) => session.mode === 'hls_transcode')
 
   const generateTrickplay = generateTrickplayFactory({
-    catalogRepository,
+    playableSources: catalog,
     mediaCatalog,
     playbackSettings,
     trickplayStore,
     logger: moduleLogger,
   })
   const generatePreviewClip = generatePreviewClipFactory({
-    catalogRepository,
+    catalogReadModel: catalog,
+    playableSources: catalog,
     mediaCatalog,
     previewStore,
     logger: moduleLogger,
   })
   const preExtractSubtitles = preExtractSubtitlesFactory({
     subtitleTracks,
-    catalogRepository,
+    playableSources: catalog,
     mediaCatalog,
     subtitleCache,
     logger: moduleLogger,
   })
   const previewAccess = previewAccessFactory({
     previewStore,
-    catalogRepository,
+    visibleItems: catalog,
+    playableSources: catalog,
     canAccessSource,
     scopeFor: visibilityScope,
   })
@@ -148,7 +150,7 @@ export const buildMediaAssetsModule = (
     exposes: {
       homePreviews: homePreviewsFactory({ previewAccess, mediaCatalog, jobQueue, clock }),
       homeResumeFrames: resumeFramesFactory({
-        catalogRepository,
+        playableSources: catalog,
         trickplayStore,
         scopeFor: visibilityScope,
       }),
@@ -156,7 +158,7 @@ export const buildMediaAssetsModule = (
         subtitles: subtitlesRoutes({
           getSubtitleVtt: getSubtitleVttFactory({
             subtitleTracks,
-            catalogRepository,
+            playableSources: catalog,
             canAccessSource,
             subtitleCache,
           }),
@@ -164,7 +166,11 @@ export const buildMediaAssetsModule = (
           mediaFiles,
         }),
         trickplay: trickplayRoutes({
-          trickplay: trickplayFilesFactory({ catalogRepository, trickplayStore, canAccessSource }),
+          trickplay: trickplayFilesFactory({
+            playableSources: catalog,
+            trickplayStore,
+            canAccessSource,
+          }),
           mediaFiles,
         }),
         previews: previewsRoutes({ previewAccess, mediaFiles }),

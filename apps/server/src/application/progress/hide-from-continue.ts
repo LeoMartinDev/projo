@@ -1,12 +1,12 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import type { VisibleItems, VisibilityScope } from '../../core/catalog/catalog.ts'
+import type { VisibilityScope, VisibleItems } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { ProgressRepository } from '../../core/progress/progress.ts'
 import { hideFromContinue } from '../../core/progress/rows.ts'
 
 type Deps = {
-  catalogRepository: Pick<VisibleItems, 'findVisible'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
   progressRepository: ProgressRepository
   clock: Clock
 }
@@ -14,7 +14,7 @@ type Deps = {
 export type HideFromContinueError = AppError<'item/not_found'>
 
 export const hideFromContinueFactory =
-  ({ catalogRepository, progressRepository, clock }: Deps) =>
+  ({ visibleItems, progressRepository, clock }: Deps) =>
   async ({
     profileId,
     itemId,
@@ -26,12 +26,12 @@ export const hideFromContinueFactory =
   }): Promise<Result<string, HideFromContinueError>> => {
     const notFound = () =>
       err(appError('item/not_found', 'item not found', { context: { itemId } }))
-    let target = catalogRepository.findVisible({ id: itemId, scope })
+    let target = visibleItems.findVisible({ id: itemId, scope })
     for (let depth = 0; target !== undefined && depth < 2; depth += 1) {
       if (target.kind === 'movie' || target.kind === 'series' || target.parentId === undefined) {
         break
       }
-      target = catalogRepository.findVisible({ id: target.parentId, scope })
+      target = visibleItems.findVisible({ id: target.parentId, scope })
     }
     if (target === undefined || (target.kind !== 'movie' && target.kind !== 'series')) {
       return notFound()

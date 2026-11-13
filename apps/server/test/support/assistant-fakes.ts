@@ -82,24 +82,60 @@ export const inMemorySources = (rows: readonly SourceListItem[]) => {
   return { sources, queries }
 }
 
-/** In-memory `MetadataItemRepository` reads over items and their source links. */
+// SQLite compares text by bytes and sorts NULL first in ascending order
+const byText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
+const byOptional = (a: number | undefined, b: number | undefined): number =>
+  (a ?? Number.NEGATIVE_INFINITY) - (b ?? Number.NEGATIVE_INFINITY)
+
+/**
+ * In-memory `MetadataItemRepository` reads over items and their source links, like the SQLite
+ * adapter: `sourcesUnder` covers the item, its children and grandchildren, takes the numbers of
+ * the linked item, and keeps one row per source.
+ */
 export const inMemoryItems = ({
   items,
   links = [],
 }: {
   items: readonly LinkedItemInfo[]
-  links?: readonly {
-    itemId: string
-    sourceId: string
-    seasonNumber?: number
-    episodeNumber?: number
-  }[]
-}): Pick<MetadataItemRepository, 'findItem' | 'linkedItems' | 'sourcesUnder'> => ({
-  findItem: (id) => items.find((item) => item.id === id),
-  linkedItems: (sourceId) =>
-    links
-      .filter((link) => link.sourceId === sourceId)
-      .flatMap((link) => items.filter((item) => item.id === link.itemId)),
-  sourcesUnder: (itemId) =>
-    links.filter((link) => link.itemId === itemId).map(({ itemId: _item, ...link }) => link),
-})
+  links?: readonly { itemId: string; sourceId: string }[]
+}): Pick<MetadataItemRepository, 'findItem' | 'linkedItems' | 'sourcesUnder'> => {
+  const findItem = (id: string) => items.find((item) => item.id === id)
+  return {
+    findItem,
+    linkedItems: (sourceId) =>
+      links
+        .filter((link) => link.sourceId === sourceId)
+        .flatMap((link) => findItem(link.itemId) ?? []),
+    sourcesUnder: (itemId) => {
+      const children = new Set(items.filter((item) => item.parentId === itemId).map(({ id }) => id))
+      const under = (item: LinkedItemInfo) =>
+        item.id === itemId ||
+        item.parentId === itemId ||
+        (item.parentId !== undefined && children.has(item.parentId))
+      const rows = links
+        .flatMap((link) => {
+          const item = findItem(link.itemId)
+          return item === undefined || !under(item) ? [] : [{ sourceId: link.sourceId, item }]
+        })
+        .toSorted(
+          (a, b) =>
+            byText(a.sourceId, b.sourceId) ||
+            byOptional(a.item.seasonNumber, b.item.seasonNumber) ||
+            byOptional(a.item.episodeNumber, b.item.episodeNumber),
+        )
+      const bySource = new Map<
+        string,
+        { sourceId: string; seasonNumber?: number; episodeNumber?: number }
+      >()
+      for (const { sourceId, item } of rows) {
+        if (bySource.has(sourceId)) continue
+        bySource.set(sourceId, {
+          sourceId,
+          ...(item.seasonNumber === undefined ? {} : { seasonNumber: item.seasonNumber }),
+          ...(item.episodeNumber === undefined ? {} : { episodeNumber: item.episodeNumber }),
+        })
+      }
+      return [...bySource.values()]
+    },
+  }
+}

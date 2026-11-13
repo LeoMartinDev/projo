@@ -28,7 +28,7 @@ const build = (
       segmentCatalog: inMemorySegmentCatalog([
         { itemId: 'm1', kind: 'movie', tmdbId: 603, detectSegments: true, sharesFile },
       ]),
-      catalogRepository: { listReadySources: () => [] },
+      playableSources: { listReadySources: () => [] },
     }),
     segmentRepository: store.repository,
     submissions: submissions.repository,

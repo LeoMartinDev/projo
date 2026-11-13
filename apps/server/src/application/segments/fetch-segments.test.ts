@@ -46,13 +46,13 @@ const build = (
   }: { items?: FactsInput[]; settings?: Partial<SegmentSettings> } = {},
 ) => {
   const fake = fakeSegmentProviders(answers)
-  const catalogRepository = {
+  const playableSources = {
     listReadySources: ({ itemId }: { itemId: string }) => sources[itemId] ?? [],
   }
   const fetch = fetchSegmentsFactory({
     segmentTarget: segmentTargetFactory({
       segmentCatalog: inMemorySegmentCatalog(items),
-      catalogRepository,
+      playableSources,
     }),
     segmentRepository: store.repository,
     providers: fake.providers.providers,

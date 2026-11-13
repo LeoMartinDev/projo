@@ -9,7 +9,7 @@ export type HomeCategoryPageView = {
 }
 
 export const getHomeCategoryPageFactory =
-  ({ categoryQueries, catalogRepository, progressQueries, catalogEntries }: HomeCategoryDeps) =>
+  ({ categoryQueries, catalogReadModel, progressQueries, catalogEntries }: HomeCategoryDeps) =>
   async ({
     profileId,
     scope,
@@ -23,7 +23,7 @@ export const getHomeCategoryPageFactory =
     offset: number
     limit: number
   }): Promise<HomeCategoryPageView> => {
-    const watched = watchedTitlesFor({ catalogRepository, progressQueries })({ profileId, scope })
+    const watched = watchedTitlesFor({ catalogReadModel, progressQueries })({ profileId, scope })
     const ids =
       categoryRows({
         titles: categoryQueries.listTitles({ scope }),
@@ -36,7 +36,7 @@ export const getHomeCategoryPageFactory =
     const more = next < ids.length ? { nextOffset: next } : {}
     if (page.length === 0) return { entries: [], ...more }
 
-    const items = catalogRepository.findManyVisible({ ids: page, scope })
+    const items = catalogReadModel.findManyVisible({ ids: page, scope })
     const entries = new Map(
       catalogEntries({ profileId, items, scope }).map((entry) => [entry.item.id, entry]),
     )

@@ -3,9 +3,9 @@ import type { GenreId } from '@projo/shared/api/genres'
 
 import {
   type CatalogItem,
-  type VisibleItems,
   isPlayableKind,
   type VisibilityScope,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -22,14 +22,14 @@ export type MemoryTarget = {
 }
 
 export const memoryTargetOf = (
-  catalogRepository: Pick<VisibleItems, 'findVisible'>,
+  visibleItems: Pick<VisibleItems, 'findVisible'>,
   item: CatalogItem,
   scope: VisibilityScope,
 ): MemoryTarget => {
   let series: CatalogItem | undefined
   let current: CatalogItem | undefined = item
   for (let depth = 0; depth < 2 && current?.parentId !== undefined; depth += 1) {
-    current = catalogRepository.findVisible({ id: current.parentId, scope })
+    current = visibleItems.findVisible({ id: current.parentId, scope })
     if (current?.kind === 'series') series = current
   }
   const owner = item.kind === 'episode' ? (series ?? item) : item
@@ -46,10 +46,10 @@ export type TrackPreferencesError = AppError<'item/not_found' | 'item/invalid_ki
 type Target = { profileId: string; itemId: string; scope: VisibilityScope }
 
 const playableItem = (
-  catalogRepository: Pick<VisibleItems, 'findVisible'>,
+  visibleItems: Pick<VisibleItems, 'findVisible'>,
   { itemId, scope }: Target,
 ): Result<CatalogItem, TrackPreferencesError> => {
-  const item = catalogRepository.findVisible({ id: itemId, scope })
+  const item = visibleItems.findVisible({ id: itemId, scope })
   if (item === undefined) {
     return err(appError('item/not_found', 'item not found', { context: { itemId } }))
   }
@@ -67,14 +67,14 @@ const normalized = (language: string | undefined): string | undefined =>
   language === undefined ? undefined : (normalizeLanguage(language) ?? language.toLowerCase())
 
 type Deps = {
-  catalogRepository: Pick<VisibleItems, 'findVisible'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
   trackPreferenceRepository: TrackPreferenceRepository
   clock: Clock
   logger: Logger
 }
 
 export const setTrackPreferencesFactory =
-  ({ catalogRepository, trackPreferenceRepository, clock, logger }: Deps) =>
+  ({ visibleItems, trackPreferenceRepository, clock, logger }: Deps) =>
   async (
     target: Target & {
       audioLanguage?: string
@@ -82,9 +82,9 @@ export const setTrackPreferencesFactory =
       subtitlesEnabled: boolean
     },
   ): Promise<Result<TrackPreferences, TrackPreferencesError>> => {
-    const item = playableItem(catalogRepository, target)
+    const item = playableItem(visibleItems, target)
     if (!item.ok) return item
-    const { ownerId } = memoryTargetOf(catalogRepository, item.value, target.scope)
+    const { ownerId } = memoryTargetOf(visibleItems, item.value, target.scope)
     const audioLanguage = normalized(target.audioLanguage)
     const subtitleLanguage = normalized(target.subtitleLanguage)
     const preferences: TrackPreferences = {
@@ -101,11 +101,11 @@ export const setTrackPreferencesFactory =
   }
 
 export const clearTrackPreferencesFactory =
-  ({ catalogRepository, trackPreferenceRepository }: Omit<Deps, 'clock' | 'logger'>) =>
+  ({ visibleItems, trackPreferenceRepository }: Omit<Deps, 'clock' | 'logger'>) =>
   async (target: Target): Promise<Result<void, TrackPreferencesError>> => {
-    const item = playableItem(catalogRepository, target)
+    const item = playableItem(visibleItems, target)
     if (!item.ok) return item
-    const { ownerId } = memoryTargetOf(catalogRepository, item.value, target.scope)
+    const { ownerId } = memoryTargetOf(visibleItems, item.value, target.scope)
     trackPreferenceRepository.delete({ profileId: target.profileId, itemId: ownerId })
     return ok()
   }

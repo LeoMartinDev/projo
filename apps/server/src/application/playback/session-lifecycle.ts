@@ -1,6 +1,6 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
-import { type PlayableSources, everything } from '../../core/catalog/catalog.ts'
+import { everything, type PlayableSources } from '../../core/catalog/catalog.ts'
 import type { Clock } from '../../core/clock.ts'
 import type { EventBus } from '../../core/events.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -159,14 +159,14 @@ export const authorizeStreamFactory =
 export type AuthorizeStream = ReturnType<typeof authorizeStreamFactory>
 
 const versionDurationMs = (
-  catalogRepository: Pick<PlayableSources, 'findSource' | 'listReadySources'>,
+  playableSources: Pick<PlayableSources, 'findSource' | 'listReadySources'>,
   session: PlaybackSession,
 ): number | undefined => {
-  const source = catalogRepository.findSource(session.sourceId)
+  const source = playableSources.findSource(session.sourceId)
   if (source === undefined) return undefined
   const { stackGroupId } = source
   if (stackGroupId === undefined) return source.media?.durationMs
-  const durations = catalogRepository
+  const durations = playableSources
     .listReadySources({ itemId: session.itemId, scope: everything })
     .filter((part) => part.stackGroupId === stackGroupId)
     .map((part) => part.media?.durationMs)
@@ -180,13 +180,13 @@ export const heartbeatFactory =
   ({
     authorize,
     sessionRepository,
-    catalogRepository,
+    playableSources,
     progressRepository,
     clock,
   }: {
     authorize: AuthorizePlayback
     sessionRepository: PlaybackSessionRepository
-    catalogRepository: PlayableSources
+    playableSources: PlayableSources
     progressRepository: ProgressRepository
     clock: Clock
   }) =>
@@ -207,12 +207,12 @@ export const heartbeatFactory =
 
     const { profileId } = session
     const previous = progressRepository.find({ profileId, itemId: session.itemId })
-    const versionMs = versionDurationMs(catalogRepository, session)
+    const versionMs = versionDurationMs(playableSources, session)
     const durationMs = versionMs ?? previous?.durationMs
     if (durationMs === undefined || durationMs <= 0) return ok({ session: updated })
     const itemIds = new Set([
       session.itemId,
-      ...catalogRepository.listSourceItemIds(session.sourceId),
+      ...playableSources.listSourceItemIds(session.sourceId),
     ])
     let progress: ItemProgress | undefined
     for (const itemId of itemIds) {
@@ -225,9 +225,9 @@ export const heartbeatFactory =
           durationMs,
           at,
           ...creditsStartOf(
-            segmentsForVersion(catalogRepository.listMediaSegments(itemId), {
+            segmentsForVersion(playableSources.listMediaSegments(itemId), {
               referenceMs: itemTimeline(
-                catalogRepository.listReadySources({ itemId, scope: everything }),
+                playableSources.listReadySources({ itemId, scope: everything }),
               ).durationMs,
               playedMs: versionMs,
             }),

@@ -17,7 +17,7 @@ import { createClientMetadataFetcher } from '../../infrastructure/oauth/client-m
 import { createInMemoryRateLimiter } from '../../infrastructure/rate-limit/in-memory-rate-limiter.ts'
 import { createSqliteAccountRepository } from '../../infrastructure/sqlite/account-repository.ts'
 import { createSqliteAssistantTokenRepository } from '../../infrastructure/sqlite/assistant-token-repository.ts'
-import { createSqliteCatalogRepository } from '../../infrastructure/sqlite/catalog-repository.ts'
+import { createSqliteCatalog } from '../../infrastructure/sqlite/catalog.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteMetadataItemRepository } from '../../infrastructure/sqlite/metadata-item-repository.ts'
 import { createSqliteOAuthRepository } from '../../infrastructure/sqlite/oauth-repository.ts'
@@ -97,16 +97,16 @@ export const buildAssistantsModule = (
   const { review, tmdbDetails, metadataLanguage } = assistantPorts
   const sources = createSqliteSourceRepository({ db, ids })
   const libraries = createSqliteLibraryRepository({ db })
-  const catalog = createSqliteCatalogRepository({ db })
+  const catalog = createSqliteCatalog({ db })
   const items = createSqliteMetadataItemRepository({ db })
   const protocol = createMcpProtocol({
     tools: buildAssistantTools({
       getReviewSummary: getReviewSummaryFactory({ sources, libraries }),
       listReviewQueue: listReviewQueueFactory({ sources, libraries }),
-      getReviewSource: getReviewSourceFactory({ sources, libraries, items, catalog }),
+      getReviewSource: getReviewSourceFactory({ sources, libraries, items, visibleItems: catalog }),
       getTmdbSeries: getTmdbSeriesFactory({ tmdbDetails, metadataLanguage }),
-      findCatalogItems: findCatalogItemsFactory({ catalog, items }),
-      getItemFiles: getItemFilesFactory({ sources, libraries, items, catalog }),
+      findCatalogItems: findCatalogItemsFactory({ catalogReadModel: catalog, items }),
+      getItemFiles: getItemFilesFactory({ sources, libraries, items, visibleItems: catalog }),
       listHiddenSources: listHiddenSourcesFactory({ sources, libraries }),
       review,
     }),

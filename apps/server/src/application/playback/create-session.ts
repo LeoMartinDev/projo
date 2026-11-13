@@ -3,13 +3,13 @@ import type { ClientCapabilities, PlaybackQuality } from '@projo/shared/api/play
 
 import {
   type CatalogItem,
-  type VisibleItems,
-  type PlayableSources,
   everything,
   isPlayableKind,
   type MediaSegment,
   type PlayableSource,
+  type PlayableSources,
   type VisibilityScope,
+  type VisibleItems,
 } from '../../core/catalog/catalog.ts'
 import type { SessionTokens } from '../../core/auth/ports.ts'
 import type { Clock } from '../../core/clock.ts'
@@ -61,8 +61,11 @@ import { keyframePriority, requestKeyframes } from './index-keyframes.ts'
 import { memoryTargetOf } from './track-preferences.ts'
 
 type Deps = {
-  catalogRepository: Pick<VisibleItems, 'findVisible'> &
-    Pick<PlayableSources, 'listReadySources' | 'listSourceItemIds' | 'listMediaSegments'>
+  visibleItems: Pick<VisibleItems, 'findVisible'>
+  playableSources: Pick<
+    PlayableSources,
+    'listReadySources' | 'listSourceItemIds' | 'listMediaSegments'
+  >
   progressRepository: ProgressRepository
   sessionRepository: PlaybackSessionRepository
   subtitleTrackRepository: SubtitleTrackRepository
@@ -131,7 +134,8 @@ type MediaResult = Result<MediaInfo, AppError<'playback/source_unavailable'>>
 const unique = (values: readonly string[]): string[] => [...new Set(values)]
 
 export const createPlaybackSessionFactory = ({
-  catalogRepository,
+  visibleItems,
+  playableSources,
   progressRepository,
   sessionRepository,
   subtitleTrackRepository,
@@ -156,7 +160,7 @@ export const createPlaybackSessionFactory = ({
     profileId: string
     scope: VisibilityScope
   }) => {
-    const { ownerId, originalLanguage, genres } = memoryTargetOf(catalogRepository, item, scope)
+    const { ownerId, originalLanguage, genres } = memoryTargetOf(visibleItems, item, scope)
     const memory = trackPreferenceRepository.find({ profileId, itemId: ownerId })
     const profile = profileTracks(profileId)
     return {
@@ -225,7 +229,7 @@ export const createPlaybackSessionFactory = ({
     input: Input,
   ): Promise<Result<CreatedPlaybackSession, CreatePlaybackSessionError>> => {
     const { itemId, profileId, scope, capabilities } = input
-    const item = catalogRepository.findVisible({ id: itemId, scope })
+    const item = visibleItems.findVisible({ id: itemId, scope })
     if (item === undefined) {
       return err(appError('item/not_found', 'item not found', { context: { itemId } }))
     }
@@ -266,7 +270,7 @@ export const createPlaybackSessionFactory = ({
     }
 
     const versions = rankVersions(
-      groupVersions(catalogRepository.listReadySources({ itemId, scope })),
+      groupVersions(playableSources.listReadySources({ itemId, scope })),
     )
     const [best, ...others] = versions
     if (best === undefined) {
@@ -425,15 +429,15 @@ export const createPlaybackSessionFactory = ({
     sessionRepository.insert(row)
 
     const segmentsOf = (id: string) =>
-      segmentsForVersion(catalogRepository.listMediaSegments(id), {
+      segmentsForVersion(playableSources.listMediaSegments(id), {
         referenceMs: itemTimeline(
-          catalogRepository.listReadySources({ itemId: id, scope: everything }),
+          playableSources.listReadySources({ itemId: id, scope: everything }),
         ).durationMs,
         playedMs: total > 0 ? total : undefined,
       })
     const mediaSegments = segmentsOf(itemId)
 
-    for (const playedId of unique([itemId, ...catalogRepository.listSourceItemIds(source.id)])) {
+    for (const playedId of unique([itemId, ...playableSources.listSourceItemIds(source.id)])) {
       progressRepository.showAncestorsAgain({ profileId, itemId: playedId })
       if (durationMs === undefined || durationMs <= 0) continue
       const previous =
