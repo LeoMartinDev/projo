@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
-import { t0 } from '../../../test/support/operations-fakes.ts'
+import { t0 } from '../../../test/support/operations-world.ts'
 import type { StatsQueries } from '../../core/stats/stats.ts'
 import type { UpdateCheckRecord } from '../../core/updates/update.ts'
 import { getAdminStatsFactory } from './get-admin-stats.ts'

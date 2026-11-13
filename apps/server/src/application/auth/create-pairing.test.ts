@@ -26,11 +26,11 @@ describe('create a pairing code', () => {
     created(t)
     created(t)
     created(t)
-    expect(t.create({ accountId: 'account-1', sessionId: t.creator.id })).toMatchObject({
+    expect(t.createPairing({ accountId: 'account-1', sessionId: t.creator.id })).toMatchObject({
       ok: false,
       error: { code: 'auth/pairing_limit_reached', context: { limit: 3 } },
     })
-    expect(t.claim({ ...claimInput, code: 'AAAAA2' }).ok).toBe(true)
+    expect(t.claimPairing({ ...claimInput, code: 'AAAAA2' }).ok).toBe(true)
     created(t)
 
     t.clock.advance(pairingLifetimeMs)
@@ -47,7 +47,7 @@ describe('create a pairing code', () => {
       deviceName: 'Safari · iPadOS',
       userAgent: 'Safari',
     }).session
-    expect(other.create({ accountId: 'account-1', sessionId: browser.id }).ok).toBe(true)
+    expect(other.createPairing({ accountId: 'account-1', sessionId: browser.id }).ok).toBe(true)
   })
 
   test('a code still live elsewhere is drawn again', () => {

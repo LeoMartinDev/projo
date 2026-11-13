@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
-import { t0 } from '../../../test/support/operations-fakes.ts'
+import { t0 } from '../../../test/support/operations-world.ts'
 import { updateServerSettingsFactory } from './update-server-settings.ts'
 
 describe('settings "Lecture" and "Serveur" (§15)', () => {

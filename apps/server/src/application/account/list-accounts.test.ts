@@ -5,7 +5,7 @@ import { createAdminAccountsWorld as setup } from '../../../test/support/admin-a
 describe('admin accounts', () => {
   test('lists accounts with their profiles and activity', () => {
     const t = setup()
-    expect(t.accounts.list()).toMatchObject([
+    expect(t.listAccounts()).toMatchObject([
       {
         account: { id: 'account-1' },
         profiles: [{ id: 'profile-1' }],

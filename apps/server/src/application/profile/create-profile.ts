@@ -1,8 +1,8 @@
 import type { Result } from '@projo/shared'
 
 import type { Profile, ProfileRepository } from '../../core/profile/profile.ts'
-import { restrictedActor } from './shared/acting-profile.ts'
-import { actingAs, type ProfileActor } from './shared/profile-actor.ts'
+import { actingProfile, restrictedActor } from './shared/acting-profile.ts'
+import type { ProfileActor } from './shared/profile-actor.ts'
 import {
   type CreateProfileError,
   type CreateProfileInput,
@@ -23,7 +23,7 @@ export const createProfileFactory =
     actor: ProfileActor
     input: CreateProfileInput
   }): Promise<Result<Profile, CreateProfileError>> => {
-    const acting = actingAs(deps.profileRepository, actor)
+    const acting = actingProfile(deps.profileRepository, actor)
     if (acting.restricted) return Promise.resolve(restrictedActor())
     return createProfileInAccount(deps, {
       accountId: actor.accountId,

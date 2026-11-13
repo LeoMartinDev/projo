@@ -23,7 +23,7 @@ export const actingProfile = (
     activeProfileId,
   }: {
     accountId: string
-    activeProfileId: string | undefined
+    activeProfileId?: string | undefined
   },
 ): ActingProfile => {
   const found =

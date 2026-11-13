@@ -2,7 +2,10 @@ import { describe, expect, test } from 'bun:test'
 
 import { appError, err, ok } from '@projo/shared'
 
-import { release, setupUpdates as setup } from '../../../test/support/updates-fakes.ts'
+import {
+  release,
+  createUpdateUseCasesWorld as setup,
+} from '../../../test/support/update-use-cases-world.ts'
 import type { ReleaseSource } from '../../core/updates/update.ts'
 import { checkUpdatesFactory } from './check-updates.ts'
 

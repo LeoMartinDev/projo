@@ -5,15 +5,15 @@ import { ok } from '@projo/shared'
 import {
   connect,
   createOAuthWorld as setup,
-  minute,
-  start,
+  minuteMs,
+  oauthStart,
 } from '../../../test/support/oauth-world.ts'
 
 describe('authenticating an access token', () => {
   test('the assistant principal', async () => {
     const world = setup()
     await connect(world)
-    expect(world.service.authenticateAccess('token-2')).toEqual(
+    expect(world.authenticateOAuthAccess('token-2')).toEqual(
       ok({ tokenId: 'oauth-1', accountId: 'account-1', profileId: 'profile-1' }),
     )
   })
@@ -22,7 +22,7 @@ describe('authenticating an access token', () => {
     const world = setup()
     await connect(world)
     for (const token of ['forged', 'token-3']) {
-      expect(world.service.authenticateAccess(token)).toMatchObject({
+      expect(world.authenticateOAuthAccess(token)).toMatchObject({
         ok: false,
         error: { code: 'auth/unauthenticated' },
       })
@@ -32,8 +32,8 @@ describe('authenticating an access token', () => {
   test('after an hour: auth/session_expired', async () => {
     const world = setup()
     await connect(world)
-    world.clock.advance(60 * minute)
-    expect(world.service.authenticateAccess('token-2')).toMatchObject({
+    world.clock.advance(60 * minuteMs)
+    expect(world.authenticateOAuthAccess('token-2')).toMatchObject({
       ok: false,
       error: { code: 'auth/session_expired' },
     })
@@ -46,9 +46,9 @@ describe('authenticating an access token', () => {
       assistantId: 'gone',
       kind: 'access',
       scope: 'review',
-      expiresAt: new Date(start.getTime() + minute),
+      expiresAt: new Date(oauthStart.getTime() + minuteMs),
     })
-    expect(world.service.authenticateAccess('orphan')).toMatchObject({
+    expect(world.authenticateOAuthAccess('orphan')).toMatchObject({
       ok: false,
       error: { code: 'auth/unauthenticated' },
     })
@@ -57,8 +57,8 @@ describe('authenticating an access token', () => {
   test('a revoked connection: its own refusal', async () => {
     const world = setup()
     await connect(world)
-    world.assistants.repository.revoke({ id: 'oauth-1', revokedAt: start })
-    expect(world.service.authenticateAccess('token-2')).toMatchObject({
+    world.assistants.repository.revoke({ id: 'oauth-1', revokedAt: oauthStart })
+    expect(world.authenticateOAuthAccess('token-2')).toMatchObject({
       ok: false,
       error: { code: 'auth/session_revoked' },
     })

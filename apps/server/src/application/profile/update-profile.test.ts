@@ -12,7 +12,7 @@ import {
 describe('update', () => {
   test('settings, PIN set and removed, change notified', async () => {
     const t = setup()
-    const set = await t.profiles.update({
+    const set = await t.updateProfile({
       actor: user,
       profileId: 'profile-1',
       input: { name: 'Léo B', autoSkipIntro: true, subtitleMode: 'always', pin: '1111' },
@@ -21,7 +21,7 @@ describe('update', () => {
       ok: true,
       value: { name: 'Léo B', autoSkipIntro: true, subtitleMode: 'always', pinHash: 'hashed:1111' },
     })
-    const removed = await t.profiles.update({
+    const removed = await t.updateProfile({
       actor: user,
       profileId: 'profile-1',
       input: { pin: '' },
@@ -33,23 +33,23 @@ describe('update', () => {
   test('a user may narrow but not widen access or lift the limit', async () => {
     const t = setup([sampleProfile(), kid])
     expect(
-      await t.profiles.update({ actor: user, profileId: 'kid', input: { maxContentRating: '' } }),
+      await t.updateProfile({ actor: user, profileId: 'kid', input: { maxContentRating: '' } }),
     ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
     expect(
-      await t.profiles.update({ actor: user, profileId: 'kid', input: { libraryAccess: 'all' } }),
+      await t.updateProfile({ actor: user, profileId: 'kid', input: { libraryAccess: 'all' } }),
     ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: user,
         profileId: 'kid',
         input: { libraryIds: ['anime', 'films'] },
       }),
     ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
     expect(
-      await t.profiles.update({ actor: user, profileId: 'kid', input: { maxContentRating: '0' } }),
+      await t.updateProfile({ actor: user, profileId: 'kid', input: { maxContentRating: '0' } }),
     ).toMatchObject({ ok: true, value: { maxContentRating: '0' } })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: user,
         profileId: 'profile-1',
         input: { libraryAccess: 'selected', libraryIds: ['films'] },
@@ -66,10 +66,10 @@ describe('update', () => {
     })
     const t = setup([sampleProfile(), kid, other])
     expect(
-      await t.profiles.update({ actor: admin, profileId: 'kid', input: { maxContentRating: '' } }),
+      await t.updateProfile({ actor: admin, profileId: 'kid', input: { maxContentRating: '' } }),
     ).toMatchObject({ ok: true })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: admin,
         profileId: 'other',
         input: { maxContentRating: '16', libraryAccess: 'all' },
@@ -78,7 +78,7 @@ describe('update', () => {
 
     const t2 = setup([sampleProfile(), kid])
     expect(
-      await t2.profiles.update({
+      await t2.updateProfile({
         actor: { ...admin, activeProfileId: 'kid' },
         profileId: 'kid',
         input: { maxContentRating: '18' },
@@ -89,31 +89,31 @@ describe('update', () => {
   test("a user cannot reach another account's profile", async () => {
     const t = setup([sampleProfile(), sampleProfile({ id: 'other', accountId: 'account-2' })])
     expect(
-      await t.profiles.update({ actor: user, profileId: 'other', input: { name: 'x' } }),
+      await t.updateProfile({ actor: user, profileId: 'other', input: { name: 'x' } }),
     ).toMatchObject({ ok: false, error: { code: 'profile/not_found' } })
   })
 
   test('a PIN-locked profile that is not active needs its PIN', async () => {
     const t = setup([sampleProfile(), locked])
     expect(
-      await t.profiles.update({ actor: admin, profileId: 'parent', input: { pin: '' } }),
+      await t.updateProfile({ actor: admin, profileId: 'parent', input: { pin: '' } }),
     ).toMatchObject({ ok: false, error: { code: 'profile/pin_required' } })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: admin,
         profileId: 'parent',
         input: { pin: '', currentPin: '0000' },
       }),
     ).toMatchObject({ ok: false, error: { code: 'profile/invalid_pin' } })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: admin,
         profileId: 'parent',
         input: { name: 'P', currentPin: '1234' },
       }),
     ).toMatchObject({ ok: true })
     expect(
-      await t.profiles.update({
+      await t.updateProfile({
         actor: { ...admin, activeProfileId: 'parent' },
         profileId: 'parent',
         input: { name: 'P2' },
@@ -129,18 +129,15 @@ describe('last unrestricted profile of an admin (§14)', () => {
       { maxContentRating: '16' as const },
       { libraryAccess: 'selected' as const },
     ]) {
-      expect(
-        await t.profiles.update({ actor: admin, profileId: 'profile-1', input }),
-      ).toMatchObject({ ok: false, error: { code: 'profile/last_unrestricted' } })
+      expect(await t.updateProfile({ actor: admin, profileId: 'profile-1', input })).toMatchObject({
+        ok: false,
+        error: { code: 'profile/last_unrestricted' },
+      })
     }
-    expect(await t.profiles.delete({ actor: admin, profileId: 'profile-1' })).toMatchObject({
-      ok: false,
-      error: { code: 'profile/last_unrestricted' },
-    })
     expect(t.store.profiles[0]?.libraryAccess).toBe('all')
     expect(
       (
-        await t.profiles.update({
+        await t.updateProfile({
           actor: admin,
           profileId: 'kid',
           input: { maxContentRating: '0' },

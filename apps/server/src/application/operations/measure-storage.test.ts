@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
-import { t0 } from '../../../test/support/operations-fakes.ts'
+import { t0 } from '../../../test/support/operations-world.ts'
 import { dataPathsFor } from '../../core/data-paths.ts'
 import type { DiskUsage } from '../../core/stats/stats.ts'
 import { measureStorageFactory } from './measure-storage.ts'

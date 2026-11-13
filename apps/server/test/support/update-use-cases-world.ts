@@ -64,7 +64,7 @@ const inMemoryRepository = () => {
   return { repository, runs, versions }
 }
 
-const recordingNotifier = () => {
+const recordingNotifierCalls = () => {
   const notified: { kind: string; key: string }[] = []
   const resolved: { kind: string; key: string }[] = []
   const notifier: AdminNotifier = {
@@ -75,7 +75,7 @@ const recordingNotifier = () => {
 }
 
 /** The dependencies of the update use cases, in memory, running `appVersion` under a supervisor. */
-export const setupUpdates = ({
+export const createUpdateUseCasesWorld = ({
   appVersion = '1.3.0',
   installer: installerOverrides = {},
   latest,
@@ -88,7 +88,7 @@ export const setupUpdates = ({
   const { bus, events } = createRecordingEventBus()
   const state = createUpdateStateHolder({ eventBus: bus })
   const { repository, runs, versions } = inMemoryRepository()
-  const { notifier, notified, resolved } = recordingNotifier()
+  const { notifier, notified, resolved } = recordingNotifierCalls()
   let record: UpdateCheckRecord | undefined =
     latest === undefined ? undefined : { checkedAt: clock.now(), latest }
   const checkStore: UpdateCheckStore = {

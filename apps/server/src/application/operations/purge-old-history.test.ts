@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
 import { createCapturingLogger } from '../../../test/support/logger.ts'
-import { day, t0 } from '../../../test/support/operations-fakes.ts'
+import { day, t0 } from '../../../test/support/operations-world.ts'
 import { purgeOldHistoryFactory } from './purge-old-history.ts'
 
 describe('job retention (§18)', () => {

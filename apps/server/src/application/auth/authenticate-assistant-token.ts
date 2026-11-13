@@ -14,9 +14,11 @@ type Deps = {
   tokens: SessionTokens
 }
 
+export type AuthenticateAssistantTokenError = AuthenticateAssistantError
+
 export const authenticateAssistantTokenFactory =
   ({ assistantTokenRepository, assistantAccess, tokens }: Deps) =>
-  (token: string): Result<AssistantPrincipal, AuthenticateAssistantError> => {
+  (token: string): Result<AssistantPrincipal, AuthenticateAssistantTokenError> => {
     const found = assistantTokenRepository.findByTokenHash(tokens.hash(token))
     if (found === undefined || found.kind !== 'token') {
       return err(appError('auth/unauthenticated', 'unknown token'))

@@ -15,6 +15,8 @@ type Deps = {
   logger: Logger
 }
 
+export type ResetAccountPasswordError = AccountNotFound
+
 export const resetAccountPasswordFactory =
   ({ accountRepository, sessionRepository, passwordHasher, clock, logger }: Deps) =>
   async ({
@@ -23,7 +25,7 @@ export const resetAccountPasswordFactory =
   }: {
     accountId: string
     password: string
-  }): Promise<Result<void, AccountNotFound>> => {
+  }): Promise<Result<void, ResetAccountPasswordError>> => {
     if (accountRepository.findById(accountId) === undefined) return accountNotFound(accountId)
     accountRepository.setPasswordHash({
       id: accountId,

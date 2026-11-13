@@ -7,13 +7,8 @@ import type { Logger } from '../../core/logger.ts'
 import type { Profile, ProfileRepository } from '../../core/profile/profile.ts'
 import { isWithin, mayWiden } from '../../core/profile/restrictions.ts'
 import type { CheckPin, CheckPinError } from './check-pin.ts'
-import { type AccountActionError, restrictedActor } from './shared/acting-profile.ts'
-import {
-  actingAs,
-  type ProfileActor,
-  reachableProfile,
-  unlockProfile,
-} from './shared/profile-actor.ts'
+import { type AccountActionError, actingProfile, restrictedActor } from './shared/acting-profile.ts'
+import { type ProfileActor, reachableProfile, unlockProfile } from './shared/profile-actor.ts'
 import { adminOnly, lastUnrestricted, profileNotFound } from './shared/profile-errors.ts'
 import type { Optional, ProfileSettings } from './shared/profile-input.ts'
 import {
@@ -70,7 +65,7 @@ export const updateProfileFactory =
   }): Promise<Result<Profile, UpdateProfileError>> => {
     const profile = reachableProfile(profileRepository, actor, profileId)
     if (profile === undefined) return profileNotFound(profileId)
-    const acting = actingAs(profileRepository, actor)
+    const acting = actingProfile(profileRepository, actor)
     if (acting.restricted && (profile.id !== acting.active?.id || input.pin !== undefined)) {
       return restrictedActor()
     }

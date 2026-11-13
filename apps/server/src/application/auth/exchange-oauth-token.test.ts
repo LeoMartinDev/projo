@@ -8,12 +8,12 @@ import {
   codeOf,
   connect,
   createOAuthWorld as setup,
-  day,
+  dayMs,
   exchange,
   invalidGrant,
-  minute,
-  start,
-  type World,
+  minuteMs,
+  oauthStart,
+  type OAuthWorld,
 } from '../../../test/support/oauth-world.ts'
 
 describe('exchanging the code', () => {
@@ -36,7 +36,7 @@ describe('exchanging the code', () => {
         kind: 'oauth',
         clientId: 'c1',
         name: 'Claude',
-        createdAt: start,
+        createdAt: oauthStart,
       },
     ])
     expect([...world.oauth.tokens.values()]).toEqual([
@@ -45,17 +45,17 @@ describe('exchanging the code', () => {
         assistantId: 'oauth-1',
         kind: 'access',
         scope: 'review offline_access',
-        expiresAt: new Date(start.getTime() + 60 * minute),
+        expiresAt: new Date(oauthStart.getTime() + 60 * minuteMs),
       },
       {
         tokenHash: 'h(token-3)',
         assistantId: 'oauth-1',
         kind: 'refresh',
         scope: 'review offline_access',
-        expiresAt: new Date(start.getTime() + 90 * day),
+        expiresAt: new Date(oauthStart.getTime() + 90 * dayMs),
       },
     ])
-    expect(world.oauth.touched).toEqual([{ id: 'c1', at: start }])
+    expect(world.oauth.touched).toEqual([{ id: 'c1', at: oauthStart }])
   })
 
   test('a code works once', async () => {
@@ -72,7 +72,7 @@ describe('exchanging the code', () => {
   test('a code a minute old', async () => {
     const world = setup()
     const code = await authorize(world)
-    world.clock.advance(minute)
+    world.clock.advance(minuteMs)
     expect(await exchange(world, code)).toMatchObject(invalidGrant('expired code'))
   })
 
@@ -100,8 +100,8 @@ describe('exchanging the code', () => {
 })
 
 describe('refreshing', () => {
-  const refresh = (world: World, refreshToken: string, clientId?: string) =>
-    world.service.token({
+  const refresh = (world: OAuthWorld, refreshToken: string, clientId?: string) =>
+    world.exchangeOAuthToken({
       grantType: 'refresh_token',
       refreshToken,
       ...(clientId === undefined ? {} : { clientId }),
@@ -110,7 +110,7 @@ describe('refreshing', () => {
   test('a new pair for the same connection, the old refresh token rotated', async () => {
     const world = setup()
     await connect(world)
-    world.clock.advance(day)
+    world.clock.advance(dayMs)
     expect(await refresh(world, 'token-3', 'client-abc')).toEqual(
       ok({
         access_token: 'token-4',
@@ -120,7 +120,7 @@ describe('refreshing', () => {
         scope: 'review offline_access',
       }),
     )
-    const later = new Date(start.getTime() + day)
+    const later = new Date(oauthStart.getTime() + dayMs)
     expect(world.oauth.tokens.get('h(token-3)')?.rotatedAt).toEqual(later)
     expect(world.oauth.tokens.get('h(token-5)')).toMatchObject({
       assistantId: 'oauth-1',
@@ -142,7 +142,7 @@ describe('refreshing', () => {
     expect(await refresh(world, 'token-3')).toMatchObject(
       invalidGrant('refresh token already used'),
     )
-    expect(world.assistants.tokens.get('oauth-1')?.revokedAt).toEqual(start)
+    expect(world.assistants.tokens.get('oauth-1')?.revokedAt).toEqual(oauthStart)
     expect(world.lines).toContainEqual(
       expect.objectContaining({
         level: 'warn',
@@ -162,7 +162,7 @@ describe('refreshing', () => {
   test('after 90 days, and again on retry: expired, the connection kept', async () => {
     const world = setup()
     await connect(world)
-    world.clock.advance(90 * day)
+    world.clock.advance(90 * dayMs)
     expect(await refresh(world, 'token-3')).toMatchObject(invalidGrant('expired refresh token'))
     expect(await refresh(world, 'token-3')).toMatchObject(invalidGrant('expired refresh token'))
     expect(world.oauth.tokens.get('h(token-3)')?.rotatedAt).toBeUndefined()
@@ -187,14 +187,14 @@ describe('refreshing', () => {
       profileId: 'profile-1',
       kind: 'oauth',
       name: 'Legacy',
-      createdAt: start,
+      createdAt: oauthStart,
     })
     world.oauth.repository.createToken({
       tokenHash: 'h(legacy)',
       assistantId: 'no-client',
       kind: 'refresh',
       scope: 'review',
-      expiresAt: new Date(start.getTime() + day),
+      expiresAt: new Date(oauthStart.getTime() + dayMs),
     })
     expect(await refresh(world, 'legacy', 'client-abc')).toMatchObject(
       invalidGrant('the refresh token was issued to another client'),

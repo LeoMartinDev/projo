@@ -13,9 +13,11 @@ type Deps = {
   logger: Logger
 }
 
+export type RevokeAccountSessionsError = AccountNotFound
+
 export const revokeAccountSessionsFactory =
   ({ accountRepository, sessionRepository, clock, logger }: Deps) =>
-  ({ accountId }: { accountId: string }): Result<void, AccountNotFound> => {
+  ({ accountId }: { accountId: string }): Result<void, RevokeAccountSessionsError> => {
     if (accountRepository.findById(accountId) === undefined) return accountNotFound(accountId)
     sessionRepository.revokeAllByAccount({ accountId, revokedAt: clock.now() })
     logger.info('sessions revoked by admin', { accountId })

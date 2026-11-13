@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
-import { day, recordingNotifier, t0 } from '../../../test/support/operations-fakes.ts'
+import { day, recordingOpenNotifications, t0 } from '../../../test/support/operations-world.ts'
 import { remindNeedsReviewFactory } from './remind-needs-review.ts'
 
 describe('periodic checks (§15 notifications)', () => {
@@ -9,7 +9,7 @@ describe('periodic checks (§15 notifications)', () => {
     let count = 3
     let last: Date | undefined
     const clock = createManualClock(t0)
-    const { notifier, open, log } = recordingNotifier()
+    const { notifier, open, log } = recordingOpenNotifications()
     const remind = remindNeedsReviewFactory({
       countNeedsReview: () => count,
       reminders: { read: () => last, write: (at) => (last = at) },

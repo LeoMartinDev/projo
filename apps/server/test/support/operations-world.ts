@@ -34,7 +34,7 @@ export const job = (overrides: Partial<Job> & Pick<Job, 'id'>): Job => ({
   ...overrides,
 })
 
-export const recordingNotifier = () => {
+export const recordingOpenNotifications = () => {
   const open = new Map<string, Record<string, unknown>>()
   const log: string[] = []
   const notifier: AdminNotifier = {
@@ -110,12 +110,13 @@ export const createJobsAdminWorld = (jobs: Job[]) => {
     eventBus: bus,
     logger: silentLogger,
   }
-  const admin = {
-    list: listJobsFactory(deps),
-    retry: retryJobFactory(deps),
-    cancel: cancelJobFactory(deps),
+  return {
+    listJobs: listJobsFactory(deps),
+    retryJob: retryJobFactory(deps),
+    cancelJob: cancelJobFactory(deps),
+    events,
+    woken,
   }
-  return { admin, events, woken }
 }
 
 export const notification: Notification = {

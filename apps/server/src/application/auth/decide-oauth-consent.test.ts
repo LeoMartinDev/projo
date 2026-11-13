@@ -7,16 +7,16 @@ import {
   callback,
   createOAuthWorld as setup,
   mcpUrl,
-  minute,
-  request,
-  start,
+  minuteMs,
+  authorizationRequest,
+  oauthStart,
 } from '../../../test/support/oauth-world.ts'
 
 describe('the decision', () => {
   test('deny: back to the client with access_denied, no code', async () => {
     const world = setup()
-    const result = await world.service.decide({
-      request: request(),
+    const result = await world.decideOAuthConsent({
+      request: authorizationRequest(),
       decision: 'deny',
       mcpUrl,
       accountId: 'account-1',
@@ -38,7 +38,7 @@ describe('the decision', () => {
         redirectUri: callback,
         codeChallenge: 'S256(verifier)',
         scope: 'review offline_access',
-        expiresAt: new Date(start.getTime() + minute),
+        expiresAt: new Date(oauthStart.getTime() + minuteMs),
       },
     ])
   })
@@ -58,8 +58,8 @@ describe('the decision', () => {
 
   test('allow without a profile, or on a profile the account cannot administer: access_denied', async () => {
     const world = setup()
-    const withoutProfile = await world.service.decide({
-      request: request(),
+    const withoutProfile = await world.decideOAuthConsent({
+      request: authorizationRequest(),
       decision: 'allow',
       mcpUrl,
       accountId: 'account-1',

@@ -5,23 +5,23 @@ import { ok } from '@projo/shared'
 import {
   callback,
   createOAuthWorld as setup,
-  day,
+  dayMs,
   mcpUrl,
-  request,
-  start,
-  type World,
+  authorizationRequest,
+  oauthStart,
+  type OAuthWorld,
 } from '../../../test/support/oauth-world.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import type { AuthorizationRequest } from './shared/oauth-request.ts'
 
 describe('consent screen', () => {
   const consent = (
-    world: World,
+    world: OAuthWorld,
     overrides: Partial<AuthorizationRequest> = {},
     { profileId }: { profileId: string | undefined } = { profileId: 'profile-1' },
   ) =>
-    world.service.consent({
-      request: request(overrides),
+    world.getOAuthConsent({
+      request: authorizationRequest(overrides),
       mcpUrl,
       accountId: 'account-1',
       profileId,
@@ -90,10 +90,10 @@ describe('consent screen', () => {
   test('the resource may carry a trailing slash, or be left out', async () => {
     const world = setup()
     expect((await consent(world, { resource: `${mcpUrl}/` })).ok).toBe(true)
-    const { resource: _resource, ...withoutResource } = request()
+    const { resource: _resource, ...withoutResource } = authorizationRequest()
     expect(
       (
-        await world.service.consent({
+        await world.getOAuthConsent({
           request: withoutResource,
           mcpUrl,
           accountId: 'account-1',
@@ -112,8 +112,8 @@ describe('Client ID Metadata Documents', () => {
   test('read once, kept a day with the redirects that are acceptable, named after its host', async () => {
     const world = setup({ clients: [], metadata })
     const consent = () =>
-      world.service.consent({
-        request: request({ clientId: documentUrl }),
+      world.getOAuthConsent({
+        request: authorizationRequest({ clientId: documentUrl }),
         mcpUrl,
         accountId: 'account-1',
         profileId: 'profile-1',
@@ -126,11 +126,11 @@ describe('Client ID Metadata Documents', () => {
         kind: 'cimd',
         name: 'claude.ai',
         redirectUris: [callback],
-        createdAt: start,
-        fetchedAt: start,
+        createdAt: oauthStart,
+        fetchedAt: oauthStart,
       },
     ])
-    world.clock.advance(day - 1)
+    world.clock.advance(dayMs - 1)
     await consent()
     expect(world.fetched).toEqual([documentUrl])
 
@@ -138,16 +138,16 @@ describe('Client ID Metadata Documents', () => {
     await consent()
     expect(world.fetched).toEqual([documentUrl, documentUrl])
     expect(world.oauth.clients.get('oauth-1')).toMatchObject({
-      createdAt: start,
-      fetchedAt: new Date(start.getTime() + day),
+      createdAt: oauthStart,
+      fetchedAt: new Date(oauthStart.getTime() + dayMs),
     })
   })
 
   test('a document that cannot be read: oauth/invalid_client', async () => {
     const world = setup({ clients: [] })
     expect(
-      await world.service.consent({
-        request: request({ clientId: documentUrl }),
+      await world.getOAuthConsent({
+        request: authorizationRequest({ clientId: documentUrl }),
         mcpUrl,
         accountId: 'account-1',
         profileId: 'profile-1',

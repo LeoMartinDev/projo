@@ -42,7 +42,7 @@ export const createPairingsWorld = ({ codes = [] }: { codes?: string[] } = {}) =
     sessions: sessionStore.sessions,
     pairings: pairingStore.pairings,
     events: recording.events,
-    create: createPairingFactory({
+    createPairing: createPairingFactory({
       pairingRepository: pairingStore.repository,
       sessionRepository,
       pairingCodes,
@@ -50,7 +50,7 @@ export const createPairingsWorld = ({ codes = [] }: { codes?: string[] } = {}) =
       ids: createSequentialIds('pairing-'),
       logger: silentLogger,
     }),
-    claim: claimPairingFactory({
+    claimPairing: claimPairingFactory({
       pairingRepository: pairingStore.repository,
       sessionRepository,
       pairingCodes,
@@ -70,7 +70,7 @@ export const claimInput = {
 }
 
 export const created = (t: ReturnType<typeof createPairingsWorld>) => {
-  const result = t.create({ accountId: 'account-1', sessionId: t.creator.id })
+  const result = t.createPairing({ accountId: 'account-1', sessionId: t.creator.id })
   if (!result.ok) throw new Error(result.error.code)
   return result.value
 }

@@ -63,15 +63,13 @@ export const createProfilesWorld = (
     changed,
     endedPlayback,
     scopes,
-    profiles: {
-      list: listProfilesFactory(deps),
-      create: createProfileFactory(deps),
-      createForAccount: createAccountProfileFactory(deps),
-      update: updateProfileFactory(deps),
-      delete: deleteProfileFactory(deps),
-      verifyPin: verifyProfilePinFactory(deps),
-      select: selectProfileFactory(deps),
-    },
+    listProfiles: listProfilesFactory(deps),
+    createProfile: createProfileFactory(deps),
+    createAccountProfile: createAccountProfileFactory(deps),
+    updateProfile: updateProfileFactory(deps),
+    deleteProfile: deleteProfileFactory(deps),
+    verifyProfilePin: verifyProfilePinFactory(deps),
+    selectProfile: selectProfileFactory(deps),
   }
 }
 

@@ -6,7 +6,7 @@ import { admin, createProfilesWorld as setup, kid } from '../../../test/support/
 describe('create', () => {
   test('defaults: next colour, languages from the interface, unrestricted for an admin', async () => {
     const t = setup()
-    const result = await t.profiles.create({ actor: admin, input: { name: 'Zoé', uiLocale: 'en' } })
+    const result = await t.createProfile({ actor: admin, input: { name: 'Zoé', uiLocale: 'en' } })
     expect(result).toMatchObject({
       ok: true,
       value: {
@@ -24,10 +24,10 @@ describe('create', () => {
 
   test('PIN is hashed, at most 5 profiles', async () => {
     const t = setup()
-    const first = await t.profiles.create({ actor: admin, input: { name: 'A', pin: '4321' } })
+    const first = await t.createProfile({ actor: admin, input: { name: 'A', pin: '4321' } })
     expect(first.ok && first.value.pinHash).toBe('hashed:4321')
-    for (const name of ['B', 'C', 'D']) await t.profiles.create({ actor: admin, input: { name } })
-    expect(await t.profiles.create({ actor: admin, input: { name: 'F' } })).toMatchObject({
+    for (const name of ['B', 'C', 'D']) await t.createProfile({ actor: admin, input: { name } })
+    expect(await t.createProfile({ actor: admin, input: { name: 'F' } })).toMatchObject({
       ok: false,
       error: { code: 'profile/limit_reached' },
     })
@@ -37,7 +37,7 @@ describe('create', () => {
     const t = setup([sampleProfile(), kid])
     const actor = { ...admin, activeProfileId: 'kid' }
     for (const input of [{ name: 'Bis' }, { name: 'Ter', maxContentRating: '0' as const }]) {
-      expect(await t.profiles.create({ actor, input })).toMatchObject({
+      expect(await t.createProfile({ actor, input })).toMatchObject({
         ok: false,
         error: { code: 'profile/restricted' },
       })
@@ -48,7 +48,7 @@ describe('create', () => {
   test('without a resolved profile, the actor is the most restricted profile of the account', async () => {
     const restricted = setup([sampleProfile(), kid])
     const { activeProfileId: _active, ...none } = admin
-    expect(await restricted.profiles.create({ actor: none, input: { name: 'X' } })).toMatchObject({
+    expect(await restricted.createProfile({ actor: none, input: { name: 'X' } })).toMatchObject({
       ok: false,
       error: { code: 'profile/restricted' },
     })
@@ -58,14 +58,14 @@ describe('create', () => {
       sampleProfile({ id: 'z', accountId: 'account-2' }),
     ])
     expect(
-      await foreign.profiles.create({
+      await foreign.createProfile({
         actor: { ...admin, activeProfileId: 'z' },
         input: { name: 'X' },
       }),
     ).toMatchObject({ ok: false, error: { code: 'profile/restricted' } })
     const open = setup([sampleProfile(), sampleProfile({ id: 'p2' })])
     expect(
-      await open.profiles.create({ actor: { ...none, role: 'user' }, input: { name: 'X' } }),
+      await open.createProfile({ actor: { ...none, role: 'user' }, input: { name: 'X' } }),
     ).toMatchObject({ ok: true, value: { libraryAccess: 'all' } })
   })
 
@@ -73,7 +73,7 @@ describe('create', () => {
     const t = setup()
     const results = await Promise.all(
       ['B', 'C', 'D', 'E', 'F', 'G'].map((name) =>
-        t.profiles.create({ actor: admin, input: { name, pin: '1234' } }),
+        t.createProfile({ actor: admin, input: { name, pin: '1234' } }),
       ),
     )
     expect(results.filter((result) => result.ok)).toHaveLength(4)
@@ -83,7 +83,7 @@ describe('create', () => {
   test('unknown libraries are refused', async () => {
     const t = setup()
     expect(
-      await t.profiles.create({
+      await t.createProfile({
         actor: admin,
         input: { name: 'X', libraryAccess: 'selected', libraryIds: ['films', 'ghost'] },
       }),

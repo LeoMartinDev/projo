@@ -12,9 +12,11 @@ type Deps = {
 
 export const CHECK_UPDATES_DEDUPE_KEY = 'check_updates'
 
+export type RequestUpdateCheckError = AppError<'update/disabled'>
+
 export const requestUpdateCheckFactory =
   ({ jobQueue, processControl }: Deps) =>
-  (): Result<Job, AppError<'update/disabled'>> =>
+  (): Result<Job, RequestUpdateCheckError> =>
     processControl.enabled
       ? ok(
           jobQueue.enqueue({

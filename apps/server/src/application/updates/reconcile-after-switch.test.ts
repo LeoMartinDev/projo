@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
-import { manifest, setupUpdates as setup } from '../../../test/support/updates-fakes.ts'
+import {
+  manifest,
+  createUpdateUseCasesWorld as setup,
+} from '../../../test/support/update-use-cases-world.ts'
 import { reconcileAfterSwitchFactory } from './reconcile-after-switch.ts'
 
 describe('reconcile after a switch', () => {

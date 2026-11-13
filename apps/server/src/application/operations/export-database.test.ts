@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
 import { silentLogger } from '../../../test/support/logger.ts'
-import { t0 } from '../../../test/support/operations-fakes.ts'
+import { t0 } from '../../../test/support/operations-world.ts'
 import { exportDatabaseFactory } from './export-database.ts'
 
 describe('database export (§5.4)', () => {

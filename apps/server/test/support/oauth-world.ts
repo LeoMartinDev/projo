@@ -20,9 +20,9 @@ import { createManualClock } from './clock.ts'
 import { createSequentialIds } from './fakes.ts'
 import { createCapturingLogger } from './logger.ts'
 
-export const start = new Date('2026-01-01T00:00:00.000Z')
-export const minute = 60_000
-export const day = 24 * 60 * minute
+export const oauthStart = new Date('2026-01-01T00:00:00.000Z')
+export const minuteMs = 60_000
+export const dayMs = 24 * 60 * minuteMs
 export const mcpUrl = 'https://projo.example/mcp'
 export const callback = 'https://claude.ai/api/mcp/auth_callback'
 
@@ -32,10 +32,12 @@ export const claude: OAuthClient = {
   kind: 'dcr',
   name: 'Claude',
   redirectUris: [callback, 'http://127.0.0.1/callback'],
-  createdAt: start,
+  createdAt: oauthStart,
 }
 
-export const request = (overrides: Partial<AuthorizationRequest> = {}): AuthorizationRequest => ({
+export const authorizationRequest = (
+  overrides: Partial<AuthorizationRequest> = {},
+): AuthorizationRequest => ({
   responseType: 'code',
   clientId: 'client-abc',
   redirectUri: callback,
@@ -56,7 +58,7 @@ export const createOAuthWorld = ({
   const assistants = createInMemoryAssistantTokens()
   const allowed = new Set(['account-1:profile-1'])
   const fetched: string[] = []
-  const clock = createManualClock(start)
+  const clock = createManualClock(oauthStart)
   const { logger, lines } = createCapturingLogger()
   const assistantAccess: AssistantAccess = {
     administers: ({ accountId, profileId }) =>
@@ -84,22 +86,27 @@ export const createOAuthWorld = ({
     ids: createSequentialIds('oauth-'),
     logger,
   }
-  const service = {
-    register: registerOAuthClientFactory(deps),
-    consent: getOAuthConsentFactory(deps),
-    decide: decideOAuthConsentFactory(deps),
-    token: exchangeOAuthTokenFactory(deps),
-    authenticateAccess: authenticateOAuthAccessFactory(deps),
-    purge: purgeExpiredOAuthFactory(deps),
+  return {
+    registerOAuthClient: registerOAuthClientFactory(deps),
+    getOAuthConsent: getOAuthConsentFactory(deps),
+    decideOAuthConsent: decideOAuthConsentFactory(deps),
+    exchangeOAuthToken: exchangeOAuthTokenFactory(deps),
+    authenticateOAuthAccess: authenticateOAuthAccessFactory(deps),
+    purgeExpiredOAuth: purgeExpiredOAuthFactory(deps),
+    oauth,
+    assistants,
+    allowed,
+    fetched,
+    clock,
+    lines,
   }
-  return { service, oauth, assistants, allowed, fetched, clock, lines }
 }
 
-export type World = ReturnType<typeof createOAuthWorld>
+export type OAuthWorld = ReturnType<typeof createOAuthWorld>
 
-export const allow = (world: World, overrides: Partial<AuthorizationRequest> = {}) =>
-  world.service.decide({
-    request: request(overrides),
+export const allow = (world: OAuthWorld, overrides: Partial<AuthorizationRequest> = {}) =>
+  world.decideOAuthConsent({
+    request: authorizationRequest(overrides),
     decision: 'allow',
     mcpUrl,
     accountId: 'account-1',
@@ -109,17 +116,17 @@ export const allow = (world: World, overrides: Partial<AuthorizationRequest> = {
 export const codeOf = (redirectTo: string): string =>
   new URL(redirectTo).searchParams.get('code') ?? 'no code'
 
-export const authorize = async (world: World): Promise<string> => {
+export const authorize = async (world: OAuthWorld): Promise<string> => {
   const decided = await allow(world)
   return decided.ok ? codeOf(decided.value.redirectTo) : 'refused'
 }
 
 export const exchange = (
-  world: World,
+  world: OAuthWorld,
   code: string,
   overrides: Partial<{ codeVerifier: string; redirectUri: string; clientId: string }> = {},
 ) =>
-  world.service.token({
+  world.exchangeOAuthToken({
     grantType: 'authorization_code',
     code,
     codeVerifier: 'verifier',
@@ -129,7 +136,7 @@ export const exchange = (
   })
 
 /** Authorizes then exchanges the code: access `token-2`, refresh `token-3`. */
-export const connect = async (world: World) => exchange(world, await authorize(world))
+export const connect = async (world: OAuthWorld) => exchange(world, await authorize(world))
 
 export const invalidGrant = (message: string) => ({
   ok: false,

@@ -5,7 +5,7 @@ import { createAdminAccountsWorld as setup } from '../../../test/support/admin-a
 describe('admin accounts', () => {
   test('creates an account with its first profile, refuses a taken username', async () => {
     const t = setup()
-    const created = await t.accounts.create({
+    const created = await t.createAccount({
       username: 'Sam',
       password: 'a long enough password',
       role: 'user',
@@ -24,7 +24,7 @@ describe('admin accounts', () => {
       },
     })
     expect(
-      await t.accounts.create({
+      await t.createAccount({
         username: 'ZOE',
         password: 'x'.repeat(12),
         role: 'user',

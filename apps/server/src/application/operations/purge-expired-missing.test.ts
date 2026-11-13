@@ -5,7 +5,7 @@ import {
   createMissingSourcesWorld as build,
   day,
   t0,
-} from '../../../test/support/operations-fakes.ts'
+} from '../../../test/support/operations-world.ts'
 import { purgeExpiredMissingFactory } from './purge-expired-missing.ts'
 
 describe('missing sources (§7.5, §15 "Manquants")', () => {

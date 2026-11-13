@@ -77,14 +77,12 @@ export const createAdminAccountsWorld = (accounts: Account[] = [leo, zoe]) => {
     accountStore,
     profileStore,
     sessions,
-    accounts: {
-      list: listAccountsFactory(deps),
-      create: createAccountFactory(deps),
-      update: updateAccountFactory(deps),
-      delete: deleteAccountFactory(deps),
-      resetPassword: resetAccountPasswordFactory(deps),
-      revokeSessions: revokeAccountSessionsFactory(deps),
-    },
+    listAccounts: listAccountsFactory(deps),
+    createAccount: createAccountFactory(deps),
+    updateAccount: updateAccountFactory(deps),
+    deleteAccount: deleteAccountFactory(deps),
+    resetAccountPassword: resetAccountPasswordFactory(deps),
+    revokeAccountSessions: revokeAccountSessionsFactory(deps),
   }
 }
 

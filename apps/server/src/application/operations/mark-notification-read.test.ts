@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import { createManualClock } from '../../../test/support/clock.ts'
-import { notificationRepository as repository, t0 } from '../../../test/support/operations-fakes.ts'
+import { notificationRepository as repository, t0 } from '../../../test/support/operations-world.ts'
 import { listNotificationsFactory } from './list-notifications.ts'
 import { markNotificationReadFactory } from './mark-notification-read.ts'
 

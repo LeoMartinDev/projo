@@ -5,13 +5,8 @@ import type { Logger } from '../../core/logger.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { ProfileRepository } from '../../core/profile/profile.ts'
 import type { CheckPin, CheckPinError } from './check-pin.ts'
-import { type AccountActionError, restrictedActor } from './shared/acting-profile.ts'
-import {
-  actingAs,
-  type ProfileActor,
-  reachableProfile,
-  unlockProfile,
-} from './shared/profile-actor.ts'
+import { type AccountActionError, actingProfile, restrictedActor } from './shared/acting-profile.ts'
+import { type ProfileActor, reachableProfile, unlockProfile } from './shared/profile-actor.ts'
 import { lastUnrestricted, profileNotFound } from './shared/profile-errors.ts'
 import { locksOutAdmin } from './shared/profile-restrictions.ts'
 
@@ -42,7 +37,7 @@ export const deleteProfileFactory =
   }): Promise<Result<void, DeleteProfileError>> => {
     const profile = reachableProfile(profileRepository, actor, profileId)
     if (profile === undefined) return profileNotFound(profileId)
-    if (actingAs(profileRepository, actor).restricted) return restrictedActor()
+    if (actingProfile(profileRepository, actor).restricted) return restrictedActor()
     const unlocked = await unlockProfile(checkPin, actor, profile, currentPin)
     if (!unlocked.ok) return unlocked
     if (profileRepository.listByAccount(profile.accountId).length <= 1) {

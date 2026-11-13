@@ -3,7 +3,6 @@ import type { AccountRole } from '@projo/shared/api/auth'
 
 import type { Profile, ProfileRepository } from '../../../core/profile/profile.ts'
 import type { CheckPin } from '../check-pin.ts'
-import { actingProfile } from './acting-profile.ts'
 
 export type ProfileActor = {
   accountId: string
@@ -11,15 +10,6 @@ export type ProfileActor = {
   sessionId: string
   activeProfileId?: string
 }
-
-export const actingAs = (
-  profileRepository: Pick<ProfileRepository, 'findById' | 'listByAccount'>,
-  actor: ProfileActor,
-) =>
-  actingProfile(profileRepository, {
-    accountId: actor.accountId,
-    activeProfileId: actor.activeProfileId,
-  })
 
 /** A profile of the actor's account, or of any account for an admin. */
 export const reachableProfile = (

@@ -1,42 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 
-import { createFakePasswordHasher, createInMemorySetup } from '../../../test/support/auth.ts'
-import { createManualClock } from '../../../test/support/clock.ts'
-import { createSequentialIds } from '../../../test/support/fakes.ts'
-import { silentLogger } from '../../../test/support/logger.ts'
-import type { SettingsRepository } from '../../core/settings/settings.ts'
-import { completeSetupFactory } from './complete-setup.ts'
-import { getSetupStatusFactory } from './get-setup-status.ts'
-
-const input = {
-  username: 'leo',
-  password: 'correct horse battery',
-  serverName: 'Maison',
-  metadataLanguage: 'fr-FR',
-  uiLocale: 'fr' as const,
-}
-
-const build = () => {
-  const setup = createInMemorySetup()
-  const settingsRepository: SettingsRepository = { get: (key) => setup.state.settings.get(key) }
-  return {
-    setup,
-    completeSetup: completeSetupFactory({
-      setupRepository: setup.repository,
-      passwordHasher: createFakePasswordHasher().hasher,
-      clock: createManualClock(),
-      ids: createSequentialIds(),
-      logger: silentLogger,
-    }),
-    getStatus: getSetupStatusFactory({ setupRepository: setup.repository, settingsRepository }),
-  }
-}
+import {
+  createSetupWorld as build,
+  setupInput as input,
+} from '../../../test/support/setup-world.ts'
 
 describe('completeSetup', () => {
   test('creates the admin, its first profile and the settings', async () => {
     const t = build()
-    expect(t.getStatus()).toEqual({ completed: false })
-
     const result = await t.completeSetup(input)
     expect(result).toMatchObject({
       ok: true,
@@ -55,7 +26,6 @@ describe('completeSetup', () => {
     })
     if (result.ok) expect(result.value.profile.accountId).toBe(result.value.account.id)
     expect(t.setup.state.settings.get('metadata.language')).toBe('fr-FR')
-    expect(t.getStatus()).toEqual({ completed: true, serverName: 'Maison' })
   })
 
   test('takes the profile name and colour when given', async () => {

@@ -20,7 +20,7 @@ describe('visibility scope resolver', () => {
     const adminElsewhere = { ...admin, activeProfileId: 'boss' }
     expect(
       (
-        await t.profiles.update({
+        await t.updateProfile({
           actor: adminElsewhere,
           profileId: 'profile-1',
           input: { maxContentRating: '' },

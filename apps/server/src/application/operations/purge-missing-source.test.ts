@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 
-import { createMissingSourcesWorld as build } from '../../../test/support/operations-fakes.ts'
+import { createMissingSourcesWorld as build } from '../../../test/support/operations-world.ts'
 import { purgeMissingSourceFactory } from './purge-missing-source.ts'
 
 describe('missing sources (§7.5, §15 "Manquants")', () => {

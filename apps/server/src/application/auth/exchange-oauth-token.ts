@@ -9,7 +9,10 @@ import type { Logger } from '../../core/logger.ts'
 import type { AssistantAccess } from './shared/assistant-access.ts'
 
 type Deps = {
-  oauthRepository: OAuthRepository
+  oauthRepository: Pick<
+    OAuthRepository,
+    'consumeCode' | 'findClientById' | 'touchClient' | 'createToken' | 'findToken' | 'markRotated'
+  >
   assistantTokenRepository: Pick<AssistantTokenRepository, 'create' | 'findById' | 'revoke'>
   assistantAccess: Pick<AssistantAccess, 'administers'>
   pkce: PkceVerifier
