@@ -10,7 +10,11 @@ import type { GetReviewSummary } from '../../application/assistants/get-review-s
 import type { GetTmdbSeries } from '../../application/assistants/get-tmdb-series.ts'
 import type { ListHiddenSources } from '../../application/assistants/list-hidden-sources.ts'
 import type { ListReviewQueue } from '../../application/assistants/list-review-queue.ts'
-import type { Review } from '../../application/metadata/review.ts'
+import type { AssignSource } from '../../application/metadata/assign-source.ts'
+import type { RejectSource } from '../../application/metadata/reject-source.ts'
+import type { RematchItem } from '../../application/metadata/rematch-item.ts'
+import type { RestoreSource } from '../../application/metadata/restore-source.ts'
+import type { SearchTmdb } from '../../application/metadata/search-tmdb.ts'
 import { sourceVersionOf } from '../../core/media/version.ts'
 import type { Source } from '../../core/source/source.ts'
 import { toParsedNameDto } from '../http/routes/sources-dto.ts'
@@ -24,7 +28,11 @@ export type AssistantToolsDeps = {
   findCatalogItems: FindCatalogItems
   getItemFiles: GetItemFiles
   listHiddenSources: ListHiddenSources
-  review: Pick<Review, 'search' | 'assignSource' | 'rematchItem' | 'rejectSource' | 'restoreSource'>
+  searchTmdb: SearchTmdb
+  assignSource: AssignSource
+  rematchItem: RematchItem
+  rejectSource: RejectSource
+  restoreSource: RestoreSource
 }
 
 const cursorPage = {
@@ -64,7 +72,11 @@ export const buildAssistantTools = ({
   findCatalogItems,
   getItemFiles,
   listHiddenSources,
-  review,
+  searchTmdb,
+  assignSource,
+  rematchItem,
+  rejectSource,
+  restoreSource,
 }: AssistantToolsDeps): McpTool[] => [
   defineTool({
     name: 'review_summary',
@@ -149,7 +161,7 @@ export const buildAssistantTools = ({
     }),
     annotations: { readOnlyHint: true, openWorldHint: true },
     run: async ({ query, kind, year, language }) => {
-      const hits = await review.search({
+      const hits = await searchTmdb({
         query,
         kind,
         ...(year === undefined ? {} : { year }),
@@ -305,7 +317,7 @@ export const buildAssistantTools = ({
     }),
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     run: async ({ sourceId, assignment, dryRun: preview }, { accountId }) => {
-      const result = await review.assignSource({
+      const result = await assignSource({
         sourceId,
         assignment,
         accountId,
@@ -330,7 +342,7 @@ export const buildAssistantTools = ({
     }),
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     run: async ({ itemId, assignment, dryRun: preview }, { accountId }) => {
-      const result = await review.rematchItem({
+      const result = await rematchItem({
         itemId,
         assignment,
         accountId,
@@ -348,7 +360,7 @@ export const buildAssistantTools = ({
     input: z.object({ sourceId: z.string().min(1) }),
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true },
     run: ({ sourceId }) => {
-      const result = review.rejectSource({ sourceId })
+      const result = rejectSource({ sourceId })
       return result.ok ? ok({ sourceId, hidden: true }) : result
     },
   }),
@@ -361,7 +373,7 @@ export const buildAssistantTools = ({
     input: z.object({ sourceId: z.string().min(1) }),
     annotations: { readOnlyHint: false, destructiveHint: false },
     run: ({ sourceId }) => {
-      const result = review.restoreSource({ sourceId })
+      const result = restoreSource({ sourceId })
       return result.ok ? ok({ sourceId, hidden: false }) : result
     },
   }),

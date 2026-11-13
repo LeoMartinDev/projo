@@ -2,10 +2,9 @@ import { Hono } from 'hono'
 
 import { type AdminSettingsDto, updateAdminSettingsBodySchema } from '@projo/shared/api/settings'
 
-import type {
-  MetadataSettingsAdmin,
-  MetadataSettingsView,
-} from '../../../application/metadata/metadata-settings.ts'
+import type { GetMetadataSettings } from '../../../application/metadata/get-metadata-settings.ts'
+import type { MetadataSettingsView } from '../../../application/metadata/shared/metadata-settings-view.ts'
+import type { UpdateMetadataSettings } from '../../../application/metadata/update-metadata-settings.ts'
 import type {
   PlaybackSettingsAdmin,
   ServerSettingsAdmin,
@@ -19,7 +18,7 @@ import { validate } from '../validation.ts'
 
 /** One section per owning module: metadata, segments, operations (playback and server). */
 export type AdminSettingsSections = {
-  metadata: MetadataSettingsAdmin
+  metadata: { get: GetMetadataSettings; update: UpdateMetadataSettings }
   segments: { get: GetSegmentSettings; update: UpdateSegmentSettings }
   playback: PlaybackSettingsAdmin
   server: ServerSettingsAdmin

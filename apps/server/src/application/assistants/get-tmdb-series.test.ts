@@ -3,8 +3,8 @@ import { expect, test } from 'bun:test'
 import { appError, err, ok, type Result } from '@projo/shared'
 
 import type { TmdbError, TmdbSeason, TmdbSeries } from '../../core/metadata/tmdb.ts'
-import { DETAILS_MAX_AGE_MS } from '../metadata/resolve-match.ts'
-import type { TmdbDetails } from '../metadata/tmdb-details.ts'
+import { DETAILS_MAX_AGE_MS } from '../metadata/shared/resolve-match.ts'
+import type { TmdbDetails } from '../metadata/shared/tmdb-details.ts'
 import { getTmdbSeriesFactory } from './get-tmdb-series.ts'
 
 const series: TmdbSeries = {

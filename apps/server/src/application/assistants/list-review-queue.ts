@@ -1,7 +1,7 @@
 import type { ReviewReason } from '@projo/shared/api/metadata'
 
 import type { SourceListItem, SourceRepository } from '../../core/source/source.ts'
-import { type LibraryNames, type NamedSource, nameSources } from './library-names.ts'
+import { type LibraryNames, type NamedSource, nameSources } from './shared/library-names.ts'
 
 type Deps = {
   sources: Pick<SourceRepository, 'page'>

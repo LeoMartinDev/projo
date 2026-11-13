@@ -13,9 +13,11 @@ import type {
 import type { TmdbError } from '../../core/metadata/tmdb.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
-import type { ApplyMatch } from './apply-match.ts'
-import type { RefreshMetadata } from './refresh-metadata.ts'
-import type { Resolution, ResolveMatch } from './resolve-match.ts'
+import type { QueueRefreshIfContextDiffers } from './queue-refresh-if-context-differs.ts'
+import type { ApplyMatch } from './shared/apply-match.ts'
+import { requestImages } from './shared/request-images.ts'
+import type { Resolution, ResolveMatch } from './shared/resolve-match.ts'
+import { TMDB_NOTIFICATION_KEY } from './shared/tmdb-notification-key.ts'
 
 const PARSER_REVIEW_REASONS = new Set<ReviewReason>([
   'classification_ambiguous',
@@ -31,7 +33,7 @@ type Deps = {
   settings: MetadataSettings
   resolveMatch: ResolveMatch
   applyMatch: ApplyMatch
-  refresh: Pick<RefreshMetadata, 'queueIfContextDiffers'>
+  queueRefreshIfContextDiffers: QueueRefreshIfContextDiffers
   notifier: AdminNotifier
   jobQueue: JobQueue
   clock: Clock
@@ -45,14 +47,6 @@ export type MatchSourceError = AppError<
   'metadata/tmdb_unavailable' | 'metadata/tmdb_invalid_response'
 >
 
-export const TMDB_NOTIFICATION_KEY = 'tmdb'
-
-export const requestImages = (jobQueue: JobQueue, itemIds: readonly string[]) => {
-  for (const itemId of new Set(itemIds)) {
-    jobQueue.enqueue({ type: 'fetch_images', payload: { itemId }, dedupeKey: `images:${itemId}` })
-  }
-}
-
 export const matchSourceFactory = ({
   sourceRepository,
   libraryRepository,
@@ -60,7 +54,7 @@ export const matchSourceFactory = ({
   settings,
   resolveMatch,
   applyMatch,
-  refresh,
+  queueRefreshIfContextDiffers,
   notifier,
   jobQueue,
   clock,
@@ -181,7 +175,7 @@ export const matchSourceFactory = ({
       state: remembered === undefined ? 'matched' : 'manual',
     })
     requestImages(jobQueue, applied.enriched)
-    refresh.queueIfContextDiffers({
+    queueRefreshIfContextDiffers({
       itemId: applied.topLevelId,
       language,
       ratingCountry: library.ratingCountry,

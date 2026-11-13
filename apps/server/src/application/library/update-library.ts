@@ -15,7 +15,7 @@ import type { Logger } from '../../core/logger.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import type { LocalItemRepository } from '../../core/scanner/item-linking.ts'
 import type { ScanRequester } from '../../core/scanner/ports.ts'
-import type { RootValidationError, ValidateRoots } from './validate-roots.ts'
+import type { RootValidationError, ValidateRoots } from './shared/validate-roots.ts'
 
 type Deps = {
   libraryRepository: LibraryRepository
@@ -130,3 +130,5 @@ export const updateLibraryFactory =
     logger.info('library updated', { libraryId: id })
     return ok(updated)
   }
+
+export type UpdateLibrary = ReturnType<typeof updateLibraryFactory>

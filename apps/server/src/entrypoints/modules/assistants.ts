@@ -9,7 +9,7 @@ import { listHiddenSourcesFactory } from '../../application/assistants/list-hidd
 import { listReviewQueueFactory } from '../../application/assistants/list-review-queue.ts'
 import { assistantTokensFactory } from '../../application/auth/assistant-tokens.ts'
 import { oauthFactory } from '../../application/auth/oauth.ts'
-import type { TmdbDetails } from '../../application/metadata/tmdb-details.ts'
+import type { TmdbDetails } from '../../application/metadata/shared/tmdb-details.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import { verifyPkceS256 } from '../../infrastructure/auth/pkce.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
@@ -37,7 +37,10 @@ import { oauthRoutes } from '../oauth/routes.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
-export type AssistantPorts = Pick<AssistantToolsDeps, 'review'> & {
+export type AssistantPorts = Pick<
+  AssistantToolsDeps,
+  'searchTmdb' | 'assignSource' | 'rematchItem' | 'rejectSource' | 'restoreSource'
+> & {
   tmdbDetails: Pick<TmdbDetails, 'series' | 'season'>
   metadataLanguage: () => string
 }
@@ -94,7 +97,15 @@ export const buildAssistantsModule = (
     return ok({ credentialId: tokenId, accountId, profileId })
   }
 
-  const { review, tmdbDetails, metadataLanguage } = assistantPorts
+  const {
+    searchTmdb,
+    assignSource,
+    rematchItem,
+    rejectSource,
+    restoreSource,
+    tmdbDetails,
+    metadataLanguage,
+  } = assistantPorts
   const sources = createSqliteSourceRepository({ db, ids })
   const libraries = createSqliteLibraryRepository({ db })
   const catalog = createSqliteCatalog({ db })
@@ -108,7 +119,11 @@ export const buildAssistantsModule = (
       findCatalogItems: findCatalogItemsFactory({ catalogReadModel: catalog, items }),
       getItemFiles: getItemFilesFactory({ sources, libraries, items, visibleItems: catalog }),
       listHiddenSources: listHiddenSourcesFactory({ sources, libraries }),
-      review,
+      searchTmdb,
+      assignSource,
+      rematchItem,
+      rejectSource,
+      restoreSource,
     }),
     server: { name: 'projo', version, instructions: assistantInstructions },
     onToolCall: ({ tool, targets, durationMs, errorCode }) =>

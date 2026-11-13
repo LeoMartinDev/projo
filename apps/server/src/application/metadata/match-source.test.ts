@@ -8,9 +8,9 @@ import { silentLogger } from '../../../test/support/logger.ts'
 import type { LibraryRepository } from '../../core/library/library.ts'
 import type { ManualMatchRepository, MetadataSettings } from '../../core/metadata/ports.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
-import type { ApplyMatch } from './apply-match.ts'
+import type { ApplyMatch } from './shared/apply-match.ts'
 import { matchSourceFactory } from './match-source.ts'
-import type { ResolveMatch } from './resolve-match.ts'
+import type { ResolveMatch } from './shared/resolve-match.ts'
 
 const source = {
   id: 's1',
@@ -49,7 +49,7 @@ test('a match fixed by the admin while TMDB answers is left alone', async () => 
         return { itemIds: [], enriched: [], topLevelId: 'i1' }
       },
     } as unknown as ApplyMatch,
-    refresh: { queueIfContextDiffers: () => false },
+    queueRefreshIfContextDiffers: () => false,
     notifier: { notify: () => {}, resolve: () => {} },
     jobQueue: createRecordingJobQueue().queue,
     clock: createManualClock(),

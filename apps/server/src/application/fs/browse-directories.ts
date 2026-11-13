@@ -17,7 +17,7 @@ export type BrowseResult = {
   entries: BrowseEntry[]
   truncated: boolean
 }
-export type BrowseError = FsError | ReturnType<typeof invalidPath>
+export type BrowseDirectoriesError = FsError | ReturnType<typeof invalidPath>
 
 const invalidPath = (path: string, reason: string) =>
   appError('fs/invalid_path', `invalid path: ${reason}`, { context: { path, reason } })
@@ -26,7 +26,11 @@ const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
 export const browseDirectoriesFactory =
   ({ fileSystem }: { fileSystem: FileSystem }) =>
-  async ({ path: raw }: { path: string }): Promise<Result<BrowseResult, BrowseError>> => {
+  async ({
+    path: raw,
+  }: {
+    path: string
+  }): Promise<Result<BrowseResult, BrowseDirectoriesError>> => {
     const normalized = normalizeAbsolutePath(raw)
     if (!normalized.ok) return normalized
     const path = normalized.value

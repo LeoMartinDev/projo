@@ -20,6 +20,8 @@ type Deps = {
   logger: Logger
 }
 
+export type DeleteLibraryError = AppError<'library/not_found'>
+
 export const deleteLibraryFactory =
   ({
     libraryRepository,
@@ -30,7 +32,7 @@ export const deleteLibraryFactory =
     jobControl,
     logger,
   }: Deps) =>
-  async ({ id }: { id: string }): Promise<Result<void, AppError<'library/not_found'>>> => {
+  async ({ id }: { id: string }): Promise<Result<void, DeleteLibraryError>> => {
     const library = libraryRepository.findById(id)
     if (library === undefined) {
       return err(appError('library/not_found', 'library not found', { context: { id } }))
@@ -46,3 +48,5 @@ export const deleteLibraryFactory =
     logger.info('library deleted', { libraryId: id, cancelledJobs: runningJobIds.length })
     return ok()
   }
+
+export type DeleteLibrary = ReturnType<typeof deleteLibraryFactory>

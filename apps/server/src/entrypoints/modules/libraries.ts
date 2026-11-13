@@ -1,11 +1,12 @@
 import { createLibraryFactory } from '../../application/library/create-library.ts'
 import { deleteLibraryFactory } from '../../application/library/delete-library.ts'
-import {
-  libraryViewsFactory,
-  requestLibraryScanFactory,
-} from '../../application/library/library-views.ts'
+import { getLibraryFactory } from '../../application/library/get-library.ts'
+import { listLibrariesFactory } from '../../application/library/list-libraries.ts'
+import { listLibraryScansFactory } from '../../application/library/list-library-scans.ts'
+import { requestLibraryScanFactory } from '../../application/library/request-library-scan.ts'
+import { libraryViewFactory } from '../../application/library/shared/library-view.ts'
+import { validateRootsFactory } from '../../application/library/shared/validate-roots.ts'
 import { updateLibraryFactory } from '../../application/library/update-library.ts'
-import { validateRootsFactory } from '../../application/library/validate-roots.ts'
 import { requestScanFactory } from '../../application/scanner/request-scan.ts'
 import { createNodeFileSystem } from '../../infrastructure/fs/node-file-system.ts'
 import { createSqliteLibraryLeftovers } from '../../infrastructure/sqlite/library-leftovers.ts'
@@ -40,7 +41,14 @@ export const buildLibrariesModule = (
   return defineModule({
     exposes: {
       routes: adminLibrariesRoutes({
-        views: libraryViewsFactory({ libraryRepository, sourceRepository, scanRunRepository }),
+        listLibraries: listLibrariesFactory({
+          libraryRepository,
+          sourceRepository,
+          scanRunRepository,
+        }),
+        getLibrary: getLibraryFactory({ libraryRepository, sourceRepository, scanRunRepository }),
+        libraryView: libraryViewFactory({ sourceRepository, scanRunRepository }),
+        listLibraryScans: listLibraryScansFactory({ libraryRepository, scanRunRepository }),
         createLibrary: createLibraryFactory({
           libraryRepository,
           validateRoots,

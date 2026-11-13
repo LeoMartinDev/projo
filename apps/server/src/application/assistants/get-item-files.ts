@@ -3,7 +3,7 @@ import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 import { everything, type ItemKind, type VisibleItems } from '../../core/catalog/catalog.ts'
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
-import { type LibraryNames, libraryNamesOf } from './library-names.ts'
+import { type LibraryNames, libraryNamesOf } from './shared/library-names.ts'
 
 type Deps = {
   sources: Pick<SourceRepository, 'findById'>

@@ -1,5 +1,5 @@
 import type { SourceRepository } from '../../core/source/source.ts'
-import { type LibraryNames, libraryNamesOf } from './library-names.ts'
+import { type LibraryNames, libraryNamesOf } from './shared/library-names.ts'
 
 type Deps = {
   sources: Pick<SourceRepository, 'reviewSummary'>

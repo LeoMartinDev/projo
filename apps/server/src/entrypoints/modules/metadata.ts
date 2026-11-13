@@ -2,25 +2,40 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
-import { applyMatchFactory } from '../../application/metadata/apply-match.ts'
+import { assignSourceFactory } from '../../application/metadata/assign-source.ts'
 import { fetchImagesFactory } from '../../application/metadata/fetch-images.ts'
+import { generateImageVariantsFactory } from '../../application/metadata/generate-image-variants.ts'
 import { getImageFactory } from '../../application/metadata/get-image.ts'
-import {
-  encodeVariantsFactory,
-  generateImageVariantsFactory,
-} from '../../application/metadata/image-variants.ts'
+import { getItemMetadataFactory } from '../../application/metadata/get-item-metadata.ts'
+import { getMetadataSettingsFactory } from '../../application/metadata/get-metadata-settings.ts'
+import { listImageAlternativesFactory } from '../../application/metadata/list-image-alternatives.ts'
+import { loadCurrentMetadataFactory } from '../../application/metadata/load-current-metadata.ts'
 import { matchSourceFactory } from '../../application/metadata/match-source.ts'
-import { metadataEditingFactory } from '../../application/metadata/metadata-editing.ts'
-import {
-  purgeTmdbResponsesFactory,
-  purgeUnusedImagesFactory,
-} from '../../application/metadata/metadata-retention.ts'
-import { metadataSettingsFactory } from '../../application/metadata/metadata-settings.ts'
+import { notifyIfTmdbKeyMissingFactory } from '../../application/metadata/notify-if-tmdb-key-missing.ts'
+import { observeLeavingFilesFactory } from '../../application/metadata/observe-leaving-files.ts'
+import { purgeTmdbResponsesFactory } from '../../application/metadata/purge-tmdb-responses.ts'
+import { purgeUnusedImagesFactory } from '../../application/metadata/purge-unused-images.ts'
+import { queueInProductionRefreshFactory } from '../../application/metadata/queue-in-production-refresh.ts'
+import { queueLibraryContextRefreshFactory } from '../../application/metadata/queue-library-context-refresh.ts'
+import { queueRefreshIfContextDiffersFactory } from '../../application/metadata/queue-refresh-if-context-differs.ts'
+import { queueStaleLanguageRefreshFactory } from '../../application/metadata/queue-stale-language-refresh.ts'
+import { refreshItemMetadataFactory } from '../../application/metadata/refresh-item-metadata.ts'
+import { refreshLibraryMetadataFactory } from '../../application/metadata/refresh-library-metadata.ts'
+import { rejectSourceFactory } from '../../application/metadata/reject-source.ts'
+import { rematchItemFactory } from '../../application/metadata/rematch-item.ts'
+import { removeItemOverrideFactory } from '../../application/metadata/remove-item-override.ts'
+import { requestItemRefreshFactory } from '../../application/metadata/request-item-refresh.ts'
+import { requestLibraryRefreshFactory } from '../../application/metadata/request-library-refresh.ts'
 import { requestMatchFactory } from '../../application/metadata/request-match.ts'
-import { resolveMatchFactory } from '../../application/metadata/resolve-match.ts'
-import { refreshMetadataFactory } from '../../application/metadata/refresh-metadata.ts'
-import { reviewFactory } from '../../application/metadata/review.ts'
-import { tmdbDetailsFactory } from '../../application/metadata/tmdb-details.ts'
+import { restoreSourceFactory } from '../../application/metadata/restore-source.ts'
+import { searchTmdbFactory } from '../../application/metadata/search-tmdb.ts'
+import { setItemImageFactory } from '../../application/metadata/set-item-image.ts'
+import { setItemOverridesFactory } from '../../application/metadata/set-item-overrides.ts'
+import { applyMatchFactory } from '../../application/metadata/shared/apply-match.ts'
+import { encodeVariantsFactory } from '../../application/metadata/shared/encode-variants.ts'
+import { resolveMatchFactory } from '../../application/metadata/shared/resolve-match.ts'
+import { tmdbDetailsFactory } from '../../application/metadata/shared/tmdb-details.ts'
+import { updateMetadataSettingsFactory } from '../../application/metadata/update-metadata-settings.ts'
 import type { LibraryMetadataContextObserver } from '../../core/library/library.ts'
 import type { ImageReencoder } from '../../core/metadata/editing.ts'
 import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
@@ -102,6 +117,7 @@ export const buildMetadataModule = (
   const manualMatches = createSqliteManualMatchRepository({ db })
 
   const resolveMatch = resolveMatchFactory({ tmdb, clock })
+  const tmdbDetails = tmdbDetailsFactory({ tmdb })
   const overrides = createSqliteItemOverrideRepository({ db })
   const applyMatch = applyMatchFactory({
     items,
@@ -112,8 +128,9 @@ export const buildMetadataModule = (
     clock,
   })
   const requestMatch = requestMatchFactory({ settings, notifier, jobQueue })
-  const refresh = refreshMetadataFactory({
-    details: tmdbDetailsFactory({ tmdb }),
+
+  const refreshDeps = {
+    details: tmdbDetails,
     items,
     refreshRepository: createSqliteMetadataRefreshRepository({ db }),
     settings,
@@ -121,7 +138,16 @@ export const buildMetadataModule = (
     ids,
     clock,
     logger: moduleLogger,
-  })
+  }
+  const refreshItemMetadata = refreshItemMetadataFactory(refreshDeps)
+  const refreshLibraryMetadata = refreshLibraryMetadataFactory(refreshDeps)
+  const loadCurrentMetadata = loadCurrentMetadataFactory(refreshDeps)
+  const queueStaleLanguageRefresh = queueStaleLanguageRefreshFactory(refreshDeps)
+  const queueLibraryContextRefresh = queueLibraryContextRefreshFactory(refreshDeps)
+  const queueRefreshIfContextDiffers = queueRefreshIfContextDiffersFactory(refreshDeps)
+  const observeLeavingFiles = observeLeavingFilesFactory(refreshDeps)
+  const queueInProductionRefresh = queueInProductionRefreshFactory(refreshDeps)
+
   const matchSource = matchSourceFactory({
     sourceRepository,
     libraryRepository,
@@ -129,7 +155,7 @@ export const buildMetadataModule = (
     settings,
     resolveMatch,
     applyMatch,
-    refresh,
+    queueRefreshIfContextDiffers,
     notifier,
     jobQueue,
     clock,
@@ -145,11 +171,13 @@ export const buildMetadataModule = (
     ids,
     logger: moduleLogger,
   })
-  const review = reviewFactory({
+
+  const reviewDeps = {
     tmdb,
     resolveMatch,
     applyMatch,
-    refresh,
+    observeLeavingFiles,
+    queueRefreshIfContextDiffers,
     items,
     sourceRepository,
     libraryRepository,
@@ -158,26 +186,21 @@ export const buildMetadataModule = (
     jobQueue,
     clock,
     logger: moduleLogger,
-  })
-  const metadataSettings = metadataSettingsFactory({
-    settings,
-    tmdb,
-    items,
-    requestMatch,
-    refresh,
-    notifier,
-    clock,
-    logger: moduleLogger,
-  })
+  }
+  const searchTmdb = searchTmdbFactory(reviewDeps)
+  const assignSource = assignSourceFactory(reviewDeps)
+  const rejectSource = rejectSourceFactory(reviewDeps)
+  const restoreSource = restoreSourceFactory(reviewDeps)
+  const rematchItem = rematchItemFactory(reviewDeps)
 
-  const editing = metadataEditingFactory({
+  const editingDeps = {
     overrides,
     items,
     images,
     files,
     encodeVariants,
     tmdb,
-    refresh,
+    loadCurrentMetadata,
     fetchImages,
     reencoder: imageReencoder,
     libraryRepository,
@@ -187,9 +210,9 @@ export const buildMetadataModule = (
     ids,
     clock,
     logger: moduleLogger,
-  })
+  }
 
-  metadataSettings.notifyIfKeyMissing()
+  notifyIfTmdbKeyMissingFactory({ settings, items, notifier })()
 
   const generateImageVariants = generateImageVariantsFactory({
     images,
@@ -210,7 +233,7 @@ export const buildMetadataModule = (
       initialDelayMs: 10 * 60_000,
       intervalMs: 6 * hour,
       run: () => {
-        refresh.queueInProductionSeries()
+        queueInProductionRefresh()
       },
     },
     {
@@ -228,18 +251,34 @@ export const buildMetadataModule = (
     exposes: {
       requestMatch,
       /** The "Metadata" section of the admin settings, served by the settings module. */
-      settings: metadataSettings,
+      settings: {
+        get: getMetadataSettingsFactory({ settings }),
+        update: updateMetadataSettingsFactory({
+          settings,
+          tmdb,
+          items,
+          requestMatch,
+          queueStaleLanguageRefresh,
+          notifier,
+          clock,
+          logger: moduleLogger,
+        }),
+      },
       assistantPorts: {
-        review,
-        tmdbDetails: tmdbDetailsFactory({ tmdb }),
+        searchTmdb,
+        assignSource,
+        rematchItem,
+        rejectSource,
+        restoreSource,
+        tmdbDetails,
         metadataLanguage: settings.language,
       },
       libraryMetadataContext: {
         changed: (input) => {
-          refresh.queueLibraryContextChange(input)
+          queueLibraryContextRefresh(input)
         },
         filesLeaving: (files) => {
-          const settle = refresh.filesLeaving(files)
+          const settle = observeLeavingFiles(files)
           return () => {
             settle()
           }
@@ -252,14 +291,21 @@ export const buildMetadataModule = (
           canView: canViewImage,
         }),
         adminItems: adminItemsRoutes({
-          review,
+          searchTmdb,
+          rematchItem,
           tmdbPoster: (path, size) => tmdb.downloadImage({ path, size }),
-          editing,
+          getItemMetadata: getItemMetadataFactory(editingDeps),
+          setItemOverrides: setItemOverridesFactory(editingDeps),
+          removeItemOverride: removeItemOverrideFactory(editingDeps),
+          requestItemRefresh: requestItemRefreshFactory(editingDeps),
+          listImageAlternatives: listImageAlternativesFactory(editingDeps),
+          setItemImage: setItemImageFactory(editingDeps),
+          requestLibraryRefresh: requestLibraryRefreshFactory(editingDeps),
           optimizeImages: () =>
             jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
               .job,
         }),
-        adminSourceReview: adminSourceReviewRoutes({ review }),
+        adminSourceReview: adminSourceReviewRoutes({ assignSource, rejectSource, restoreSource }),
       },
     },
     jobHandlers: defineJobHandlers({
@@ -276,10 +322,10 @@ export const buildMetadataModule = (
         concurrency: 1,
         run: async (payload) => {
           if ('libraryId' in payload) {
-            refresh.queueLibrary({ libraryId: payload.libraryId })
+            refreshLibraryMetadata({ libraryId: payload.libraryId })
             return ok()
           }
-          const result = await refresh.refreshItem({ itemId: payload.itemId })
+          const result = await refreshItemMetadata({ itemId: payload.itemId })
           return result.ok ? ok() : result
         },
       },

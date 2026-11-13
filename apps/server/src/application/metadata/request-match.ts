@@ -1,7 +1,7 @@
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { MatchRequester, MetadataSettings } from '../../core/metadata/ports.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
-import { TMDB_NOTIFICATION_KEY } from './match-source.ts'
+import { TMDB_NOTIFICATION_KEY } from './shared/tmdb-notification-key.ts'
 
 type Deps = {
   settings: Pick<MetadataSettings, 'tmdbApiKey'>

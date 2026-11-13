@@ -8,7 +8,10 @@ import {
 } from '@projo/shared/api/libraries'
 import { type AssignResponse, assignBodySchema } from '@projo/shared/api/metadata'
 
-import type { AssignResult, Review } from '../../../application/metadata/review.ts'
+import type { AssignSource } from '../../../application/metadata/assign-source.ts'
+import type { RejectSource } from '../../../application/metadata/reject-source.ts'
+import type { RestoreSource } from '../../../application/metadata/restore-source.ts'
+import type { AssignResult } from '../../../application/metadata/shared/source-assignment.ts'
 import type { MissingSourcesAdmin } from '../../../application/operations/types.ts'
 import type { SourceAdmin } from '../../../application/scanner/source-admin.ts'
 import { sourceVersionOf } from '../../../core/media/version.ts'
@@ -86,12 +89,20 @@ export const adminSourcesRoutes = ({ sourceAdmin }: { sourceAdmin: SourceAdmin }
 
 export type AdminSourcesRoutes = ReturnType<typeof adminSourcesRoutes>
 
-export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
+export const adminSourceReviewRoutes = ({
+  assignSource,
+  rejectSource,
+  restoreSource,
+}: {
+  assignSource: AssignSource
+  rejectSource: RejectSource
+  restoreSource: RestoreSource
+}) =>
   new Hono<AppEnv>()
     .post('/sources/:id/assign', validate('json', assignBodySchema), async (c) => {
       const account = c.get('account')
       if (account === undefined) throw new Error('admin route without account')
-      const result = await review.assignSource({
+      const result = await assignSource({
         sourceId: c.req.param('id'),
         assignment: c.req.valid('json'),
         accountId: account.id,
@@ -99,11 +110,11 @@ export const adminSourceReviewRoutes = ({ review }: { review: Review }) =>
       return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
     })
     .post('/sources/:id/reject', (c) => {
-      const result = review.rejectSource({ sourceId: c.req.param('id') })
+      const result = rejectSource({ sourceId: c.req.param('id') })
       return result.ok ? noContent(c) : respondError(c, result.error)
     })
     .post('/sources/:id/restore', (c) => {
-      const result = review.restoreSource({ sourceId: c.req.param('id') })
+      const result = restoreSource({ sourceId: c.req.param('id') })
       return result.ok ? noContent(c) : respondError(c, result.error)
     })
 

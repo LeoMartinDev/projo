@@ -5,7 +5,7 @@ import type { IdGenerator } from '../../core/ids.ts'
 import type { Library, LibraryRepository, LibrarySettings } from '../../core/library/library.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { ScanRequester } from '../../core/scanner/ports.ts'
-import type { RootValidationError, ValidateRoots } from './validate-roots.ts'
+import type { RootValidationError, ValidateRoots } from './shared/validate-roots.ts'
 
 type Deps = {
   libraryRepository: LibraryRepository
@@ -43,3 +43,5 @@ export const createLibraryFactory =
     logger.info('library created', { libraryId: library.id, roots: roots.value.length })
     return ok(library)
   }
+
+export type CreateLibrary = ReturnType<typeof createLibraryFactory>

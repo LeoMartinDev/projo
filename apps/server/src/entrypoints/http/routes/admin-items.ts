@@ -19,12 +19,16 @@ import {
   uploadItemImageFormSchema,
 } from '@projo/shared/api/metadata'
 
-import type {
-  ImageChoice,
-  ItemMetadataView,
-  MetadataEditing,
-} from '../../../application/metadata/editing-types.ts'
-import type { Review } from '../../../application/metadata/review.ts'
+import type { GetItemMetadata } from '../../../application/metadata/get-item-metadata.ts'
+import type { ListImageAlternatives } from '../../../application/metadata/list-image-alternatives.ts'
+import type { RematchItem } from '../../../application/metadata/rematch-item.ts'
+import type { RemoveItemOverride } from '../../../application/metadata/remove-item-override.ts'
+import type { RequestItemRefresh } from '../../../application/metadata/request-item-refresh.ts'
+import type { RequestLibraryRefresh } from '../../../application/metadata/request-library-refresh.ts'
+import type { SearchTmdb } from '../../../application/metadata/search-tmdb.ts'
+import type { ImageChoice, SetItemImage } from '../../../application/metadata/set-item-image.ts'
+import type { SetItemOverrides } from '../../../application/metadata/set-item-overrides.ts'
+import type { ItemMetadataView } from '../../../application/metadata/shared/item-metadata-view.ts'
 import type { TmdbError } from '../../../core/metadata/tmdb.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -124,20 +128,34 @@ const readImageChoice = async (request: Request): Promise<Result<ImageChoice, Ch
 }
 
 export const adminItemsRoutes = ({
-  review,
+  searchTmdb,
+  rematchItem,
   tmdbPoster,
-  editing,
+  getItemMetadata,
+  setItemOverrides,
+  removeItemOverride,
+  requestItemRefresh,
+  listImageAlternatives,
+  setItemImage,
+  requestLibraryRefresh,
   optimizeImages,
 }: {
-  review: Review
+  searchTmdb: SearchTmdb
+  rematchItem: RematchItem
   tmdbPoster: TmdbPosterProxy
-  editing: MetadataEditing
+  getItemMetadata: GetItemMetadata
+  setItemOverrides: SetItemOverrides
+  removeItemOverride: RemoveItemOverride
+  requestItemRefresh: RequestItemRefresh
+  listImageAlternatives: ListImageAlternatives
+  setItemImage: SetItemImage
+  requestLibraryRefresh: RequestLibraryRefresh
   optimizeImages: () => { id: string }
 }) =>
   new Hono<AppEnv>()
     .get('/tmdb/search', validate('query', tmdbSearchQuerySchema), async (c) => {
       const { q, kind, year, language } = c.req.valid('query')
-      const result = await review.search({
+      const result = await searchTmdb({
         query: q,
         kind,
         ...(year === undefined ? {} : { year }),
@@ -181,7 +199,7 @@ export const adminItemsRoutes = ({
     .post('/items/:id/rematch', validate('json', assignBodySchema), async (c) => {
       const account = c.get('account')
       if (account === undefined) throw new Error('admin route without account')
-      const result = await review.rematchItem({
+      const result = await rematchItem({
         itemId: c.req.param('id'),
         assignment: c.req.valid('json'),
         accountId: account.id,
@@ -189,14 +207,14 @@ export const adminItemsRoutes = ({
       return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
     })
     .get('/items/:id', (c) => {
-      const result = editing.get({ itemId: c.req.param('id') })
+      const result = getItemMetadata({ itemId: c.req.param('id') })
       return result.ok
         ? c.json(toItemMetadataDto(result.value), 200)
         : respondError(c, result.error)
     })
     .patch('/items/:id', validate('json', updateItemMetadataBodySchema), (c) => {
       const { title, year, overview, genres } = c.req.valid('json')
-      const result = editing.setOverrides({
+      const result = setItemOverrides({
         itemId: c.req.param('id'),
         overrides: {
           ...(title === undefined ? {} : { title }),
@@ -210,7 +228,7 @@ export const adminItemsRoutes = ({
         : respondError(c, result.error)
     })
     .delete('/items/:id/overrides/:field', validate('param', overrideParamSchema), async (c) => {
-      const result = await editing.removeOverride({
+      const result = await removeItemOverride({
         itemId: c.req.valid('param').id,
         field: c.req.valid('param').field,
       })
@@ -219,7 +237,7 @@ export const adminItemsRoutes = ({
         : respondError(c, result.error)
     })
     .post('/items/:id/refresh', (c) => {
-      const result = editing.requestRefresh({ itemId: c.req.param('id') })
+      const result = requestItemRefresh({ itemId: c.req.param('id') })
       return result.ok
         ? c.json({ jobId: result.value.id } satisfies JobRef, 202)
         : respondError(c, result.error)
@@ -228,7 +246,7 @@ export const adminItemsRoutes = ({
       '/items/:id/images/alternatives',
       validate('query', imageAlternativesQuerySchema),
       async (c) => {
-        const result = await editing.alternatives({
+        const result = await listImageAlternatives({
           itemId: c.req.param('id'),
           kind: c.req.valid('query').kind,
         })
@@ -250,13 +268,13 @@ export const adminItemsRoutes = ({
       const itemId = c.req.param('id')
       const choice = await readImageChoice(c.req.raw)
       if (!choice.ok) return respondError(c, choice.error)
-      const result = await editing.setImage({ itemId, choice: choice.value })
+      const result = await setItemImage({ itemId, choice: choice.value })
       return result.ok
         ? c.json(toItemMetadataDto(result.value), 200)
         : respondError(c, result.error)
     })
     .post('/libraries/:id/refresh-metadata', (c) => {
-      const result = editing.requestLibraryRefresh({ libraryId: c.req.param('id') })
+      const result = requestLibraryRefresh({ libraryId: c.req.param('id') })
       return result.ok
         ? c.json({ jobId: result.value.id } satisfies JobRef, 202)
         : respondError(c, result.error)

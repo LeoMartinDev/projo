@@ -4,7 +4,7 @@ import { everything, type ItemKind, type VisibleItems } from '../../core/catalog
 import type { MetadataItemRepository } from '../../core/metadata/ports.ts'
 import { directoryOf, showFolderOf } from '../../core/naming/index.ts'
 import type { Source, SourceListItem, SourceRepository } from '../../core/source/source.ts'
-import { type LibraryNames, libraryNamesOf } from './library-names.ts'
+import { type LibraryNames, libraryNamesOf } from './shared/library-names.ts'
 
 type Deps = {
   sources: Pick<SourceRepository, 'findById' | 'page'>
