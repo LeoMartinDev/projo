@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   createPlaybackSessionWorld,
   type PlaybackSessionWorld,
-} from '../../../test/support/playback-sessions.ts'
+} from '../../../test/support/playback-sessions-world.ts'
 
 let clock: PlaybackSessionWorld['clock']
 let sessions: PlaybackSessionWorld['sessions']

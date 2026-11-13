@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import {
   createSegmentMarkersWorld,
   type SegmentMarkersWorld,
-} from '../../../test/support/segment-markers.ts'
+} from '../../../test/support/segment-markers-world.ts'
 
 const intro = { startMs: 60_000, endMs: 150_000 }
 

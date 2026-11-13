@@ -4,7 +4,7 @@ import { noSegmentKey } from '../../core/segments/segment.ts'
 import {
   createSegmentMarkersWorld,
   type SegmentMarkersWorld,
-} from '../../../test/support/segment-markers.ts'
+} from '../../../test/support/segment-markers-world.ts'
 
 const minute = 60_000
 const intro = { startMs: 60_000, endMs: 150_000 }

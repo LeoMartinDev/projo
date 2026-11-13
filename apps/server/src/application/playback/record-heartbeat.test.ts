@@ -4,7 +4,7 @@ import {
   createPlaybackSessionWorld,
   doubleEpisodeSource as double,
   type PlaybackSessionWorld,
-} from '../../../test/support/playback-sessions.ts'
+} from '../../../test/support/playback-sessions-world.ts'
 
 let clock: PlaybackSessionWorld['clock']
 let sessions: PlaybackSessionWorld['sessions']
