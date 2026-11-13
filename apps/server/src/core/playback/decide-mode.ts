@@ -56,8 +56,32 @@ const directContainers: Record<string, string> = {
   webm: 'video/webm',
 }
 
+const bareExtension = (extension: string): string => extension.toLowerCase().replace(/^\./, '')
+
 export const directMimeType = (extension: string): string | undefined =>
-  directContainers[extension.toLowerCase().replace(/^\./, '')]
+  directContainers[bareExtension(extension)]
+
+const otherContainers: Record<string, string> = {
+  mkv: 'video/x-matroska',
+  mk3d: 'video/x-matroska',
+  avi: 'video/x-msvideo',
+  ts: 'video/mp2t',
+  m2ts: 'video/mp2t',
+  mts: 'video/mp2t',
+  mpg: 'video/mpeg',
+  mpeg: 'video/mpeg',
+  wmv: 'video/x-ms-wmv',
+  flv: 'video/x-flv',
+  ogv: 'video/ogg',
+  ogm: 'video/ogg',
+  '3gp': 'video/3gpp',
+}
+
+/** Media type of a file served whole: the engine (mpv) reads any container (§10.2). */
+export const fileMimeType = (extension: string): string =>
+  directMimeType(extension) ??
+  otherContainers[bareExtension(extension)] ??
+  'application/octet-stream'
 
 const hlsCopyableAudio: ReadonlySet<AudioCodecId> = new Set(['mp4a.40.2', 'ac-3', 'ec-3'])
 
@@ -166,6 +190,43 @@ const noHls = (context: Record<string, unknown>) =>
     }),
   )
 
+/**
+ * mpv decodes every container and codec and draws every subtitle: Original always plays the file
+ * as is, whatever its container, video (10-bit, HDR, Dolby Vision), audio (DTS, TrueHD) or
+ * subtitles (never burned in); only a lower quality transcodes (§10.2).
+ */
+const decideForEngine = ({
+  extension,
+  capabilities,
+  video,
+  audio,
+  target,
+}: {
+  extension: string
+  capabilities: ClientCapabilities
+  video: VideoStreamInfo
+  audio: AudioStreamInfo | undefined
+  target: PlaybackQuality
+}): Result<PlaybackPlan, DecidePlaybackError> => {
+  if (target === 'original') {
+    return ok({
+      mode: 'direct',
+      quality: 'original',
+      mimeType: fileMimeType(extension),
+      video,
+      ...(audio === undefined ? {} : { audio }),
+    })
+  }
+  if (capabilities.hls === 'none') return noHls({ quality: target })
+  return ok({
+    mode: 'hls_transcode',
+    quality: target,
+    video,
+    reasons: ['quality'],
+    ...(audio === undefined ? {} : { audio: { stream: audio, delivery: 'aac' as const } }),
+  })
+}
+
 export const decidePlayback = ({
   media,
   extension,
@@ -179,9 +240,12 @@ export const decidePlayback = ({
   if (video === undefined) {
     return err(appError('playback/mode_unsupported', 'source has no video stream'))
   }
-  const codec = videoCodecId(video)
   const audio = chooseAudioStream(media, audioStreamIndex)
   const target = effectiveQuality(video, quality)
+  if (capabilities.engine === 'mpv') {
+    return decideForEngine({ extension, capabilities, video, audio, target })
+  }
+  const codec = videoCodecId(video)
   const reasons: TranscodeReason[] = [
     ...(codec === undefined || !capabilities.videoCodecs.includes(codec)
       ? (['video_codec'] as const)

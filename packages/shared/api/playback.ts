@@ -16,7 +16,8 @@ export const clientCapabilitiesSchema = z.object({
   audioCodecs: z.array(audioCodecIdSchema),
   hls: z.enum(['native', 'mse', 'none']),
   screenHeight: z.number().int().positive().optional(),
-  subtitleDelivery: z.enum(['overlay', 'hls']).optional(),
+  subtitleDelivery: z.enum(['overlay', 'hls', 'engine']).optional(),
+  engine: z.enum(['browser', 'mpv']).optional(),
 })
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>
 
@@ -76,8 +77,9 @@ export const subtitleTrackDtoSchema = z.object({
   forced: z.boolean(),
   sdh: z.boolean(),
   isDefault: z.boolean(),
-  delivery: z.enum(['vtt', 'burn_in', 'unsupported']),
+  delivery: z.enum(['vtt', 'burn_in', 'unsupported', 'engine']),
   url: z.string().optional(),
+  streamIndex: z.number().int().optional(),
 })
 export type SubtitleTrackDto = z.infer<typeof subtitleTrackDtoSchema>
 

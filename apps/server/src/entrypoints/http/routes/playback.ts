@@ -22,7 +22,11 @@ import type { StopPlaybackSession } from '../../../application/playback/stop-pla
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
 import { chapterTitle } from '../../../core/catalog/generic-titles.ts'
 import { sessionTimings } from '../../../core/playback/session.ts'
-import { isBitmapSubtitle, type SubtitleTrack } from '../../../core/playback/subtitles.ts'
+import {
+  engineSubtitleDelivery,
+  isBitmapSubtitle,
+  type SubtitleTrack,
+} from '../../../core/playback/subtitles.ts'
 import type { TrackPreferences } from '../../../core/playback/track-preferences.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -37,11 +41,30 @@ const optional = <K extends string, V>(key: K, value: V | undefined) =>
 
 const encode = encodeURIComponent
 
+/** A session whose subtitles the engine draws (mpv, §10.4): WebVTT under its capability URL. */
+type EngineSubtitles = { direct: boolean; streamBase: string }
+
+const subtitleSource = (
+  track: SubtitleTrack,
+  { burnInEnabled, engine }: { burnInEnabled: boolean; engine?: EngineSubtitles },
+): Pick<SubtitleTrackDto, 'delivery' | 'url'> => {
+  if (engine !== undefined) {
+    const delivery = engineSubtitleDelivery(track, engine)
+    return delivery === 'vtt'
+      ? { delivery, url: `${engine.streamBase}/subtitles/${encode(track.id)}.vtt` }
+      : { delivery }
+  }
+  if (isBitmapSubtitle(track)) return { delivery: burnInEnabled ? 'burn_in' : 'unsupported' }
+  return {
+    delivery: 'vtt',
+    url: `${apiPrefix}/subtitles/${encode(track.sourceId)}/${encode(track.id)}.vtt`,
+  }
+}
+
 export const toSubtitleTrackDto = (
   track: SubtitleTrack,
-  { burnInEnabled }: { burnInEnabled: boolean },
+  options: { burnInEnabled: boolean; engine?: EngineSubtitles },
 ): SubtitleTrackDto => {
-  const bitmap = isBitmapSubtitle(track)
   return {
     id: track.id,
     origin: track.origin,
@@ -51,10 +74,8 @@ export const toSubtitleTrackDto = (
     forced: track.forced,
     sdh: track.sdh,
     isDefault: track.isDefault,
-    delivery: bitmap ? (burnInEnabled ? 'burn_in' : 'unsupported') : 'vtt',
-    ...(bitmap
-      ? {}
-      : { url: `${apiPrefix}/subtitles/${encode(track.sourceId)}/${encode(track.id)}.vtt` }),
+    ...subtitleSource(track, options),
+    ...(track.origin === 'embedded' ? optional('streamIndex', track.streamIndex) : {}),
   }
 }
 
@@ -89,7 +110,12 @@ export const toPlaybackSessionDto = (
     })),
     ...optional('selectedAudioStreamIndex', session.audioStream),
     subtitleTracks: created.subtitleTracks.map((track) =>
-      toSubtitleTrackDto(track, { burnInEnabled: created.burnInEnabled }),
+      toSubtitleTrackDto(track, {
+        burnInEnabled: created.burnInEnabled,
+        ...(created.subtitlesInEngine
+          ? { engine: { direct: plan.mode === 'direct', streamBase } }
+          : {}),
+      }),
     ),
     ...optional('selectedSubtitleTrackId', tracks.subtitle?.id),
     trackSelection: tracks.origin,

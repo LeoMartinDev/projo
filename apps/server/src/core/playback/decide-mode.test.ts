@@ -6,6 +6,7 @@ import {
   availableQualities,
   decidePlayback,
   effectiveQuality,
+  fileMimeType,
   videoCodecId,
 } from './decide-mode.ts'
 import type { AudioStreamInfo, MediaInfo } from './media-info.ts'
@@ -57,6 +58,13 @@ const decide = (input: {
   burnIn?: boolean
   textSubtitle?: boolean
 }) => decidePlayback({ quality: 'original', ...input })
+
+const h264High10 = {
+  index: 0,
+  codec: 'h264',
+  profile: 'High 10',
+  pixelFormat: 'yuv420p10le',
+}
 
 describe('decidePlayback (§10.2)', () => {
   test('MP4 H.264 + AAC: direct', () => {
@@ -334,5 +342,114 @@ describe('decidePlayback: subtitles inside the stream (§10.4)', () => {
     expect(
       decide({ media: file, extension: 'mp4', capabilities: safari, textSubtitle: true }),
     ).toMatchObject({ value: { mode: 'direct' } })
+  })
+})
+
+describe('decidePlayback: the mpv engine (§10.2)', () => {
+  const mpv: ClientCapabilities = {
+    videoCodecs: [],
+    audioCodecs: [],
+    hls: 'native',
+    subtitleDelivery: 'engine',
+    engine: 'mpv',
+  }
+  const hevc10: MediaInfo = {
+    video: [
+      {
+        index: 0,
+        codec: 'hevc',
+        profile: 'Main 10',
+        width: 3840,
+        height: 2160,
+        pixelFormat: 'yuv420p10le',
+        dynamicRange: 'dv',
+        codecTag: 'hev1',
+      },
+    ],
+    audio: [audio(1, 'truehd', { channels: 8 }), audio(2, 'dts', { isDefault: true })],
+    subtitles: [{ index: 3, codec: 'hdmv_pgs_subtitle', isDefault: false, forced: false }],
+  }
+
+  test('Original plays the file as is whatever its container and codecs', () => {
+    const files: [MediaInfo, string][] = [
+      [hevc10, 'mkv'],
+      [media('h264', [audio(1, 'dts')], { video: [h264High10] }), 'mkv'],
+      [media('vc1', [audio(1, 'truehd')]), 'm2ts'],
+      [media('mpeg2video', [audio(1, 'ac3')]), 'mpg'],
+      [media('av1', [audio(1, 'opus')]), 'webm'],
+      [media('hevc', [audio(1, 'flac')]), 'avi'],
+    ]
+    for (const [file, extension] of files) {
+      expect(decide({ media: file, extension, capabilities: mpv })).toMatchObject({
+        ok: true,
+        value: { mode: 'direct', quality: 'original', mimeType: fileMimeType(extension) },
+      })
+    }
+  })
+
+  test('the chosen audio track, not only the first, stays direct', () => {
+    expect(
+      decide({ media: hevc10, extension: 'mkv', capabilities: mpv, audioStreamIndex: 1 }),
+    ).toMatchObject({
+      ok: true,
+      value: { mode: 'direct', mimeType: 'video/x-matroska', audio: { index: 1, codec: 'truehd' } },
+    })
+  })
+
+  test('a lower quality is a transcode, audio in AAC', () => {
+    expect(
+      decide({ media: hevc10, extension: 'mkv', capabilities: mpv, quality: '720p' }),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        mode: 'hls_transcode',
+        quality: '720p',
+        reasons: ['quality'],
+        audio: { stream: { index: 2 }, delivery: 'aac' },
+      },
+    })
+  })
+
+  test('a text subtitle never forces HLS: the engine draws it from the file', () => {
+    expect(
+      decide({ media: hevc10, extension: 'mkv', capabilities: mpv, textSubtitle: true }),
+    ).toMatchObject({ ok: true, value: { mode: 'direct' } })
+  })
+
+  test('a bitmap subtitle never forces a transcode: never burned in', () => {
+    expect(
+      decide({ media: hevc10, extension: 'mkv', capabilities: mpv, burnIn: true }),
+    ).toMatchObject({ ok: true, value: { mode: 'direct' } })
+  })
+
+  test('without HLS a lower quality is unsupported', () => {
+    expect(
+      decide({
+        media: hevc10,
+        extension: 'mkv',
+        capabilities: { ...mpv, hls: 'none' },
+        quality: '480p',
+      }),
+    ).toMatchObject({ ok: false, error: { code: 'playback/mode_unsupported' } })
+  })
+
+  test('a browser client keeps its rules: the same MKV is remuxed or transcoded', () => {
+    expect(
+      decide({ media: hevc10, extension: 'mkv', capabilities: { ...chrome, engine: 'browser' } }),
+    ).toMatchObject({ ok: true, value: { mode: 'hls_remux' } })
+    expect(decide({ media: hevc10, extension: 'mkv', capabilities: oldChrome })).toMatchObject({
+      ok: true,
+      value: { mode: 'hls_transcode', reasons: ['video_codec'] },
+    })
+  })
+})
+
+describe('fileMimeType', () => {
+  test('browser containers, then the known others, else octet-stream', () => {
+    expect(fileMimeType('mp4')).toBe('video/mp4')
+    expect(fileMimeType('.MKV')).toBe('video/x-matroska')
+    expect(fileMimeType('m2ts')).toBe('video/mp2t')
+    expect(fileMimeType('avi')).toBe('video/x-msvideo')
+    expect(fileMimeType('rmvb')).toBe('application/octet-stream')
   })
 })

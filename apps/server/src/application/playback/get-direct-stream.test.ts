@@ -46,6 +46,17 @@ describe('directStream', () => {
     })
   })
 
+  test('any container is served whole, typed from its extension (§10.2)', async () => {
+    expect(await streamOf({ ...source, path: '/media/film.mkv', extension: 'mkv' })).toEqual({
+      ok: true,
+      value: { path: '/media/film.mkv', mimeType: 'video/x-matroska' },
+    })
+    expect(await streamOf({ ...source, path: '/media/film.rmvb', extension: 'rmvb' })).toEqual({
+      ok: true,
+      value: { path: '/media/film.rmvb', mimeType: 'application/octet-stream' },
+    })
+  })
+
   test('a source no longer ready (missing, pending again, rejected) is not served', async () => {
     for (const state of ['missing', 'pending', 'rejected'] as const) {
       expect(await streamOf({ ...source, state })).toMatchObject({

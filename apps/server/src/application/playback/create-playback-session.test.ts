@@ -651,6 +651,147 @@ describe('createPlaybackSession: automatic bitmap subtitle that cannot be burnt 
   })
 })
 
+describe('createPlaybackSession: the mpv engine (§10.2, §10.4)', () => {
+  const mpv: ClientCapabilities = {
+    videoCodecs: [],
+    audioCodecs: [],
+    hls: 'native',
+    subtitleDelivery: 'engine',
+    engine: 'mpv',
+  }
+  const remux: MediaInfo = {
+    ...media('hevc', 'truehd', {
+      height: 2160,
+      audio: [
+        { index: 1, codec: 'truehd', language: 'en', isDefault: true, channels: 8 },
+        { index: 2, codec: 'dts', language: 'de', isDefault: false, channels: 6 },
+      ],
+    }),
+  }
+  const film = source('remux', 'mkv', remux)
+  const pgs: SubtitleTrack = {
+    id: 'pgs-fr',
+    sourceId: 'remux',
+    origin: 'embedded',
+    streamIndex: 3,
+    language: 'fr',
+    forced: false,
+    sdh: false,
+    isDefault: false,
+    format: 'pgs',
+  }
+  const externalSup: SubtitleTrack = {
+    id: 'sup-fr',
+    sourceId: 'remux',
+    origin: 'external',
+    path: '/media/remux.fr.sup',
+    language: 'fr',
+    forced: false,
+    sdh: false,
+    isDefault: false,
+    format: 'pgs',
+  }
+  const world = (settings: Partial<PlaybackSettings> = {}, tracks = [pgs]) =>
+    build({ sources: [film], subtitles: { remux: tracks }, settings })
+
+  test('Original: the MKV plays as is, with its chosen audio, and takes no transcode slot', async () => {
+    const { play, sessions } = world({ maxConcurrentTranscodes: 0 })
+    expect(await play({ capabilities: mpv, audioStreamIndex: 1 })).toMatchObject({
+      ok: true,
+      value: {
+        plan: { mode: 'direct', mimeType: 'video/x-matroska' },
+        audioTracks: [
+          { stream: { index: 1 }, delivery: 'direct' },
+          { stream: { index: 2 }, delivery: 'direct' },
+        ],
+      },
+    })
+    expect(sessions[0]).toMatchObject({ mode: 'direct', audioStream: 1, burnIn: false })
+  })
+
+  test('a bitmap track is drawn by the engine: never burnt in, even with burn-in off', async () => {
+    for (const settings of [{}, { burnInEnabled: false }]) {
+      const { play, sessions } = world(settings)
+      expect(await play({ capabilities: mpv })).toMatchObject({
+        ok: true,
+        value: {
+          plan: { mode: 'direct' },
+          tracks: { subtitle: { id: 'pgs-fr' }, burnIn: false },
+          subtitlesInEngine: true,
+        },
+      })
+      expect(sessions[0]).toMatchObject({ burnIn: false, subtitleTrackId: 'pgs-fr' })
+      expect(await play({ capabilities: mpv, subtitleTrackId: 'pgs-fr' })).toMatchObject({
+        ok: true,
+        value: { plan: { mode: 'direct' }, tracks: { burnIn: false, origin: 'explicit' } },
+      })
+    }
+  })
+
+  test('an external bitmap file is left aside, picked by the cascade or named', async () => {
+    const { play, sessions } = world({}, [externalSup])
+    for (const subtitleTrackId of [undefined, 'sup-fr']) {
+      const result = await play({
+        capabilities: mpv,
+        ...(subtitleTrackId === undefined ? {} : { subtitleTrackId }),
+      })
+      expect(result).toMatchObject({ ok: true, value: { plan: { mode: 'direct' } } })
+      expect(result.ok && result.value.tracks.subtitle).toBeUndefined()
+    }
+    expect(sessions.map((session) => session.subtitleTrackId)).toEqual([undefined, undefined])
+  })
+
+  test('a lower quality transcodes without burn-in: a bitmap track is left aside', async () => {
+    for (const subtitleTrackId of [undefined, 'pgs-fr']) {
+      const { play, sessions } = world()
+      const result = await play({
+        capabilities: mpv,
+        quality: '720p',
+        ...(subtitleTrackId === undefined ? {} : { subtitleTrackId }),
+      })
+      expect(result).toMatchObject({
+        ok: true,
+        value: {
+          plan: { mode: 'hls_transcode', quality: '720p', reasons: ['quality'] },
+          tracks: { burnIn: false },
+        },
+      })
+      expect(result.ok && result.value.tracks.subtitle).toBeUndefined()
+      expect(sessions[0]).toMatchObject({ mode: 'hls_transcode', burnIn: false })
+      expect(sessions[0]).not.toHaveProperty('subtitleTrackId')
+    }
+  })
+
+  test('a lower quality keeps a text track, embedded or external', async () => {
+    const ass: SubtitleTrack = { ...pgs, id: 'ass-fr', format: 'ass' }
+    const { play } = world({}, [ass])
+    expect(await play({ capabilities: mpv, quality: '720p' })).toMatchObject({
+      ok: true,
+      value: { plan: { mode: 'hls_transcode' }, tracks: { subtitle: { id: 'ass-fr' } } },
+    })
+  })
+
+  test('a lower quality beyond the transcode limit is refused; Original still plays', async () => {
+    const { play } = world({ maxConcurrentTranscodes: 0 })
+    expect(await play({ capabilities: mpv, quality: '720p' })).toMatchObject({
+      ok: false,
+      error: { code: 'playback/transcode_limit_reached' },
+    })
+    expect(await play({ capabilities: mpv })).toMatchObject({
+      ok: true,
+      value: { plan: { mode: 'direct' } },
+    })
+  })
+
+  test('a browser keeps transcoding the same file', async () => {
+    const { play } = world({}, [])
+    expect(await play({ capabilities: { ...safari, engine: 'browser' } })).toMatchObject({
+      ok: true,
+      value: { plan: { mode: 'hls_remux' }, subtitlesInEngine: false },
+    })
+  })
+})
+
 describe('createPlaybackSession: progress at the start (§12.4)', () => {
   test('a start in the credits (a track change there) keeps the item watched', async () => {
     const film = source('film', 'mp4', media('h264', 'aac', { durationMs: 3_600_000 }))

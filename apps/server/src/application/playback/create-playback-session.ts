@@ -21,6 +21,7 @@ import {
   type AudioDelivery,
   availableQualities,
   decidePlayback,
+  effectiveQuality,
   type PlaybackPlan,
 } from '../../core/playback/decide-mode.ts'
 import { planTranscodeSegments, seekPointsOf } from '../../core/playback/hls-playlist.ts'
@@ -37,7 +38,11 @@ import {
   type PlaybackSession,
   type PlaybackSessionRepository,
 } from '../../core/playback/session.ts'
-import type { SubtitleTrack, SubtitleTrackRepository } from '../../core/playback/subtitles.ts'
+import {
+  engineSubtitleDelivery,
+  type SubtitleTrack,
+  type SubtitleTrackRepository,
+} from '../../core/playback/subtitles.ts'
 import type { TrackPreferenceRepository } from '../../core/playback/track-preferences.ts'
 import {
   groupVersions,
@@ -107,6 +112,7 @@ export type CreatedPlaybackSession = {
   subtitleTracks: SubtitleTrack[]
   tracks: ResolvedTracks
   burnInEnabled: boolean
+  subtitlesInEngine: boolean
   availableQualities: PlaybackQuality[]
   versions: VersionChoice[]
   parts: TimelinePart[]
@@ -132,6 +138,23 @@ type Input = {
 type MediaResult = Result<MediaInfo, AppError<'playback/source_unavailable'>>
 
 const unique = (values: readonly string[]): string[] => [...new Set(values)]
+
+/** mpv plays the file as is at Original, anything else through `hls_transcode` (§10.2). */
+const engineDirect = (media: MediaInfo, quality: PlaybackQuality): boolean => {
+  const video = media.video[0]
+  return video !== undefined && effectiveQuality(video, quality) === 'original'
+}
+
+/**
+ * The engine never burns in: a resolved track it cannot get (a bitmap track of an HLS output,
+ * or an external bitmap file) is left aside, named by the request or not (§10.4).
+ */
+const forEngine = (resolved: ResolvedTracks, mode: { direct: boolean }): ResolvedTracks => {
+  const { subtitle, ...rest } = resolved
+  return subtitle === undefined || engineSubtitleDelivery(subtitle, mode) === 'unsupported'
+    ? { ...rest, burnIn: false }
+    : { ...rest, subtitle, burnIn: false }
+}
 
 export const createPlaybackSessionFactory = ({
   visibleItems,
@@ -314,12 +337,13 @@ export const createPlaybackSessionFactory = ({
 
     const settings = playbackSettings.read()
     const subtitleTracks = subtitleTrackRepository.listForSource(source.id)
+    const subtitlesInEngine = capabilities.engine === 'mpv'
     const subtitleChoice = explicitSubtitle(input.subtitleTrackId, subtitleTracks)
-    const tracks = resolveTracks({
+    const resolved = resolveTracks({
       audio: media.audio,
       subtitles: subtitleTracks,
       ...trackContext({ item, profileId, scope }),
-      burnInEnabled: settings.burnInEnabled,
+      burnInEnabled: settings.burnInEnabled || subtitlesInEngine,
       explicit: {
         ...(input.audioStreamIndex === undefined
           ? {}
@@ -327,7 +351,17 @@ export const createPlaybackSessionFactory = ({
         ...subtitleChoice,
       },
     })
-    if (!tracks.ok) return tracks
+    if (!resolved.ok) return resolved
+    const tracks = subtitlesInEngine
+      ? forEngine(resolved.value, { direct: engineDirect(media, input.quality) })
+      : resolved.value
+    if (resolved.value.subtitle !== undefined && tracks.subtitle === undefined) {
+      logger.info('bitmap subtitle left aside for the engine', {
+        itemId,
+        sourceId: source.id,
+        subtitleTrackId: resolved.value.subtitle.id,
+      })
+    }
 
     const decideWith = (candidate: ResolvedTracks, audioStreamIndex: number | undefined) =>
       decidePlayback({
@@ -373,17 +407,15 @@ export const createPlaybackSessionFactory = ({
       return decided.ok ? withinTranscodeLimit(decided.value) : decided
     }
 
-    const first = planFor(tracks.value)
+    const first = planFor(tracks)
     const dropSubtitle =
       !first.ok &&
-      tracks.value.burnIn &&
+      tracks.burnIn &&
       subtitleChoice.subtitle === undefined &&
       (first.error.code === 'playback/transcode_limit_reached' ||
         first.error.code === 'playback/mode_unsupported')
-    const { subtitle: _bitmap, ...unsubtitled } = tracks.value
-    const selectedTracks: ResolvedTracks = dropSubtitle
-      ? { ...unsubtitled, burnIn: false }
-      : tracks.value
+    const { subtitle: _bitmap, ...unsubtitled } = tracks
+    const selectedTracks: ResolvedTracks = dropSubtitle ? { ...unsubtitled, burnIn: false } : tracks
     const planned = dropSubtitle ? planFor(selectedTracks) : first
     if (!planned.ok) return planned
     const plan = planned.value
@@ -391,7 +423,7 @@ export const createPlaybackSessionFactory = ({
       logger.info('automatic bitmap subtitle left out', {
         itemId,
         sourceId: source.id,
-        subtitleTrackId: tracks.value.subtitle?.id,
+        subtitleTrackId: tracks.subtitle?.id,
         reason: first.ok ? undefined : first.error.code,
       })
     }
@@ -485,6 +517,7 @@ export const createPlaybackSessionFactory = ({
       subtitleTracks,
       tracks: selectedTracks,
       burnInEnabled: settings.burnInEnabled,
+      subtitlesInEngine,
       availableQualities: availableQualities(media.video[0]),
       versions: versions.map((candidate) => ({
         sourceId: candidate.parts[0].id,

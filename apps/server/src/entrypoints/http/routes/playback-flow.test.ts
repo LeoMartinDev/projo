@@ -415,6 +415,87 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
     expect((await call(url)).status).toBe(410)
   })
 
+  test('MKV for mpv: direct play of the file with HTTP Range, subtitles in the engine (§10.2, §10.4)', async () => {
+    db.insert(sourceSubtitles)
+      .values([
+        {
+          id: 'mkv-ass',
+          sourceId: 'mkv-source',
+          kind: 'embedded',
+          streamIndex: 2,
+          language: 'en',
+          format: 'ass',
+        },
+        {
+          id: 'mkv-pgs',
+          sourceId: 'mkv-source',
+          kind: 'embedded',
+          streamIndex: 3,
+          language: 'en',
+          format: 'pgs',
+        },
+        {
+          id: 'mkv-srt',
+          sourceId: 'mkv-source',
+          kind: 'external',
+          path: `${mkvPath}.fr.srt`,
+          language: 'fr',
+          format: 'srt',
+        },
+      ])
+      .run()
+    const mpv: ClientCapabilities = {
+      videoCodecs: [],
+      audioCodecs: [],
+      hls: 'native',
+      subtitleDelivery: 'engine',
+      engine: 'mpv',
+    }
+    const created = await call('/playback/sessions', {
+      method: 'POST',
+      json: { itemId: 'mkv-movie', capabilities: mpv, subtitleTrackId: 'mkv-pgs' },
+    })
+    expect(created.status).toBe(201)
+    const session = await body<{
+      id: string
+      stream: { url: string }
+      subtitleTracks: { url?: string }[]
+    }>(created)
+    const capability = session.stream.url.replace(/\/direct$/, '')
+    expect(session).toMatchObject({
+      mode: 'direct',
+      stream: { type: 'direct', mimeType: 'video/x-matroska' },
+      burnIn: false,
+      selectedSubtitleTrackId: 'mkv-pgs',
+      audioTracks: [{ index: 1, codec: 'ac3', delivery: 'direct' }],
+      subtitleTracks: [
+        {
+          id: 'mkv-srt',
+          origin: 'external',
+          delivery: 'vtt',
+          url: `${capability}/subtitles/mkv-srt.vtt`,
+        },
+        { id: 'mkv-ass', origin: 'embedded', delivery: 'engine', streamIndex: 2 },
+        { id: 'mkv-pgs', origin: 'embedded', delivery: 'engine', streamIndex: 3 },
+      ],
+    })
+    expect(session.subtitleTracks.map((track) => track.url !== undefined)).toEqual([
+      true,
+      false,
+      false,
+    ])
+    expect(jobs.enqueued.filter((job) => job.type === 'index_keyframes')).toEqual([])
+
+    const url = session.stream.url.replace('/api/v1', '')
+    const file = readFileSync(mkvPath)
+    const partial = await call(url, { headers: { range: 'bytes=0-1023' } })
+    expect(partial.status).toBe(206)
+    expect(partial.headers.get('content-type')).toBe('video/x-matroska')
+    expect(partial.headers.get('content-range')).toBe(`bytes 0-1023/${file.length}`)
+    expect(Buffer.from(await partial.arrayBuffer()).equals(file.subarray(0, 1024))).toBe(true)
+    expect((await call(url.replace(/\/[^/]+\/direct$/, '/wrong/direct'))).status).toBe(404)
+  })
+
   test('another profile of the account cannot use a session on a title it does not see', async () => {
     const session = await body<{ id: string; stream: { url: string } }>(
       await call('/playback/sessions', {

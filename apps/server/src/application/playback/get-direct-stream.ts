@@ -1,7 +1,7 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 
 import type { PlayableSources } from '../../core/catalog/catalog.ts'
-import { directMimeType } from '../../core/playback/decide-mode.ts'
+import { fileMimeType } from '../../core/playback/decide-mode.ts'
 import type { AuthorizeStream, StreamAccess } from './authorize-stream.ts'
 import type { SessionAccessError } from './shared/session-access.ts'
 
@@ -31,18 +31,12 @@ export const getDirectStreamFactory =
       )
     }
     const source = playableSources.findSource(sourceId)
-    const mimeType = source === undefined ? undefined : directMimeType(source.extension)
-    if (
-      source === undefined ||
-      source.state !== 'ready' ||
-      !source.rootReachable ||
-      mimeType === undefined
-    ) {
+    if (source === undefined || source.state !== 'ready' || !source.rootReachable) {
       return err(
         appError('playback/source_unavailable', 'source unavailable', { context: { sourceId } }),
       )
     }
-    return ok({ path: source.path, mimeType })
+    return ok({ path: source.path, mimeType: fileMimeType(source.extension) })
   }
 
 export type GetDirectStream = ReturnType<typeof getDirectStreamFactory>
