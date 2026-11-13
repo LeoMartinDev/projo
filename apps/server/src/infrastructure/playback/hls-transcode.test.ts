@@ -528,7 +528,7 @@ describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, 
     ).toEqual([expect.objectContaining({ level: 'warn' })])
   })
 
-  test('a VAAPI run that fails before writing anything is retried in software', async () => {
+  test('a VAAPI run that fails before writing anything is retried with CPU decoding, then in software', async () => {
     const world = vaapiWorld()
     const fakeNode = join(media.path, 'fake-render-node')
     writeFileSync(fakeNode, '')
@@ -548,6 +548,13 @@ describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, 
     expect(world.resolved).toEqual([])
     expect(world.lines.filter((line) => line.level === 'error')).toEqual([])
     const runs = world.lines.filter((line) => line.message === 'ffmpeg HLS run started')
-    expect(runs.map((line) => line.fields['vaapi'])).toEqual([true, false])
+    expect(runs.map((line) => line.fields['acceleration'])).toEqual([
+      'gpu',
+      'gpu_encode',
+      'software',
+    ])
+    expect(
+      world.lines.filter((line) => line.fields['code'] === 'playback/hw_decode_unsupported'),
+    ).toEqual([expect.objectContaining({ level: 'info' })])
   })
 })

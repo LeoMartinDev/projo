@@ -278,6 +278,23 @@ describe('VAAPI (§10.3)', () => {
     ])
   })
 
+  test('decoded on the CPU (a source the GPU cannot decode): the device, no hwaccel', () => {
+    const args = transcodeArgs({ ...vaapi, vaapiDecode: false, startS: 8 })
+    expect(args.slice(args.indexOf('-init_hw_device'), args.indexOf('-i') + 1)).toEqual([
+      '-init_hw_device',
+      'vaapi=va:/dev/dri/renderD128',
+      '-filter_hw_device',
+      'va',
+      '-ss',
+      '7.500000',
+      '-i',
+    ])
+    expect(valueOf(args, '-filter_complex')).toBe(
+      valueOf(transcodeArgs({ ...vaapi, startS: 8 }), '-filter_complex'),
+    )
+    expect(valueOf(args, '-c:v')).toBe('h264_vaapi')
+  })
+
   test('SDR: uploaded when decoded on the CPU, scaled to NV12 and encoded on the GPU', () => {
     const args = transcodeArgs({ ...vaapi, quality: '720p' })
     expect(valueOf(args, '-filter_complex')).toBe(

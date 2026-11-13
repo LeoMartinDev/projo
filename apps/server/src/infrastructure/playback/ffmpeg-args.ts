@@ -127,6 +127,7 @@ export type TranscodeArgsInput = {
   burnIn?: BurnInSubtitle
   filters: FfmpegFilters
   vaapiDevice?: string
+  vaapiDecode?: boolean
   cuts?: readonly number[]
   onKeyframe?: boolean
   preset?: X264Preset
@@ -140,17 +141,14 @@ const forcedKeyframes = (cuts: readonly number[] | undefined, seekS: number): st
         .map((cut) => (cut - seekS - 0.001).toFixed(3))
         .join(',') || '0'
 
-const vaapiInput = (device: string): string[] => [
+const vaapiInput = (device: string, decode: boolean): string[] => [
   '-init_hw_device',
   `vaapi=va:${device}`,
   '-filter_hw_device',
   'va',
-  '-hwaccel',
-  'vaapi',
-  '-hwaccel_device',
-  'va',
-  '-hwaccel_output_format',
-  'vaapi',
+  ...(decode
+    ? ['-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi']
+    : []),
 ]
 
 export const transcodeArgs = ({
@@ -163,6 +161,7 @@ export const transcodeArgs = ({
   burnIn,
   filters,
   vaapiDevice,
+  vaapiDecode = true,
   cuts,
   onKeyframe = false,
   preset = 'veryfast',
@@ -236,7 +235,7 @@ export const transcodeArgs = ({
         ]
   return [
     ...head,
-    ...(vaapi === undefined ? [] : vaapiInput(vaapi)),
+    ...(vaapi === undefined ? [] : vaapiInput(vaapi, vaapiDecode)),
     ...(keyframeStart ? ['-noaccurate_seek'] : []),
     ...(seek === undefined ? [] : ['-ss', seek]),
     '-i',

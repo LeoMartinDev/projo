@@ -74,7 +74,7 @@ type Run = {
   failed: boolean
   endedCleanly: boolean
   resume: (() => void) | undefined
-  vaapi: boolean
+  acceleration: Acceleration
   fallback: boolean
   throttled: boolean
   speed: SpeedSample | undefined
@@ -89,7 +89,7 @@ type SessionState = {
   lastRequested: number
   listeners: Set<() => void>
   stopped: boolean
-  vaapi: boolean | undefined
+  acceleration: Acceleration | undefined
   preset: X264Preset | undefined
 }
 
@@ -152,12 +152,37 @@ export const detectFfmpegFilters = (ffmpegBinary = 'ffmpeg'): FfmpegFilters => {
 export const wantsVaapi = (job: HlsJob): boolean =>
   job.mode === 'hls_transcode' && job.hwAccel === 'vaapi' && job.transcode.burnIn === undefined
 
-export const fallsBackToSoftware = (run: {
-  vaapi: boolean
+/**
+ * Where a transcode runs (§10.3): `gpu` decodes, scales and encodes on the render node;
+ * `gpu_encode` decodes on the CPU (a codec or profile the GPU cannot decode) and uploads the
+ * frames to scale and encode them on the GPU; `software` is libx264.
+ */
+export type Acceleration = 'gpu' | 'gpu_encode' | 'software'
+
+export const firstAcceleration = ({
+  wanted,
+  nodeUsable,
+  gpuDecodes,
+}: {
+  wanted: boolean
+  nodeUsable: boolean
+  gpuDecodes: boolean
+}): Acceleration => (!wanted || !nodeUsable ? 'software' : gpuDecodes ? 'gpu' : 'gpu_encode')
+
+/** A GPU run that failed before the session's init: one step down, never back up. */
+export const afterEarlyFailure = (acceleration: Acceleration): Acceleration =>
+  acceleration === 'gpu' ? 'gpu_encode' : 'software'
+
+export const fallsBack = (run: {
+  acceleration: Acceleration
   exitCode: number
   killed: boolean
   initExists: boolean
-}): boolean => run.vaapi && !run.killed && run.exitCode !== 0 && !run.initExists
+}): boolean =>
+  run.acceleration !== 'software' && !run.killed && run.exitCode !== 0 && !run.initExists
+
+const decodeKey = (job: HlsJob): string =>
+  `${job.video.codec}:${job.video.pixelFormat ?? 'unknown'}`
 
 const usable = (path: string): boolean => {
   try {
@@ -209,6 +234,9 @@ export const createHlsSegmenter = ({
     return knownFilters
   }
   const sessions = new Map<string, SessionState>()
+  // Codec and pixel format the GPU failed to decode but encoded once decoded on the CPU:
+  // later sessions of such a source start at gpu_encode instead of failing again.
+  const cpuDecoded = new Set<string>()
   let runCount = 0
   const stoppedIds = new Set<string>()
   const markStopped = (sessionId: string): void => {
@@ -347,7 +375,10 @@ export const createHlsSegmenter = ({
               if (video === undefined) throw new Error('no video track in moov')
               const init = fileFor(state, 'init')
               if (!existsSync(init)) await writeAtomically(init, head)
-              if (run.vaapi) notifier?.resolve({ kind: 'playback/hw_accel_failed', key: 'vaapi' })
+              if (run.acceleration !== 'software') {
+                notifier?.resolve({ kind: 'playback/hw_accel_failed', key: 'vaapi' })
+              }
+              if (run.acceleration === 'gpu_encode') cpuDecoded.add(decodeKey(job))
               wakeAll(state)
             }
           }
@@ -359,11 +390,22 @@ export const createHlsSegmenter = ({
         run.endedCleanly = true
       }
       const initExists = existsSync(fileFor(state, 'init'))
-      if (fallsBackToSoftware({ ...run, exitCode: code, initExists })) {
+      if (fallsBack({ ...run, exitCode: code, initExists })) {
         run.failed = true
         run.fallback = true
-        state.vaapi = false
-        vaapiFailed(job, 'ffmpeg_failed', (await stderr).slice(-2000))
+        const next = afterEarlyFailure(run.acceleration)
+        state.acceleration = next
+        const tail = (await stderr).slice(-2000)
+        if (next === 'software') vaapiFailed(job, 'ffmpeg_failed', tail)
+        else {
+          logger.info('the GPU cannot decode this source, decoding it on the CPU', {
+            code: 'playback/hw_decode_unsupported',
+            sessionId: job.sessionId,
+            codec: job.video.codec,
+            pixelFormat: job.video.pixelFormat,
+            stderr: tail,
+          })
+        }
       } else if (!run.killed && code !== 0) {
         run.failed = true
         logger.error('ffmpeg HLS run failed', {
@@ -414,7 +456,7 @@ export const createHlsSegmenter = ({
   const argsFor = (
     job: HlsJob,
     fromSegment: number,
-    vaapi: boolean,
+    acceleration: Acceleration,
     preset: X264Preset | undefined,
   ): string[] => {
     const segment = job.segments[fromSegment]
@@ -433,7 +475,9 @@ export const createHlsSegmenter = ({
       quality,
       ...(burnIn === undefined ? {} : { burnIn }),
       filters: ffmpegFilters(),
-      ...(vaapi ? { vaapiDevice: renderNode } : {}),
+      ...(acceleration === 'software'
+        ? {}
+        : { vaapiDevice: renderNode, vaapiDecode: acceleration === 'gpu' }),
       ...(aligned
         ? {
             cuts: job.segments.slice(fromSegment + 1).map((planned) => planned.startS),
@@ -444,9 +488,9 @@ export const createHlsSegmenter = ({
     })
   }
 
-  const presetFor = (state: SessionState, vaapi: boolean): X264Preset | undefined => {
+  const presetFor = (state: SessionState, acceleration: Acceleration): X264Preset | undefined => {
     const { job } = state
-    if (job.mode !== 'hls_transcode' || vaapi) return undefined
+    if (job.mode !== 'hls_transcode' || acceleration !== 'software') return undefined
     state.preset ??= presets.get(presetKey(job)) ?? 'veryfast'
     return state.preset
   }
@@ -490,16 +534,22 @@ export const createHlsSegmenter = ({
   const startRun = (state: SessionState, fromSegment: number): Run | undefined => {
     stopRun(state)
     const { job } = state
-    if (state.vaapi === undefined) {
-      state.vaapi = wantsVaapi(job) && usable(renderNode)
-      if (wantsVaapi(job) && !state.vaapi) vaapiFailed(job, 'render_node_unavailable')
+    if (state.acceleration === undefined) {
+      const wanted = wantsVaapi(job)
+      const nodeUsable = wanted && usable(renderNode)
+      if (wanted && !nodeUsable) vaapiFailed(job, 'render_node_unavailable')
+      state.acceleration = firstAcceleration({
+        wanted,
+        nodeUsable,
+        gpuDecodes: !cpuDecoded.has(decodeKey(job)),
+      })
     }
-    const vaapi = state.vaapi
-    const preset = presetFor(state, vaapi)
+    const acceleration = state.acceleration
+    const preset = presetFor(state, acceleration)
     try {
       mkdirSync(state.dir, { recursive: true })
       const proc = Bun.spawn({
-        cmd: [ffmpegBinary, ...argsFor(job, fromSegment, vaapi, preset)],
+        cmd: [ffmpegBinary, ...argsFor(job, fromSegment, acceleration, preset)],
         stdin: 'ignore',
         stdout: 'pipe',
         stderr: 'pipe',
@@ -515,7 +565,7 @@ export const createHlsSegmenter = ({
         failed: false,
         endedCleanly: false,
         resume: undefined,
-        vaapi,
+        acceleration,
         fallback: false,
         throttled: false,
         speed:
@@ -528,7 +578,7 @@ export const createHlsSegmenter = ({
         sessionId: job.sessionId,
         mode: job.mode,
         fromSegment,
-        vaapi,
+        acceleration,
         ...(preset === undefined ? {} : { preset }),
       })
       if (job.mode === 'hls_transcode' && (job.transcode.dynamicRange ?? 'sdr') !== 'sdr') {
@@ -564,7 +614,7 @@ export const createHlsSegmenter = ({
       lastRequested: -1,
       listeners: new Set(),
       stopped: false,
-      vaapi: undefined,
+      acceleration: undefined,
       preset: undefined,
     }
     sessions.set(job.sessionId, state)

@@ -9,8 +9,10 @@ import { planFixedSegments, segmentFileName } from '../../core/playback/hls-play
 import type { HlsJob, HlsSegmenter } from '../../core/playback/ports.ts'
 import { createFfprobe } from './ffprobe.ts'
 import {
+  afterEarlyFailure,
   createHlsSegmenter,
-  fallsBackToSoftware,
+  fallsBack,
+  firstAcceleration,
   nextPreset,
   presetKey,
   wantsVaapi,
@@ -299,12 +301,23 @@ describe('VAAPI decision (§10.3)', () => {
     expect(wantsVaapi({ ...transcode, mode: 'hls_remux', keyframes: [0] })).toBe(false)
   })
 
-  test('software retry: a failed VAAPI run, before any init.mp4 of the session', () => {
-    const failed = { vaapi: true, exitCode: 1, killed: false, initExists: false }
-    expect(fallsBackToSoftware(failed)).toBe(true)
-    expect(fallsBackToSoftware({ ...failed, initExists: true })).toBe(false)
-    expect(fallsBackToSoftware({ ...failed, killed: true })).toBe(false)
-    expect(fallsBackToSoftware({ ...failed, exitCode: 0 })).toBe(false)
-    expect(fallsBackToSoftware({ ...failed, vaapi: false })).toBe(false)
+  test('first run: on the GPU, decoded on the CPU when the GPU failed this source before', () => {
+    const usable = { wanted: true, nodeUsable: true }
+    expect(firstAcceleration({ ...usable, gpuDecodes: true })).toBe('gpu')
+    expect(firstAcceleration({ ...usable, gpuDecodes: false })).toBe('gpu_encode')
+    expect(firstAcceleration({ ...usable, nodeUsable: false, gpuDecodes: true })).toBe('software')
+    expect(firstAcceleration({ ...usable, wanted: false, gpuDecodes: true })).toBe('software')
+  })
+
+  test('retry: a GPU run that failed before any init.mp4 of the session, one step down', () => {
+    const failed = { acceleration: 'gpu', exitCode: 1, killed: false, initExists: false } as const
+    expect(fallsBack(failed)).toBe(true)
+    expect(fallsBack({ ...failed, acceleration: 'gpu_encode' })).toBe(true)
+    expect(fallsBack({ ...failed, initExists: true })).toBe(false)
+    expect(fallsBack({ ...failed, killed: true })).toBe(false)
+    expect(fallsBack({ ...failed, exitCode: 0 })).toBe(false)
+    expect(fallsBack({ ...failed, acceleration: 'software' })).toBe(false)
+    expect(afterEarlyFailure('gpu')).toBe('gpu_encode')
+    expect(afterEarlyFailure('gpu_encode')).toBe('software')
   })
 })
