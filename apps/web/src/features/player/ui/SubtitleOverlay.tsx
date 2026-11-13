@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 
-import { type CueLine, parseCueText, shiftCue, type SubtitleSize } from './subtitles.ts'
+import {
+  type CueLine,
+  parseCueText,
+  shiftCue,
+  type SubtitleSize,
+} from '@projo/player/core/subtitles'
 
 const originals = new WeakMap<TextTrackCue, { start: number; end: number }>()
 

@@ -19,11 +19,11 @@ import type {
   SubtitleTrackDto,
 } from '@projo/shared/api/playback'
 
-import { formatClock } from '../../shared/format/format.ts'
-import { currentLocale } from '../../shared/i18n/index.ts'
+import { formatClock } from '../../../shared/format/format.ts'
+import { currentLocale } from '../../../shared/i18n/index.ts'
 import { media } from '@projo/design/media'
-import { CheckIcon, CloseIcon } from '../../shared/ui/icons.tsx'
-import { audioCodecLabel, languageName } from '../item/media-labels.ts'
+import { CheckIcon, CloseIcon } from '../../../shared/ui/icons.tsx'
+import { audioCodecLabel, languageName } from '../../item/media-labels.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'
 import {
   playbackRates,
@@ -39,8 +39,8 @@ import {
   type SubtitleChoice,
   subtitleDelayStepMs,
   subtitleSizes,
-} from './subtitles.ts'
-import { ratioAtPointer } from './timeline.ts'
+} from '@projo/player/core/subtitles'
+import { ratioAtPointer } from '@projo/player/core/timeline'
 
 export type PlayerMenu = 'languages' | 'speed' | 'quality' | 'chapters'
 

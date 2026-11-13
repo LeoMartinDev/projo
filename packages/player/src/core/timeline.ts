@@ -13,7 +13,7 @@ export type TimelineSession = Pick<
 const byIndex = (a: PlaybackPartDto, b: PlaybackPartDto) => a.index - b.index
 
 export const orderedParts = (session: Pick<TimelineSession, 'parts'>): PlaybackPartDto[] =>
-  session.parts.toSorted(byIndex)
+  [...session.parts].sort(byIndex)
 
 export const currentPart = (session: TimelineSession): PlaybackPartDto | undefined =>
   session.parts.find((part) => part.sourceId === session.sourceId) ??
@@ -115,7 +115,7 @@ export const chaptersOnItem = (
       startMs: chapter.startMs + partOffsetMs,
       endMs: chapter.endMs + partOffsetMs,
     }))
-    .toSorted((a, b) => a.startMs - b.startMs)
+    .sort((a, b) => a.startMs - b.startMs)
 
 export const chapterIndexAt = (chapters: readonly ChapterDto[], positionMs: number) =>
   chapters.findLastIndex((chapter) => chapter.startMs <= positionMs)

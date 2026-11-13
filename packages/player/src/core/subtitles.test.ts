@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test'
 
 import { type SubtitleTrackDto, subtitleRenditionNames } from '@projo/shared/api/playback'
 
-import { parseSubtitleSettings } from './player-settings.ts'
 import {
   clampDelay,
   needsNewSession,
@@ -73,18 +72,6 @@ describe('delay', () => {
     expect(clampDelay(25_000)).toBe(10_000)
     expect(clampDelay(-25_000)).toBe(-10_000)
     expect(clampDelay(Number.NaN)).toBe(0)
-  })
-
-  test('device settings fall back field by field', () => {
-    expect(parseSubtitleSettings({ size: 'large', delayMs: 500 })).toEqual({
-      size: 'large',
-      delayMs: 500,
-    })
-    expect(parseSubtitleSettings({ size: 'huge', delayMs: '1' })).toEqual({
-      size: 'medium',
-      delayMs: 0,
-    })
-    expect(parseSubtitleSettings('nope')).toEqual({ size: 'medium', delayMs: 0 })
   })
 })
 

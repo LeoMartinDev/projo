@@ -3,11 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { episodeCode, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto, PersonDto } from '@projo/shared/api/catalog'
 
-import { formatDuration } from '../../shared/format/format.ts'
-import { CloseIcon, PlayIcon } from '../../shared/ui/icons.tsx'
-import { Artwork } from '../../shared/ui/Artwork.tsx'
-import { durationMsOf, toneOf } from '../media/media.ts'
-import '../media/media.css'
+import { formatDuration } from '../../../shared/format/format.ts'
+import { CloseIcon, PlayIcon } from '../../../shared/ui/icons.tsx'
+import { Artwork } from '../../../shared/ui/Artwork.tsx'
+import { durationMsOf, toneOf } from '../../media/media.ts'
+import '../../media/media.css'
 
 const ringRadius = 12
 const ringLength = 2 * Math.PI * ringRadius

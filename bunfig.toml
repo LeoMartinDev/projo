@@ -70,6 +70,11 @@ ignorePatterns = [
     { target = "./packages/shared", from = "./apps", message = "packages/shared never imports an app." },
     { target = "./packages/i18n", from = "./apps", message = "packages/i18n never imports an app." },
     { target = "./packages/design", from = "./apps", message = "packages/design never imports an app." },
+    { target = "./packages/player", from = "./apps", message = "packages/player never imports an app." },
+    { target = "./packages/player/src/core", from = ["./packages/player/src/application", "./packages/player/src/testing"], message = "@projo/player core/ imports nothing but core/ and @projo/shared." },
+    { target = "./apps/web/src/features/player/ui", from = "./apps/web/src/features/player/engines", message = "The player UI never imports an engine: it reads engine.capabilities (player-route.tsx picks the engine)." },
+    { target = "./apps/web/src/features/player/engines/mpv", from = "./apps/web/src/features/player/engines/html-video", message = "Engines never import each other." },
+    { target = "./apps/web/src/features/player/engines/html-video", from = "./apps/web/src/features/player/engines/mpv", message = "Engines never import each other." },
     { target = "./apps/web", from = ["./apps/www", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
     { target = "./apps/www", from = ["./apps/web", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
     { target = "./apps/mobile", from = ["./apps/web", "./apps/www"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
@@ -125,6 +130,17 @@ rules = { "no-restricted-imports" = [
   "error",
   { patterns = [
     { regex = '^(?!\.{1,2}/|@projo/shared(?:/|$)|i18next$|bun:test$)', message = "packages/i18n imports only @projo/shared and i18next (its TFunction): shared by the web and the mobile app, no React, no DOM (§26.2)." },
+  ] },
+] }
+
+# ── Player logic (@projo/player): shared by every engine and app, no DOM, no React ──
+
+[[lint.overrides]]
+files = ["packages/player/**/*.ts"]
+rules = { "no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { regex = '^(?!\.{1,2}/|@projo/shared(?:/|$)|bun:test$)', message = "packages/player imports only @projo/shared (and bun:test in tests): pure playback logic for the web, desktop and mobile engines, no DOM, no React, Hermes-safe." },
   ] },
 ] }
 

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import type { TrackToast as TrackToastState } from './track-memory.ts'
+import type { TrackToast as TrackToastState } from '@projo/player/core/track-memory'
 
 export const TrackToast = ({
   toast,

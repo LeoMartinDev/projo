@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 
-import { childrenQuery } from '../catalog/queries.ts'
+import { childrenQuery } from '../../catalog/queries.ts'
 import { type NextEpisode, nextEpisodeOf, nextInSeason, nextSeason } from './next-episode.ts'
 
 export const useNextEpisode = (item: ItemDetailDto | undefined): NextEpisode<ItemSummaryDto> => {

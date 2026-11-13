@@ -1,38 +1,16 @@
 import type { PlaybackHeartbeatBody, PlaybackSessionDto } from '@projo/shared/api/playback'
 
+import type { PlayerEngine } from '../core/engine.ts'
 import {
   type Heartbeat,
   type HeartbeatTransport,
   startHeartbeat,
   type Timers,
-} from './heartbeat.ts'
-import type { SessionEnds } from './session-ends.ts'
-import { itemPositionMs } from './timeline.ts'
-
-export type MediaElementLike = Pick<
-  HTMLVideoElement,
-  'readyState' | 'currentTime' | 'paused' | 'addEventListener' | 'removeEventListener'
->
-
-export type PageLike = Pick<Window, 'addEventListener' | 'removeEventListener'>
-
-export const createSessionUnlessLeft = async <T extends { session: PlaybackSessionDto }>({
-  create,
-  signal,
-  endOnce,
-}: {
-  create: () => Promise<T>
-  signal: AbortSignal
-  endOnce: SessionEnds['endOnce']
-}): Promise<T> => {
-  const started = await create()
-  if (signal.aborted)
-    void endOnce(started.session.id, {
-      positionMs: started.session.startPositionMs,
-      paused: true,
-    })
-  return started
-}
+} from '../core/heartbeat.ts'
+import type { MediaEventType } from '../core/media-state.ts'
+import type { SessionEnds } from '../core/session-ends.ts'
+import { itemPositionMs } from '../core/timeline.ts'
+import type { PageLifecycle } from './ports.ts'
 
 export type SessionLifecycle = {
   heartbeat: Heartbeat
@@ -40,9 +18,16 @@ export type SessionLifecycle = {
   dispose: () => void
 }
 
+/**
+ * One playback session on screen (§10.6): the stream attached, a heartbeat
+ * every interval and on pause, seek and end, a beacon when the page goes away.
+ * `teardown` stops it all and gives the last position; `dispose` also ends the
+ * session on the next tick unless the same session is retained again first
+ * (a remount), and only once.
+ */
 export const startSessionLifecycle = ({
   session,
-  video,
+  engine,
   page,
   attach,
   transport,
@@ -57,8 +42,8 @@ export const startSessionLifecycle = ({
   onLetGo,
 }: {
   session: PlaybackSessionDto
-  video: MediaElementLike
-  page: PageLike
+  engine: Pick<PlayerEngine, 'read' | 'events'>
+  page: PageLifecycle
   attach: () => () => void
   transport: HeartbeatTransport
   timers: Timers
@@ -76,44 +61,48 @@ export const startSessionLifecycle = ({
   const heartbeat = startHeartbeat({
     sessionId: session.id,
     intervalMs: session.heartbeatIntervalMs,
-    read: () => ({
-      positionMs:
-        video.readyState > 0 ? itemPositionMs(session, video.currentTime) : session.startPositionMs,
-      paused: video.paused,
-    }),
+    read: () => {
+      const media = engine.read()
+      return {
+        positionMs: media.ready
+          ? itemPositionMs(session, media.currentTime)
+          : session.startPositionMs,
+        paused: media.paused,
+      }
+    },
     transport,
     timers,
     onFailure: onHeartbeatFailure,
   })
   const beat = () => {
-    if (video.readyState > 0) heartbeat.beat()
+    if (engine.read().ready) heartbeat.beat()
   }
   const ended = () => {
     beat()
     onEnded()
   }
-  const close = () => heartbeat.close()
   const track = () => {
-    if (video.readyState > 0) onPosition(itemPositionMs(session, video.currentTime))
+    const media = engine.read()
+    if (media.ready) onPosition(itemPositionMs(session, media.currentTime))
   }
-  const listeners: [string, () => void][] = [
-    ['pause', beat],
-    ['seeked', beat],
-    ['ended', ended],
-    ['volumechange', onVolumeChange],
-    ['timeupdate', track],
-    ['playing', onPlaying],
-    ['loadedmetadata', onLoaded],
-  ]
-  for (const [type, listener] of listeners) video.addEventListener(type, listener)
-  page.addEventListener('pagehide', close)
+  const listeners: Partial<Record<MediaEventType, () => void>> = {
+    pause: beat,
+    seeked: beat,
+    ended,
+    volumechange: onVolumeChange,
+    timeupdate: track,
+    playing: onPlaying,
+    loadedmetadata: onLoaded,
+  }
+  const unsubscribe = engine.events.subscribe((event) => listeners[event.type]?.())
+  const stopHide = page.onHide(() => heartbeat.close())
 
   let last: PlaybackHeartbeatBody | undefined
   const teardown = (): PlaybackHeartbeatBody => {
     if (last !== undefined) return last
     last = heartbeat.halt()
-    for (const [type, listener] of listeners) video.removeEventListener(type, listener)
-    page.removeEventListener('pagehide', close)
+    unsubscribe()
+    stopHide()
     detach()
     return last
   }

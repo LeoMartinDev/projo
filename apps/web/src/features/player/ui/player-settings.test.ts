@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+  parseSubtitleSettings,
   rateAtRatio,
   rateStepFrom,
   ratioOfRate,
@@ -36,5 +37,19 @@ describe('speed slider', () => {
     expect(rateStepFrom(1, -1)).toBe(0.5)
     expect(rateStepFrom(2, 1)).toBe(2)
     expect(rateStepFrom(0.5, -1)).toBe(0.5)
+  })
+})
+
+describe('subtitle settings', () => {
+  test('device settings fall back field by field', () => {
+    expect(parseSubtitleSettings({ size: 'large', delayMs: 500 })).toEqual({
+      size: 'large',
+      delayMs: 500,
+    })
+    expect(parseSubtitleSettings({ size: 'huge', delayMs: '1' })).toEqual({
+      size: 'medium',
+      delayMs: 0,
+    })
+    expect(parseSubtitleSettings('nope')).toEqual({ size: 'medium', delayMs: 0 })
   })
 })

@@ -12,6 +12,7 @@
   "dependencies": {
     "@projo/design": "workspace:*",
     "@projo/i18n": "workspace:*",
+    "@projo/player": "workspace:*",
     "@projo/shared": "workspace:*",
     "@tanstack/react-query": "5.104.5",
     "@tanstack/react-router": "1.170.46",

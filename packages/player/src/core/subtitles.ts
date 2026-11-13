@@ -92,7 +92,7 @@ export type SubtitleChoice = { kind: 'off' } | { kind: 'track'; track: SubtitleT
 export const needsNewSession = (
   session: Pick<PlaybackSessionDto, 'burnIn' | 'mode'>,
   choice: SubtitleChoice,
-  delivery: 'overlay' | 'hls' = 'overlay',
+  delivery: 'overlay' | 'hls' | 'engine' = 'overlay',
 ): boolean =>
   session.burnIn ||
   (choice.kind === 'track' &&

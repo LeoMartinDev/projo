@@ -1,7 +1,6 @@
-import { type RefCallback, useCallback, useState } from 'react'
-
 import { media } from '@projo/design/media'
-import { enterDocumentFullscreen, fullscreenActive } from './video-state.ts'
+
+import { enterDocumentFullscreen, fullscreenActive } from '../../fullscreen.ts'
 
 export type PlainClick = Pick<
   MouseEvent,
@@ -72,21 +71,4 @@ export const installPlaybackPriming = (): void => {
     },
     { capture: true },
   )
-}
-
-export const usePlayerVideo = (): readonly [
-  HTMLVideoElement | undefined,
-  RefCallback<HTMLDivElement>,
-] => {
-  const [video, setVideo] = useState<HTMLVideoElement>()
-  const slot: RefCallback<HTMLDivElement> = useCallback((node) => {
-    if (!node) {
-      setVideo(undefined)
-      return
-    }
-    const element = playerVideo()
-    node.append(element)
-    setVideo(element)
-  }, [])
-  return [video, slot] as const
 }

@@ -9,6 +9,13 @@
         "typescript": "6.0.3",
       },
     },
+    "apps/desktop": {
+      "name": "@projo/desktop",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/bun": "1.4.4",
+      },
+    },
     "apps/mobile": {
       "name": "@projo/mobile",
       "version": "1.0.0",
@@ -70,6 +77,7 @@
       "dependencies": {
         "@projo/design": "workspace:*",
         "@projo/i18n": "workspace:*",
+        "@projo/player": "workspace:*",
         "@projo/shared": "workspace:*",
         "@tanstack/react-query": "5.104.5",
         "@tanstack/react-router": "1.170.46",
@@ -130,6 +138,16 @@
       "dependencies": {
         "@projo/shared": "workspace:*",
         "i18next": "26.5.6",
+      },
+      "devDependencies": {
+        "@types/bun": "1.4.4",
+      },
+    },
+    "packages/player": {
+      "name": "@projo/player",
+      "version": "0.0.0",
+      "dependencies": {
+        "@projo/shared": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "1.4.4",
@@ -545,11 +563,15 @@
 
     "@projo/design": ["@projo/design@workspace:packages/design"],
 
+    "@projo/desktop": ["@projo/desktop@workspace:apps/desktop"],
+
     "@projo/e2e": ["@projo/e2e@workspace:e2e"],
 
     "@projo/i18n": ["@projo/i18n@workspace:packages/i18n"],
 
     "@projo/mobile": ["@projo/mobile@workspace:apps/mobile"],
+
+    "@projo/player": ["@projo/player@workspace:packages/player"],
 
     "@projo/server": ["@projo/server@workspace:apps/server"],
 

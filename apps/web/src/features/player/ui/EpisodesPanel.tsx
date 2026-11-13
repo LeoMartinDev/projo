@@ -5,14 +5,14 @@ import { useTranslation } from 'react-i18next'
 import { itemTitle, listedNumber } from '@projo/i18n/item-titles'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
-import { formatDuration } from '../../shared/format/format.ts'
-import { currentLocale } from '../../shared/i18n/index.ts'
-import { Artwork } from '../../shared/ui/Artwork.tsx'
-import { CloseIcon } from '../../shared/ui/icons.tsx'
-import { childrenQuery } from '../catalog/queries.ts'
-import { durationMsOf, progressRatioOf, toneOf } from '../media/media.ts'
+import { formatDuration } from '../../../shared/format/format.ts'
+import { currentLocale } from '../../../shared/i18n/index.ts'
+import { Artwork } from '../../../shared/ui/Artwork.tsx'
+import { CloseIcon } from '../../../shared/ui/icons.tsx'
+import { childrenQuery } from '../../catalog/queries.ts'
+import { durationMsOf, progressRatioOf, toneOf } from '../../media/media.ts'
 import { episodeCards, episodeNumberLabel, holds, sortedSeasons } from './next-episode.ts'
-import '../media/media.css'
+import '../../media/media.css'
 
 const skeletonRows = [0, 1, 2, 3, 4]
 

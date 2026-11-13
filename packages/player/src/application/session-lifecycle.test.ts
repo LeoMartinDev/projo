@@ -2,35 +2,14 @@ import { describe, expect, test } from 'bun:test'
 
 import type { PlaybackHeartbeatBody, PlaybackSessionDto } from '@projo/shared/api/playback'
 
-import type { HeartbeatTransport, Timers } from './heartbeat.ts'
-import { createSessionEnds } from './session-ends.ts'
-import { createSessionUnlessLeft, startSessionLifecycle } from './session-lifecycle.ts'
+import type { HeartbeatTransport, Timers } from '../core/heartbeat.ts'
+import { createSessionEnds } from '../core/session-ends.ts'
+import { sessionDto } from '../testing/fake-api.ts'
+import { createFakeEngine } from '../testing/fake-engine.ts'
+import { startSessionLifecycle } from './session-lifecycle.ts'
 
-const session = (id: string): PlaybackSessionDto => ({
-  id,
-  itemId: 'episode-1',
-  sourceId: 'source-1',
-  mode: 'hls_remux',
-  stream: { type: 'hls', url: `/api/v1/stream/${id}/secret/index.m3u8` },
-  startPositionMs: 600_000,
-  heartbeatIntervalMs: 10_000,
-  quality: 'original',
-  availableQualities: ['original'],
-  audioTracks: [],
-  subtitleTracks: [],
-  trackSelection: 'profile',
-  burnIn: false,
-  versions: [],
-  parts: [],
-  partOffsetMs: 0,
-  chapters: [],
-  segments: [],
-})
-
-const fakeVideo = () => {
-  const target = new EventTarget()
-  return Object.assign(target, { readyState: 0, currentTime: 0, paused: true })
-}
+const session = (id: string): PlaybackSessionDto =>
+  sessionDto(id, { itemId: 'episode-1', startPositionMs: 600_000 })
 
 const world = () => {
   const log: string[] = []
@@ -67,16 +46,22 @@ const world = () => {
       }
     },
   })
-  const page = new EventTarget()
+  const hideListeners = new Set<() => void>()
+  const page = {
+    onHide: (listener: () => void) => {
+      hideListeners.add(listener)
+      return () => void hideListeners.delete(listener)
+    },
+  }
   const flush = async () => {
     for (const run of ticks.splice(0)) run()
     await new Promise((resolve) => setTimeout(resolve, 0))
   }
-  const start = (dto: PlaybackSessionDto, video = fakeVideo()) => {
+  const start = (dto: PlaybackSessionDto, fake = createFakeEngine()) => {
     const events = { letGo: 0, detached: 0, ended: 0 }
     const lifecycle = startSessionLifecycle({
       session: dto,
-      video,
+      engine: fake.engine,
       page,
       attach: () => {
         log.push(`attach ${dto.id}`)
@@ -99,12 +84,15 @@ const world = () => {
         events.letGo += 1
       },
     })
-    return { lifecycle, video, events }
+    return { lifecycle, fake, events }
   }
   const beatAll = () => {
     for (const callback of intervals.values()) callback()
   }
-  return { log, ends, start, flush, beatAll, intervals, page }
+  const hide = () => {
+    for (const listener of [...hideListeners]) listener()
+  }
+  return { log, ends, start, flush, beatAll, intervals, hide, hideListeners }
 }
 
 describe('player session lifecycle (§10.6)', () => {
@@ -118,12 +106,11 @@ describe('player session lifecycle (§10.6)', () => {
 
   test('pause and seek beat at once; the end of the stream beats, then tells the page', async () => {
     const w = world()
-    const { video, events } = w.start(session('s1'))
-    video.readyState = 4
-    video.currentTime = 612
-    video.dispatchEvent(new Event('pause'))
-    video.dispatchEvent(new Event('seeked'))
-    video.dispatchEvent(new Event('ended'))
+    const { fake, events } = w.start(session('s1'))
+    fake.emit('loadedmetadata', { ready: true, currentTime: 612, paused: false })
+    fake.emit('pause', { paused: true })
+    fake.emit('seeked')
+    fake.emit('ended', { ended: true })
     await w.flush()
     expect(w.log.slice(1)).toEqual([
       'heartbeat s1 612000',
@@ -135,16 +122,16 @@ describe('player session lifecycle (§10.6)', () => {
 
   test('leaving: last heartbeat then DELETE on the next tick, once; nothing after', async () => {
     const w = world()
-    const { lifecycle, video, events } = w.start(session('s1'))
-    video.readyState = 4
-    video.currentTime = 700
+    const { lifecycle, fake, events } = w.start(session('s1'))
+    fake.emit('loadedmetadata', { ready: true, currentTime: 700 })
     lifecycle.dispose()
     expect(events.detached).toBe(1)
     expect(w.intervals.size).toBe(0)
+    expect(w.hideListeners.size).toBe(0)
     await w.flush()
     expect(w.log).toEqual(['attach s1', 'heartbeat s1 700000', 'delete s1'])
     expect(events.letGo).toBe(1)
-    video.dispatchEvent(new Event('pause'))
+    fake.emit('pause')
     expect(lifecycle.teardown()).toEqual({ positionMs: 700_000, paused: true })
     await w.flush()
     expect(w.log).toHaveLength(3)
@@ -162,38 +149,9 @@ describe('player session lifecycle (§10.6)', () => {
   test('closing the page sends the position by beacon and leaves the session to time out', async () => {
     const w = world()
     w.start(session('s1'))
-    w.page.dispatchEvent(new Event('pagehide'))
+    w.hide()
     w.beatAll()
     await w.flush()
     expect(w.log).toEqual(['attach s1', 'beacon s1 600000'])
-  })
-
-  test('leaving while the session is being created ends it as soon as it exists', async () => {
-    const w = world()
-    const controller = new AbortController()
-    let answer = (_value: { session: PlaybackSessionDto }) => {}
-    const created = createSessionUnlessLeft({
-      create: () => new Promise<{ session: PlaybackSessionDto }>((resolve) => (answer = resolve)),
-      signal: controller.signal,
-      endOnce: w.ends.endOnce,
-    })
-    controller.abort()
-    answer({ session: session('ghost') })
-    await created
-    await w.flush()
-    expect(w.log).toEqual(['heartbeat ghost 600000', 'delete ghost'])
-    await w.ends.settled()
-  })
-
-  test('a session created while the player stays is left to it', async () => {
-    const w = world()
-    const result = await createSessionUnlessLeft({
-      create: async () => ({ session: session('s1') }),
-      signal: new AbortController().signal,
-      endOnce: w.ends.endOnce,
-    })
-    await w.flush()
-    expect(result.session.id).toBe('s1')
-    expect(w.log).toEqual([])
   })
 })

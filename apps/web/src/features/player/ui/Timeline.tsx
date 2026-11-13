@@ -4,9 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { chapterLabel } from '@projo/i18n/item-titles'
 import type { ChapterDto } from '@projo/shared/api/playback'
 
-import { formatClock } from '../../shared/format/format.ts'
-import { chapterIndexAt, ratioAtPointer, ratioOf, type SegmentZone } from './timeline.ts'
-import { displayScale, type Thumbnail } from './trickplay.ts'
+import { formatClock } from '../../../shared/format/format.ts'
+import {
+  chapterIndexAt,
+  ratioAtPointer,
+  ratioOf,
+  type SegmentZone,
+} from '@projo/player/core/timeline'
+import { displayScale, type Thumbnail } from '@projo/player/core/trickplay'
 
 const percent = (ratio: number) => `${(ratio * 100).toFixed(3)}%`
 

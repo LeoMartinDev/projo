@@ -23,7 +23,7 @@ import {
   toneOf,
 } from '../media/media.ts'
 import { Score } from '../media/Score.tsx'
-import { episodeCards, episodeNumberLabel } from '../player/next-episode.ts'
+import { episodeCards, episodeNumberLabel } from '../player/ui/next-episode.ts'
 import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
 import { bySeason, selectedSeasonOf } from './seasons.ts'

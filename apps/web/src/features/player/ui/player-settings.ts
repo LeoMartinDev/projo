@@ -1,5 +1,5 @@
-import { readStoredJson, writeStoredJson } from '../../shared/storage/local-store.ts'
-import { clampDelay, isSubtitleSize, type SubtitleSize } from './subtitles.ts'
+import { readStoredJson, writeStoredJson } from '../../../shared/storage/local-store.ts'
+import { clampDelay, isSubtitleSize, type SubtitleSize } from '@projo/player/core/subtitles'
 
 export type SubtitleSettings = { size: SubtitleSize; delayMs: number }
 

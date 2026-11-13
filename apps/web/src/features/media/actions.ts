@@ -5,7 +5,7 @@ import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { api, request } from '../../shared/api/client.ts'
 import { itemQuery } from '../catalog/queries.ts'
-import { primePlayback } from '../player/player-element.ts'
+import { primePlayback } from '../player/engines/html-video/player-element.ts'
 import { type CardPlace, isWatched, listTargetOf } from './media.ts'
 
 const useRefreshCatalog = () => {

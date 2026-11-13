@@ -47,9 +47,9 @@ const OAuthAuthorizePage = lazyRouteComponent(
   'OAuthAuthorizePage',
 )
 const ItemPage = lazyRouteComponent(() => import('../features/item/ItemPage.tsx'), 'ItemPage')
-const PlayerPage = lazyRouteComponent(
-  () => import('../features/player/PlayerPage.tsx'),
-  'PlayerPage',
+const PlayerRoute = lazyRouteComponent(
+  () => import('../features/player/player-route.tsx'),
+  'PlayerRoute',
 )
 const AccountPage = lazyRouteComponent(
   () => import('../features/account/AccountPage.tsx'),
@@ -373,13 +373,13 @@ const itemRoute = createRoute({
 const watchRoute = createRoute({
   getParentRoute: () => authedRoute,
   path: '/watch/$itemId',
-  loader: () => PlayerPage.preload?.(),
+  loader: () => PlayerRoute.preload?.(),
   validateSearch: (search: Record<string, unknown>): { from?: 'start' } =>
     search['from'] === 'start' ? { from: 'start' } : {},
   component: function Watch() {
     const { itemId } = watchRoute.useParams()
     const { from } = watchRoute.useSearch()
-    return <PlayerPage key={itemId} itemId={itemId} fromStart={from === 'start'} />
+    return <PlayerRoute key={itemId} itemId={itemId} fromStart={from === 'start'} />
   },
 })
 

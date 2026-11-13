@@ -3,6 +3,7 @@ import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   type PointerEvent,
   type ReactNode,
+  type RefCallback,
   useCallback,
   useEffect,
   useEffectEvent,
@@ -15,21 +16,30 @@ import { useTranslation } from 'react-i18next'
 
 import { reducedMotion } from '@projo/design/media'
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
+import { createPlayerController } from '@projo/player/application/player-controller'
+import { type PlayerContext, playerView } from '@projo/player/application/player-view'
+import { countdownRatio, secondsLeft } from '@projo/player/core/next-up'
+import { segmentKey } from '@projo/player/core/segment-skip'
+import { vttTrackOf } from '@projo/player/core/subtitles'
+import {
+  chapterIndexAt,
+  chaptersOnItem,
+  currentPartDurationMs,
+  ratioOf,
+  remainingMs,
+  segmentZones,
+  snapToSeekPoint,
+} from '@projo/player/core/timeline'
+import { profileDefaultsFor } from '@projo/player/core/track-memory'
+import { sheetUrls, thumbnailAt } from '@projo/player/core/trickplay'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
-import type {
-  AudioTrackDto,
-  PlaybackHeartbeatBody,
-  PlaybackQuality,
-  PlaybackSessionDto,
-  TrackPreferencesBody,
-} from '@projo/shared/api/playback'
+import type { PlaybackQuality } from '@projo/shared/api/playback'
 
-import { type ApiFailure, apiFailure, toApiFailure } from '../../shared/api/failure.ts'
-import { useServerEvent } from '../../shared/events/events.ts'
-import { formatClock } from '../../shared/format/format.ts'
-import { useErrorMessage } from '../../shared/i18n/errors.ts'
-import { pickActiveProfile } from '../../shared/session/active-profile.ts'
-import { sessionQuery } from '../../shared/session/session.ts'
+import { useServerEvent } from '../../../shared/events/events.ts'
+import { formatClock } from '../../../shared/format/format.ts'
+import { useErrorMessage } from '../../../shared/i18n/errors.ts'
+import { pickActiveProfile } from '../../../shared/session/active-profile.ts'
+import { sessionQuery } from '../../../shared/session/session.ts'
 import {
   BackIcon,
   Forward10Icon,
@@ -38,35 +48,25 @@ import {
   PlayIcon,
   Rewind10Icon,
   VolumeIcon,
-} from '../../shared/ui/icons.tsx'
-import { useElement } from '../../shared/ui/use-element.ts'
-import { itemQuery } from '../catalog/queries.ts'
-import { useUpdateProfile } from '../profiles/queries.ts'
+} from '../../../shared/ui/icons.tsx'
+import { useElement } from '../../../shared/ui/use-element.ts'
+import { itemQuery } from '../../catalog/queries.ts'
+import { useUpdateProfile } from '../../profiles/queries.ts'
+import { toggleFullscreen, useIsFullscreen, usePlayerFullscreenScope } from '../fullscreen.ts'
 import {
-  documentPictureInPictureSupported,
-  openDocumentPictureInPicture,
-  showInDocumentPictureInPicture,
-} from './document-pip.ts'
+  browserClock,
+  browserPage,
+  browserStorage,
+  browserTimers,
+  fetchTrickplayIndex,
+  playbackApi,
+  preloadImages,
+  sessionEnds,
+} from '../playback-api.ts'
+import type { WebPlayerEngine } from '../web-engine.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
 import { nowPlayingOf } from './media-session.ts'
 import { NextUpBubble, NextUpCard, type NextUpCountdownView } from './NextUpCard.tsx'
-import { type Heartbeat, sessionTimedOut } from './heartbeat.ts'
-import {
-  attachStream,
-  createPlaybackSession,
-  deleteTrackPreferences,
-  endSessionOnce,
-  fetchTrickplayIndex,
-  forgetSession,
-  isSessionLetGo,
-  playbackTransport,
-  preloadImages,
-  putTrackPreferences,
-  releaseSession,
-  reloadStream,
-  retainSession,
-  type StreamFailure,
-} from './playback.ts'
 import {
   AirPlayIcon,
   ChaptersIcon,
@@ -95,33 +95,6 @@ import {
   type SubtitleSettings,
 } from './player-settings.ts'
 import {
-  type Countdown,
-  countdownFor,
-  countdownRatio,
-  countdownRuns,
-  countdownStartMs,
-  nextUpLaunches,
-  nextUpTriggerAt,
-  nextUpViewFor,
-  secondsLeft,
-  ticked,
-} from './next-up.ts'
-import {
-  autoSkipTarget,
-  segmentKey,
-  skipButtonPhase,
-  type SkippableSegment,
-  skippableAt,
-} from './segment-skip.ts'
-import {
-  initialRequest,
-  nextRequest,
-  reconnectDelay,
-  retriedRequest,
-  type SessionChange,
-  type SessionRequest,
-} from './session-request.ts'
-import {
   type Pinch,
   type PinchPoint,
   pinchCloses,
@@ -129,88 +102,24 @@ import {
   pinchStarted,
 } from './pinch-gesture.ts'
 import { commandFor, isVerticalDrag, tapZone, volumeAfterDrag } from './shortcuts.ts'
-import { createSessionUnlessLeft, startSessionLifecycle } from './session-lifecycle.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
 import { SubtitleOverlay } from './SubtitleOverlay.tsx'
 import { idleGesture, type SeekSide, settled, type TapGesture, tapped } from './tap-gestures.ts'
-import {
-  needsNewSession,
-  renditionLabel,
-  type SubtitleChoice,
-  toggledSubtitle,
-  vttTrackOf,
-  withSubtitleOffset,
-} from './subtitles.ts'
-import {
-  chapterIndexAt,
-  chaptersOnItem,
-  currentPartDurationMs,
-  itemPositionMs,
-  nextPart,
-  ratioOf,
-  remainingMs,
-  seekTargetFor,
-  segmentAt,
-  snapToSeekPoint,
-  segmentZones,
-  totalDurationMs,
-} from './timeline.ts'
 import { Timeline } from './Timeline.tsx'
-import {
-  memoryAtOpen,
-  preferencesOf,
-  profileDefaultsFor,
-  selectionOf,
-  serialTasks,
-  type TrackKind,
-  type TrackToast as TrackToastState,
-  toastForChange,
-  toastAutoHideMs,
-  toastHideDelay,
-  undoActionFor,
-} from './track-memory.ts'
 import { TrackToast } from './TrackToast.tsx'
-import { sheetUrls, thumbnailAt } from './trickplay.ts'
 import { useControlsInset } from './use-controls-inset.ts'
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
-import { usePlayerVideo } from './player-element.ts'
-import {
-  pictureInPictureShowsTextTracks,
-  pictureInPictureSupported,
-  restoreVolume,
-  saveVolume,
-  seekTo,
-  setPlaybackRate,
-  setVolumeLevel,
-  showAirPlayPicker,
-  toggleFullscreen,
-  toggleMuted,
-  togglePictureInPicture,
-  togglePlayback,
-  useAirPlayAvailable,
-  useIsFullscreen,
-  usePictureInPicture,
-  usePlayerFullscreenScope,
-  useVideoState,
-  volumeSettable,
-} from './video-state.ts'
+import { useStore } from './use-store.ts'
 import './player.css'
 
 const seekStepMs = 10_000
 const volumeStep = 0.1
 const idleDelayMs = 3000
-const endedReturnDelayMs = 5000
 const rippleFadeMs = 250
 // Kept equal to the transitions of `.player--pinch-settling` and `.player--pinch-closing`.
 const pinchSettleMs = 240
 const pinchCloseMs = 180
-const countdownTickMs = 250
-
-type Interruption =
-  | { kind: 'failure'; failure: ApiFailure }
-  | { kind: 'network'; failure: ApiFailure }
-  | { kind: 'terminated'; reason: 'admin' | 'timeout' | 'ended' }
 
 type Overlay = PlayerMenu | 'episodes'
 
@@ -234,7 +143,19 @@ const isEditable = (target: EventTarget | undefined) => {
 const inOverlay = (target: EventTarget | undefined) =>
   target instanceof Element && (target.closest('[data-player-overlay]') ?? undefined) !== undefined
 
-export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: boolean }) => {
+/**
+ * The player's page (§10.7): reads the controller of @projo/player and the
+ * engine it was given, acts through them. Never picks or imports an engine.
+ */
+export const PlayerPage = ({
+  itemId,
+  fromStart,
+  engine,
+}: {
+  itemId: string
+  fromStart: boolean
+  engine: WebPlayerEngine
+}) => {
   const { t } = useTranslation()
   const errorMessage = useErrorMessage()
   const navigate = useNavigate()
@@ -248,25 +169,10 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const next = useNextEpisode(item.data)
   const { title, subtitle } = useTitle(item.data)
 
-  const [request, setRequest] = useState<SessionRequest>(() => initialRequest(fromStart))
-  const [interruption, setInterruption] = useState<Interruption>()
-  const [reconnectAttempt, setReconnectAttempt] = useState(0)
-  const [switching, setSwitching] = useState<{ positionMs: number; totalMs: number }>()
   const [idle, setIdle] = useState(false)
   const [overlay, setOverlay] = useState<Overlay>()
   const [languagesTab, setLanguagesTab] = useState<LanguagesTab>('subtitles')
-  const [subtitleChoice, setSubtitleChoice] = useState<{
-    sessionId: string
-    id: string | undefined
-  }>()
-  const [lastSubtitleId, setLastSubtitleId] = useState<string>()
-  const [subtitlesChosen, setSubtitlesChosen] = useState(false)
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(loadSubtitleSettings)
-  const [rate, setRate] = useState(1)
-  const [toast, setToast] = useState<TrackToastState>()
-  const [memory, setMemory] = useState<{ value: TrackPreferencesBody | undefined }>()
-  const [writeMemory] = useState(serialTasks)
-  const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [seekRipple, setSeekRipple] = useState<{
     side: SeekSide
     steps: number
@@ -278,22 +184,10 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
   const [tapWait, setTapWait] = useState<{ ms: number; taps: TapGesture }>()
   const [volumeHud, setVolumeHud] = useState<number>()
   const [pinchStage, setPinchStage] = useState<'idle' | 'active' | 'settling' | 'closing'>('idle')
-  const [skipEntry, setSkipEntry] = useState<{ key: string; atMs: number }>()
-  const [skipped, setSkipped] = useState<{ segment: SkippableSegment; id: number }>()
-  const [creditsDismissed, setCreditsDismissed] = useState(false)
-  const [countdown, setCountdown] = useState<Countdown>()
-  const handledSegmentsRef = useRef(new Set<string>())
 
   const idleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const teardownRef = useRef<(() => PlaybackHeartbeatBody) | undefined>(undefined)
-  const heartbeatRef = useRef<Heartbeat | undefined>(undefined)
-  const openingMemoryRef = useRef<{ value: TrackPreferencesBody | undefined } | undefined>(
-    undefined,
-  )
-  const lastPositionRef = useRef<number | undefined>(undefined)
-  const startPausedRef = useRef(false)
-  const playedRef = useRef(false)
-  const pendingAudioMemoryRef = useRef<{ attempt: number } | undefined>(undefined)
+  // What the controller calls back into the page, kept current by an effect.
+  const pageActions = useRef({ playNext: () => {}, exit: () => {} })
   const gestureRef = useRef<{
     pointer: string
     start?: { x: number; y: number; volume: number; height: number; dragging: boolean } | undefined
@@ -306,50 +200,66 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     ignoring: boolean
   }>({ pointer: 'mouse', taps: idleGesture, touches: new Map(), ignoring: false })
 
-  const [video, videoSlotRef] = usePlayerVideo()
+  const [controller] = useState(() =>
+    createPlayerController({
+      itemId,
+      fromStart,
+      engine,
+      api: {
+        ...playbackApi,
+        updateProfile: (id, body) => updateProfile.mutateAsync({ id, body }),
+      },
+      ends: sessionEnds,
+      timers: browserTimers,
+      clock: browserClock,
+      storage: browserStorage,
+      page: browserPage,
+      subtitleDelayMs: subtitleSettings.delayMs,
+      onLetGo: () => void queryClient.invalidateQueries({ queryKey: ['catalog'] }),
+      onSwitch: () => setOverlay(undefined),
+      onPlayNext: () => pageActions.current.playNext(),
+      onExit: () => pageActions.current.exit(),
+    }),
+  )
+
+  const slotRef: RefCallback<HTMLDivElement> = useCallback(
+    (node) => {
+      if (node) node.append(engine.media)
+    },
+    [engine],
+  )
   const [container, containerRef] = useElement<HTMLDivElement>()
   const [controls, controlsRef] = useElement<HTMLDivElement>()
   useControlsInset(container, controls)
   usePlayerFullscreenScope()
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
-  const state = useVideoState(video)
+  const state = useStore(controller)
+  const media = useStore(engine.state)
   const fullscreen = useIsFullscreen()
-  const [pipStage, setPipStage] = useState<HTMLElement>()
-  const pip = usePictureInPicture(video) || pipStage !== undefined
-  const airPlay = useAirPlayAvailable(video)
+  const nativeFullscreen = useStore(engine.nativeFullscreen.active)
+  const pip = useStore(engine.pictureInPicture.active)
+  const pipStage = useStore(engine.pictureInPicture.stage)
+  const airPlay = useStore(engine.airPlay.available)
 
-  const playback = useQuery({
-    queryKey: ['playback', itemId, request],
-    queryFn: ({ signal }) =>
-      createSessionUnlessLeft({
-        create: () => createPlaybackSession(itemId, request),
-        signal,
-        endOnce: endSessionOnce,
-      }),
-    gcTime: 0,
-    staleTime: Number.POSITIVE_INFINITY,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  })
-  const session: PlaybackSessionDto | undefined = playback.data?.session
-  const hlsMode = playback.data?.hls ?? 'mse'
-  const hlsSubtitles = playback.data?.subtitles === 'hls'
+  const scope = item.data?.kind === 'episode' ? 'series' : 'movie'
+  const context: PlayerContext = useMemo(
+    () => ({ itemDurationMs: item.data?.durationMs, scope, profile, next: next.status }),
+    [item.data?.durationMs, scope, profile, next.status],
+  )
+  const view = playerView(state, media, context)
+  const { session, positionMs, totalMs, bufferedMs, streamMs, blocked, failure, networkLost } = view
+  const hlsSubtitles = state.subtitles === 'hls'
 
-  const streamMs = state.duration * 1000
-  const totalMs =
-    session === undefined
-      ? (switching?.totalMs ?? item.data?.durationMs ?? 0)
-      : totalDurationMs(session, streamMs)
-  const positionMs =
-    session === undefined
-      ? (switching?.positionMs ?? 0)
-      : itemPositionMs(session, state.currentTime)
-  const bufferedMs = session === undefined ? 0 : itemPositionMs(session, state.bufferedEnd)
+  useEffect(() => controller.setContext(context), [controller, context])
+  useEffect(() => {
+    controller.start()
+    return () => controller.stop()
+  }, [controller])
+  useEffect(() => () => engine.pictureInPicture.leave(), [engine])
+
   const chapters =
     session === undefined ? [] : chaptersOnItem(session.chapters, session.partOffsetMs)
   const zones = session === undefined ? [] : segmentZones(session.segments, totalMs)
-  const followingPart = session === undefined ? undefined : nextPart(session)
   const trickplayUrl = session?.trickplayUrl
   const trickplay = useQuery({
     queryKey: ['trickplay', trickplayUrl],
@@ -359,18 +269,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     retry: false,
   })
 
-  const audioIndex = session?.selectedAudioStreamIndex
-  const subtitleId =
-    session === undefined
-      ? undefined
-      : subtitleChoice?.sessionId === session.id
-        ? subtitleChoice.id
-        : session.selectedSubtitleTrackId
+  const { audioIndex, subtitleId } = view
   const vttTrack =
-    session === undefined || hlsSubtitles
+    session === undefined || state.subtitles !== 'overlay'
       ? undefined
       : vttTrackOf(session.subtitleTracks, subtitleId)
-  const scope = item.data?.kind === 'episode' ? 'series' : 'movie'
 
   const exit = useCallback(() => {
     if (canGoBack) {
@@ -401,325 +304,44 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     [navigate],
   )
 
-  const currentPosition = () =>
-    video !== undefined && session !== undefined && video.readyState > 0
-      ? itemPositionMs(session, video.currentTime)
-      : (lastPositionRef.current ?? positionMs)
-
-  const switchSession = async (change: SessionChange) => {
-    if (session === undefined) return
-    const at = currentPosition()
-    setSwitching({ positionMs: change.type === 'part' ? change.part.offsetMs : at, totalMs })
-    setOverlay(undefined)
-    const last = teardownRef.current?.() ?? { positionMs: at, paused: false }
-    startPausedRef.current = change.type === 'retry' && last.paused === true && playedRef.current
-    const nextValue = nextRequest({
-      request,
-      session,
-      tracks: { audioStreamIndex: audioIndex, subtitleTrackId: subtitleId, subtitlesChosen },
-      change,
-      positionMs: at,
-    })
-    await endSessionOnce(session.id, last)
-    setInterruption(undefined)
-    setRequest(nextValue)
-  }
-
-  const onStreamFailure = useEffectEvent(({ failure, network }: StreamFailure) => {
-    if (interruption !== undefined) return
-    setInterruption(network ? { kind: 'network', failure } : { kind: 'failure', failure })
-  })
-  const onPlaying = useEffectEvent(() => {
-    playedRef.current = true
-    if (reconnectAttempt !== 0) setReconnectAttempt(0)
-    if (switching !== undefined) setSwitching(undefined)
-  })
-  const applyRate = useEffectEvent((element: HTMLVideoElement) => setPlaybackRate(element, rate))
-  const onStreamEnded = useEffectEvent(() => {
-    if (followingPart !== undefined) void switchSession({ type: 'part', part: followingPart })
-  })
-
-  const streamedSession = useEffectEvent((current: PlaybackSessionDto) =>
-    hlsSubtitles && current.stream.type === 'hls'
-      ? {
-          ...current,
-          stream: {
-            ...current.stream,
-            url: withSubtitleOffset(current.stream.url, subtitleSettings.delayMs),
-          },
-        }
-      : current,
-  )
+  const nextEpisode = next.status === 'found' ? next.episode : undefined
 
   useEffect(() => {
-    if (pipStage === undefined || video === undefined) return
-    return showInDocumentPictureInPicture(pipStage, video, () => setPipStage(undefined))
-  }, [pipStage, video])
-
-  useEffect(() => {
-    if (video === undefined || session === undefined) return
-    openingMemoryRef.current ??= { value: memoryAtOpen(session) }
-    restoreVolume(video)
-    applyRate(video)
-    const lifecycle = startSessionLifecycle({
-      session,
-      video,
-      page: window,
-      attach: () =>
-        attachStream(
-          video,
-          streamedSession(session),
-          hlsMode,
-          (failure) => onStreamFailure(failure),
-          !startPausedRef.current,
-        ),
-      transport: playbackTransport,
-      timers: {
-        setInterval: (callback, ms) => window.setInterval(callback, ms),
-        clearInterval: (handle) => window.clearInterval(handle as number),
+    pageActions.current = {
+      playNext: () => {
+        if (nextEpisode !== undefined) playEpisode(nextEpisode)
       },
-      ends: { retain: retainSession, release: releaseSession, endOnce: endSessionOnce },
-      onHeartbeatFailure: (failure) => {
-        const apiError = toApiFailure(failure)
-        if (sessionTimedOut(apiError)) onStreamFailure({ failure: apiError, network: true })
-      },
-      onEnded: () => onStreamEnded(),
-      onPlaying: () => onPlaying(),
-      onLoaded: () => applyRate(video),
-      onVolumeChange: () => saveVolume(video.volume, video.muted),
-      onPosition: (positionMs) => {
-        lastPositionRef.current = positionMs
-      },
-      onLetGo: () => void queryClient.invalidateQueries({ queryKey: ['catalog'] }),
-    })
-    heartbeatRef.current = lifecycle.heartbeat
-    teardownRef.current = lifecycle.teardown
-    return () => {
-      lifecycle.dispose()
-      if (teardownRef.current === lifecycle.teardown) teardownRef.current = undefined
-      if (heartbeatRef.current === lifecycle.heartbeat) heartbeatRef.current = undefined
+      exit,
     }
-  }, [video, session, hlsMode, queryClient])
+  }, [nextEpisode, playEpisode, exit])
 
-  useServerEvent('playback.session_terminated', (payload) => {
-    if (session === undefined || payload.playbackSessionId !== session.id) return
-    if (isSessionLetGo(session.id)) return
-    forgetSession(session.id)
-    teardownRef.current?.()
-    setInterruption(
-      sessionTimedOut(payload)
-        ? {
-            kind: 'network',
-            failure: apiFailure(410, 'playback/session_expired', 'playback session ended'),
-          }
-        : { kind: 'terminated', reason: payload.reason },
-    )
-  })
-
-  useEffect(() => {
-    if (video === undefined || session === undefined || !hlsSubtitles) return
-    const label = renditionLabel(session.subtitleTracks, subtitleId)
-    const apply = () => {
-      for (const track of Array.from(video.textTracks)) {
-        if (track.kind !== 'subtitles' && track.kind !== 'captions') continue
-        track.mode = label !== undefined && track.label === label ? 'showing' : 'disabled'
-      }
-    }
-    apply()
-    video.textTracks.addEventListener('addtrack', apply)
-    return () => video.textTracks.removeEventListener('addtrack', apply)
-  }, [video, session, subtitleId, hlsSubtitles])
-
-  useEffect(() => {
-    if (video === undefined || session?.stream.type !== 'hls' || !hlsSubtitles) return
-    const url = withSubtitleOffset(session.stream.url, subtitleSettings.delayMs)
-    if (video.src.endsWith(url)) return
-    const timer = setTimeout(() => reloadStream(video, url), 800)
-    return () => clearTimeout(timer)
-  }, [video, session, hlsSubtitles, subtitleSettings.delayMs])
-
-  useEffect(() => {
-    if (video === undefined) return
-    video.classList.toggle('player__video--native-cues', hlsSubtitles)
-  }, [video, hlsSubtitles])
-
-  useEffect(() => {
-    if (video === undefined) return
-    const begin = () => setNativeFullscreen(true)
-    const end = () => setNativeFullscreen(false)
-    video.addEventListener('webkitbeginfullscreen', begin)
-    video.addEventListener('webkitendfullscreen', end)
-    return () => {
-      video.removeEventListener('webkitbeginfullscreen', begin)
-      video.removeEventListener('webkitendfullscreen', end)
-    }
-  }, [video])
-
-  const reconnect = useEffectEvent(() => {
-    setReconnectAttempt((value) => value + 1)
-    if (session !== undefined) {
-      void switchSession({ type: 'retry' })
-      return
-    }
-    setInterruption(undefined)
-    setRequest((value) => retriedRequest(value, lastPositionRef.current))
-  })
-
-  const restart = () => {
-    setReconnectAttempt(0)
-    if (session !== undefined && interruption?.kind !== 'terminated') {
-      void switchSession({ type: 'retry' })
-      return
-    }
-    setInterruption(undefined)
-    setRequest((value) => retriedRequest(value, lastPositionRef.current))
-  }
-
-  const failure =
-    interruption?.kind === 'failure' || interruption?.kind === 'network'
-      ? interruption.failure
-      : playback.isError
-        ? playback.error
-        : undefined
-  const networkLost =
-    failure !== undefined &&
-    (interruption?.kind === 'network' || failure.code === 'network') &&
-    reconnectDelay(reconnectAttempt) !== undefined
+  useServerEvent('playback.session_terminated', (payload) => controller.sessionTerminated(payload))
 
   useEffect(() => {
     if (!networkLost) return
-    const timer = setTimeout(() => reconnect(), reconnectDelay(reconnectAttempt))
-    const online = () => reconnect()
+    const online = () => controller.retryNetwork()
     const visible = () => {
-      if (document.visibilityState === 'visible') reconnect()
+      if (document.visibilityState === 'visible') controller.retryNetwork()
     }
     window.addEventListener('online', online)
     document.addEventListener('visibilitychange', visible)
     return () => {
-      clearTimeout(timer)
       window.removeEventListener('online', online)
       document.removeEventListener('visibilitychange', visible)
     }
-  }, [networkLost, reconnectAttempt])
+  }, [controller, networkLost])
 
-  const remember = (kind: TrackKind, selection: Parameters<typeof preferencesOf>[0]) => {
-    const current = preferencesOf(selection)
-    const previous = memory?.value ?? openingMemoryRef.current?.value
-    const nextToast = toastForChange({
-      previousToast: toast,
-      memory: previous,
-      kind,
-      scope,
-      current,
-    })
-    setSkipped(undefined)
-    setToast(nextToast)
-    setMemory({ value: current })
-    writeMemory(() => putTrackPreferences(itemId, current)).catch(() =>
-      setToast((shown) => (shown?.id === nextToast.id ? { ...shown, status: 'failed' } : shown)),
-    )
-  }
-
-  const chooseAudio = (track: AudioTrackDto) => {
-    if (session === undefined || track.index === audioIndex) return
-    if (subtitlesChosen) {
-      remember('audio', {
-        audio: track,
-        subtitle: session.subtitleTracks.find((candidate) => candidate.id === subtitleId),
-      })
-    } else {
-      pendingAudioMemoryRef.current = { attempt: request.attempt + 1 }
-    }
-    void switchSession({ type: 'audio', index: track.index })
-  }
-
-  const rememberCascadeAudio = useEffectEvent((opened: PlaybackSessionDto) => {
-    const pending = pendingAudioMemoryRef.current
-    pendingAudioMemoryRef.current = undefined
-    if (pending?.attempt === request.attempt) remember('audio', selectionOf(opened))
-  })
-
-  useEffect(() => {
-    if (session !== undefined) rememberCascadeAudio(session)
-  }, [session])
-
-  const chooseSubtitle = (choice: SubtitleChoice) => {
-    if (session === undefined) return
-    const id = choice.kind === 'off' ? undefined : choice.track.id
-    if (id === subtitleId) return
-    if (subtitleId !== undefined) setLastSubtitleId(subtitleId)
-    setSubtitlesChosen(true)
-    remember('subtitles', {
-      audio: session.audioTracks.find((track) => track.index === audioIndex),
-      subtitle: choice.kind === 'off' ? undefined : choice.track,
-    })
-    if (needsNewSession(session, choice, playback.data?.subtitles)) {
-      void switchSession({ type: 'subtitles', trackId: id ?? 'off' })
-      return
-    }
-    setSubtitleChoice({ sessionId: session.id, id })
-    heartbeatRef.current?.beat()
-  }
-
-  const setProfileDefault = () => {
-    if (toast === undefined || profile === undefined) return
-    const body = profileDefaultsFor(toast.kind, toast.current, profile)
-    if (body === undefined) return
-    const id = toast.id
-    setToast({ ...toast, status: 'defaulting' })
-    updateProfile.mutate(
-      { id: profile.id, body },
-      {
-        onSuccess: () =>
-          setToast((shown) => (shown?.id === id ? { ...shown, status: 'defaulted' } : shown)),
-        onError: () =>
-          setToast((shown) => (shown?.id === id ? { ...shown, status: 'failed' } : shown)),
-      },
-    )
-  }
-
-  const undoMemory = () => {
-    if (toast === undefined) return
-    const action = undoActionFor(toast.previous)
-    const id = toast.id
-    setMemory({ value: toast.previous })
-    setToast({ ...toast, status: 'undone' })
-    const done = writeMemory(() =>
-      action.type === 'delete'
-        ? deleteTrackPreferences(itemId)
-        : putTrackPreferences(itemId, action.body),
-    )
-    done.catch(() =>
-      setToast((shown) => (shown?.id === id ? { ...shown, status: 'failed' } : shown)),
-    )
-  }
-
-  useEffect(() => {
-    if (toast === undefined) return
-    const delay = toastHideDelay(toast)
-    if (delay === undefined) return
-    const timer = setTimeout(() => setToast(undefined), delay)
-    return () => clearTimeout(timer)
-  }, [toast])
+  useEffect(
+    () => controller.setSubtitleDelay(subtitleSettings.delayMs),
+    [controller, subtitleSettings.delayMs],
+  )
 
   const changeSubtitleSettings = (update: (settings: SubtitleSettings) => SubtitleSettings) =>
     setSubtitleSettings(update)
 
   useEffect(() => saveSubtitleSettings(subtitleSettings), [subtitleSettings])
 
-  const changeRate = (value: number) => {
-    setRate(value)
-    if (video !== undefined) setPlaybackRate(video, value)
-  }
-
-  const itemEnded = state.ended && followingPart === undefined && session !== undefined
-  const nextEpisode = next.status === 'found' ? next.episode : undefined
-
-  useEffect(() => {
-    if (!itemEnded || next.status !== 'none') return
-    const timer = setTimeout(exit, endedReturnDelayMs)
-    return () => clearTimeout(timer)
-  }, [itemEnded, next.status, exit])
+  const { toast, skipped } = state
 
   const wake = useCallback(() => {
     setIdle(false)
@@ -741,124 +363,21 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     opener?.focus()
   }
 
-  const togglePlay = () => {
-    if (video !== undefined) togglePlayback(video)
-  }
-
-  const seekToItem = (target: number) => {
-    if (video === undefined || session === undefined) return
-    const where = seekTargetFor(session, streamMs, target)
-    if (where.kind === 'stream') seekTo(video, where.seconds)
-    else void switchSession({ type: 'seek_part', part: where.part, positionMs: where.positionMs })
-  }
-
-  const seekBy = (deltaMs: number) => seekToItem(currentPosition() + deltaMs)
-
-  const setVolume = (volume: number) => {
-    if (video !== undefined) setVolumeLevel(video, volume)
-  }
-
-  const toggleMute = () => {
-    if (video !== undefined) toggleMuted(video)
-  }
-
-  const toggleFull = () => {
-    if (video !== undefined) toggleFullscreen(video)
-  }
-
-  const skipOver = (segment: SkippableSegment) => {
-    handledSegmentsRef.current.add(segmentKey(segment))
-    setToast(undefined)
-    setSkipped((shown) => ({ segment, id: (shown?.id ?? 0) + 1 }))
-    seekToItem(segment.endMs)
-  }
-
-  const undoSkip = () => {
-    if (skipped === undefined) return
-    const { segment } = skipped
-    setSkipped(undefined)
-    setSkipEntry({ key: segmentKey(segment), atMs: segment.startMs })
-    seekToItem(segment.startMs)
-  }
-
-  const skipSegment = () => {
-    if (session === undefined) return
-    const at = currentPosition()
-    const skippable = skippableAt(session.segments, at)
-    if (skippable !== undefined) {
-      skipOver(skippable)
-      return
-    }
-    const segment = segmentAt(session.segments, at)
-    if (segment !== undefined) seekToItem(segment.endMs)
-  }
-
-  const toggleSubtitles = () => {
-    if (session === undefined) return
-    const choice = toggledSubtitle({
-      tracks: session.subtitleTracks,
-      selectedId: subtitleId,
-      lastId: lastSubtitleId,
-      preferredLanguage: profile?.subtitleLanguage,
+  const togglePlay = () => controller.togglePlay()
+  const seekToItem = (target: number) => controller.seekToItem(target)
+  const seekBy = (deltaMs: number) => controller.seekBy(deltaMs)
+  const setVolume = (volume: number) => controller.setVolume(volume)
+  const toggleMute = () => controller.toggleMute()
+  const toggleFull = () =>
+    toggleFullscreen({
+      available: engine.capabilities.nativeFullscreen,
+      enter: engine.nativeFullscreen.enter,
     })
-    if (choice !== undefined) chooseSubtitle(choice)
-  }
 
-  const blocked = (failure !== undefined && !networkLost) || interruption?.kind === 'terminated'
-  const segments = session?.segments ?? []
-  const skippable = session === undefined ? undefined : skippableAt(segments, positionMs)
+  const { skippable, skipView, nextUpView, countdown: activeCountdown, countdownStart } = view
   const skippableKey = skippable === undefined ? undefined : segmentKey(skippable)
-  const skipView =
-    skippable !== undefined && skipEntry !== undefined && skipEntry.key === skippableKey
-      ? skipButtonPhase(skipEntry.atMs, positionMs)
-      : { phase: 'full' as const, progress: 0 }
-
-  const onSegmentTime = useEffectEvent((element: HTMLVideoElement) => {
-    if (session === undefined || blocked || element.readyState === 0) return
-    const at = itemPositionMs(session, element.currentTime)
-    const playing = skippableAt(session.segments, at)
-    const key = playing === undefined ? undefined : segmentKey(playing)
-    setSkipEntry((entry) =>
-      key === undefined ? undefined : entry?.key === key ? entry : { key, atMs: at },
-    )
-    if (element.paused || element.seeking) return
-    const target = autoSkipTarget({
-      segments: session.segments,
-      positionMs: at,
-      autoSkipIntro: profile?.autoSkipIntro ?? false,
-      handled: handledSegmentsRef.current,
-    })
-    if (target !== undefined) skipOver(target)
-  })
-  useEffect(() => {
-    if (video === undefined) return
-    const listener = () => onSegmentTime(video)
-    video.addEventListener('timeupdate', listener)
-    return () => video.removeEventListener('timeupdate', listener)
-  }, [video])
-
-  useEffect(() => {
-    if (skipped === undefined) return
-    const timer = setTimeout(() => setSkipped(undefined), toastAutoHideMs)
-    return () => clearTimeout(timer)
-  }, [skipped])
-
-  const trigger =
-    session === undefined
-      ? undefined
-      : nextUpTriggerAt({ segments, positionMs, totalMs, ended: itemEnded })
-  const nextUpView = nextUpViewFor({ trigger, creditsDismissed, next: next.status, blocked })
   // The full "Next episode" screen, at the end of the file only.
   const nextUpShown = nextUpView === 'screen'
-  const nextUpActive = nextUpView !== 'none'
-  const countdownStart = countdownStartMs({
-    autoplayNext: profile?.autoplayNext ?? true,
-    autoSkipCredits: profile?.autoSkipCredits ?? false,
-  })
-  const activeCountdown =
-    nextUpActive && trigger !== undefined
-      ? countdownFor(countdown, trigger, countdownStart)
-      : undefined
   const countdownView: NextUpCountdownView =
     activeCountdown === undefined || activeCountdown.leftMs === undefined
       ? undefined
@@ -866,40 +385,6 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           seconds: secondsLeft(activeCountdown) ?? 0,
           ratio: countdownRatio(activeCountdown, countdownStart),
         }
-  const counting = countdownRuns({
-    view: nextUpView,
-    countdown: activeCountdown,
-    paused: state.paused,
-    ended: itemEnded,
-  })
-  const launch = nextUpLaunches(nextUpView, activeCountdown)
-
-  useEffect(() => {
-    if (!nextUpActive) return
-    return () => setCountdown(undefined)
-  }, [nextUpActive])
-
-  const tick = useEffectEvent((elapsedMs: number) => {
-    if (trigger === undefined) return
-    setCountdown((previous) => ticked(countdownFor(previous, trigger, countdownStart), elapsedMs))
-  })
-  useEffect(() => {
-    if (!counting) return
-    let last = performance.now()
-    const timer = setInterval(() => {
-      const now = performance.now()
-      tick(now - last)
-      last = now
-    }, countdownTickMs)
-    return () => clearInterval(timer)
-  }, [counting])
-
-  const playNext = useEffectEvent(() => {
-    if (nextEpisode !== undefined) playEpisode(nextEpisode)
-  })
-  useEffect(() => {
-    if (launch) playNext()
-  }, [launch])
 
   const posterUrl = item.data?.series?.images?.poster ?? item.data?.images.poster
   const nowPlaying = useMemo(
@@ -907,23 +392,16 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     [title, subtitle, posterUrl],
   )
   useMediaSession({
-    video,
+    engine,
     metadata: nowPlaying,
     seekBy,
     next: nextEpisode === undefined ? undefined : () => playEpisode(nextEpisode),
   })
 
-  const creditsKey = trigger?.kind === 'credits' ? trigger.key : undefined
-  useEffect(() => {
-    if (creditsKey !== undefined) heartbeatRef.current?.beat()
-  }, [creditsKey])
-
   const nextDetail = useQuery({
     ...itemQuery(nextEpisode?.id ?? ''),
     enabled: nextEpisode !== undefined,
   })
-
-  const watchCredits = () => setCreditsDismissed(true)
 
   const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
     const command = commandFor(event, {
@@ -943,20 +421,20 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       case 'seek_forward':
         return seekBy(seekStepMs)
       case 'volume_up':
-        return setVolume((video?.volume ?? 1) + volumeStep)
+        return setVolume(engine.read().volume + volumeStep)
       case 'volume_down':
-        return setVolume((video?.volume ?? 1) - volumeStep)
+        return setVolume(engine.read().volume - volumeStep)
       case 'toggle_mute':
         return toggleMute()
       case 'toggle_fullscreen':
         return toggleFull()
       case 'skip_segment':
-        return skipSegment()
+        return controller.skipSegment()
       case 'next_episode':
         if (nextEpisode !== undefined) playEpisode(nextEpisode)
         return
       case 'toggle_subtitles':
-        return toggleSubtitles()
+        return controller.toggleSubtitles()
       case 'close_overlay':
         return closeOverlay()
       case 'exit':
@@ -1100,7 +578,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     gesture.start = {
       x: event.clientX,
       y: event.clientY,
-      volume: video?.volume ?? 1,
+      volume: engine.read().volume,
       height: rect.height,
       dragging: false,
     }
@@ -1121,10 +599,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
       return
     }
     const start = gesture.start
-    if (start === undefined || video === undefined) return
+    if (start === undefined) return
     const dx = event.clientX - start.x
     const dy = event.clientY - start.y
-    if (!start.dragging && isVerticalDrag(dx, dy) && volumeSettable(video)) start.dragging = true
+    if (!start.dragging && isVerticalDrag(dx, dy) && engine.capabilities.volume)
+      start.dragging = true
     if (!start.dragging) return
     const volume = volumeAfterDrag(start.volume, dy, start.height)
     setVolume(volume)
@@ -1172,18 +651,13 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
     else togglePlay()
   }
 
-  const loading =
-    !blocked &&
-    (networkLost ||
-      playback.isPending ||
-      (switching !== undefined && session === undefined) ||
-      (state.waiting && !state.paused) ||
-      !state.ready)
+  const { loading, itemEnded } = view
+  const interruption = state.interruption
   const showEnd = itemEnded && !blocked && !nextUpShown
   const chromeVisible =
-    !idle || state.paused || blocked || overlay !== undefined || showEnd || nextUpShown
+    !idle || media.paused || blocked || overlay !== undefined || showEnd || nextUpShown
   const canAct = session !== undefined && !blocked
-  const muted = state.muted || state.volume === 0
+  const muted = media.muted || media.volume === 0
   const landingFor = (ms: number) => (session === undefined ? ms : snapToSeekPoint(session, ms))
   const thumbnailFor = (ms: number) => {
     if (session === undefined || trickplay.data === undefined || trickplayUrl === undefined)
@@ -1231,8 +705,8 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         if (event.pointerType === 'mouse') wake()
       }}
     >
-      <div ref={videoSlotRef} className="player__video-slot" />
-      {video === undefined || vttTrack === undefined || vttTrack.url === undefined
+      <div ref={slotRef} className="player__video-slot" />
+      {vttTrack === undefined || vttTrack.url === undefined
         ? undefined
         : createPortal(
             <track
@@ -1243,7 +717,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               {...(vttTrack.language === undefined ? {} : { srcLang: vttTrack.language })}
               label={vttTrack.title ?? vttTrack.language ?? ''}
             />,
-            video,
+            engine.media,
           )}
 
       {pipStage === undefined ? (
@@ -1256,7 +730,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           aboveToast={
             (toast !== undefined || skipped !== undefined || nextUpView === 'bubble') && !blocked
           }
-          native={nativeFullscreen || (pip && pictureInPictureShowsTextTracks(video))}
+          native={nativeFullscreen || (pip && engine.pictureInPicture.showsTextTracks())}
         />
       ) : (
         createPortal(
@@ -1328,7 +802,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         </div>
       ) : undefined}
 
-      {!loading && !blocked && !showEnd && !nextUpShown && overlay === undefined && state.paused ? (
+      {!loading && !blocked && !showEnd && !nextUpShown && overlay === undefined && media.paused ? (
         <button
           type="button"
           className="player__big-play"
@@ -1353,11 +827,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           <button
             type="button"
             className="player__touch-button player__touch-button--main"
-            aria-label={state.paused ? t('player.play') : t('player.pause')}
+            aria-label={media.paused ? t('player.play') : t('player.pause')}
             tabIndex={-1}
             onClick={togglePlay}
           >
-            {state.paused ? <PlayIcon size={34} /> : <PauseIcon size={34} />}
+            {media.paused ? <PlayIcon size={34} /> : <PauseIcon size={34} />}
           </button>
           <button
             type="button"
@@ -1391,20 +865,20 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           segment={skippable}
           phase={skipView.phase}
           progress={skipView.progress}
-          onSkip={() => skipOver(skippable)}
+          onSkip={() => controller.skipOver(skippable)}
         />
       ) : undefined}
 
       {skipped === undefined || blocked ? undefined : (
-        <SkippedToast key={skipped.id} segment={skipped.segment} onUndo={undoSkip} />
+        <SkippedToast key={skipped.id} segment={skipped.segment} onUndo={controller.undoSkip} />
       )}
 
       {toast === undefined || blocked ? undefined : (
         <TrackToast
           toast={toast}
           canSetDefault={toastCanDefault}
-          onSetDefault={setProfileDefault}
-          onUndo={undoMemory}
+          onSetDefault={controller.setProfileDefault}
+          onUndo={controller.undoMemory}
         />
       )}
 
@@ -1426,7 +900,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
             <button type="button" className="button button--glass" onClick={exit}>
               {t('player.back')}
             </button>
-            <button type="button" className="button button--primary" onClick={restart}>
+            <button type="button" className="button button--primary" onClick={controller.restart}>
               {t('common.retry')}
             </button>
           </div>
@@ -1437,7 +911,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
         <NextUpBubble
           countdown={countdownView}
           onPlay={() => playEpisode(nextEpisode)}
-          onWatchCredits={watchCredits}
+          onWatchCredits={controller.watchCredits}
         />
       ) : undefined}
 
@@ -1486,21 +960,19 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
               tab={languagesTab}
               onTab={setLanguagesTab}
               onClose={closeOverlay}
-              onAudio={chooseAudio}
-              onSubtitle={chooseSubtitle}
+              onAudio={controller.chooseAudio}
+              onSubtitle={controller.chooseSubtitle}
               subtitleSettings={subtitleSettings}
               onSubtitleSettings={changeSubtitleSettings}
               sizeAdjustable={!hlsSubtitles}
             />
           ) : overlay === 'speed' ? (
-            <SpeedMenu rate={rate} onRate={changeRate} onClose={closeOverlay} />
+            <SpeedMenu rate={state.rate} onRate={controller.setRate} onClose={closeOverlay} />
           ) : overlay === 'quality' ? (
             <QualityMenu
               session={session}
-              onQuality={(quality: PlaybackQuality) => {
-                if (quality !== session.quality) void switchSession({ type: 'quality', quality })
-              }}
-              onVersion={(sourceId) => void switchSession({ type: 'version', sourceId })}
+              onQuality={(quality: PlaybackQuality) => controller.chooseQuality(quality)}
+              onVersion={controller.chooseVersion}
               onClose={closeOverlay}
             />
           ) : (
@@ -1568,11 +1040,11 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
           <button
             type="button"
             className="player__control player__control--play player__control--pointer"
-            aria-label={state.paused ? t('player.play') : t('player.pause')}
+            aria-label={media.paused ? t('player.play') : t('player.pause')}
             disabled={!canAct}
             onClick={togglePlay}
           >
-            {state.paused ? <PlayIcon size={26} /> : <PauseIcon size={26} />}
+            {media.paused ? <PlayIcon size={26} /> : <PauseIcon size={26} />}
           </button>
           <button
             type="button"
@@ -1596,7 +1068,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
             <button
               type="button"
               className="player__control"
-              aria-label={state.muted ? t('player.unmute') : t('player.mute')}
+              aria-label={media.muted ? t('player.unmute') : t('player.mute')}
               onClick={toggleMute}
             >
               {muted ? <MutedIcon size={22} /> : <VolumeIcon size={22} />}
@@ -1604,7 +1076,7 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
             <div className="volume__slider">
               <progress
                 className="volume__level"
-                value={muted ? 0 : state.volume}
+                value={muted ? 0 : media.volume}
                 max={1}
                 aria-hidden="true"
               />
@@ -1614,9 +1086,9 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
                 min={0}
                 max={1}
                 step={0.05}
-                value={muted ? 0 : state.volume}
+                value={muted ? 0 : media.volume}
                 aria-label={t('player.volume')}
-                aria-valuetext={`${Math.round((muted ? 0 : state.volume) * 100)} %`}
+                aria-valuetext={`${Math.round((muted ? 0 : media.volume) * 100)} %`}
                 onChange={(event) => setVolume(event.target.valueAsNumber)}
               />
             </div>
@@ -1656,29 +1128,23 @@ export const PlayerPage = ({ itemId, fromStart }: { itemId: string; fromStart: b
             ? menuButton('quality', <QualityIcon size={22} />)
             : undefined}
           {menuButton('languages', <SubtitlesIcon size={22} />)}
-          {pictureInPictureSupported(video) ? (
+          {engine.capabilities.pictureInPicture ? (
             <button
               type="button"
               className="player__control player__control--pip"
               aria-label={t('player.menu.pip')}
               aria-pressed={pip}
-              onClick={() => {
-                if (video === undefined) return
-                if (pipStage !== undefined) setPipStage(undefined)
-                else if (documentPictureInPictureSupported())
-                  void openDocumentPictureInPicture(video).then(setPipStage)
-                else togglePictureInPicture(video)
-              }}
+              onClick={engine.pictureInPicture.toggle}
             >
               <PictureInPictureIcon size={21} />
             </button>
           ) : undefined}
-          {airPlay && video !== undefined ? (
+          {airPlay ? (
             <button
               type="button"
               className="player__control"
               aria-label={t('player.menu.airplay')}
-              onClick={() => showAirPlayPicker(video)}
+              onClick={engine.airPlay.showPicker}
             >
               <AirPlayIcon size={21} />
             </button>

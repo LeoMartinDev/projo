@@ -10,7 +10,7 @@ import { createRoot } from 'react-dom/client'
 
 import { createAppQueryClient } from './app/query-client.ts'
 import { createAppRouter } from './app/router.tsx'
-import { installPlaybackPriming } from './features/player/player-element.ts'
+import { installPlaybackPriming } from './features/player/engines/html-video/player-element.ts'
 import { trackInstallPrompt } from './shared/app-install/install-prompt.ts'
 import { registerServiceWorker, reloadToLatest } from './shared/app-update/service-worker.ts'
 import { setupI18n } from './shared/i18n/index.ts'

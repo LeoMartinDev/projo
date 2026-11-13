@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
-import type { SkippableSegment } from './segment-skip.ts'
+import type { SkippableSegment } from '@projo/player/core/segment-skip'
 
 const SkipIcon = ({ size }: { size: number }) => (
   <svg
