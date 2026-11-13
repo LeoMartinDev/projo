@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 
 import {
-  type ParsedNameDto,
   type PurgeMissingResponse,
   purgeMissingBodySchema,
   type SourceDto,
@@ -13,12 +12,12 @@ import type { AssignResult, Review } from '../../../application/metadata/review.
 import type { MissingSourcesAdmin } from '../../../application/operations/types.ts'
 import type { SourceAdmin } from '../../../application/scanner/source-admin.ts'
 import { sourceVersionOf } from '../../../core/media/version.ts'
-import type { ParsedName } from '../../../core/naming/index.ts'
 import type { SourceListItem } from '../../../core/source/source.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
+import { toParsedNameDto } from './sources-dto.ts'
 
 const baseName = (relativePath: string): string => relativePath.split('/').at(-1) ?? relativePath
 
@@ -30,14 +29,6 @@ export const toAssignResponse = ({
   itemIds,
   needsReview,
 }: AssignResult): AssignResponse => ({ sourceIds, itemIds, needsReview })
-
-export const toParsedNameDto = (parsed: ParsedName): ParsedNameDto => {
-  const { part: _part, absoluteEpisodeEnd: _end, ids, ...rest } = parsed
-  return {
-    ...rest,
-    ...(ids === undefined || Object.keys(ids).length === 0 ? {} : { ids: { ...ids } }),
-  }
-}
 
 export const toSourceDto = (source: SourceListItem): SourceDto => ({
   id: source.id,

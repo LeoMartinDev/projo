@@ -1,7 +1,15 @@
 import { ok } from '@projo/shared'
 
+import { findCatalogItemsFactory } from '../../application/assistants/find-catalog-items.ts'
+import { getItemFilesFactory } from '../../application/assistants/get-item-files.ts'
+import { getReviewSourceFactory } from '../../application/assistants/get-review-source.ts'
+import { getReviewSummaryFactory } from '../../application/assistants/get-review-summary.ts'
+import { getTmdbSeriesFactory } from '../../application/assistants/get-tmdb-series.ts'
+import { listHiddenSourcesFactory } from '../../application/assistants/list-hidden-sources.ts'
+import { listReviewQueueFactory } from '../../application/assistants/list-review-queue.ts'
 import { assistantTokensFactory } from '../../application/auth/assistant-tokens.ts'
 import { oauthFactory } from '../../application/auth/oauth.ts'
+import type { TmdbDetails } from '../../application/metadata/tmdb-details.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import { verifyPkceS256 } from '../../infrastructure/auth/pkce.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
@@ -29,6 +37,11 @@ import { oauthRoutes } from '../oauth/routes.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
+export type AssistantPorts = Pick<AssistantToolsDeps, 'review'> & {
+  tmdbDetails: Pick<TmdbDetails, 'series' | 'season'>
+  metadataLanguage: () => string
+}
+
 const mcpRateLimit = { limit: 120, windowMs: 60_000 }
 const registrationRateLimit = { limit: 10, windowMs: 60 * 60_000 }
 const tokenFailureRateLimit = { limit: 20, windowMs: 15 * 60_000 }
@@ -39,7 +52,7 @@ export const buildAssistantsModule = (
     assistantPorts,
     clientMetadata = createClientMetadataFetcher(),
   }: {
-    assistantPorts: Pick<AssistantToolsDeps, 'review' | 'tmdbDetails' | 'metadataLanguage'>
+    assistantPorts: AssistantPorts
     clientMetadata?: ClientMetadataFetcher
   },
 ) => {
@@ -81,13 +94,21 @@ export const buildAssistantsModule = (
     return ok({ credentialId: tokenId, accountId, profileId })
   }
 
+  const { review, tmdbDetails, metadataLanguage } = assistantPorts
+  const sources = createSqliteSourceRepository({ db, ids })
+  const libraries = createSqliteLibraryRepository({ db })
+  const catalog = createSqliteCatalogRepository({ db })
+  const items = createSqliteMetadataItemRepository({ db })
   const protocol = createMcpProtocol({
     tools: buildAssistantTools({
-      ...assistantPorts,
-      sources: createSqliteSourceRepository({ db, ids }),
-      libraries: createSqliteLibraryRepository({ db }),
-      catalog: createSqliteCatalogRepository({ db }),
-      items: createSqliteMetadataItemRepository({ db }),
+      getReviewSummary: getReviewSummaryFactory({ sources, libraries }),
+      listReviewQueue: listReviewQueueFactory({ sources, libraries }),
+      getReviewSource: getReviewSourceFactory({ sources, libraries, items, catalog }),
+      getTmdbSeries: getTmdbSeriesFactory({ tmdbDetails, metadataLanguage }),
+      findCatalogItems: findCatalogItemsFactory({ catalog, items }),
+      getItemFiles: getItemFilesFactory({ sources, libraries, items, catalog }),
+      listHiddenSources: listHiddenSourcesFactory({ sources, libraries }),
+      review,
     }),
     server: { name: 'projo', version, instructions: assistantInstructions },
     onToolCall: ({ tool, targets, durationMs, errorCode }) =>
