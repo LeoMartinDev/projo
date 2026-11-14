@@ -3,7 +3,7 @@
 > A self-hosted media server for movies and TV shows, built for a household, with the user experience as its only differentiator.
 > This document bounds the project: anything not in it is not in projo. It is written to be carried out from A to Z by a developer or an agent, milestone by milestone.
 
-Document version: 1.3 (2026-11-13: player engines, `@projo/player` and the desktop app, §10.2, §10.4, §10.7, §28). Product language: French first, English shipped.
+Document version: 1.4 (2026-11-14: releases and self-updates of the desktop app, §28.10). Product language: French first, English shipped.
 
 ---
 
@@ -1069,8 +1069,8 @@ Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of delet
 - **Lint and types**: `bun lint` (layers, classes, `null`), strict `bun check`, `exactOptionalPropertyTypes`, `bun fmt`.
 - **Mobile app** (§26.8): `bun test` on its logic kept in modules without React Native, lint and types like the web; no component tests, no mobile E2E.
 - **Player** (§10.7): `@projo/player` is tested once for every engine: the reducer and the pure rules by unit tests, `createPlayerController` against the fake engine of `packages/player/src/testing/` (scripted `MediaEvent` sequences) and in-memory ports (`PlaybackApi`, manual `Timers` and `Clock`, `KeyValueStorage`): sessions and heartbeats, track, quality and version changes, in-place audio and subtitle changes, automatic skips, countdown and next episode, parts, error states. The engine contract suite (`engine-contract.ts`) runs against the fake engine and against `mpv-events.ts` fed with recorded libmpv property and event sequences (JSON fixtures beside `mpv-events.ts`, captured from the desktop app). The web's E2E covers the `html-video` engine.
-- **Desktop app** (§28.8): the Rust side has unit tests (`cargo test`: libmpv node → JSON conversion, server URL validation, capability URL pattern); no automated test drives libmpv nor the window; manual checks before each desktop release.
-- **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a push to `main` whose `package.json` version has no release yet, once the above passed: bundle build, generation of the manifest and `SHA256SUMS`, `v<version>` tag and GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`.
+- **Desktop app** (§28.8): the Rust side has unit tests (`cargo test`: libmpv node → JSON conversion, server URL validation, capability URL pattern, newest release tag); no automated test drives libmpv nor the window; manual checks before each desktop release.
+- **GitHub Actions CI**: on every push and PR: lint, types, unit, integration, e2e. On a push to `main` whose `package.json` version has no release yet, once the above passed: bundle build, generation of the manifest and `SHA256SUMS`, `v<version>` tag and GitHub release with notes generated from the commits (Conventional Commits), build and push of the multi-arch runtime image if `runtime/` changed or if the tag is `runtime-*`. On a push to `main` whose `apps/desktop/package.json` version has no release yet: the desktop app's signed Windows installer on a `desktop-v<version>` release (§28.10).
 - **Versioning**: semver, `main` the only long-lived branch, mandatory PRs, Conventional Commits.
 
 ---
@@ -1383,8 +1383,8 @@ The household's computers play every file as it is: no remux, no transcode, no b
 ### 28.2 Stack, repository, distribution
 
 - Tauri 2 (Rust, WebView2). `apps/desktop`: workspace `@projo/desktop` (private), scripts `dev` and `build` (Tauri CLI) and `fetch-libmpv` (§28.5); `src-tauri/` holds the Rust app, `ui/` the bundled first-launch page (§28.3): plain HTML and TypeScript, no framework, drawn like the web's sign-in page with `@projo/design` (fonts, tokens, `base.css` components, the `ocean` backdrop), which Bun's bundler inlines as `data:` URLs (the bundled page's CSP allows `data:` images and fonts) and whose `@custom-media` it does not resolve (the page writes the plain query). The §5.3 rules apply to its TypeScript (no class, no `null`, `Result`). Rust: a `Result` for every expected failure, never a panic across the FFI nor out of a command.
-- Identity: name "projo", identifier `dev.leomartin.projo.desktop`, its own semver from 0.1.0, independent of the server's.
-- Distribution: `bun run --cwd apps/desktop build` gives the release executable and the Tauri bundler's Windows installer, libmpv included as a resource. Not signed, no auto-update of the app itself and no CI build in this version (the web part updates with the server anyway).
+- Identity: name "projo", identifier `dev.leomartin.projo.desktop`, its own semver from 0.1.0 (`version` of `apps/desktop/package.json`, which `tauri.conf.json` reads; `Cargo.toml`'s is unused), independent of the server's.
+- Distribution: `bun run --cwd apps/desktop build` gives the release executable and the Tauri bundler's Windows installer (NSIS, current user), libmpv included as a resource. CI publishes it on the repository's GitHub releases and the app updates itself from them (§28.10); the web part updates with the server anyway. No Authenticode signature: Windows SmartScreen warns on the first install.
 
 ### 28.3 Server connection
 
@@ -1438,12 +1438,18 @@ The web's `mpv` engine relies on exactly this contract. It is additive (a later 
 
 - The playback logic is tested once for every engine (§22): the controller against the fake engine, the engine contract suite against the fake engine and against `mpv-events.ts` fed with libmpv sequences recorded from the desktop app.
 - Rust unit tests (`cargo test`): node → JSON conversion, server URL validation and origin normalisation, the remote URL pattern of the IPC grant.
-- The TypeScript of `apps/desktop/ui` goes through `bun lint`, `bun run typecheck` and `bun fmt` with the rest. No automated test drives libmpv or the window, no Windows CI runner in this version.
+- The TypeScript of `apps/desktop/ui` goes through `bun lint`, `bun run typecheck` and `bun fmt` with the rest. No automated test drives libmpv or the window; the Rust tests run on a Windows runner in the desktop release job only (§28.10).
 - Manual checks on Windows before each desktop release: MKV HEVC 10-bit HDR10, Dolby Vision and AV1 files; PGS, ASS and an external SRT; DTS-HD MA and TrueHD; a lower quality (HLS) with subtitles on time; seek, pause, resume and heartbeat; an audio change in place with its toast; the "Next episode" thumbnail; full screen, resize, moving between monitors of different DPI; "Change server"; server unreachable at launch; a server update reloading the web app.
 
 ### 28.9 What it does not do
 
 - No Picture-in-Picture, no AirPlay, no Now Playing nor system media controls over libmpv (no media element; later work).
-- No offline playback nor download (§2.3), no several servers at once, no auto-update of the app itself.
+- No offline playback nor download (§2.3), no several servers at once.
 - No audio passthrough to an amplifier: libmpv decodes to PCM.
 - No macOS nor Linux build yet.
+
+### 28.10 Releases and updates
+
+- **Release** (job `desktop-release` of `.github/workflows/ci.yml`): on a push to `main`, once lint, types and tests passed, when the version of `apps/desktop/package.json` has no `desktop-vX.Y.Z` release yet (stable `X.Y.Z` only, above the previous `desktop-v*` tag; nobody pushes a `desktop-v*` tag). On a Windows runner: `fetch-libmpv`, `cargo test`, `bun run --cwd apps/desktop build`, then `apps/desktop/scripts/package-release.ts` copies the NSIS installer to `projo-desktop-X.Y.Z-setup.exe`, signs it for the updater with the minisign key of the secrets `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the signature carries the version, `--app-version`) and writes `latest.json` (Tauri updater format: `version`, `pub_date`, a `windows-x86_64` entry with the signature and the installer's URL on the same release). The GitHub release `desktop-vX.Y.Z` ("projo desktop X.Y.Z") holds those two files and notes generated from the commits that touch `apps/desktop` since the previous `desktop-v*` tag. It is never marked "latest": `/releases/latest` stays the server's (§16.4), and the website's changelog lists the `vX.Y.Z` releases only.
+- **Publishing**: run the manual checks of §28.8, bump `version` in `apps/desktop/package.json`, commit `chore(release): desktop X.Y.Z`, push `main`. Independent of the server's releases (one push may publish both).
+- **Updates** (`tauri-plugin-updater`, release builds only): a minute after launch then every 6 hours, the app lists the `desktop-v*` tags (`GET https://api.github.com/repos/LeoMartinDev/projo/git/matching-refs/tags/desktop-v`) and takes the highest `X.Y.Z`. Above its own version, the updater reads that release's `latest.json`, downloads the installer and checks its signature against the public key of `tauri.conf.json` (`plugins.updater.pubkey`), including the version it was signed for (`requireSignedVersion`). A verified installer waits for the app to quit: once libmpv is destroyed, it runs quietly (`installMode: quiet`, per-user install, no UAC prompt) and the app does not restart; the next launch is the new version. No prompt, no interface, never an interruption of playback. A failure (network, GitHub rate limit, signature) is logged and tried again at the next check.

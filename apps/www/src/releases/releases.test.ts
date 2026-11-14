@@ -70,7 +70,7 @@ Changements : https://github.com/LeoMartinDev/projo/compare/v1.6.2...v1.6.3`)
   ])
 })
 
-test('keeps published releases only, newest first', () => {
+test('keeps the published server releases only, newest first', () => {
   const release = (tag: string, publishedAt: string | undefined, draft = false) => ({
     tag_name: tag,
     published_at: publishedAt ?? JSON.parse('null'),
@@ -82,6 +82,7 @@ test('keeps published releases only, newest first', () => {
     release('v1.0.0', '2026-10-25T10:00:00Z'),
     release('v1.2.0', undefined, true),
     release('v1.1.0', '2026-10-26T10:00:00Z'),
+    release('desktop-v0.2.0', '2026-10-27T10:00:00Z'),
   ])
   expect(releases.map((r) => r.version)).toEqual(['1.1.0', '1.0.0'])
 })

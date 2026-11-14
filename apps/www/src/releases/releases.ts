@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-// The changelog page lists the GitHub releases (the published ones, with their publication
-// date). Their notes are the ones runtime/scripts/release-notes.ts generated: "## Section"
+// The changelog page lists the GitHub releases of the server app (the published vX.Y.Z ones,
+// with their publication date; the desktop app's desktop-vX.Y.Z are left out). Their notes are the ones runtime/scripts/release-notes.ts generated: "## Section"
 // headings, "- scope: description (hash)" items and a few closing lines. Releases up to 1.6.3
 // were generated in French: their headings and closing lines are put back in English here
 // (the commit descriptions stay as they were written). The notes are always shown in English.
@@ -80,7 +80,13 @@ export const parseReleaseNotes = (body: string): Pick<Release, 'sections' | 'not
 export const toReleases = (response: unknown): Release[] =>
   githubReleasesSchema
     .parse(response)
-    .filter((release) => !release.draft && !release.prerelease && release.published_at)
+    .filter(
+      (release) =>
+        /^v\d+\.\d+\.\d+$/u.test(release.tag_name) &&
+        !release.draft &&
+        !release.prerelease &&
+        release.published_at,
+    )
     .map((release) => ({
       version: release.tag_name.replace(/^v/u, ''),
       publishedAt: new Date(release.published_at ?? 0),

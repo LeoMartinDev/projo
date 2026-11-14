@@ -8,6 +8,9 @@
 #                     previous tag. Nobody pushes a v* tag: it would start a second run of the
 #                     same commit (a v* tag push starts no run at all).
 #   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
+#   desktop app       on the same push to main, when apps/desktop/package.json's version has no
+#                     desktop-vX.Y.Z release yet: Windows installer signed for the app's updater
+#                     and latest.json, on a release never marked latest (§28.10).
 # Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
 # Website (apps/www): deployed to Cloudflare Workers by a green push to main that changes it or
 # publishes a release (job www).
@@ -182,6 +185,9 @@ jobs:
       runtime-version: ${{ steps.plan.outputs.runtime-version }}
       previous-tag: ${{ steps.plan.outputs.previous-tag }}
       image: ${{ steps.plan.outputs.image }}
+      desktop: ${{ steps.plan.outputs.desktop }}
+      desktop-version: ${{ steps.plan.outputs.desktop-version }}
+      desktop-previous-tag: ${{ steps.plan.outputs.desktop-previous-tag }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -255,12 +261,41 @@ jobs:
                 fail "the seed app $app_version is not released (no tag v$app_version)"
               ;;
           esac
+          # The desktop app (§28.10), on its own semver: a release on main when apps/desktop's
+          # version has no desktop-vX.Y.Z release yet (same rules as the server app's).
+          desktop_version="$(node -p 'require("./apps/desktop/package.json").version')"
+          desktop=false
+          desktop_previous=""
+          if [ "$REF" = refs/heads/main ]; then
+            desktop=true
+            desktop_tag="desktop-v$desktop_version"
+            if git rev-parse -q --verify "refs/tags/$desktop_tag" >/dev/null; then
+              if [ "$(git rev-parse "$desktop_tag^{commit}")" != "$(git rev-parse HEAD)" ] ||
+                gh release view "$desktop_tag" >/dev/null 2>&1; then
+                echo "$desktop_tag is released already: nothing to publish"
+                desktop=false
+              fi
+            fi
+          fi
+          if [ "$desktop" = true ]; then
+            [[ "$desktop_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+              fail "apps/desktop/package.json's version must be X.Y.Z, got $desktop_version"
+            desktop_previous="$(git describe --tags --abbrev=0 --match 'desktop-v[0-9]*' --exclude 'desktop-v*-*' HEAD^ 2>/dev/null || true)"
+            if [ -n "$desktop_previous" ]; then
+              highest="$(printf '%s\n%s\n' "${desktop_previous#desktop-v}" "$desktop_version" | sort -V | tail -n 1)"
+              [ "$highest" = "$desktop_version" ] && [ "${desktop_previous#desktop-v}" != "$desktop_version" ] ||
+                fail "apps/desktop's version $desktop_version is not above the previous release $desktop_previous"
+            fi
+          fi
           {
             echo "kind=$kind"
             echo "app-version=$app_version"
             echo "runtime-version=$runtime_version"
             echo "previous-tag=$previous"
             echo "image=$image"
+            echo "desktop=$desktop"
+            echo "desktop-version=$desktop_version"
+            echo "desktop-previous-tag=$desktop_previous"
           } | tee -a "$GITHUB_OUTPUT"
 
   runtime-image:
@@ -360,6 +395,77 @@ jobs:
           gh release create "$TAG" --target "$GITHUB_SHA" --title "projo $VERSION" \
             --notes-file dist/release-notes.md \
             "dist/release/projo-app-$VERSION.tar.gz" dist/release/manifest.json dist/release/SHA256SUMS
+
+  # Desktop app (§28.10): on Windows, apart from the server app's release. The installer is signed
+  # for the app's updater with the minisign key of the secrets TAURI_SIGNING_PRIVATE_KEY and
+  # TAURI_SIGNING_PRIVATE_KEY_PASSWORD (public half: plugins.updater.pubkey of tauri.conf.json).
+  # The release is never marked "latest": /releases/latest is the server's updater (§16.4).
+  desktop-release:
+    name: desktop release (Windows)
+    needs: [release-plan, checks, test]
+    if: needs.release-plan.outputs.desktop == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: desktop-v${{ needs.release-plan.outputs.desktop-version }}
+      VERSION: ${{ needs.release-plan.outputs.desktop-version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # commits since the previous desktop tag, for the notes
+      # Before the 15 minutes of build: a release the app could not verify is worthless.
+      - name: Check the updater key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] ||
+            { echo "::error::the secret TAURI_SIGNING_PRIVATE_KEY is not set"; exit 1; }
+          [ -n "$(node -p 'require("./apps/desktop/src-tauri/tauri.conf.json").plugins.updater.pubkey')" ] ||
+            { echo "::error::plugins.updater.pubkey of apps/desktop/src-tauri/tauri.conf.json is empty"; exit 1; }
+      # Local only, for release-notes.ts: `gh release create` publishes the tag at the end.
+      - name: Tag the commit locally
+        run: git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag "$TAG" "$GITHUB_SHA"
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Fetch libmpv (pinned, SHA-256 checked)
+        run: bun run --cwd apps/desktop fetch-libmpv
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Rust tests
+        run: bun run --cwd apps/desktop test:rust
+      - name: Build the installer
+        run: bun run --cwd apps/desktop build
+      - name: Sign the installer, write latest.json (dist/desktop-release)
+        run: bun apps/desktop/scripts/package-release.ts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - name: Write the release notes (commits touching apps/desktop)
+        env:
+          PREVIOUS_TAG: ${{ needs.release-plan.outputs.desktop-previous-tag }}
+        run: |
+          bun runtime/scripts/release-notes.ts --tag "$TAG" --from "$PREVIOUS_TAG" \
+            --path apps/desktop > dist/desktop-release-notes.md
+          cat dist/desktop-release-notes.md
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "projo desktop $VERSION" \
+            --latest=false --notes-file dist/desktop-release-notes.md \
+            "dist/desktop-release/projo-desktop-$VERSION-setup.exe" dist/desktop-release/latest.json
 
   # ── Public website (apps/www) ───────────────────────────────────────────────────────────────
 

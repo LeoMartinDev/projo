@@ -38,7 +38,7 @@ describe('parseCommit', () => {
 describe('renderReleaseNotes', () => {
   test('groups the commits by type, newest first, with the runtime and the compare link', () => {
     const notes = renderReleaseNotes({
-      version: '1.1.0',
+      tag: 'v1.1.0',
       previousTag: 'v1.0.0',
       runtimeMin: '0.2.0',
       runtimeImage: 'ghcr.io/leomartindev/projo:0.2.0',
@@ -85,7 +85,7 @@ describe('renderReleaseNotes', () => {
   })
 
   test('first release: the whole history, no compare link', () => {
-    const notes = renderReleaseNotes({ version: '1.0.0', commits: [] })
+    const notes = renderReleaseNotes({ tag: 'v1.0.0', commits: [] })
     expect(notes).toBe(
       'No notable changes.\n\nHistory: https://github.com/LeoMartinDev/projo/commits/v1.0.0\n',
     )
@@ -97,5 +97,17 @@ describe('readCommits', () => {
     const [head] = readCommits('HEAD')
     expect(head?.hash).toMatch(/^[0-9a-f]{40}$/u)
     expect(head?.subject.length).toBeGreaterThan(0)
+  })
+
+  test.skipIf(!Bun.which('git'))('keeps only the commits that touch a path', () => {
+    // Works on CI's shallow checkout too (HEAD alone).
+    const commits = readCommits('HEAD', undefined, 'apps/desktop')
+    const touched = Bun.spawnSync(['git', 'log', '--format=%H', 'HEAD', '--', 'apps/desktop'])
+    expect(commits.map((commit) => commit.hash)).toEqual(
+      touched.stdout
+        .toString()
+        .split('\n')
+        .filter((hash) => hash !== ''),
+    )
   })
 })

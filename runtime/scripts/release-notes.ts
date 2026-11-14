@@ -44,7 +44,8 @@ const line = (commit: ParsedCommit): string =>
   `- ${commit.scope === undefined ? '' : `${commit.scope}: `}${commit.description} (${commit.hash.slice(0, 7)})`
 
 export type ReleaseNotesInput = {
-  version: string
+  /** vX.Y.Z (the server app) or desktop-vX.Y.Z (the desktop app). */
+  tag: string
   previousTag?: string
   commits: readonly Commit[]
   runtimeMin?: string
@@ -52,7 +53,7 @@ export type ReleaseNotesInput = {
 }
 
 export const renderReleaseNotes = ({
-  version,
+  tag,
   previousTag,
   commits,
   runtimeMin,
@@ -88,8 +89,8 @@ export const renderReleaseNotes = ({
   if (runtimeMin !== undefined) footer.push(`Minimum runtime: ${runtimeMin}.`)
   footer.push(
     previousTag === undefined
-      ? `History: https://github.com/${REPOSITORY}/commits/v${version}`
-      : `Changes: https://github.com/${REPOSITORY}/compare/${previousTag}...v${version}`,
+      ? `History: https://github.com/${REPOSITORY}/commits/${tag}`
+      : `Changes: https://github.com/${REPOSITORY}/compare/${previousTag}...${tag}`,
   )
   return `${[...blocks, footer.join('\n\n')].join('\n\n')}\n`
 }
@@ -97,7 +98,7 @@ export const renderReleaseNotes = ({
 const FIELD = '\u001f'
 const RECORD = '\u001e'
 
-export const readCommits = (to: string, from?: string): Commit[] => {
+export const readCommits = (to: string, from?: string, path?: string): Commit[] => {
   const range = from === undefined ? to : `${from}..${to}`
   const run = Bun.spawnSync([
     'git',
@@ -105,6 +106,7 @@ export const readCommits = (to: string, from?: string): Commit[] => {
     '--no-merges',
     `--format=%H${FIELD}%s${FIELD}%b${RECORD}`,
     range,
+    ...(path === undefined ? [] : ['--', path]),
   ])
   if (run.exitCode !== 0) throw new Error(`git log ${range} failed: ${run.stderr.toString()}`)
   return run.stdout
@@ -126,11 +128,12 @@ if (import.meta.main) {
       from: { type: 'string' },
       manifest: { type: 'string' },
       'runtime-image': { type: 'string' },
+      path: { type: 'string' },
     },
   })
   const tag = values.tag
-  if (tag === undefined || !/^v\d+\.\d+\.\d+$/u.test(tag)) {
-    console.error('release-notes: --tag vX.Y.Z is required')
+  if (tag === undefined || !/^(desktop-)?v\d+\.\d+\.\d+$/u.test(tag)) {
+    console.error('release-notes: --tag vX.Y.Z or desktop-vX.Y.Z is required')
     process.exit(1)
   }
   const from = values.from || undefined
@@ -146,8 +149,8 @@ if (import.meta.main) {
   const runtimeImage = values['runtime-image'] || undefined
   process.stdout.write(
     renderReleaseNotes({
-      version: tag.slice(1),
-      commits: readCommits(tag, from),
+      tag,
+      commits: readCommits(tag, from, values.path || undefined),
       ...(from === undefined ? {} : { previousTag: from }),
       ...(runtimeMin === undefined ? {} : { runtimeMin }),
       ...(runtimeImage === undefined ? {} : { runtimeImage }),

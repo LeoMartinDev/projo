@@ -102,7 +102,7 @@ CI publishes from `main`: when the `package.json` version has no release yet, on
 2. If the image changed since the previous release (`runtime/` except `scripts/` and tests), also bump `runtime/VERSION`, otherwise CI rejects the release. The application then requires that image (`runtimeMin`): installations will need a `docker compose pull` before they can update.
 3. Push: `git push origin main`.
 
-Installations offer the new version within a day. To republish the image alone (Debian or ffmpeg security fix without an application change), tag the commit of the latest `vX.Y.Z` release with `runtime-<runtime/VERSION>`. Only stable `vX.Y.Z` versions are published (no pre-releases).
+Installations offer the new version within a day. The desktop app has its own releases (`desktop-vX.Y.Z`, never marked latest, PRODUCT.md §28.10): bump `version` in `apps/desktop/package.json`, commit `chore(release): desktop X.Y.Z`, push; installed apps update themselves when they quit. To republish the image alone (Debian or ffmpeg security fix without an application change), tag the commit of the latest `vX.Y.Z` release with `runtime-<runtime/VERSION>`. Only stable `vX.Y.Z` versions are published (no pre-releases).
 
 ## Release in CI (PRODUCT.md §22)
 

@@ -9,6 +9,7 @@ mod mpv;
 mod origin;
 mod server;
 mod state;
+mod updates;
 mod window_size;
 
 use std::sync::{Arc, OnceLock};
@@ -116,6 +117,7 @@ fn open_externally(url: &Url) {
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::mpv_init,
             commands::mpv_command,
@@ -172,6 +174,8 @@ fn main() {
                 commands::grant_server(&handle, &app.state::<AppState>(), origin)
                     .map_err(|error| format!("{error:?}"))?;
             }
+
+            updates::start(&handle);
 
             let hooks = test_hooks();
             // The window opens on the primary monitor: fit the minimum into its work area.
@@ -277,6 +281,7 @@ fn main() {
             if let Some(state) = handle.try_state::<AppState>() {
                 state.player.destroy_blocking();
             }
+            updates::install_pending(handle);
         }
     });
 }
