@@ -77,9 +77,11 @@ describe('parseProbeOutput', () => {
       bitRate: 8_000_000,
       chapters: [{ startMs: 0, endMs: 60_500, title: 'Intro' }],
     })
-    expect(result.value.video.map((v) => [v.index, v.dynamicRange, v.frameRate])).toEqual([
-      [0, 'hdr', 23.976],
-      [1, 'dv', undefined],
+    expect(
+      result.value.video.map((v) => [v.index, v.dynamicRange, v.transfer, v.frameRate]),
+    ).toEqual([
+      [0, 'hdr', 'pq', 23.976],
+      [1, 'dv', undefined, undefined],
     ])
     expect(result.value.audio).toEqual([
       {

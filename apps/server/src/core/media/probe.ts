@@ -3,6 +3,8 @@ import type { AppError, Result } from '@projo/shared'
 import { normalizeLanguage } from '../naming/index.ts'
 import type { DynamicRange } from './version.ts'
 
+export type VideoTransfer = 'pq' | 'hlg'
+
 export type VideoStream = {
   index: number
   codec: string
@@ -13,6 +15,8 @@ export type VideoStream = {
   frameRate?: number
   bitRate?: number
   dynamicRange: DynamicRange
+  // Transfer function of an HDR stream: PQ (SMPTE ST 2084) or HLG (ARIB STD-B67).
+  transfer?: VideoTransfer
   isDefault: boolean
   codecTag?: string
   durationMs?: number

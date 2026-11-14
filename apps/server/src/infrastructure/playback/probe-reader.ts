@@ -7,7 +7,7 @@ import type {
   SubtitleStreamInfo,
   VideoStreamInfo,
 } from '../../core/playback/media-info.ts'
-import { parseDurationTag, rawDynamicRange } from '../media/ffprobe.ts'
+import { parseDurationTag, rawDynamicRange, transferOf } from '../media/ffprobe.ts'
 
 const looseNumber = z
   .union([
@@ -48,6 +48,7 @@ const streamSchema = z.looseObject({
   forced: looseFlag,
   attachedPic: looseFlag,
   dynamicRange: z.enum(['sdr', 'hdr', 'dv']).optional().catch(undefined),
+  transfer: z.enum(['pq', 'hlg']).optional().catch(undefined),
   color_transfer: looseString,
   codec_tag_string: looseString,
   codecTag: looseString,
@@ -153,6 +154,7 @@ const toVideo = (stream: RawStream): VideoStreamInfo | undefined => {
     ...optional('height', stream.height),
     ...optional('pixelFormat', stream.pix_fmt ?? stream.pixFmt ?? stream.pixelFormat),
     ...optional('dynamicRange', dynamicRangeOf(stream)),
+    ...optional('transfer', stream.transfer ?? transferOf(stream.color_transfer)),
     ...optional('codecTag', codecTagOf(stream)),
     ...optional('durationMs', videoDurationMs(stream)),
   }

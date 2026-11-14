@@ -11,6 +11,7 @@ import {
   probeLanguage,
   type SubtitleStream,
   type VideoStream,
+  type VideoTransfer,
 } from '../../core/media/probe.ts'
 import type { DynamicRange } from '../../core/media/version.ts'
 import { toHostPath } from '../fs/host-paths.ts'
@@ -115,6 +116,12 @@ export const rawDynamicRange = (stream: {
 
 const dynamicRangeOf = (stream: RawStream): DynamicRange => rawDynamicRange(stream) ?? 'sdr'
 
+export const transferOf = (colorTransfer: string | undefined): VideoTransfer | undefined => {
+  if (colorTransfer === 'smpte2084') return 'pq'
+  if (colorTransfer === 'arib-std-b67') return 'hlg'
+  return undefined
+}
+
 const optional = <K extends string, V>(key: K, value: V | undefined) =>
   (value === undefined ? {} : { [key]: value }) as { [P in K]?: V }
 
@@ -147,6 +154,7 @@ const toVideo = (stream: RawStream): VideoStream => ({
   ...optional('frameRate', frameRateOf(stream.avg_frame_rate) ?? frameRateOf(stream.r_frame_rate)),
   ...optional('bitRate', stream.bit_rate),
   dynamicRange: dynamicRangeOf(stream),
+  ...optional('transfer', transferOf(stream.color_transfer)),
   isDefault: flag(stream.disposition?.default),
   ...optional('codecTag', codecTagOf(stream)),
   ...optional('durationMs', streamDurationMs(stream)),

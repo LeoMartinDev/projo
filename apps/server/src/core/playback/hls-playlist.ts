@@ -190,14 +190,49 @@ const sdhCharacteristics =
 
 const offsetQuery = (offsetMs: number) => `subtitleOffsetMs=${Math.round(offsetMs)}`
 
+export type VariantVideo = {
+  width?: number
+  height?: number
+  dynamicRange?: 'sdr' | 'hdr' | 'dv'
+  transfer?: 'pq' | 'hlg'
+}
+
+/**
+ * VIDEO-RANGE of a copied video: without it, Safari takes an HDR variant for SDR. An HDR or
+ * Dolby Vision stream whose transfer is unknown (probed before it was recorded) is PQ, as in
+ * nearly every film (Dolby Vision 5, 7 and 8.1 included).
+ */
+export const videoRangeOf = (video: VariantVideo): 'SDR' | 'PQ' | 'HLG' | undefined => {
+  if (video.dynamicRange === undefined) return undefined
+  if (video.dynamicRange === 'sdr') return 'SDR'
+  return video.transfer === 'hlg' ? 'HLG' : 'PQ'
+}
+
+const variantAttributes = (video: VariantVideo | undefined): string[] => {
+  if (video === undefined) return []
+  const range = videoRangeOf(video)
+  return [
+    ...(video.width !== undefined &&
+    video.height !== undefined &&
+    video.width > 0 &&
+    video.height > 0
+      ? [`RESOLUTION=${Math.round(video.width)}x${Math.round(video.height)}`]
+      : []),
+    ...(range === undefined ? [] : [`VIDEO-RANGE=${range}`]),
+  ]
+}
+
 export const renderMasterPlaylist = ({
   bandwidth,
   subtitles,
   subtitleOffsetMs,
+  video,
 }: {
   bandwidth: number
   subtitles: readonly SubtitleRendition[]
   subtitleOffsetMs: number
+  // The source video when it is copied as is (hls_remux); left out for a transcode.
+  video?: VariantVideo
 }): string => {
   const media = subtitles.map((track) =>
     [
@@ -217,7 +252,11 @@ export const renderMasterPlaylist = ({
     '#EXT-X-VERSION:7',
     '#EXT-X-INDEPENDENT-SEGMENTS',
     ...media,
-    `#EXT-X-STREAM-INF:BANDWIDTH=${Math.max(1, Math.round(bandwidth))}${subtitles.length > 0 ? ',SUBTITLES="subs"' : ''}`,
+    `#EXT-X-STREAM-INF:${[
+      `BANDWIDTH=${Math.max(1, Math.round(bandwidth))}`,
+      ...variantAttributes(video),
+      ...(subtitles.length > 0 ? ['SUBTITLES="subs"'] : []),
+    ].join(',')}`,
     'index.m3u8',
   ]
   return `${lines.join('\n')}\n`

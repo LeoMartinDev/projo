@@ -8,6 +8,7 @@ export type VideoStreamInfo = {
   height?: number
   pixelFormat?: string
   dynamicRange?: 'sdr' | 'hdr' | 'dv'
+  transfer?: 'pq' | 'hlg'
   codecTag?: string
   durationMs?: number
 }

@@ -36,6 +36,7 @@ export const getMasterPlaylistFactory =
       .filter((track) => !isBitmapSubtitle(track))
     const names = subtitleRenditionNames(tracks)
     const durationS = (source.media?.durationMs ?? 0) / 1000
+    const copiedVideo = mode === 'hls_remux' ? source.media?.video[0] : undefined
     return ok(
       renderMasterPlaylist({
         bandwidth: durationS > 0 ? (source.sizeBytes * 8) / durationS : 8_000_000,
@@ -48,6 +49,7 @@ export const getMasterPlaylistFactory =
           selected: track.id === subtitleTrackId,
         })),
         subtitleOffsetMs: input.subtitleOffsetMs,
+        ...(copiedVideo === undefined ? {} : { video: copiedVideo }),
       }),
     )
   }

@@ -15,6 +15,7 @@ import {
   segmentFileName,
   seekPointsOf,
   toHlsWebVtt,
+  videoRangeOf,
 } from './hls-playlist.ts'
 
 const every = (step: number, durationS: number): number[] =>
@@ -349,6 +350,38 @@ describe('subtitles inside HLS (§10.4)', () => {
       'index.m3u8',
       '',
     ])
+  })
+
+  test('master of a copied video: its resolution and range on the variant (Safari HDR)', () => {
+    const master = (video: Parameters<typeof renderMasterPlaylist>[0]['video']) =>
+      renderMasterPlaylist({
+        bandwidth: 7_830_362,
+        subtitles: [{ ...french, selected: true }],
+        subtitleOffsetMs: 0,
+        ...(video === undefined ? {} : { video }),
+      })
+    expect(master({ width: 3840, height: 2076, dynamicRange: 'dv' })).toContain(
+      '#EXT-X-STREAM-INF:BANDWIDTH=7830362,RESOLUTION=3840x2076,VIDEO-RANGE=PQ,SUBTITLES="subs"\nindex.m3u8',
+    )
+    expect(master({ width: 1920, height: 1080, dynamicRange: 'sdr' })).toContain(
+      'RESOLUTION=1920x1080,VIDEO-RANGE=SDR,',
+    )
+    expect(master({ width: 1920, dynamicRange: 'hdr', transfer: 'hlg' })).toContain(
+      'BANDWIDTH=7830362,VIDEO-RANGE=HLG,',
+    )
+    expect(master({ width: 1920, height: 1080 })).toContain(
+      'BANDWIDTH=7830362,RESOLUTION=1920x1080,SUBTITLES',
+    )
+    expect(master(undefined)).toContain('#EXT-X-STREAM-INF:BANDWIDTH=7830362,SUBTITLES="subs"')
+  })
+
+  test('video range: SDR, PQ for HDR and Dolby Vision unless HLG is known, none when unknown', () => {
+    expect(videoRangeOf({ dynamicRange: 'sdr' })).toBe('SDR')
+    expect(videoRangeOf({ dynamicRange: 'hdr' })).toBe('PQ')
+    expect(videoRangeOf({ dynamicRange: 'dv' })).toBe('PQ')
+    expect(videoRangeOf({ dynamicRange: 'hdr', transfer: 'hlg' })).toBe('HLG')
+    expect(videoRangeOf({ dynamicRange: 'dv', transfer: 'hlg' })).toBe('HLG')
+    expect(videoRangeOf({})).toBeUndefined()
   })
 
   test('master without text track: the variant alone, no subtitle group', () => {

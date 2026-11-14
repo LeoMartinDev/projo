@@ -17,6 +17,7 @@ describe('readMediaInfo (sources.probe)', () => {
           height: 2160,
           pixelFormat: 'yuv420p10le',
           dynamicRange: 'hdr',
+          transfer: 'hlg',
           isDefault: true,
         },
       ],
@@ -41,6 +42,7 @@ describe('readMediaInfo (sources.probe)', () => {
           height: 2160,
           pixelFormat: 'yuv420p10le',
           dynamicRange: 'hdr',
+          transfer: 'hlg',
         },
       ],
       audio: [
