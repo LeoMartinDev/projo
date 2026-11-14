@@ -127,6 +127,8 @@ fn main() {
             commands::mpv_observe,
             commands::mpv_destroy,
             commands::desktop_info,
+            commands::desktop_update_status,
+            commands::desktop_update_install,
             commands::get_setup,
             commands::connect_server,
             commands::change_server,

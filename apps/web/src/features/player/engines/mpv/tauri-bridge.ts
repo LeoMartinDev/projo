@@ -7,7 +7,7 @@ import {
   mpvEventNames,
   type MpvMessage,
 } from './bridge.ts'
-import type { TauriInternals, TauriWindow } from '../../../../shared/desktop/tauri.ts'
+import { listenTauri, type TauriInternals } from '../../../../shared/desktop/tauri.ts'
 
 const record = (value: unknown): Record<string, unknown> =>
   typeof value === 'object' && Object(value) === value ? (value as Record<string, unknown>) : {}
@@ -44,15 +44,8 @@ export const createTauriBridge = (internals: TauriInternals): MpvBridge => {
   const invoke = (command: string, args?: Record<string, unknown>) =>
     internals.invoke(command, args)
 
-  const listenTo = async (event: string, handle: (payload: unknown) => void) => {
-    const handler = internals.transformCallback((message) => handle(record(message)['payload']))
-    const id = await invoke('plugin:event|listen', { event, target: { kind: 'Any' }, handler })
-    return () => {
-      if (typeof id !== 'number') return
-      ;(window as TauriWindow).__TAURI_EVENT_PLUGIN_INTERNALS__?.unregisterListener?.(event, id)
-      void invoke('plugin:event|unlisten', { event, eventId: id }).catch(() => undefined)
-    }
-  }
+  const listenTo = (event: string, handle: (payload: unknown) => void) =>
+    listenTauri(internals, event, handle)
 
   return {
     init: async (options) => void (await invoke('mpv_init', { options })),

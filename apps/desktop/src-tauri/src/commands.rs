@@ -1,4 +1,4 @@
-//! IPC commands. mpv_* and desktop_info are granted to the server origin only (runtime capability,
+//! IPC commands. mpv_*, desktop_info and desktop_update_* are granted to the server origin only (runtime capability,
 //! see `grant_server`) and re-checked here against the webview's current URL; get_setup and
 //! connect_server belong to the bundled first-launch page; change_server to both.
 
@@ -16,6 +16,7 @@ use crate::mpv::{MpvError, Player};
 use crate::origin::{is_same_origin, parse_server_origin, remote_pattern, OriginError};
 use crate::server::{check_health, HealthError};
 use crate::state::AppState;
+use crate::updates::{self, PendingUpdate};
 use crate::{local_page_url, MAIN};
 
 #[derive(Debug, Serialize)]
@@ -184,6 +185,42 @@ pub async fn desktop_info<R: Runtime>(
 }
 
 #[derive(Serialize)]
+pub struct UpdateStatus {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ready: Option<String>,
+}
+
+/// The version downloaded and waiting to be installed, if any (§28.10).
+#[tauri::command]
+pub fn desktop_update_status<R: Runtime>(
+    webview: Webview<R>,
+    state: State<'_, AppState>,
+    pending: State<'_, PendingUpdate>,
+) -> CommandResult<UpdateStatus> {
+    require_server(&webview, &state)?;
+    Ok(UpdateStatus {
+        ready: pending.ready_version(),
+    })
+}
+
+/// Installs the waiting version now and starts the app again on it; libmpv is stopped first.
+#[tauri::command]
+pub async fn desktop_update_install<R: Runtime>(
+    app: AppHandle<R>,
+    webview: Webview<R>,
+    state: State<'_, AppState>,
+) -> CommandResult<()> {
+    require_server(&webview, &state)?;
+    let player = player(&state);
+    blocking(move || {
+        player.destroy_blocking();
+        Ok(())
+    })
+    .await?;
+    updates::install_now(&app).map_err(|error| CommandError::new("desktop/update_failed", error))
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Setup {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -280,6 +317,8 @@ pub const SERVER_PERMISSIONS: &[&str] = &[
     "allow-mpv-observe",
     "allow-mpv-destroy",
     "allow-desktop-info",
+    "allow-desktop-update-status",
+    "allow-desktop-update-install",
     "allow-change-server",
     "core:event:allow-listen",
     "core:event:allow-unlisten",

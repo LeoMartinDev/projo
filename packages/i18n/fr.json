@@ -3,7 +3,9 @@
     "name": "projo",
     "update": {
       "available": "Nouvelle version disponible",
-      "reload": "Recharger"
+      "reload": "Recharger",
+      "desktopReady": "Mise à jour de l’app prête",
+      "restart": "Redémarrer"
     }
   },
   "common": {

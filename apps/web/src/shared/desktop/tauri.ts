@@ -13,3 +13,25 @@ export type TauriWindow = Window & {
 
 export const tauriInternals = (): TauriInternals | undefined =>
   (window as TauriWindow).__TAURI_INTERNALS__
+
+const payloadOf = (message: unknown): unknown =>
+  Object(message) === message ? (message as Record<string, unknown>)['payload'] : undefined
+
+/** Listens to an event the desktop app emits (§28.6); resolves to the function that stops. */
+export const listenTauri = async (
+  internals: TauriInternals,
+  event: string,
+  handle: (payload: unknown) => void,
+): Promise<() => void> => {
+  const handler = internals.transformCallback((message) => handle(payloadOf(message)))
+  const id = await internals.invoke('plugin:event|listen', {
+    event,
+    target: { kind: 'Any' },
+    handler,
+  })
+  return () => {
+    if (typeof id !== 'number') return
+    ;(window as TauriWindow).__TAURI_EVENT_PLUGIN_INTERNALS__?.unregisterListener?.(event, id)
+    void internals.invoke('plugin:event|unlisten', { event, eventId: id }).catch(() => undefined)
+  }
+}

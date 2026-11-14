@@ -2,7 +2,9 @@
 //! repository on GitHub, each with an NSIS installer signed for the updater (minisign key, public
 //! half in tauri.conf.json) and the updater's `latest.json`. Release builds check a minute after
 //! launch then every 6 hours, download and verify a newer installer in the background, and run it
-//! quietly when the app quits, without restarting it: an update never interrupts playback.
+//! quietly when the app quits, without restarting it: an update never interrupts playback. The web
+//! offers to install it at once (`desktop://update`, `desktop_update_status`,
+//! `desktop_update_install`): the app then restarts on the new version.
 //!
 //! The newest desktop release is found through its tag, not GitHub's "latest" release, which is
 //! the server's (§16.4).
@@ -10,8 +12,9 @@
 use std::sync::Mutex;
 use std::time::Duration;
 
+use serde::Serialize;
 use serde_json::Value;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, EventTarget, Manager, Runtime};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 use url::Url;
@@ -20,10 +23,45 @@ const REPOSITORY: &str = "LeoMartinDev/projo";
 const TAG_PREFIX: &str = "desktop-v";
 const FIRST_CHECK: Duration = Duration::from_secs(60);
 const CHECK_EVERY: Duration = Duration::from_secs(6 * 60 * 60);
+/// Sent to the main window once a newer version is downloaded and verified.
+pub const READY_EVENT: &str = "desktop://update";
 
-/// A newer version, downloaded and verified, waiting for the app to quit.
-#[derive(Default)]
-pub struct PendingUpdate(Mutex<Option<(Update, Vec<u8>)>>);
+/// A newer version, downloaded and verified, waiting for the app to quit or for the web's
+/// "Restart" (`install_now`).
+pub struct PendingUpdate {
+    ready: Mutex<Option<(Update, Vec<u8>)>>,
+    /// Debug builds only, to see the web's banner: `PROJO_DESKTOP_TEST_UPDATE=<version>` pretends
+    /// that version is ready; installing it only restarts the app.
+    simulated: Option<String>,
+}
+
+impl PendingUpdate {
+    /// The version waiting to be installed, if any.
+    pub fn ready_version(&self) -> Option<String> {
+        let ready = self
+            .ready
+            .lock()
+            .ok()
+            .and_then(|ready| ready.as_ref().map(|(update, _)| update.version.clone()));
+        ready.or_else(|| self.simulated.clone())
+    }
+
+    fn is_ready(&self) -> bool {
+        self.ready
+            .lock()
+            .map(|ready| ready.is_some())
+            .unwrap_or(true)
+    }
+
+    fn take(&self) -> Option<(Update, Vec<u8>)> {
+        self.ready.lock().ok().and_then(|mut ready| ready.take())
+    }
+}
+
+#[derive(Clone, Serialize)]
+struct Ready {
+    version: String,
+}
 
 type Version = (u64, u64, u64);
 
@@ -94,12 +132,7 @@ fn fetch_newest_release() -> Result<Option<Version>, String> {
 
 fn check_once<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
     let pending = app.state::<PendingUpdate>();
-    if pending
-        .0
-        .lock()
-        .map(|pending| pending.is_some())
-        .unwrap_or(true)
-    {
+    if pending.is_ready() {
         return Ok(());
     }
     let current = parse_version(&app.package_info().version.to_string());
@@ -129,15 +162,29 @@ fn check_once<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
         "update: {} ready, installed when the app quits",
         update.version
     );
-    if let Ok(mut pending) = pending.0.lock() {
+    let ready = Ready {
+        version: update.version.clone(),
+    };
+    if let Ok(mut pending) = pending.ready.lock() {
         *pending = Some((update, bytes));
+    }
+    if let Err(error) = app.emit_to(EventTarget::webview_window(crate::MAIN), READY_EVENT, ready) {
+        log::debug!("update event not delivered: {error}");
     }
     Ok(())
 }
 
 /// Release builds only, like the server's updater (§16.4): a debug build is never replaced.
 pub fn start<R: Runtime>(app: &AppHandle<R>) {
-    app.manage(PendingUpdate::default());
+    let simulated = if cfg!(debug_assertions) {
+        std::env::var("PROJO_DESKTOP_TEST_UPDATE").ok()
+    } else {
+        None
+    };
+    app.manage(PendingUpdate {
+        ready: Mutex::default(),
+        simulated,
+    });
     if cfg!(debug_assertions) {
         return;
     }
@@ -164,13 +211,33 @@ pub fn install_pending<R: Runtime>(app: &AppHandle<R>) {
     let Some(pending) = app.try_state::<PendingUpdate>() else {
         return;
     };
-    let Some((update, bytes)) = pending.0.lock().ok().and_then(|mut pending| pending.take()) else {
+    let Some((update, bytes)) = pending.take() else {
         return;
     };
     let version = update.version.clone();
     log::info!("update: installing {version}");
     if let Err(error) = update.restart_after_install(false).install(bytes) {
         log::error!("update: cannot install {version}: {error}");
+    }
+}
+
+/// The web's "Restart", once libmpv is gone: runs the pending installer quietly, which exits the
+/// app and starts the new version once installed.
+pub fn install_now<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
+    let pending = app.state::<PendingUpdate>();
+    match pending.take() {
+        Some((update, bytes)) => {
+            log::info!("update: installing {} now", update.version);
+            update
+                .restart_after_install(true)
+                .install(bytes)
+                .map_err(|error| error.to_string())
+        }
+        None if pending.simulated.is_some() => {
+            log::info!("update: pretend install, restarting");
+            app.restart()
+        }
+        None => Err("no update is ready".into()),
     }
 }
 

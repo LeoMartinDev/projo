@@ -9,6 +9,8 @@ fn main() {
         "mpv_observe",
         "mpv_destroy",
         "desktop_info",
+        "desktop_update_status",
+        "desktop_update_install",
         "get_setup",
         "connect_server",
         "change_server",
