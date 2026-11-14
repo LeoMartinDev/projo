@@ -3,6 +3,7 @@ import type {
   AudioCodecId,
   ClientCapabilities,
   PlaybackQuality,
+  TranscodeReason,
   VideoCodecId,
 } from '@projo/shared/api/playback'
 
@@ -86,8 +87,6 @@ export const fileMimeType = (extension: string): string =>
 const hlsCopyableAudio: ReadonlySet<AudioCodecId> = new Set(['mp4a.40.2', 'ac-3', 'ec-3'])
 
 export type AudioDelivery = 'direct' | 'copy' | 'aac'
-
-export type TranscodeReason = 'video_codec' | 'quality' | 'burn_in'
 
 export type PlaybackPlan =
   | {

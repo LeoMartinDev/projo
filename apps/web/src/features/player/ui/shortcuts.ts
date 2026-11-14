@@ -9,6 +9,7 @@ export type PlayerCommand =
   | 'skip_segment'
   | 'next_episode'
   | 'toggle_subtitles'
+  | 'toggle_info'
   | 'close_overlay'
   | 'exit'
 
@@ -36,6 +37,7 @@ const letters: Record<string, PlayerCommand> = {
   s: 'skip_segment',
   n: 'next_episode',
   c: 'toggle_subtitles',
+  i: 'toggle_info',
 }
 
 const keys: Record<string, PlayerCommand> = {

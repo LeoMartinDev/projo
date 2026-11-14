@@ -97,9 +97,12 @@ import {
 } from './PlayerMenus.tsx'
 import {
   loadSubtitleSettings,
+  loadPlaybackInfoShown,
+  savePlaybackInfoShown,
   saveSubtitleSettings,
   type SubtitleSettings,
 } from './player-settings.ts'
+import { PlaybackInfoPanel } from './PlaybackInfoPanel.tsx'
 import {
   type Pinch,
   type PinchPoint,
@@ -181,6 +184,7 @@ export const PlayerPage = ({
   const [overlay, setOverlay] = useState<Overlay>()
   const [languagesTab, setLanguagesTab] = useState<LanguagesTab>('subtitles')
   const [subtitleSettings, setSubtitleSettings] = useState<SubtitleSettings>(loadSubtitleSettings)
+  const [infoShown, setInfoShown] = useState(loadPlaybackInfoShown)
   const [seekRipple, setSeekRipple] = useState<{
     side: SeekSide
     steps: number
@@ -353,6 +357,8 @@ export const PlayerPage = ({
     setSubtitleSettings(update)
 
   useEffect(() => saveSubtitleSettings(subtitleSettings), [subtitleSettings])
+  useEffect(() => savePlaybackInfoShown(infoShown), [infoShown])
+  const toggleInfo = () => setInfoShown((shown) => !shown)
 
   const { toast, skipped } = state
 
@@ -452,6 +458,8 @@ export const PlayerPage = ({
         return
       case 'toggle_subtitles':
         return controller.toggleSubtitles()
+      case 'toggle_info':
+        return toggleInfo()
       case 'close_overlay':
         return closeOverlay()
       case 'exit':
@@ -884,6 +892,20 @@ export const PlayerPage = ({
         ) : undefined}
       </div>
 
+      {infoShown && session !== undefined ? (
+        <PlaybackInfoPanel
+          key={session.id}
+          session={session}
+          engine={engine}
+          audioIndex={audioIndex}
+          subtitleId={subtitleId}
+          bufferAheadS={
+            media.ready ? Math.max(0, media.bufferedEnd - media.currentTime) : undefined
+          }
+          onClose={() => setInfoShown(false)}
+        />
+      ) : undefined}
+
       {canAct && skippable !== undefined && !nextUpShown ? (
         <SkipSegmentButton
           key={skippableKey}
@@ -998,6 +1020,8 @@ export const PlayerPage = ({
               session={session}
               onQuality={(quality: PlaybackQuality) => controller.chooseQuality(quality)}
               onVersion={controller.chooseVersion}
+              infoShown={infoShown}
+              onInfoShown={setInfoShown}
               onClose={closeOverlay}
             />
           ) : (

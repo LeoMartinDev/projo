@@ -3,6 +3,7 @@ import type {
   PlaybackHeartbeatBody,
   PlaybackSessionDto,
   TrackPreferencesBody,
+  TranscodeStatusDto,
 } from '@projo/shared/api/playback'
 import type { UpdateProfileBody } from '@projo/shared/api/profiles'
 
@@ -16,6 +17,8 @@ export type PlaybackApi = {
   // The last position when the page goes away (`navigator.sendBeacon` in a browser).
   beacon: (sessionId: string, body: PlaybackHeartbeatBody) => void
   endSession: (sessionId: string) => Promise<unknown>
+  // The server's ffmpeg run of the session (playback info, §10.7).
+  transcodeStatus: (sessionId: string) => Promise<TranscodeStatusDto>
   putTrackPreferences: (itemId: string, body: TrackPreferencesBody) => Promise<unknown>
   deleteTrackPreferences: (itemId: string) => Promise<unknown>
   updateProfile: (profileId: string, body: UpdateProfileBody) => Promise<unknown>

@@ -524,13 +524,20 @@ describe.skipIf(!hasFfmpeg())('playback over HTTP', () => {
       },
     })
     expect(response.status).toBe(201)
-    expect(await body(response)).toMatchObject({
+    const session = await body(response)
+    expect(session).toMatchObject({
       mode: 'hls_transcode',
       quality: 'original',
       stream: { type: 'hls' },
       audioTracks: [{ index: 1, codec: 'ac3', delivery: 'aac' }],
       burnIn: false,
+      transcodeReasons: ['video_codec'],
+      media: { container: 'mkv', video: { codec: 'h264' } },
     })
+    // No segment asked yet: no ffmpeg run (§10.7 playback info).
+    const status = await call(`/playback/sessions/${String(session.id)}/transcode`)
+    expect(status.status).toBe(200)
+    expect(await body(status)).toEqual({ running: false })
   })
 })
 

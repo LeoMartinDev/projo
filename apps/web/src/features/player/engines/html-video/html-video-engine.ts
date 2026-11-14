@@ -1,6 +1,6 @@
 import type { ClientCapabilities } from '@projo/shared/api/playback'
 
-import type { EngineCapabilities, EngineLoad } from '@projo/player/core/engine'
+import type { EngineCapabilities, EngineLoad, EngineStats } from '@projo/player/core/engine'
 import {
   type MediaEvent,
   mediaEventTypes,
@@ -19,7 +19,7 @@ import {
   showInDocumentPictureInPicture,
 } from './document-pip.ts'
 import { playerVideo } from './player-element.ts'
-import { attachStream, createStreamReloader, loadHls } from './stream.ts'
+import { type AttachedStream, attachStream, createStreamReloader, loadHls } from './stream.ts'
 
 // Kept equal to the class player.css styles the native cues with.
 const nativeCuesClass = 'player__video--native-cues'
@@ -99,6 +99,17 @@ const capabilitiesOf = (video: HTMLVideoElement): EngineCapabilities => {
   }
 }
 
+const videoStats = (video: HTMLVideoElement, stream: AttachedStream | undefined): EngineStats => {
+  const quality = video.getVideoPlaybackQuality?.()
+  return {
+    ...(video.videoWidth > 0 ? { width: video.videoWidth, height: video.videoHeight } : {}),
+    ...(quality === undefined
+      ? {}
+      : { droppedFrames: quality.droppedVideoFrames, totalFrames: quality.totalVideoFrames }),
+    ...stream?.stats(),
+  }
+}
+
 const pipEvents = [
   'enterpictureinpicture',
   'leavepictureinpicture',
@@ -142,6 +153,7 @@ export const createHtmlVideoEngine = (video: HTMLVideoElement): WebPlayerEngine 
 
   const reloader = createStreamReloader(video)
   let current: EngineLoad | undefined
+  let attached: AttachedStream | undefined
   let stopTrackSelection = () => {}
   let reloadTimer: ReturnType<typeof setTimeout> | undefined
   const cancelReloadTimer = () => clearTimeout(reloadTimer)
@@ -215,7 +227,7 @@ export const createHtmlVideoEngine = (video: HTMLVideoElement): WebPlayerEngine 
           ? { ...session.stream, url: withSubtitleOffset(session.stream.url, load.subtitleDelayMs) }
           : session.stream
       current = load
-      const detach = attachStream({
+      const attachedStream = attachStream({
         video,
         stream,
         hlsMode: resolved?.hls === 'native' ? 'native' : 'mse',
@@ -223,13 +235,15 @@ export const createHtmlVideoEngine = (video: HTMLVideoElement): WebPlayerEngine 
         autoplay: load.autoplay,
         onFatal: onFailure,
       })
+      attached = attachedStream
       return () => {
         if (current === load) current = undefined
+        if (attached === attachedStream) attached = undefined
         stopTrackSelection()
         stopTrackSelection = () => {}
         cancelReloadTimer()
         reloader.cancel()
-        detach()
+        attachedStream.detach()
       }
     },
     selectAudio: () => {},
@@ -258,6 +272,7 @@ export const createHtmlVideoEngine = (video: HTMLVideoElement): WebPlayerEngine 
       if (video.src.endsWith(url)) return
       reloadTimer = setTimeout(() => reloader.reload(url), subtitleReloadDelayMs)
     },
+    stats: async () => videoStats(video, attached),
     capabilities: capabilitiesOf(video),
     clientCapabilities,
     dispose: () => {

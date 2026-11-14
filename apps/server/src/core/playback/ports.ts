@@ -103,3 +103,19 @@ export type TranscodeCacheInventory = {
   entries: () => TranscodeCacheEntry[]
   remove: (sessionId: string) => void
 }
+
+/** The ffmpeg run of an HLS session as it is now, for the playback info (§10.7). */
+export type TranscodeRunStatus = {
+  running: boolean
+  // Transcode only: where it runs (§10.3) and, in software, the x264 preset.
+  acceleration?: 'gpu' | 'gpu_encode' | 'software'
+  preset?: 'veryfast' | 'ultrafast'
+  // Encoding speed (× real time), once measured on the run's first 12 s of content.
+  speed?: number
+  hdr?: 'tonemapped' | 'converted'
+}
+
+export type TranscodeRunInspector = {
+  // Undefined when the segmenter holds nothing for the session (no segment asked yet).
+  inspect: (sessionId: string) => TranscodeRunStatus | undefined
+}

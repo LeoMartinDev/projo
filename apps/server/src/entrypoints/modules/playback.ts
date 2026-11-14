@@ -11,6 +11,7 @@ import { getDirectStreamFactory } from '../../application/playback/get-direct-st
 import { endPlaybackSessionFactory } from '../../application/playback/end-playback-session.ts'
 import { endPlaybackSessionsWithinFactory } from '../../application/playback/end-playback-sessions-within.ts'
 import { getMasterPlaylistFactory } from '../../application/playback/get-master-playlist.ts'
+import { getTranscodeStatusFactory } from '../../application/playback/get-transcode-status.ts'
 import { recordHeartbeatFactory } from '../../application/playback/record-heartbeat.ts'
 import { hlsStreamsFactory } from '../../application/playback/hls-streams.ts'
 import { indexKeyframesFactory } from '../../application/playback/index-keyframes.ts'
@@ -189,6 +190,7 @@ export const buildPlaybackModule = (
           progressRepository,
           clock,
         }),
+        transcodeStatus: getTranscodeStatusFactory({ authorize, transcodeRuns: segmenter }),
         stopPlaybackSession: stopPlaybackSessionFactory({
           sessionRepository,
           endSession,

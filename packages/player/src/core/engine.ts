@@ -32,6 +32,27 @@ export type EngineCapabilities = {
 
 export type StreamFailure = { message: string; network: boolean }
 
+/**
+ * What the engine itself sees of the stream, for the playback info (§10.7): each field only
+ * when the engine knows it.
+ */
+export type EngineStats = {
+  // The picture as decoded.
+  width?: number
+  height?: number
+  frameRate?: number
+  // Codecs as the engine names them (mpv's decoder, hls.js's playlist codecs).
+  videoCodec?: string
+  audioCodec?: string
+  audioChannels?: string
+  // The hardware decoder in use, `no` for a software decode (mpv `hwdec-current`).
+  hardwareDecoding?: string
+  droppedFrames?: number
+  totalFrames?: number
+  // Download bandwidth estimate, bits per second (hls.js).
+  bandwidth?: number
+}
+
 export type EngineLoad = {
   session: PlaybackSessionDto
   // Where the stream starts, in seconds of the stream (not of the item).
@@ -64,6 +85,8 @@ export type PlayerEngine = {
   selectAudio: (track: AudioTrackDto) => void
   selectSubtitle: (track: SubtitleTrackDto | undefined) => void
   setSubtitleDelay: (delayMs: number) => void
+  // A live read of what the engine sees of the stream (playback info).
+  stats: () => Promise<EngineStats>
   capabilities: EngineCapabilities
   // The body of `POST /playback/sessions` (§10.2).
   clientCapabilities: () => Promise<ClientCapabilities>

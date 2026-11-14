@@ -2,11 +2,16 @@ import { authorizePlaybackFactory } from '../../src/application/playback/authori
 import { authorizeStreamFactory } from '../../src/application/playback/authorize-stream.ts'
 import { endPlaybackSessionFactory } from '../../src/application/playback/end-playback-session.ts'
 import { endPlaybackSessionsWithinFactory } from '../../src/application/playback/end-playback-sessions-within.ts'
+import { getTranscodeStatusFactory } from '../../src/application/playback/get-transcode-status.ts'
 import { recordHeartbeatFactory } from '../../src/application/playback/record-heartbeat.ts'
 import { stopPlaybackSessionFactory } from '../../src/application/playback/stop-playback-session.ts'
 import { sweepPlaybackSessionsFactory } from '../../src/application/playback/sweep-playback-sessions.ts'
 import type { PlayableSource, PlayableSources } from '../../src/core/catalog/catalog.ts'
-import type { HlsSegmenter, TranscodeCache } from '../../src/core/playback/ports.ts'
+import type {
+  HlsSegmenter,
+  TranscodeCache,
+  TranscodeRunStatus,
+} from '../../src/core/playback/ports.ts'
 import type { PlaybackSession, PlaybackSessionRepository } from '../../src/core/playback/session.ts'
 import type { ItemProgress, ProgressRepository } from '../../src/core/progress/progress.ts'
 import { createManualClock } from './clock.ts'
@@ -95,7 +100,7 @@ const catalog = {
 /**
  * A fresh world per test. `cacheDirs` (transcode cache folders) and `streaming` (live HLS
  * streams) start empty and are filled by the test; `stopped` and `released` record the
- * segmenter stops and the stream releases.
+ * segmenter stops and the stream releases; `runs` holds what the segmenter reports per session.
  */
 export const createPlaybackSessionWorld = () => {
   const clock = createManualClock()
@@ -105,6 +110,7 @@ export const createPlaybackSessionWorld = () => {
   const cacheDirs = new Set<string>()
   const streaming = new Set<string>()
   const released: string[] = []
+  const runs = new Map<string, TranscodeRunStatus>()
   const { bus, events } = createRecordingEventBus()
   const segmenter: HlsSegmenter = {
     segment: async () => {
@@ -147,6 +153,10 @@ export const createPlaybackSessionWorld = () => {
       progressRepository: progress,
       clock,
     }),
+    transcodeStatus: getTranscodeStatusFactory({
+      authorize,
+      transcodeRuns: { inspect: (id) => runs.get(id) },
+    }),
     stop: stopPlaybackSessionFactory({ sessionRepository: sessions, endSession, isItemVisible }),
     endWithin: endPlaybackSessionsWithinFactory({ sessionRepository: sessions, endSession }),
     sweep: sweepPlaybackSessionsFactory({
@@ -165,14 +175,21 @@ export const createPlaybackSessionWorld = () => {
     }),
   }
 
-  const open = (id: string, { sourceId = sessionSource.id, itemId = 'movie-1' } = {}) =>
+  const open = (
+    id: string,
+    {
+      sourceId = sessionSource.id,
+      itemId = 'movie-1',
+      mode = 'hls_remux',
+    }: { sourceId?: string; itemId?: string; mode?: PlaybackSession['mode'] } = {},
+  ) =>
     sessions.insert({
       id,
       profileId: 'profile-1',
       authSessionId: 'auth-1',
       sourceId,
       itemId,
-      mode: 'hls_remux',
+      mode,
       burnIn: false,
       streamSecretHash: `h(secret-${id})`,
       startedAt: clock.now(),
@@ -189,6 +206,7 @@ export const createPlaybackSessionWorld = () => {
     cacheDirs,
     streaming,
     released,
+    runs,
     lifecycle,
     open,
   }

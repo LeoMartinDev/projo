@@ -3,6 +3,7 @@ import type {
   PlaybackHeartbeatBody,
   PlaybackSessionDto,
   TrackPreferencesBody,
+  TranscodeStatusDto,
 } from '@projo/shared/api/playback'
 import type { UpdateProfileBody } from '@projo/shared/api/profiles'
 
@@ -26,6 +27,7 @@ export const sessionDto = (
   subtitleTracks: [],
   trackSelection: 'profile',
   burnIn: false,
+  media: { container: 'mkv', sizeBytes: 1_000_000_000 },
   versions: [],
   parts: [],
   partOffsetMs: 0,
@@ -50,8 +52,10 @@ export const createFakePlaybackApi = ({
       ...(body.sourceId === undefined ? {} : { sourceId: body.sourceId }),
       quality: body.quality ?? 'original',
     }),
+  transcodeStatus = () => ({ running: false }),
 }: {
   answer?: (body: CreatePlaybackSessionBody, index: number) => Answer
+  transcodeStatus?: (sessionId: string) => TranscodeStatusDto
 } = {}) => {
   const log: string[] = []
   const created: CreatePlaybackSessionBody[] = []
@@ -73,6 +77,10 @@ export const createFakePlaybackApi = ({
     heartbeat: async (id, body) => void log.push(`heartbeat ${id} ${position(body)}`),
     beacon: (id, body) => void log.push(`beacon ${id} ${position(body)}`),
     endSession: async (id) => void log.push(`end ${id}`),
+    transcodeStatus: async (id) => {
+      log.push(`transcode ${id}`)
+      return transcodeStatus(id)
+    },
     putTrackPreferences: async (itemId, body: TrackPreferencesBody) =>
       void log.push(`put ${itemId} ${JSON.stringify(body)}`),
     deleteTrackPreferences: async (itemId) => void log.push(`delete ${itemId}`),

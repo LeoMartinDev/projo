@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { sourceVersionDtoSchema } from './versions.ts'
+import { dynamicRangeSchema, sourceVersionDtoSchema } from './versions.ts'
 
 export const playbackModeSchema = z.enum(['direct', 'hls_remux', 'hls_transcode'])
 export type PlaybackMode = z.infer<typeof playbackModeSchema>
@@ -115,6 +115,42 @@ export type ChapterDto = z.infer<typeof chapterDtoSchema>
 export const trackSelectionOriginSchema = z.enum(['memory', 'anime', 'profile', 'explicit'])
 export type TrackSelectionOrigin = z.infer<typeof trackSelectionOriginSchema>
 
+// Why a session transcodes its video (§10.2).
+export const transcodeReasonSchema = z.enum(['video_codec', 'quality', 'burn_in'])
+export type TranscodeReason = z.infer<typeof transcodeReasonSchema>
+
+// The file a session plays, as probed (playback info, §10.7).
+export const playbackMediaDtoSchema = z.object({
+  container: z.string(),
+  sizeBytes: z.number().int(),
+  bitrate: z.number().int().optional(),
+  video: z
+    .object({
+      codec: z.string(),
+      profile: z.string().optional(),
+      width: z.number().int().optional(),
+      height: z.number().int().optional(),
+      pixelFormat: z.string().optional(),
+      dynamicRange: dynamicRangeSchema.optional(),
+    })
+    .optional(),
+})
+export type PlaybackMediaDto = z.infer<typeof playbackMediaDtoSchema>
+
+// The ffmpeg run of an HLS session right now (§10.3), for the playback info.
+export const transcodeStatusDtoSchema = z.object({
+  running: z.boolean(),
+  // `gpu`: decoded, scaled and encoded on the render node; `gpu_encode`: decoded on the CPU,
+  // scaled and encoded on the GPU; `software`: libx264. Absent for a remux.
+  acceleration: z.enum(['gpu', 'gpu_encode', 'software']).optional(),
+  preset: z.enum(['veryfast', 'ultrafast']).optional(),
+  // Encoding speed measured at the start of the run (× real time).
+  speed: z.number().optional(),
+  // HDR to SDR: tone mapped, or only converted to 8 bits (no zscale/tonemap in ffmpeg).
+  hdr: z.enum(['tonemapped', 'converted']).optional(),
+})
+export type TranscodeStatusDto = z.infer<typeof transcodeStatusDtoSchema>
+
 export const playbackSessionDtoSchema = z.object({
   id: z.string(),
   itemId: z.string(),
@@ -132,6 +168,8 @@ export const playbackSessionDtoSchema = z.object({
   selectedSubtitleTrackId: z.string().optional(),
   trackSelection: trackSelectionOriginSchema,
   burnIn: z.boolean(),
+  transcodeReasons: z.array(transcodeReasonSchema).optional(),
+  media: playbackMediaDtoSchema,
   versions: z.array(playbackVersionDtoSchema),
   parts: z.array(playbackPartDtoSchema),
   partOffsetMs: z.number().int(),

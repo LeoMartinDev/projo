@@ -30,6 +30,7 @@ describe('commandFor', () => {
     expect(commandFor(key('s'), idle)).toBe('skip_segment')
     expect(commandFor(key('N'), idle)).toBe('next_episode')
     expect(commandFor(key('c'), idle)).toBe('toggle_subtitles')
+    expect(commandFor(key('I'), idle)).toBe('toggle_info')
     expect(commandFor(key('Escape'), idle)).toBe('exit')
     expect(commandFor(key('x'), idle)).toBeUndefined()
   })

@@ -1,6 +1,6 @@
 import type { HlsConfig } from 'hls.js'
 
-import type { StreamFailure } from '@projo/player/core/engine'
+import type { EngineStats, StreamFailure } from '@projo/player/core/engine'
 import { waitForPlaylist } from '@projo/player/core/playlist-wait'
 
 import { keyframeWaitLoadPolicy, mediaPlaylistUrl } from './playlist.ts'
@@ -9,6 +9,12 @@ import { watchSeekStalls } from './seek-stall.ts'
 export const loadHls = () => import('hls.js').then((module) => module.default)
 
 export type HlsMode = 'native' | 'mse'
+
+// What hls.js knows of the stream (playback info): nothing for a direct file or native HLS.
+export type AttachedStream = {
+  detach: () => void
+  stats: () => Pick<EngineStats, 'videoCodec' | 'audioCodec' | 'frameRate' | 'bandwidth'>
+}
 
 const seekOnceLoaded = (video: HTMLVideoElement, seconds: number) => {
   if (seconds <= 0) return () => {}
@@ -24,7 +30,8 @@ const mediaErrorNetwork = 2
 /**
  * Plays a stream in the `<video>`: a direct file or native HLS through `src`
  * (native HLS waits for the keyframe index first, §10.3), else hls.js over
- * MediaSource with one recovery per kind of fatal error. Returns what detaches it.
+ * MediaSource with one recovery per kind of fatal error. Returns what detaches it and what
+ * hls.js knows of the stream.
  */
 export const attachStream = ({
   video,
@@ -40,7 +47,7 @@ export const attachStream = ({
   startSeconds: number
   autoplay: boolean
   onFatal: (failure: StreamFailure) => void
-}): (() => void) => {
+}): AttachedStream => {
   let disposed = false
   const report = (failure: StreamFailure) => {
     if (!disposed) onFatal(failure)
@@ -82,19 +89,23 @@ export const attachStream = ({
       }).then((wait) => {
         if (wait === 'ready') video.src = stream.url
       })
-    return () => {
-      if (disposed) return
-      disposed = true
-      cancelSeek()
-      stopSeekWatch()
-      video.removeEventListener('error', failed)
-      video.removeEventListener('loadedmetadata', play)
-      video.removeAttribute('src')
-      video.load()
+    return {
+      detach: () => {
+        if (disposed) return
+        disposed = true
+        cancelSeek()
+        stopSeekWatch()
+        video.removeEventListener('error', failed)
+        video.removeEventListener('loadedmetadata', play)
+        video.removeAttribute('src')
+        video.load()
+      },
+      stats: () => ({}),
     }
   }
 
   let destroy = () => {}
+  let hlsStats: AttachedStream['stats'] = () => ({})
   void loadHls().then((Hls) => {
     if (disposed) return
     const config: Partial<HlsConfig> = {
@@ -126,14 +137,29 @@ export const attachStream = ({
     hls.loadSource(stream.url)
     hls.attachMedia(video)
     destroy = () => hls.destroy()
+    hlsStats = () => {
+      const level = hls.levels[hls.currentLevel]
+      const bandwidth = hls.bandwidthEstimate
+      return {
+        ...(level?.videoCodec === undefined ? {} : { videoCodec: level.videoCodec }),
+        ...(level?.audioCodec === undefined ? {} : { audioCodec: level.audioCodec }),
+        ...(level?.frameRate ? { frameRate: level.frameRate } : {}),
+        ...(Number.isFinite(bandwidth) && bandwidth > 0
+          ? { bandwidth: Math.round(bandwidth) }
+          : {}),
+      }
+    }
   })
-  return () => {
-    if (disposed) return
-    disposed = true
-    stopSeekWatch()
-    destroy()
-    video.removeAttribute('src')
-    video.load()
+  return {
+    detach: () => {
+      if (disposed) return
+      disposed = true
+      stopSeekWatch()
+      destroy()
+      video.removeAttribute('src')
+      video.load()
+    },
+    stats: () => hlsStats(),
   }
 }
 

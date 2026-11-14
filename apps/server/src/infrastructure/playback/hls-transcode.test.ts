@@ -511,6 +511,12 @@ describe.skipIf(!hasFfmpeg())('VAAPI fallback to software (real ffmpeg, no GPU, 
     const init = unwrap(await segmenter.segment(job, 'init'))
     const zero = unwrap(await segmenter.segment(job, 0))
     expect(await decodesCleanly(glue(dir, 'missing.mp4', [init, zero]))).toBe(true)
+    expect(segmenter.inspect(job.sessionId)).toMatchObject({
+      acceleration: 'software',
+      preset: 'veryfast',
+    })
+    segmenter.stop(job.sessionId)
+    expect(segmenter.inspect(job.sessionId)).toBeUndefined()
     expect(world.notified).toEqual([
       {
         kind: 'playback/hw_accel_failed',

@@ -4,11 +4,13 @@ import {
   createPlaybackSessionBodySchema,
   playbackHeartbeatBodySchema,
   type PlaybackHeartbeatResponse,
+  type PlaybackMediaDto,
   type PlaybackSessionDto,
   type PlaybackSessionEnded,
   type SubtitleTrackDto,
   trackPreferencesBodySchema,
   type TrackPreferencesDto,
+  type TranscodeStatusDto,
 } from '@projo/shared/api/playback'
 
 import type { ClearTrackPreferences } from '../../../application/playback/clear-track-preferences.ts'
@@ -16,6 +18,7 @@ import type {
   CreatedPlaybackSession,
   CreatePlaybackSession,
 } from '../../../application/playback/create-playback-session.ts'
+import type { GetTranscodeStatus } from '../../../application/playback/get-transcode-status.ts'
 import type { RecordHeartbeat } from '../../../application/playback/record-heartbeat.ts'
 import type { SetTrackPreferences } from '../../../application/playback/set-track-preferences.ts'
 import type { StopPlaybackSession } from '../../../application/playback/stop-playback-session.ts'
@@ -79,6 +82,30 @@ export const toSubtitleTrackDto = (
   }
 }
 
+const toPlaybackMediaDto = ({
+  source,
+  media,
+  plan,
+}: Pick<CreatedPlaybackSession, 'source' | 'media' | 'plan'>): PlaybackMediaDto => {
+  const { video } = plan
+  const durationMs = video.durationMs ?? media.durationMs
+  return {
+    container: source.extension.toLowerCase().replace(/^\./, ''),
+    sizeBytes: source.sizeBytes,
+    ...(durationMs === undefined || durationMs <= 0
+      ? {}
+      : { bitrate: Math.round((source.sizeBytes * 8) / (durationMs / 1000)) }),
+    video: {
+      codec: video.codec,
+      ...optional('profile', video.profile),
+      ...optional('width', video.width),
+      ...optional('height', video.height),
+      ...optional('pixelFormat', video.pixelFormat),
+      ...optional('dynamicRange', video.dynamicRange),
+    },
+  }
+}
+
 export const toPlaybackSessionDto = (
   created: CreatedPlaybackSession,
   { hlsSubtitles }: { hlsSubtitles: boolean },
@@ -120,6 +147,8 @@ export const toPlaybackSessionDto = (
     ...optional('selectedSubtitleTrackId', tracks.subtitle?.id),
     trackSelection: tracks.origin,
     burnIn: session.burnIn,
+    ...(plan.mode === 'hls_transcode' ? { transcodeReasons: plan.reasons } : {}),
+    media: toPlaybackMediaDto(created),
     versions: created.versions,
     parts: created.parts.map(({ sourceId, index, offsetMs, durationMs: partDurationMs }) => ({
       sourceId,
@@ -150,6 +179,7 @@ export const toTrackPreferencesDto = (preferences: TrackPreferences): TrackPrefe
 type Deps = {
   createPlaybackSession: CreatePlaybackSession
   heartbeat: RecordHeartbeat
+  transcodeStatus: GetTranscodeStatus
   stopPlaybackSession: StopPlaybackSession
   setTrackPreferences: SetTrackPreferences
   clearTrackPreferences: ClearTrackPreferences
@@ -159,6 +189,7 @@ type Deps = {
 export const playbackRoutes = ({
   createPlaybackSession,
   heartbeat,
+  transcodeStatus,
   stopPlaybackSession,
   setTrackPreferences,
   clearTrackPreferences,
@@ -221,6 +252,17 @@ export const playbackRoutes = ({
     .post('/playback/sessions/:id/heartbeat', async (c) => {
       const body = await parseTextJsonBody(c.req, playbackHeartbeatBodySchema)
       return body.ok ? beat(c, body.value) : respondError(c, body.error)
+    })
+    .get('/playback/sessions/:id/transcode', (c) => {
+      const { account } = currentPrincipal(c)
+      const result = transcodeStatus({
+        sessionId: c.req.param('id'),
+        accountId: account.id,
+        profileId: c.get('profileId'),
+      })
+      return result.ok
+        ? c.json(result.value satisfies TranscodeStatusDto, 200)
+        : respondError(c, result.error)
     })
     .delete('/playback/sessions/:id', async (c) => {
       const { account } = currentPrincipal(c)

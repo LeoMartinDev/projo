@@ -33,6 +33,7 @@ import {
   subtitleSteps,
   type TrackStep,
 } from './mpv-tracks.ts'
+import { statsProperties, toEngineStats } from './mpv-stats.ts'
 import { tauriInternals } from '../../../../shared/desktop/tauri.ts'
 import { createTauriBridge } from './tauri-bridge.ts'
 
@@ -399,6 +400,16 @@ export const createMpvEngine = ({
       whenLoaded({ audio: false, subtitle: true })
     },
     setSubtitleDelay: (delayMs) => setDesired('sub-delay', seconds(delayMs)),
+    // Reads only, beside the command queue: they change nothing in libmpv.
+    stats: async () => {
+      if (instance === undefined || playback.phase === 'idle') return {}
+      const values = await Promise.all(
+        statsProperties.map((name) => bridge.getProperty(name).catch(() => undefined)),
+      )
+      return toEngineStats(
+        Object.fromEntries(statsProperties.map((name, index) => [name, values[index]])),
+      )
+    },
     capabilities: mpvCapabilities,
     clientCapabilities: async () => mpvClientCapabilities(screenHeight()),
     dispose: () => {

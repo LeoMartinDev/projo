@@ -21,6 +21,7 @@ export const contractSession: PlaybackSessionDto = {
   subtitleTracks: [],
   trackSelection: 'profile',
   burnIn: false,
+  media: { container: 'mp4', sizeBytes: 1_000_000 },
   versions: [],
   parts: [],
   partOffsetMs: 0,

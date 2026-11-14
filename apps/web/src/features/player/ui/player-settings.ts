@@ -24,6 +24,14 @@ export const loadSubtitleSettings = (): SubtitleSettings =>
 export const saveSubtitleSettings = (settings: SubtitleSettings): void =>
   writeStoredJson(key, settings)
 
+// The playback info panel (§10.7), remembered per device.
+const infoKey = 'projo.player.info'
+
+export const loadPlaybackInfoShown = (): boolean =>
+  readStoredJson(infoKey, (value) => value === true) ?? false
+
+export const savePlaybackInfoShown = (shown: boolean): void => writeStoredJson(infoKey, shown)
+
 export const playbackRates = [0.5, 1, 1.5, 2] as const
 
 const minRate = playbackRates[0]

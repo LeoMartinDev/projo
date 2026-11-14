@@ -32,6 +32,8 @@ import type {
   TranscodeCache,
   TranscodeCacheEntry,
   TranscodeCacheInventory,
+  TranscodeRunInspector,
+  TranscodeRunStatus,
 } from '../../core/playback/ports.ts'
 import {
   type FfmpegFilters,
@@ -91,6 +93,7 @@ type SessionState = {
   stopped: boolean
   acceleration: Acceleration | undefined
   preset: X264Preset | undefined
+  speed: number | undefined
 }
 
 const speedSampleS = 12
@@ -226,7 +229,7 @@ export const createHlsSegmenter = ({
   renderNode = '/dev/dri/renderD128',
   notifier,
   presetsFile = join(transcodeDir, 'x264-presets.json'),
-}: Deps): HlsSegmenter => {
+}: Deps): HlsSegmenter & TranscodeRunInspector => {
   const presets = loadPresets(presetsFile)
   let knownFilters = filters
   const ffmpegFilters = (): FfmpegFilters => {
@@ -513,6 +516,7 @@ export const createHlsSegmenter = ({
     if (contentS < speedSampleS) return
     sample.done = true
     const speed = contentS / Math.max(0.001, (now - sample.at) / 1000)
+    state.speed = speed
     const next = nextPreset(sample.preset, speed)
     logger.debug('x264 speed measured', {
       sessionId: state.job.sessionId,
@@ -616,6 +620,7 @@ export const createHlsSegmenter = ({
       stopped: false,
       acceleration: undefined,
       preset: undefined,
+      speed: undefined,
     }
     sessions.set(job.sessionId, state)
     return state
@@ -712,6 +717,11 @@ export const createHlsSegmenter = ({
 
     sessionIds: () => [...sessions.keys()],
 
+    inspect: (sessionId) => {
+      const state = sessions.get(sessionId)
+      return state === undefined ? undefined : runStatus(state, ffmpegFilters)
+    },
+
     stopAll: async () => {
       const exits: Promise<unknown>[] = []
       for (const [sessionId, state] of sessions) {
@@ -724,6 +734,24 @@ export const createHlsSegmenter = ({
       sessions.clear()
       await Promise.all(exits)
     },
+  }
+}
+
+const runStatus = (
+  { job, run, acceleration, preset, speed }: SessionState,
+  ffmpegFilters: () => FfmpegFilters,
+): TranscodeRunStatus => {
+  const running = run !== undefined && !run.finished
+  if (job.mode !== 'hls_transcode') return { running }
+  const hdr = (job.transcode.dynamicRange ?? 'sdr') !== 'sdr'
+  return {
+    running,
+    ...(acceleration === undefined ? {} : { acceleration }),
+    ...(preset === undefined ? {} : { preset }),
+    ...(speed === undefined ? {} : { speed: Math.round(speed * 100) / 100 }),
+    ...(hdr
+      ? { hdr: tonemaps(job.transcode, ffmpegFilters()) ? ('tonemapped' as const) : 'converted' }
+      : {}),
   }
 }
 

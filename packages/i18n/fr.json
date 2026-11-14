@@ -528,6 +528,61 @@
         "external": "Fichier à part",
         "embedded": "Dans la vidéo"
       }
+    },
+    "info": {
+      "title": "Infos de lecture",
+      "session": "Session",
+      "source": "Fichier",
+      "stream": "Envoyé par le serveur",
+      "player": "Lecteur",
+      "mode": "Mode",
+      "modes": {
+        "direct": "Lecture directe",
+        "hls_remux": "Remux HLS",
+        "hls_transcode": "Transcodage HLS"
+      },
+      "reasons": {
+        "video_codec": "codec vidéo non lu",
+        "quality": "qualité réduite",
+        "burn_in": "sous-titres incrustés"
+      },
+      "container": "Conteneur",
+      "video": "Vidéo",
+      "audio": "Audio",
+      "subtitles": "Sous-titres",
+      "dynamicRange": {
+        "hdr": "HDR",
+        "dv": "Dolby Vision"
+      },
+      "subtitleDelivery": {
+        "vtt": "WebVTT",
+        "burn_in": "incrustés",
+        "unsupported": "non supportés",
+        "engine": "dessinés par le moteur"
+      },
+      "asIs": "Tel quel",
+      "copy": "Copié",
+      "running": "En cours",
+      "idle": "À l’arrêt",
+      "acceleration": {
+        "gpu": "GPU",
+        "gpu_encode": "Décodage CPU, encodage GPU",
+        "software": "CPU (x264)"
+      },
+      "hdr": {
+        "tonemapped": "Converti en SDR (tone mapping)",
+        "converted": "Converti en SDR sans tone mapping"
+      },
+      "picture": "Image",
+      "fps": "{{value}} i/s",
+      "codecs": "Codecs",
+      "decoding": "Décodage",
+      "softwareDecoding": "Logiciel",
+      "droppedFrames": "Images perdues",
+      "bandwidth": "Débit estimé",
+      "buffer": "Tampon",
+      "seconds": "{{value}} s",
+      "toggle": "Afficher les infos de lecture"
     }
   },
   "admin": {

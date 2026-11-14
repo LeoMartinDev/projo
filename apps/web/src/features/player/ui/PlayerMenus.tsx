@@ -22,6 +22,7 @@ import type {
 import { formatClock } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { media } from '@projo/design/media'
+import { Switch } from '../../../shared/ui/controls.tsx'
 import { CheckIcon, CloseIcon } from '../../../shared/ui/icons.tsx'
 import { audioCodecLabel, languageName } from '../../item/media-labels.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'
@@ -537,14 +538,19 @@ export const QualityMenu = ({
   session,
   onQuality,
   onVersion,
+  infoShown,
+  onInfoShown,
   onClose,
 }: {
   session: PlaybackSessionDto
   onQuality: (quality: PlaybackQuality) => void
   onVersion: (sourceId: string) => void
+  infoShown: boolean
+  onInfoShown: (shown: boolean) => void
   onClose: () => void
 }) => {
   const { t } = useTranslation()
+  const infoLabelId = useId()
   const versionNames = versionLabels(
     t,
     session.versions.map((version) => version.version),
@@ -581,6 +587,12 @@ export const QualityMenu = ({
           {qualityOptions}
         </div>
       )}
+      <div className="menu-info">
+        <span id={infoLabelId} className="menu-info__label">
+          {t('player.info.title')}
+        </span>
+        <Switch checked={infoShown} labelId={infoLabelId} onChange={onInfoShown} />
+      </div>
     </>
   )
 }

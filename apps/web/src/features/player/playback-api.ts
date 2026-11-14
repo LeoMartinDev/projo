@@ -31,6 +31,8 @@ export const playbackApi: PlaybackApi = {
     request(() =>
       api.playback.sessions[':id'].$delete({ param: { id } }, { init: { keepalive: true } }),
     ),
+  transcodeStatus: (id) =>
+    request(() => api.playback.sessions[':id'].transcode.$get({ param: { id } })),
   putTrackPreferences: (itemId, body) =>
     request(() =>
       api.items[':id']['track-preferences'].$put({ param: { id: itemId }, json: body }),

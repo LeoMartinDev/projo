@@ -391,6 +391,84 @@
   white-space: nowrap;
 }
 
+/* Playback info (§10.7): stays on screen with the chrome hidden, under the top bar. */
+.playback-info {
+  position: absolute;
+  top: calc(max(24px, env(safe-area-inset-top)) + 56px);
+  left: var(--player-gutter);
+  z-index: 4;
+  width: min(340px, calc(100% - 2 * var(--player-gutter)));
+  max-height: calc(100% - 260px);
+  overflow-y: auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+  box-shadow: var(--shadow-glass);
+  color: var(--color-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+}
+
+.playback-info__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.playback-info__close:hover {
+  background: var(--fill-2);
+  color: var(--color-text);
+}
+
+.playback-info__group + .playback-info__group {
+  margin-top: 10px;
+}
+
+.playback-info__title {
+  margin: 0 0 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.playback-info__rows {
+  margin: 0;
+}
+
+.playback-info__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+}
+
+.playback-info__row dt {
+  color: var(--color-text-muted);
+}
+
+.playback-info__row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.playback-info__warn {
+  color: var(--color-warning);
+}
+
 .player__bottom {
   bottom: 0;
   display: flex;
@@ -1193,6 +1271,20 @@
 
 .menu-section:not(.menu-section--column) + .menu-section {
   margin-top: 10px;
+}
+
+.menu-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 8px 6px;
+  padding: 2px 0 0 12px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.menu-info__label {
+  font-size: 14px;
 }
 
 .menu-option {

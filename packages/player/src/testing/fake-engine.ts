@@ -1,6 +1,12 @@
 import type { ClientCapabilities } from '@projo/shared/api/playback'
 
-import type { EngineCapabilities, EngineLoad, PlayerEngine, StreamFailure } from '../core/engine.ts'
+import type {
+  EngineCapabilities,
+  EngineLoad,
+  EngineStats,
+  PlayerEngine,
+  StreamFailure,
+} from '../core/engine.ts'
 import {
   initialMediaState,
   type MediaEvent,
@@ -69,9 +75,11 @@ const emptyMedia = (media: MediaSnapshot): MediaSnapshot => ({
 export const createFakeEngine = ({
   capabilities = {},
   clientCapabilities = fakeClientCapabilities,
+  stats = {},
 }: {
   capabilities?: Partial<EngineCapabilities>
   clientCapabilities?: ClientCapabilities
+  stats?: EngineStats
 } = {}): FakeEngine => {
   const { waiting: _waiting, ...initialMedia } = initialMediaState
   let media: MediaSnapshot = initialMedia
@@ -155,6 +163,10 @@ export const createFakeEngine = ({
     selectAudio: (track) => void commands.push(`audio ${track.index}`),
     selectSubtitle: (track) => void commands.push(`subtitle ${track?.id ?? 'off'}`),
     setSubtitleDelay: (delayMs) => void commands.push(`subtitle delay ${delayMs}`),
+    stats: async () => {
+      commands.push('stats')
+      return stats
+    },
     capabilities: { ...browserLikeCapabilities, ...capabilities },
     clientCapabilities: async () => clientCapabilities,
     dispose: () => listeners.clear(),
