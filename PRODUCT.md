@@ -1409,6 +1409,7 @@ The household's computers play every file as it is: no remux, no transcode, no b
 - **Full screen** is the window's (Tauri `setFullscreen`), from the player's button and `F`; `Esc` leaves it (`nativeFullscreen: false`, §10.7).
 - **Input** goes to the page only (libmpv `osc=no`, `input-default-bindings=no`, `input-vo-keyboard=no`): the shortcuts and gestures of §10.7 are the web's.
 - **Navigation**: every page load of the window stops and hides libmpv (as `mpv_destroy`), so a reload, a crashed page or a server update never leaves a picture under another page.
+- **User agent**: WebView2's (an Edge one) with `projo-desktop/<version>` appended, set on the window before it leaves the bundled page: a session opened from the app is named "projo desktop · Windows" (§14 devices), not "Edge · Windows".
 
 ### 28.5 libmpv
 

@@ -10,6 +10,7 @@ mod origin;
 mod server;
 mod state;
 mod updates;
+mod user_agent;
 mod window_size;
 
 use std::sync::{Arc, OnceLock};
@@ -244,6 +245,8 @@ fn main() {
                 .build()?;
             #[cfg(windows)]
             load_failure::watch(&window, local_page_url())?;
+            #[cfg(windows)]
+            user_agent::mark(&window, handle.package_info().version.to_string())?;
             match window.window_handle().map(|handle| handle.as_raw()) {
                 Ok(RawWindowHandle::Win32(win32)) => player.set_wid(win32.hwnd.get() as i64),
                 Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),

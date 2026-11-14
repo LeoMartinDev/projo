@@ -1,4 +1,6 @@
 const browsers: [RegExp, string][] = [
+  // The desktop app (§28.4) appends its token to WebView2's Edge user agent.
+  [/projo-desktop\//, 'projo desktop'],
   [/Edg\//, 'Edge'],
   [/Firefox\//, 'Firefox'],
   [/Chrome\//, 'Chrome'],
