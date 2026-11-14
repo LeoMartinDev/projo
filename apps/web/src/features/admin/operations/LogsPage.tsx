@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import type { LogEntryDto, LogLevelDto } from '@projo/shared/api/logs'
 
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { Field, SelectChevron } from '../../../shared/ui/controls.tsx'
+import { Field } from '../../../shared/ui/controls.tsx'
+import { SelectField } from '../../../shared/ui/Select.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorState } from '../../../shared/ui/states.tsx'
@@ -28,6 +29,18 @@ import './operations.css'
 const formatLogTime = (iso: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(iso))
 
+/** Time of a row: day and month, then the time to the millisecond (lines often share a second). */
+const formatRowTime = (iso: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    fractionalSecondDigits: 3,
+    hourCycle: 'h23',
+  }).format(new Date(iso))
+
 const useDebounced = (value: string, delayMs: number): string => {
   const [debounced, setDebounced] = useState(value)
   useEffect(() => {
@@ -37,11 +50,9 @@ const useDebounced = (value: string, delayMs: number): string => {
   return debounced
 }
 
-const LevelPill = ({ level }: { level: LogLevelDto }) => {
+const LevelTag = ({ level }: { level: LogLevelDto }) => {
   const { t } = useTranslation()
-  return (
-    <span className={`acc-pill log-pill log-pill--${level}`}>{t(`admin.logs.level.${level}`)}</span>
-  )
+  return <span className={`log-level log-level--${level}`}>{t(`admin.logs.level.${level}`)}</span>
 }
 
 const textField = (entry: LogEntryDto, key: string): string | undefined => {
@@ -49,7 +60,7 @@ const textField = (entry: LogEntryDto, key: string): string | undefined => {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : undefined
 }
 
-/** The second line of a row: code, module, and the request of an HTTP line. */
+/** What follows the message on its row: the code, and the request of an HTTP line. */
 const detailOf = (entry: LogEntryDto): string => {
   const method = textField(entry, 'method')
   const path = textField(entry, 'path')
@@ -57,9 +68,7 @@ const detailOf = (entry: LogEntryDto): string => {
     method === undefined || path === undefined
       ? undefined
       : [method, path, textField(entry, 'status')].filter(Boolean).join(' ')
-  return [entry.code, textField(entry, 'module'), request]
-    .filter((part) => part !== undefined)
-    .join(' · ')
+  return [entry.code, request].filter((part) => part !== undefined).join(' · ')
 }
 
 const LogDetails = ({ entry, onClose }: { entry: LogEntryDto; onClose: () => void }) => {
@@ -81,8 +90,14 @@ const LogDetails = ({ entry, onClose }: { entry: LogEntryDto; onClose: () => voi
         <dd className="adm-mono">{formatLogTime(entry.time, locale)}</dd>
         <dt>{t('admin.logs.columns.level')}</dt>
         <dd>
-          <LevelPill level={entry.level} />
+          <LevelTag level={entry.level} />
         </dd>
+        {textField(entry, 'module') === undefined ? undefined : (
+          <>
+            <dt>{t('admin.logs.columns.module')}</dt>
+            <dd className="adm-mono">{textField(entry, 'module')}</dd>
+          </>
+        )}
         <dt>{t('admin.logs.columns.message')}</dt>
         <dd>{entry.message}</dd>
         {entry.code === undefined ? undefined : (
@@ -104,13 +119,16 @@ const LogRow = ({ entry, onOpen }: { entry: LogEntryDto; onOpen: () => void }) =
   const detail = detailOf(entry)
   return (
     <div className="adm-tr log-tr" role="row" data-level={entry.level}>
-      <div className="adm-cell log-tr__time" role="cell">
-        <span className="adm-mono adm-muted">{formatLogTime(entry.time, locale)}</span>
-      </div>
-      <div className="adm-cell" role="cell">
-        <LevelPill level={entry.level} />
-      </div>
-      <div className="adm-cell" role="cell">
+      <span className="log-tr__time" role="cell" title={formatLogTime(entry.time, locale)}>
+        {formatRowTime(entry.time, locale)}
+      </span>
+      <span role="cell">
+        <LevelTag level={entry.level} />
+      </span>
+      <span className="log-tr__module" role="cell">
+        {textField(entry, 'module') ?? ''}
+      </span>
+      <span className="log-tr__line" role="cell">
         <button
           type="button"
           className="adm-open log-tr__message"
@@ -119,15 +137,15 @@ const LogRow = ({ entry, onOpen }: { entry: LogEntryDto; onOpen: () => void }) =
         >
           {entry.message}
         </button>
-        <span className="adm-muted adm-mono log-tr__detail">{detail === '' ? ' ' : detail}</span>
-      </div>
+        {detail === '' ? undefined : <span className="log-tr__detail">{detail}</span>}
+      </span>
     </div>
   )
 }
 
 const SkeletonRows = () => (
   <>
-    {[0, 1, 2, 3, 4, 5].map((index) => (
+    {Array.from({ length: 12 }, (_, index) => (
       <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
         <span className="skeleton skeleton--line" />
       </div>
@@ -202,22 +220,17 @@ export const LogsPage = () => {
             </button>
           ))}
         </div>
-        <Field id={periodId} label={t('admin.logs.period')} compact trail={<SelectChevron />}>
-          <select
-            id={periodId}
-            className="field__input"
-            value={state.period}
-            onChange={(event) =>
-              update({ period: event.target.value as LogPeriod, anchor: Date.now() })
-            }
-          >
-            {logPeriods.map((value) => (
-              <option key={value} value={value}>
-                {t(`admin.logs.periods.${value}`)}
-              </option>
-            ))}
-          </select>
-        </Field>
+        <SelectField
+          compact
+          id={periodId}
+          label={t('admin.logs.period')}
+          value={state.period}
+          options={logPeriods.map((value: LogPeriod) => ({
+            value,
+            label: t(`admin.logs.periods.${value}`),
+          }))}
+          onChange={(period) => update({ period, anchor: Date.now() })}
+        />
         {state.period === 'custom' ? (
           <>
             <Field id={fromId} label={t('admin.logs.from')}>
@@ -255,10 +268,11 @@ export const LogsPage = () => {
         </Field>
       </div>
 
-      <div className="adm-table" role="table" aria-label={t('admin.logs.title')}>
+      <div className="adm-table adm-table--dense" role="table" aria-label={t('admin.logs.title')}>
         <div className="adm-tr log-tr adm-tr--head" role="row">
           <span role="columnheader">{t('admin.logs.columns.time')}</span>
           <span role="columnheader">{t('admin.logs.columns.level')}</span>
+          <span role="columnheader">{t('admin.logs.columns.module')}</span>
           <span role="columnheader">{t('admin.logs.columns.message')}</span>
         </div>
         <div className="adm-table__body">

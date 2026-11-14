@@ -1063,6 +1063,7 @@
       "columns": {
         "time": "Date",
         "level": "Level",
+        "module": "Module",
         "message": "Message"
       },
       "code": "Code",

@@ -51,6 +51,55 @@
   width: 55%;
 }
 
+/* Technical lists (logs, jobs): one line per record, small type, many rows on screen. */
+.adm-table--dense {
+  max-width: none;
+}
+
+.adm-table--dense .adm-tr {
+  gap: 14px;
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.adm-table--dense .adm-tr--head {
+  min-height: 0;
+  padding: 0 10px 8px;
+  font-size: 11px;
+}
+
+.adm-table--dense .adm-tr--skeleton .skeleton {
+  height: 10px;
+}
+
+.adm-table--dense .adm-cell {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.adm-table--dense .adm-open {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.adm-table--dense .adm-muted {
+  font-size: 12.5px;
+}
+
+.adm-table--dense .acc-pill {
+  padding: 0 7px;
+  font-size: 11.5px;
+  line-height: 18px;
+}
+
+.adm-table--dense .button--small {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
 .adm-cell {
   display: flex;
   flex-direction: column;

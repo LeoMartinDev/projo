@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { Field, SelectChevron } from '../../../shared/ui/controls.tsx'
+import { SelectField } from '../../../shared/ui/Select.tsx'
 import { CheckIcon, LayersIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { librariesQuery } from '../queries.ts'
@@ -108,26 +108,15 @@ export const RefreshLibrarySetting = () => {
   const libraryId = chosen ?? items[0]?.id
   return (
     <div className="settings-block refresh-library">
-      <Field
+      <SelectField<string>
+        icon={<LayersIcon />}
         id={id}
         label={t('admin.metadataRefresh.title')}
-        icon={<LayersIcon />}
-        trail={<SelectChevron />}
-      >
-        <select
-          id={id}
-          className="field__input"
-          value={libraryId ?? ''}
-          disabled={items.length === 0}
-          onChange={(event) => setChosen(event.target.value)}
-        >
-          {items.map((library) => (
-            <option key={library.id} value={library.id}>
-              {library.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+        value={libraryId ?? ''}
+        disabled={items.length === 0}
+        options={items.map((library) => ({ value: library.id, label: library.name }))}
+        onChange={setChosen}
+      />
       <RefreshLibraryButton
         key={libraryId}
         libraryId={libraryId}

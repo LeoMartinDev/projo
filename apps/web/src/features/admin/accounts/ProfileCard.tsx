@@ -14,7 +14,8 @@ import type {
 import { api, request } from '../../../shared/api/client.ts'
 import { toApiFailure } from '../../../shared/api/failure.ts'
 import { profileUpdated, sessionQuery } from '../../../shared/session/session.ts'
-import { Checkrow, Field, SelectChevron, Switch } from '../../../shared/ui/controls.tsx'
+import { Checkrow, Field, Switch } from '../../../shared/ui/controls.tsx'
+import { SelectField } from '../../../shared/ui/Select.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { toggleLibrary } from './library-access.ts'
@@ -257,29 +258,16 @@ export const ProfileCard = ({
             />
           </div>
 
-          <Field
+          <SelectField
             id={`${ids}-rating`}
             label={t('admin.accounts.profile.maxRating')}
-            trail={<SelectChevron />}
-          >
-            <select
-              id={`${ids}-rating`}
-              className="field__input"
-              value={draft.maxContentRating}
-              onChange={(event) => {
-                const value = event.target.value
-                const tier = ratingOptions.find((option) => option === value)
-                set({ maxContentRating: tier ?? '' })
-              }}
-            >
-              <option value="">{ratingLabel(undefined)}</option>
-              {ratingOptions.map((tier) => (
-                <option key={tier} value={tier}>
-                  {ratingLabel(tier)}
-                </option>
-              ))}
-            </select>
-          </Field>
+            value={draft.maxContentRating}
+            options={[
+              { value: '' as const, label: ratingLabel(undefined) },
+              ...ratingOptions.map((tier) => ({ value: tier, label: ratingLabel(tier) })),
+            ]}
+            onChange={(maxContentRating) => set({ maxContentRating })}
+          />
 
           <div className="acc-prefs">
             <div className="setting">

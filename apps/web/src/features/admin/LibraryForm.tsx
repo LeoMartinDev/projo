@@ -7,7 +7,8 @@ import type { LibraryDto, LibraryHint } from '@projo/shared/api/libraries'
 import { api, request } from '../../shared/api/client.ts'
 import { formatNumber } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { Field, SelectChevron, Switch } from '../../shared/ui/controls.tsx'
+import { Field, Switch } from '../../shared/ui/controls.tsx'
+import { SelectField } from '../../shared/ui/Select.tsx'
 import { Dialog } from '../../shared/ui/Dialog.tsx'
 import { CheckIcon, CloseIcon, FolderIcon, PlusIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
@@ -353,43 +354,29 @@ const AdvancedSettings = ({
   return (
     <>
       <div className="library-form__section library-form__grid">
-        <Field
+        <SelectField<string>
           id={`${formId}-language`}
           label={t('admin.form.metadataLanguage')}
-          trail={<SelectChevron />}
-        >
-          <select
-            id={`${formId}-language`}
-            className="field__input"
-            value={metadataLanguage}
-            onChange={(event) => setMetadataLanguage(event.target.value)}
-          >
-            <option value="">{t('admin.form.serverDefault')}</option>
-            {metadataLanguages.map((code) => (
-              <option key={code} value={code}>
-                {languageLabel(code, locale)}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field
+          value={metadataLanguage}
+          options={[
+            { value: '', label: t('admin.form.serverDefault') },
+            ...metadataLanguages.map((code) => ({
+              value: code,
+              label: languageLabel(code, locale),
+            })),
+          ]}
+          onChange={setMetadataLanguage}
+        />
+        <SelectField<string>
           id={`${formId}-country`}
           label={t('admin.form.ratingCountry')}
-          trail={<SelectChevron />}
-        >
-          <select
-            id={`${formId}-country`}
-            className="field__input"
-            value={ratingCountry}
-            onChange={(event) => setRatingCountry(event.target.value)}
-          >
-            {ratingCountries.map((code) => (
-              <option key={code} value={code}>
-                {countryLabel(code, locale)}
-              </option>
-            ))}
-          </select>
-        </Field>
+          value={ratingCountry}
+          options={ratingCountries.map((code) => ({
+            value: code,
+            label: countryLabel(code, locale),
+          }))}
+          onChange={setRatingCountry}
+        />
       </div>
 
       <div className="library-form__section library-form__options">

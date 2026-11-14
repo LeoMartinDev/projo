@@ -5,12 +5,12 @@ import { useTranslation } from 'react-i18next'
 
 import { genreLabel, sortGenresByLabel } from '@projo/i18n/genres'
 import type { CatalogSort, WatchFilter } from '@projo/shared/api/catalog'
-import { genreIdSchema } from '@projo/shared/api/genres'
+import type { GenreId } from '@projo/shared/api/genres'
 
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { canAdminister, getActiveProfileId } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
-import { Field, SelectChevron } from '../../shared/ui/controls.tsx'
+import { SelectField } from '../../shared/ui/Select.tsx'
 import { FilterIcon, SortIcon } from '../../shared/ui/media-icons.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
@@ -34,12 +34,6 @@ import './catalog.css'
 const sorts: readonly CatalogSort[] = ['added', 'title', 'year', 'rating']
 const watchFilters: readonly WatchFilter[] = ['unwatched', 'in_progress', 'watched']
 
-const ChipValue = ({ children }: { children: string }) => (
-  <span className="chip__value" aria-hidden="true">
-    {children}
-  </span>
-)
-
 const Filters = ({
   kind,
   state,
@@ -58,6 +52,10 @@ const Filters = ({
   const { t } = useTranslation()
   const genres = useQuery(genresQuery(kind))
   const genreOptions = sortGenresByLabel(t, genres.data?.genres ?? [], currentLocale())
+  const genreChoices =
+    state.genre !== undefined && !genreOptions.includes(state.genre)
+      ? [state.genre, ...genreOptions]
+      : genreOptions
   const set = (patch: Omit<CatalogStateDraft, 'sort'>) =>
     onChange(normalizeCatalogState({ ...state, ...patch }))
   const decades = decadesWithin(genres.data?.years, state.decade)
@@ -73,106 +71,67 @@ const Filters = ({
       : state.decade !== undefined
         ? t('catalog.filters.decadeOf', { decade: state.decade })
         : t('catalog.filters.allYears')
-  const watchLabel =
-    state.watch === undefined
-      ? t('catalog.filters.allStates')
-      : t(`catalog.filters.watchState.${state.watch}`)
   return (
     <>
-      <Field
+      <SelectField<GenreId | ''>
         id={`${idPrefix}-genre`}
         label={t('catalog.filters.genre')}
         compact={compact}
-        trail={<SelectChevron />}
-      >
-        <select
-          id={`${idPrefix}-genre`}
-          className="field__input"
-          value={state.genre ?? ''}
-          onChange={(event) => {
-            const genre = genreIdSchema.safeParse(event.target.value)
-            set({ genre: genre.success ? genre.data : undefined })
-          }}
-        >
-          <option value="">{t('catalog.filters.allGenres')}</option>
-          {state.genre !== undefined && !genreOptions.includes(state.genre) ? (
-            <option value={state.genre}>{genreLabel(t, state.genre)}</option>
-          ) : undefined}
-          {genreOptions.map((genre) => (
-            <option key={genre} value={genre}>
-              {genreLabel(t, genre)}
-            </option>
-          ))}
-        </select>
-        {chips ? (
-          <ChipValue>
-            {state.genre === undefined
-              ? t('catalog.filters.allGenres')
-              : genreLabel(t, state.genre)}
-          </ChipValue>
-        ) : undefined}
-      </Field>
-      <Field
+        chip={chips}
+        active={state.genre !== undefined}
+        value={state.genre ?? ''}
+        options={[
+          { value: '', label: t('catalog.filters.allGenres') },
+          ...genreChoices.map((genre) => ({ value: genre, label: genreLabel(t, genre) })),
+        ]}
+        onChange={(genre) => set({ genre: genre === '' ? undefined : genre })}
+      />
+      <SelectField<string>
         id={`${idPrefix}-years`}
         label={t('catalog.filters.decade')}
         compact={compact}
-        trail={<SelectChevron />}
-      >
-        <select
-          id={`${idPrefix}-years`}
-          className="field__input"
-          value={yearsValue}
-          onChange={(event) => {
-            const value = event.target.value
-            const number = Number(value.slice(1))
-            set(
-              value.startsWith('y')
-                ? { decade: Math.floor(number / 10) * 10, year: number }
-                : { decade: value === '' ? undefined : number, year: undefined },
-            )
-          }}
-        >
-          <option value="">{t('catalog.filters.allYears')}</option>
-          {decades.map((decade) => (
-            <optgroup key={decade} label={t('catalog.filters.decadeOf', { decade })}>
-              <option value={`d${decade}`}>
-                {chips
-                  ? t('catalog.filters.wholeDecade')
-                  : t('catalog.filters.decadeOf', { decade })}
-              </option>
-              {yearsOf(decade, genres.data?.years).map((year) => (
-                <option key={year} value={`y${year}`}>
-                  {year}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        {chips ? <ChipValue>{yearsLabel}</ChipValue> : undefined}
-      </Field>
-      <Field
+        chip={chips}
+        active={yearsValue !== ''}
+        value={yearsValue}
+        display={yearsLabel}
+        options={[
+          { value: '', label: t('catalog.filters.allYears') },
+          ...decades.map((decade) => ({
+            group: t('catalog.filters.decadeOf', { decade }),
+            options: [
+              { value: `d${decade}`, label: t('catalog.filters.wholeDecade') },
+              ...yearsOf(decade, genres.data?.years).map((year) => ({
+                value: `y${year}`,
+                label: String(year),
+              })),
+            ],
+          })),
+        ]}
+        onChange={(value) => {
+          const number = Number(value.slice(1))
+          set(
+            value.startsWith('y')
+              ? { decade: Math.floor(number / 10) * 10, year: number }
+              : { decade: value === '' ? undefined : number, year: undefined },
+          )
+        }}
+      />
+      <SelectField<WatchFilter | ''>
         id={`${idPrefix}-watch`}
         label={t('catalog.filters.watch')}
         compact={compact}
-        trail={<SelectChevron />}
-      >
-        <select
-          id={`${idPrefix}-watch`}
-          className="field__input"
-          value={state.watch ?? ''}
-          onChange={(event) =>
-            set({ watch: (event.target.value || undefined) as WatchFilter | undefined })
-          }
-        >
-          <option value="">{t('catalog.filters.allStates')}</option>
-          {watchFilters.map((watch) => (
-            <option key={watch} value={watch}>
-              {t(`catalog.filters.watchState.${watch}`)}
-            </option>
-          ))}
-        </select>
-        {chips ? <ChipValue>{watchLabel}</ChipValue> : undefined}
-      </Field>
+        chip={chips}
+        active={state.watch !== undefined}
+        value={state.watch ?? ''}
+        options={[
+          { value: '', label: t('catalog.filters.allStates') },
+          ...watchFilters.map((watch) => ({
+            value: watch,
+            label: t(`catalog.filters.watchState.${watch}`),
+          })),
+        ]}
+        onChange={(watch) => set({ watch: watch === '' ? undefined : watch })}
+      />
     </>
   )
 }
@@ -188,29 +147,15 @@ const SortChip = ({
 }) => {
   const { t } = useTranslation()
   return (
-    <div className="chip">
-      <SortIcon size={16} />
-      <label className="visually-hidden" htmlFor={id}>
-        {t('catalog.sortBy')}
-      </label>
-      <select
-        id={id}
-        className="chip__select"
-        value={value}
-        onChange={(event) => {
-          const sort = sorts.find((option) => option === event.target.value)
-          if (sort !== undefined) onChange(sort)
-        }}
-      >
-        {sorts.map((option) => (
-          <option key={option} value={option}>
-            {t(`catalog.sort.${option}`)}
-          </option>
-        ))}
-      </select>
-      <ChipValue>{t(`catalog.sort.${value}`)}</ChipValue>
-      <SelectChevron />
-    </div>
+    <SelectField
+      id={id}
+      label={t('catalog.sortBy')}
+      chip
+      icon={<SortIcon size={16} />}
+      value={value}
+      options={sorts.map((sort) => ({ value: sort, label: t(`catalog.sort.${sort}`) }))}
+      onChange={onChange}
+    />
   )
 }
 

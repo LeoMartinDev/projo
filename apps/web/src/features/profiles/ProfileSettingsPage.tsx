@@ -18,7 +18,8 @@ import { currentLocale } from '../../shared/i18n/index.ts'
 import { pickActiveProfile } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import { BackLink } from '../../shared/ui/BackLink.tsx'
-import { Field, SelectChevron, Switch } from '../../shared/ui/controls.tsx'
+import { Field, Switch } from '../../shared/ui/controls.tsx'
+import { SelectField } from '../../shared/ui/Select.tsx'
 import { ChevronLeftIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorAlert } from '../../shared/ui/states.tsx'
 import { languageName } from '../item/media-labels.ts'
@@ -199,7 +200,7 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
   const save = (body: Editable) => update.mutate({ id: profile.id, body })
   const languageOptions = (current: string) =>
     [...new Set([current, ...trackLanguages])].map((code) => ({
-      code,
+      value: code,
       label: languageName(code, locale) ?? code,
     }))
 
@@ -253,62 +254,30 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
 
       <Panel title={t('profiles.settings.tracks')}>
         <div className="settings-panel__fields">
-          <Field
+          <SelectField
             id={`${ids}-audio`}
             label={t('profiles.settings.audioLanguage')}
-            trail={<SelectChevron />}
-          >
-            <select
-              id={`${ids}-audio`}
-              className="field__input"
-              value={value('audioLanguage')}
-              onChange={(event) => save({ audioLanguage: event.target.value })}
-            >
-              {languageOptions(value('audioLanguage')).map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
+            value={value('audioLanguage')}
+            options={languageOptions(value('audioLanguage'))}
+            onChange={(audioLanguage) => save({ audioLanguage })}
+          />
+          <SelectField
             id={`${ids}-subtitles`}
             label={t('profiles.settings.subtitleLanguage')}
-            trail={<SelectChevron />}
-          >
-            <select
-              id={`${ids}-subtitles`}
-              className="field__input"
-              value={value('subtitleLanguage')}
-              onChange={(event) => save({ subtitleLanguage: event.target.value })}
-            >
-              {languageOptions(value('subtitleLanguage')).map((option) => (
-                <option key={option.code} value={option.code}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field
+            value={value('subtitleLanguage')}
+            options={languageOptions(value('subtitleLanguage'))}
+            onChange={(subtitleLanguage) => save({ subtitleLanguage })}
+          />
+          <SelectField<SubtitleMode>
             id={`${ids}-mode`}
             label={t('profiles.settings.subtitleMode')}
-            trail={<SelectChevron />}
-          >
-            <select
-              id={`${ids}-mode`}
-              className="field__input"
-              value={value('subtitleMode')}
-              onChange={(event) =>
-                save({ subtitleMode: subtitleModeSchema.parse(event.target.value) as SubtitleMode })
-              }
-            >
-              {subtitleModeSchema.options.map((mode) => (
-                <option key={mode} value={mode}>
-                  {t(`profiles.settings.subtitleModes.${mode}`)}
-                </option>
-              ))}
-            </select>
-          </Field>
+            value={value('subtitleMode')}
+            options={subtitleModeSchema.options.map((mode) => ({
+              value: mode,
+              label: t(`profiles.settings.subtitleModes.${mode}`),
+            }))}
+            onChange={(subtitleMode) => save({ subtitleMode })}
+          />
         </div>
         <SwitchSetting
           label={t('profiles.settings.animeOriginalAudio')}

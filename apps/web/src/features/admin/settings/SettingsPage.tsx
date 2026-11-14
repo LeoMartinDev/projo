@@ -3,7 +3,8 @@ import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { Field, SelectChevron, ValidMark } from '../../../shared/ui/controls.tsx'
+import { ValidMark } from '../../../shared/ui/controls.tsx'
+import { SelectField } from '../../../shared/ui/Select.tsx'
 import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { GlobeIcon } from '../admin-icons.tsx'
 import { languageLabel, metadataLanguages } from '../languages.ts'
@@ -22,7 +23,7 @@ const MetadataLanguage = ({ language }: { language: string }) => {
   const known = metadataLanguages.some((code) => code === language)
   return (
     <div className="settings-block">
-      <Field
+      <SelectField<string>
         id={`${id}-language`}
         label={t('admin.settings.language')}
         icon={<GlobeIcon />}
@@ -32,25 +33,16 @@ const MetadataLanguage = ({ language }: { language: string }) => {
             {update.isPending ? (
               <span className="spinner settings-spinner" aria-hidden="true" />
             ) : undefined}
-            <SelectChevron />
           </>
         }
-      >
-        <select
-          id={`${id}-language`}
-          className="field__input"
-          value={language}
-          disabled={update.isPending}
-          onChange={(event) => update.mutate({ metadata: { language: event.target.value } })}
-        >
-          {known ? undefined : <option value={language}>{languageLabel(language, locale)}</option>}
-          {metadataLanguages.map((code) => (
-            <option key={code} value={code}>
-              {languageLabel(code, locale)}
-            </option>
-          ))}
-        </select>
-      </Field>
+        value={language}
+        disabled={update.isPending}
+        options={(known ? metadataLanguages : [language, ...metadataLanguages]).map((code) => ({
+          value: code,
+          label: languageLabel(code, locale),
+        }))}
+        onChange={(next) => update.mutate({ metadata: { language: next } })}
+      />
       {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </div>
   )

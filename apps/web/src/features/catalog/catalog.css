@@ -95,80 +95,7 @@
   }
 }
 
-.field:has(select:disabled) {
-  opacity: 0.45;
-}
-
 @media (--tablet) {
-  .chip,
-  .catalog__filters .field {
-    position: relative;
-    display: inline-flex;
-    flex: 0 0 auto;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    height: 36px;
-    min-height: 0;
-    padding: 0;
-    border-radius: var(--radius-pill);
-    background: var(--color-glass);
-    box-shadow: inset 0 0 0 1px var(--color-border);
-    color: var(--color-text-soft);
-  }
-
-  .chip__select,
-  .catalog__filters .field__input {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    opacity: 0;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-
-  .chip__value {
-    padding: 0 34px 0 14px;
-    font-size: 15px;
-    font-weight: 500;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-
-  .chip > svg ~ .chip__value {
-    padding-left: 38px;
-  }
-
-  .chip:focus-within,
-  .catalog__filters .field:focus-within {
-    box-shadow:
-      inset 0 0 0 1px var(--color-border-focus),
-      var(--ring-focus);
-  }
-
-  .chip > svg,
-  .chip .field__chevron,
-  .catalog__filters .field__chevron {
-    position: absolute;
-    display: flex;
-    margin: 0;
-    pointer-events: none;
-  }
-
-  .chip > svg {
-    left: 14px;
-  }
-
-  .chip .field__chevron,
-  .catalog__filters .field__chevron {
-    right: 10px;
-  }
-
   .catalog__header {
     align-items: center;
   }
@@ -183,17 +110,6 @@
 
   .catalog__filters::-webkit-scrollbar {
     display: none;
-  }
-
-  .catalog__filters .field__stack {
-    flex: 0 0 auto;
-    padding: 0;
-  }
-
-  .catalog__filters .field:not(:has(option[value='']:checked)) {
-    background: var(--color-glass-strong);
-    box-shadow: none;
-    color: var(--color-text-strong);
   }
 
   .catalog__filters .button {

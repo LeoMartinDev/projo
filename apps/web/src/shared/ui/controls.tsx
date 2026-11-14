@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { CheckIcon, ChevronDownIcon, EyeIcon, EyeOffIcon } from './icons.tsx'
+import { CheckIcon, EyeIcon, EyeOffIcon } from './icons.tsx'
 
 export const Field = ({
   id,
@@ -34,12 +34,6 @@ export const Field = ({
     </div>
     {trail}
   </div>
-)
-
-export const SelectChevron = () => (
-  <span className="field__chevron" aria-hidden="true">
-    <ChevronDownIcon />
-  </span>
 )
 
 export const ValidMark = ({ label }: { label: string }) => (

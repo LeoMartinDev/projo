@@ -12,8 +12,8 @@ import {
 import { api, request } from '../../../shared/api/client.ts'
 import { formatDateTime, formatRelative, formatSoon } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { Field, SelectChevron } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { SelectField } from '../../../shared/ui/Select.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
 import { JobsIcon } from '../admin-icons.tsx'
@@ -177,20 +177,21 @@ const JobRow = ({
   const { t } = useTranslation()
   const storedError = useStoredError()
   const typeLabel = t(`admin.jobs.type.${job.type}`)
+  const target = job.target === undefined ? '' : jobTargetLabel(t, job.target)
   return (
-    <div className="adm-tr job-tr" role="row">
+    <div className="adm-tr job-tr" role="row" data-state={job.state}>
       <div className="adm-cell" role="cell">
         <button type="button" className="adm-open" aria-haspopup="dialog" onClick={onOpen}>
           {typeLabel}
         </button>
-        <span className="adm-muted">
-          {job.target === undefined ? '\u00a0' : jobTargetLabel(t, job.target)}
+      </div>
+      <div className="adm-cell adm-optional" role="cell">
+        <span className="adm-muted" title={target}>
+          {target}
         </span>
       </div>
       <div className="adm-cell job-tr__state" role="cell">
-        <span className="job-tr__pills">
-          <span className={pillClass(job.state)}>{t(`admin.jobs.state.${job.state}`)}</span>
-        </span>
+        <span className={pillClass(job.state)}>{t(`admin.jobs.state.${job.state}`)}</span>
         {job.state === 'running' ? (
           job.progress === undefined ? (
             <span className="bar-live job-tr__bar">
@@ -211,7 +212,7 @@ const JobRow = ({
         )}
       </div>
       <div className="adm-cell adm-optional" role="cell">
-        <span className="adm-mono">
+        <span className="adm-mono adm-muted">
           {t('admin.jobs.attemptsOf', { attempts: job.attempts, max: job.maxAttempts })}
         </span>
       </div>
@@ -248,7 +249,7 @@ const JobRow = ({
 
 const SkeletonRows = () => (
   <>
-    {[0, 1, 2, 3].map((index) => (
+    {Array.from({ length: 10 }, (_, index) => (
       <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
         <span className="skeleton skeleton--line" />
       </div>
@@ -307,37 +308,29 @@ export const JobsPage = ({
             </button>
           ))}
         </div>
-        <Field
-          id={typeId}
-          label={t('admin.jobs.columns.type')}
+        <SelectField<JobTypeDto | ''>
           compact
           icon={<JobsIcon size={16} />}
-          trail={<SelectChevron />}
-        >
-          <select
-            id={typeId}
-            className="field__input"
-            value={type ?? ''}
-            onChange={(event) =>
-              setType(event.target.value === '' ? undefined : (event.target.value as JobTypeDto))
-            }
-          >
-            <option value="">{t('admin.jobs.allTypes')}</option>
-            {jobTypes.map((value) => (
-              <option key={value} value={value}>
-                {t(`admin.jobs.type.${value}`)}
-              </option>
-            ))}
-          </select>
-        </Field>
+          id={typeId}
+          label={t('admin.jobs.columns.type')}
+          value={type ?? ''}
+          options={[
+            { value: '', label: t('admin.jobs.allTypes') },
+            ...jobTypes.map((value) => ({ value, label: t(`admin.jobs.type.${value}`) })),
+          ]}
+          onChange={(value) => setType(value === '' ? undefined : value)}
+        />
       </div>
 
       {retry.isError ? <ErrorAlert error={retry.error} /> : undefined}
       {cancel.isError ? <ErrorAlert error={cancel.error} /> : undefined}
 
-      <div className="adm-table" role="table" aria-label={t('admin.jobs.title')}>
+      <div className="adm-table adm-table--dense" role="table" aria-label={t('admin.jobs.title')}>
         <div className="adm-tr job-tr adm-tr--head" role="row">
           <span role="columnheader">{t('admin.jobs.columns.type')}</span>
+          <span role="columnheader" className="adm-optional">
+            {t('admin.jobs.columns.target')}
+          </span>
           <span role="columnheader">{t('admin.jobs.columns.state')}</span>
           <span role="columnheader" className="adm-optional">
             {t('admin.jobs.columns.attempts')}
