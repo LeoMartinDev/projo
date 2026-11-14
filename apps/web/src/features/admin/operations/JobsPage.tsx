@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -22,7 +22,9 @@ import { jobTargetLabel } from './job-types.ts'
 import { jobsQuery, jobsQueryKey, statsQueryKey, useLiveJobs } from './queries.ts'
 import { formatContext, useStoredError } from './stored-error.ts'
 import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { PagedTable } from '../PagedTable.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
+import { useCursorPages } from '../use-cursor-pages.ts'
 import '../admin.css'
 import '../accounts/accounts.css'
 import '../admin-table.css'
@@ -262,21 +264,24 @@ export const JobsPage = ({
   const [type, setType] = useState<JobTypeDto | undefined>()
   const [opened, setOpened] = useState<AdminJobDto | undefined>()
   const state = stateOf(filter)
-  const list = useInfiniteQuery(
+  const pages = useCursorPages(`${filter}
+${type ?? 'all'}`)
+  const list = useQuery(
     jobsQuery({
       ...(state === undefined ? {} : { state }),
       ...(type === undefined ? {} : { type }),
+      cursor: pages.cursor,
     }),
   )
   const { retry, cancel } = useJobActions()
   useLiveJobs()
-  const jobs = list.data?.pages.flatMap((page) => page.items) ?? []
+  const jobs = list.data?.items ?? []
   const busyId = retry.isPending ? retry.variables : cancel.isPending ? cancel.variables : undefined
   const current =
     opened === undefined ? undefined : (jobs.find((job) => job.id === opened.id) ?? opened)
 
   return (
-    <div className="admin-page">
+    <div className="admin-page admin-page--fill">
       <AdminPageHeader title={t('admin.jobs.title')} />
 
       <div className="adm-toolbar">
@@ -304,53 +309,46 @@ export const JobsPage = ({
       {retry.isError ? <ErrorAlert error={retry.error} /> : undefined}
       {cancel.isError ? <ErrorAlert error={cancel.error} /> : undefined}
 
-      <div className="adm-table adm-table--dense" role="table" aria-label={t('admin.jobs.title')}>
-        <div className="adm-tr job-tr adm-tr--head" role="row">
-          <span role="columnheader">{t('admin.jobs.columns.type')}</span>
-          <span role="columnheader" className="adm-optional">
-            {t('admin.jobs.columns.target')}
-          </span>
-          <span role="columnheader">{t('admin.jobs.columns.state')}</span>
-          <span role="columnheader" className="adm-optional">
-            {t('admin.jobs.columns.attempts')}
-          </span>
-          <span role="columnheader" className="adm-optional">
-            {t('admin.jobs.columns.date')}
-          </span>
-          <span role="columnheader" />
-        </div>
-        <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows count={10} /> : undefined}
-          {list.isError && jobs.length === 0 ? (
-            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
-          ) : undefined}
-          {list.isSuccess && jobs.length === 0 ? (
-            <EmptyState title={t('admin.jobs.empty')} />
-          ) : undefined}
-          {jobs.map((job) => (
-            <JobRow
-              key={job.id}
-              job={job}
-              busy={busyId === job.id}
-              onOpen={() => setOpened(job)}
-              onRetry={() => retry.mutate(job.id)}
-              onCancel={() => cancel.mutate(job.id)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {list.hasNextPage ? (
-        <button
-          type="button"
-          className="button button--glass button--small adm-more"
-          disabled={list.isFetchingNextPage}
-          onClick={() => void list.fetchNextPage()}
-        >
-          {list.isFetchingNextPage ? <span className="spinner" aria-hidden="true" /> : undefined}
-          {t('admin.review.more')}
-        </button>
-      ) : undefined}
+      <PagedTable
+        label={t('admin.jobs.title')}
+        head={
+          <div className="adm-tr job-tr adm-tr--head" role="row">
+            <span role="columnheader">{t('admin.jobs.columns.type')}</span>
+            <span role="columnheader" className="adm-optional">
+              {t('admin.jobs.columns.target')}
+            </span>
+            <span role="columnheader">{t('admin.jobs.columns.state')}</span>
+            <span role="columnheader" className="adm-optional">
+              {t('admin.jobs.columns.attempts')}
+            </span>
+            <span role="columnheader" className="adm-optional">
+              {t('admin.jobs.columns.date')}
+            </span>
+            <span role="columnheader" />
+          </div>
+        }
+        pages={pages}
+        nextCursor={list.isPlaceholderData ? undefined : list.data?.nextCursor}
+        changing={list.isPlaceholderData}
+      >
+        {list.isPending ? <SkeletonRows count={10} /> : undefined}
+        {list.isError && jobs.length === 0 ? (
+          <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+        ) : undefined}
+        {list.isSuccess && jobs.length === 0 ? (
+          <EmptyState title={t('admin.jobs.empty')} />
+        ) : undefined}
+        {jobs.map((job) => (
+          <JobRow
+            key={job.id}
+            job={job}
+            busy={busyId === job.id}
+            onOpen={() => setOpened(job)}
+            onRetry={() => retry.mutate(job.id)}
+            onCancel={() => cancel.mutate(job.id)}
+          />
+        ))}
+      </PagedTable>
 
       {current === undefined ? undefined : (
         <JobDetails key={current.id} job={current} onClose={() => setOpened(undefined)} />

@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -21,9 +21,11 @@ import {
   toLogFilters,
 } from './log-filters.ts'
 import { formatContext } from './stored-error.ts'
-import { logsExportUrl, logsQuery } from './queries.ts'
+import { logsExportUrl, logsFilterQuery, logsQuery, logsQueryKey } from './queries.ts'
 import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { PagedTable } from '../PagedTable.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
+import { useCursorPages } from '../use-cursor-pages.ts'
 import '../admin.css'
 import '../accounts/accounts.css'
 import '../admin-table.css'
@@ -163,17 +165,24 @@ export const LogsPage = () => {
   const [opened, setOpened] = useState<LogEntryDto | undefined>()
   const text = useDebounced(state.text, 300)
   const filters = useMemo(() => toLogFilters({ ...state, text }), [state, text])
-  const list = useInfiniteQuery(logsQuery(filters))
-  const entries = list.data?.pages.flatMap((page) => page.items) ?? []
+  const queryClient = useQueryClient()
+  const pages = useCursorPages(JSON.stringify(logsFilterQuery(filters)))
+  const list = useQuery(logsQuery(filters, pages.cursor))
+  const entries = list.data?.items ?? []
   const update = (patch: Partial<LogFilterState>) =>
     setState((current) => ({ ...current, ...patch }))
+  /** The newest lines: a new anchor moves the period (and so the pages) to now. */
   const refresh = () => {
-    if (state.period === 'custom' || state.period === 'all') void list.refetch()
-    else update({ anchor: Date.now() })
+    if (state.period !== 'custom' && state.period !== 'all') update({ anchor: Date.now() })
+    else if (pages.page === 1) void list.refetch()
+    else {
+      void queryClient.invalidateQueries({ queryKey: logsQueryKey, refetchType: 'none' })
+      pages.first()
+    }
   }
 
   return (
-    <div className="admin-page">
+    <div className="admin-page admin-page--fill">
       <AdminPageHeader
         title={t('admin.logs.title')}
         actions={
@@ -258,38 +267,31 @@ export const LogsPage = () => {
         </Field>
       </div>
 
-      <div className="adm-table adm-table--dense" role="table" aria-label={t('admin.logs.title')}>
-        <div className="adm-tr log-tr adm-tr--head" role="row">
-          <span role="columnheader">{t('admin.logs.columns.time')}</span>
-          <span role="columnheader">{t('admin.logs.columns.level')}</span>
-          <span role="columnheader">{t('admin.logs.columns.module')}</span>
-          <span role="columnheader">{t('admin.logs.columns.message')}</span>
-        </div>
-        <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows count={12} /> : undefined}
-          {list.isError && entries.length === 0 ? (
-            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
-          ) : undefined}
-          {list.isSuccess && entries.length === 0 ? (
-            <EmptyState title={t('admin.logs.empty')} />
-          ) : undefined}
-          {entries.map((entry) => (
-            <LogRow key={entry.id} entry={entry} onOpen={() => setOpened(entry)} />
-          ))}
-        </div>
-      </div>
-
-      {list.hasNextPage ? (
-        <button
-          type="button"
-          className="button button--glass button--small adm-more"
-          disabled={list.isFetchingNextPage}
-          onClick={() => void list.fetchNextPage()}
-        >
-          {list.isFetchingNextPage ? <span className="spinner" aria-hidden="true" /> : undefined}
-          {t('admin.review.more')}
-        </button>
-      ) : undefined}
+      <PagedTable
+        label={t('admin.logs.title')}
+        head={
+          <div className="adm-tr log-tr adm-tr--head" role="row">
+            <span role="columnheader">{t('admin.logs.columns.time')}</span>
+            <span role="columnheader">{t('admin.logs.columns.level')}</span>
+            <span role="columnheader">{t('admin.logs.columns.module')}</span>
+            <span role="columnheader">{t('admin.logs.columns.message')}</span>
+          </div>
+        }
+        pages={pages}
+        nextCursor={list.isPlaceholderData ? undefined : list.data?.nextCursor}
+        changing={list.isPlaceholderData}
+      >
+        {list.isPending ? <SkeletonRows count={12} /> : undefined}
+        {list.isError && entries.length === 0 ? (
+          <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+        ) : undefined}
+        {list.isSuccess && entries.length === 0 ? (
+          <EmptyState title={t('admin.logs.empty')} />
+        ) : undefined}
+        {entries.map((entry) => (
+          <LogRow key={entry.id} entry={entry} onOpen={() => setOpened(entry)} />
+        ))}
+      </PagedTable>
 
       {opened === undefined ? undefined : (
         <LogDetails key={opened.id} entry={opened} onClose={() => setOpened(undefined)} />

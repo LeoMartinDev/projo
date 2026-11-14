@@ -1088,6 +1088,12 @@
       "restore": "Afficher à nouveau",
       "restoreNamed": "Afficher à nouveau {{name}}"
     },
+    "pager": {
+      "label": "Pages",
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "page": "Page {{page}}"
+    },
     "logs": {
       "title": "Journaux",
       "refresh": "Actualiser",

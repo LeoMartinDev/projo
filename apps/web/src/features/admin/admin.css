@@ -209,6 +209,49 @@
   max-width: 1180px;
 }
 
+/* A page that fills the window's height (logs, jobs): it does not scroll, its table does. On a
+   phone it flows with the page scroll. */
+@media not (--phone) {
+  .admin:has(> .admin__main > .admin-page--fill) {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .admin__main:has(> .admin-page--fill) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: 24px;
+  }
+
+  .admin-page--fill {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+@media (--wide) and (not (--phone)) {
+  .admin__main:has(> .admin-page--fill) {
+    height: 100vh;
+    height: 100dvh;
+  }
+}
+
+@media not ((--wide) or (--phone)) {
+  .admin:has(> .admin__main > .admin-page--fill) {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  .admin:has(> .admin__main > .admin-page--fill) > .admin__side {
+    flex: 0 0 auto;
+  }
+
+  .admin__main:has(> .admin-page--fill) {
+    flex: 1 1 0;
+  }
+}
+
 .admin-page__header {
   display: flex;
   flex-wrap: wrap;

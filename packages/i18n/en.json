@@ -1088,6 +1088,12 @@
       "restore": "Show again",
       "restoreNamed": "Show {{name}} again"
     },
+    "pager": {
+      "label": "Pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {{page}}"
+    },
     "logs": {
       "title": "Logs",
       "refresh": "Refresh",

@@ -1,4 +1,9 @@
-import { infiniteQueryOptions, queryOptions, useQueryClient } from '@tanstack/react-query'
+import {
+  infiniteQueryOptions,
+  keepPreviousData,
+  queryOptions,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
 import type { JobStateDto, JobTypeDto } from '@projo/shared/api/jobs'
@@ -32,22 +37,22 @@ export const storageQuery = queryOptions({
 
 export type JobsFilter = { state?: JobStateDto; type?: JobTypeDto }
 
-export const jobsQuery = ({ state, type }: JobsFilter) =>
-  infiniteQueryOptions({
-    queryKey: [...jobsQueryKey, state ?? 'all', type ?? 'all'],
-    initialPageParam: '',
-    queryFn: ({ pageParam }) =>
+/** One page of `GET /admin/jobs`; `cursor` '' for the first. The shown page stays while the next loads. */
+export const jobsQuery = ({ state, type, cursor }: JobsFilter & { cursor: string }) =>
+  queryOptions({
+    queryKey: [...jobsQueryKey, state ?? 'all', type ?? 'all', cursor],
+    queryFn: () =>
       request(() =>
         api.admin.jobs.$get({
           query: {
             limit: String(pageSize),
             ...(state === undefined ? {} : { state }),
             ...(type === undefined ? {} : { type }),
-            ...(pageParam === '' ? {} : { cursor: pageParam }),
+            ...(cursor === '' ? {} : { cursor }),
           },
         }),
       ),
-    getNextPageParam: (page) => page.nextCursor,
+    placeholderData: keepPreviousData,
   })
 
 export const logsQueryKey = ['admin', 'logs'] as const
@@ -60,21 +65,21 @@ export const logsFilterQuery = (filters: LogFilters): Record<string, string> => 
   ...(filters.q === undefined ? {} : { q: filters.q }),
 })
 
-export const logsQuery = (filters: LogFilters) =>
-  infiniteQueryOptions({
-    queryKey: [...logsQueryKey, logsFilterQuery(filters)],
-    initialPageParam: '',
-    queryFn: ({ pageParam }) =>
+/** One page of `GET /admin/logs`; `cursor` '' for the first. The shown page stays while the next loads. */
+export const logsQuery = (filters: LogFilters, cursor: string) =>
+  queryOptions({
+    queryKey: [...logsQueryKey, logsFilterQuery(filters), cursor],
+    queryFn: () =>
       request(() =>
         api.admin.logs.$get({
           query: {
             ...logsFilterQuery(filters),
             limit: String(100),
-            ...(pageParam === '' ? {} : { cursor: pageParam }),
+            ...(cursor === '' ? {} : { cursor }),
           },
         }),
       ),
-    getNextPageParam: (page) => page.nextCursor,
+    placeholderData: keepPreviousData,
   })
 
 export const logsExportUrl = (filters: LogFilters): string => {
