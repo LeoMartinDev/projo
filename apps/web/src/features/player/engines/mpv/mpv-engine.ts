@@ -229,6 +229,14 @@ export const createMpvEngine = ({
         if (!created.alive || !accepting) return
         if (message.kind === 'event' && message.event === 'shutdown') lost(created)
         onMessage(message)
+        // A frame is drawn now: the page may let it through. Before it, the
+        // window under the page is still empty and would show the desktop.
+        if (
+          message.kind === 'event' &&
+          message.event === 'playback-restart' &&
+          instance === created
+        )
+          showing.set(true)
       })
       created.stopListening = stop
       if (!created.alive) {
@@ -240,7 +248,6 @@ export const createMpvEngine = ({
       await bridge.observe([...observedProperties])
       // Initial values only restate the options: what follows is news.
       accepting = true
-      if (created.alive && instance === created) showing.set(true)
     })()
     created.ready.catch(() => {
       if (instance === created) {

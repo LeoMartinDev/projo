@@ -258,11 +258,31 @@ describe('mpv engine', () => {
     expect(engine.picture.showing.get()).toBe(false)
   })
 
+  test('the picture is under the page only once libmpv has drawn a frame', async () => {
+    const mpv = scriptedBridge(trackList)
+    const engine = engineOn(mpv.bridge)
+    engine.load(contractLoad({ session }), () => {})
+    await mpv.settle()
+    expect(engine.picture.showing.get()).toBe(false)
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    expect(engine.picture.showing.get()).toBe(false)
+    await mpv.emit({ kind: 'event', event: 'playback-restart' })
+    expect(engine.picture.showing.get()).toBe(true)
+    // The next file replaces the frame in place: the picture stays.
+    engine.load(contractLoad({ session }), () => {})
+    await mpv.settle()
+    expect(engine.picture.showing.get()).toBe(true)
+  })
+
   test('release destroys the instance; the picture is no longer under the page', async () => {
-    const mpv = scriptedBridge()
+    const mpv = scriptedBridge(trackList)
     const engine = engineOn(mpv.bridge)
     engine.load(contractLoad({}), () => {})
     await mpv.settle()
+    await mpv.emit(
+      { kind: 'event', event: 'file-loaded' },
+      { kind: 'event', event: 'playback-restart' },
+    )
     expect(engine.picture.showing.get()).toBe(true)
     engine.release()
     expect(engine.picture.showing.get()).toBe(false)
