@@ -12,11 +12,35 @@ const decodedFrames = (progress: string): number => {
 
 const isNullMuxerNotice = (line: string): boolean => /^\[null @ [^\]]+\]/u.test(line)
 
-const decodingErrors = (stderr: string): string =>
-  stderr
+// Some x265 encodes carry a malformed in-band VPS: the HEVC parser rejects it and the SPS/PPS
+// that refer to it, then keeps decoding with the parameter sets from the extradata. These lines
+// come from parsing parameter sets, never from decoding a slice: a slice that cannot be decoded
+// logs its own error (PPS id out of range, error while decoding…), which still fails the check.
+const hevcParameterSetNotice =
+  /^\[hevc @ [^\]]+\] (?:vps_num_hrd_parameters -?\d+ is invalid|[VSP]PS \d+ does not exist\.?)$/u
+
+const isHevcParameterSetNotice = (line: string): boolean => hevcParameterSetNotice.test(line.trim())
+
+/** The stderr lines of a sample decode that mean the file does not decode cleanly. */
+export const decodingErrors = ({
+  stderr,
+  exitCode,
+  frames,
+}: {
+  stderr: string
+  exitCode: number
+  frames: number
+}): string[] => {
+  const decoded = exitCode === 0 && frames > 0
+  return stderr
     .split('\n')
-    .filter((line) => line.trim() !== '' && !isNullMuxerNotice(line))
-    .join('\n')
+    .filter(
+      (line) =>
+        line.trim() !== '' &&
+        !isNullMuxerNotice(line) &&
+        !(decoded && isHevcParameterSetNotice(line)),
+    )
+}
 
 export const createFfmpegDecoder = ({
   binary = 'ffmpeg',
@@ -59,7 +83,7 @@ export const createFfmpegDecoder = ({
     if (!run.ok) return run
     const { exitCode, stdout, stderr } = run.value
     const frames = decodedFrames(stdout)
-    if (exitCode !== 0 || decodingErrors(stderr) !== '' || frames === 0) {
+    if (exitCode !== 0 || frames === 0 || decodingErrors({ stderr, exitCode, frames }).length > 0) {
       return err(
         appError('media/ffmpeg_failed', 'sample decoding failed', {
           context: { path, startSeconds, exitCode, frames, stderr: stderrTail(stderr) },
