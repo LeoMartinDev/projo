@@ -30,7 +30,12 @@ export type EngineCapabilities = {
   volume: boolean
 }
 
-export type StreamFailure = { message: string; network: boolean }
+/**
+ * A fatal stream error. `network`: the stream could not be fetched (the player reconnects);
+ * `decode`: the engine cannot decode or does not support what it was sent (the player may
+ * fall back to a transcoded session, §10.2); `other`: anything else (a blocking error).
+ */
+export type StreamFailure = { message: string; kind: 'network' | 'decode' | 'other' }
 
 /**
  * What the engine itself sees of the stream, for the playback info (§10.7): each field only

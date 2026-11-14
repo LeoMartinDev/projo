@@ -197,7 +197,8 @@ export const createMpvEngine = ({
 
   const fail = (entry: Entry, error: unknown) => {
     if (!entry.active || current !== entry) return
-    entry.onFailure({ message: bridgeErrorMessage(error), network: false })
+    // mpv decodes what the library holds (§10.2): its failures never fall back to a transcode.
+    entry.onFailure({ message: bridgeErrorMessage(error), kind: 'other' })
   }
 
   // The instance went away on its own (libmpv shut down).

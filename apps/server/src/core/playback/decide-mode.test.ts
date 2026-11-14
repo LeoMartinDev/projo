@@ -257,6 +257,37 @@ describe('decidePlayback (§10.2)', () => {
     ).toMatchObject({ value: { mode: 'hls_transcode', quality: '720p' } })
   })
 
+  test('the quality of the source height transcodes: the player falls back to it (§10.7)', () => {
+    const hdr: MediaInfo = {
+      video: [
+        {
+          index: 0,
+          codec: 'hevc',
+          profile: 'Main 10',
+          width: 3840,
+          height: 2160,
+          pixelFormat: 'yuv420p10le',
+        },
+      ],
+      audio: [audio(1, 'eac3')],
+      subtitles: [],
+    }
+    expect(decide({ media: hdr, extension: 'mkv', capabilities: safari })).toMatchObject({
+      value: { mode: 'hls_remux', audio: { delivery: 'copy' } },
+    })
+    expect(
+      decide({ media: hdr, extension: 'mkv', capabilities: safari, quality: '1080p' }),
+    ).toMatchObject({ value: { mode: 'hls_transcode', quality: '1080p', reasons: ['quality'] } })
+    const fullHd: MediaInfo = {
+      video: [{ index: 0, codec: 'h264', width: 1920, height: 1080, pixelFormat: 'yuv420p' }],
+      audio: [audio(1, 'aac')],
+      subtitles: [],
+    }
+    expect(
+      decide({ media: fullHd, extension: 'mp4', capabilities: chrome, quality: '1080p' }),
+    ).toMatchObject({ value: { mode: 'hls_transcode', quality: '1080p', reasons: ['quality'] } })
+  })
+
   test('no HLS on the client and a MKV: unsupported', () => {
     expect(
       decide({

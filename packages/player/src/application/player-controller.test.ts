@@ -237,7 +237,7 @@ describe('player controller: sessions (§10.6)', () => {
     const w = world()
     await w.started()
     await w.play(4000)
-    w.fake.current()?.fail({ message: 'network down', network: true })
+    w.fake.current()?.fail({ message: 'network down', kind: 'network' })
     w.fake.emit('waiting', { paused: true })
     expect(w.controller.view()).toMatchObject({ networkLost: true, blocked: false, loading: true })
     await w.play(999)
@@ -259,10 +259,10 @@ describe('player controller: sessions (§10.6)', () => {
     const w = world()
     await w.started()
     await w.play(2000)
-    w.fake.current()?.fail({ message: 'decode', network: false })
+    w.fake.current()?.fail({ message: 'aborted', kind: 'other' })
     expect(w.controller.view()).toMatchObject({
       blocked: true,
-      failure: playerFailure(0, 'playback/stream_failed', 'decode'),
+      failure: playerFailure(0, 'playback/stream_failed', 'aborted'),
     })
     w.controller.restart()
     await w.settle()
@@ -279,6 +279,154 @@ describe('player controller: sessions (§10.6)', () => {
     w.controller.stop()
     await w.settle()
     expect(w.server.log.filter((line) => line.startsWith('end'))).toEqual([])
+  })
+})
+
+describe('player controller: decode fallback (§10.2)', () => {
+  const tracks = {
+    audioTracks: [audio(1, 'en'), audio(2, 'fr')],
+    subtitleTracks: [subtitle('sub-fr', 'fr')],
+  }
+  // The server: Original copies the video (`hls_remux`), a lower quality transcodes it.
+  const answer =
+    (overrides: Partial<PlaybackSessionDto> = {}) =>
+    (body: CreatePlaybackSessionBody, index: number) =>
+      sessionDto(`s${index + 1}`, {
+        startPositionMs: body.startPositionMs ?? 0,
+        quality: body.quality ?? 'original',
+        mode: (body.quality ?? 'original') === 'original' ? 'hls_remux' : 'hls_transcode',
+        availableQualities: ['original', '1080p', '720p', '480p'],
+        ...tracks,
+        ...(body.audioStreamIndex === undefined
+          ? {}
+          : { selectedAudioStreamIndex: body.audioStreamIndex }),
+        ...(body.subtitleTrackId === undefined || body.subtitleTrackId === 'off'
+          ? {}
+          : { selectedSubtitleTrackId: body.subtitleTrackId }),
+        ...overrides,
+      })
+  const decode = { message: 'bufferAddCodecError', kind: 'decode' } as const
+
+  test('a copied stream the engine cannot decode starts again transcoded, at the position, with its tracks', async () => {
+    const w = world({ answer: answer() })
+    await w.started()
+    w.controller.chooseAudio(audio(2, 'fr'))
+    await w.settle()
+    w.fake.loaded(1200)
+    w.controller.chooseSubtitle({ kind: 'track', track: subtitle('sub-fr', 'fr') })
+    await w.play(7000)
+    w.fake.current()?.fail(decode)
+    expect(w.controller.view()).toMatchObject({ blocked: false, loading: true })
+    expect(w.controller.get().switching?.positionMs).toBe(7000)
+    await w.settle()
+    expect(w.server.log).toContain('end s2')
+    expect(creations(w.server.created).at(-1)).toEqual({
+      itemId: 'item-1',
+      quality: '1080p',
+      startPositionMs: 7000,
+      sourceId: 'source-1',
+      audioStreamIndex: 2,
+      subtitleTrackId: 'sub-fr',
+    })
+    expect(w.fake.current()?.load).toMatchObject({ startSeconds: 7, autoplay: true })
+    w.fake.loaded(1200)
+    // The quality menu shows the quality it fell back to.
+    expect(w.controller.view()).toMatchObject({
+      blocked: false,
+      loading: false,
+      positionMs: 7000,
+      session: { id: 's3', quality: '1080p', mode: 'hls_transcode' },
+      audioIndex: 2,
+      subtitleId: 'sub-fr',
+    })
+  })
+
+  test('before the first frame, it starts where the failed session was to start', async () => {
+    const w = world({ answer: answer({ startPositionMs: 600_000 }) })
+    w.controller.start()
+    await w.settle()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(creations(w.server.created).at(-1)).toMatchObject({
+      quality: '1080p',
+      startPositionMs: 600_000,
+    })
+    expect(w.fake.current()?.load).toMatchObject({ startSeconds: 600, autoplay: true })
+  })
+
+  test('paused after the first frame: the transcoded session stays paused', async () => {
+    const w = world({ answer: answer() })
+    await w.started()
+    await w.play(3000)
+    w.controller.togglePlay()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(w.fake.current()?.load).toMatchObject({ startSeconds: 3, autoplay: false })
+  })
+
+  test('the transcoded session failing too blocks, without another session', async () => {
+    const w = world({ answer: answer() })
+    await w.started()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    w.fake.loaded(1200)
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(w.server.created).toHaveLength(2)
+    expect(w.controller.view()).toMatchObject({
+      blocked: true,
+      failure: playerFailure(0, 'playback/stream_failed', 'bufferAddCodecError'),
+    })
+  })
+
+  test('once per source: Original chosen again and failing again blocks', async () => {
+    const w = world({ answer: answer() })
+    await w.started()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    w.fake.loaded(1200)
+    w.controller.chooseQuality('original')
+    await w.settle()
+    expect(w.controller.get().session).toMatchObject({ quality: 'original', mode: 'hls_remux' })
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(w.server.created).toHaveLength(3)
+    expect(w.controller.view().blocked).toBe(true)
+  })
+
+  test('a network failure still reconnects at the same quality', async () => {
+    const w = world({ answer: answer() })
+    await w.started()
+    await w.play(4000)
+    w.fake.current()?.fail({ message: 'fragLoadError', kind: 'network' })
+    w.fake.emit('waiting', { paused: true })
+    expect(w.controller.view()).toMatchObject({ networkLost: true, blocked: false })
+    await w.play(1000)
+    expect(creations(w.server.created).at(-1)).toMatchObject({
+      quality: 'original',
+      startPositionMs: 4000,
+    })
+  })
+
+  test('a transcoded session that cannot be decoded blocks as before', async () => {
+    const w = world({ answer: answer({ mode: 'hls_transcode' }) })
+    await w.started()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(w.server.created).toHaveLength(1)
+    expect(w.controller.view()).toMatchObject({
+      blocked: true,
+      failure: playerFailure(0, 'playback/stream_failed', 'bufferAddCodecError'),
+    })
+  })
+
+  test('without a quality below Original, it blocks as before', async () => {
+    const w = world({ answer: answer({ availableQualities: ['original'] }) })
+    await w.started()
+    w.fake.current()?.fail(decode)
+    await w.settle()
+    expect(w.server.created).toHaveLength(1)
+    expect(w.controller.view().blocked).toBe(true)
   })
 })
 

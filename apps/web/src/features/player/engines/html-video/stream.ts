@@ -3,6 +3,7 @@ import type { HlsConfig } from 'hls.js'
 import type { EngineStats, StreamFailure } from '@projo/player/core/engine'
 import { waitForPlaylist } from '@projo/player/core/playlist-wait'
 
+import { hlsFailureKind, mediaErrorKind } from './failure-kind.ts'
 import { keyframeWaitLoadPolicy, mediaPlaylistUrl } from './playlist.ts'
 import { watchSeekStalls } from './seek-stall.ts'
 
@@ -24,8 +25,6 @@ const seekOnceLoaded = (video: HTMLVideoElement, seconds: number) => {
   video.addEventListener('loadedmetadata', seek, { once: true })
   return () => video.removeEventListener('loadedmetadata', seek)
 }
-
-const mediaErrorNetwork = 2
 
 /**
  * Plays a stream in the `<video>`: a direct file or native HLS through `src`
@@ -67,7 +66,7 @@ export const attachStream = ({
     const failed = () =>
       report({
         message: video.error?.message ?? 'media error',
-        network: video.error?.code === mediaErrorNetwork,
+        kind: mediaErrorKind(video.error?.code),
       })
     video.addEventListener('error', failed)
     video.addEventListener('loadedmetadata', play, { once: true })
@@ -131,7 +130,7 @@ export const attachStream = ({
         hls.recoverMediaError()
         return
       }
-      report({ message: data.details, network: data.type === Hls.ErrorTypes.NETWORK_ERROR })
+      report({ message: data.details, kind: hlsFailureKind(data.type) })
     })
     hls.on(Hls.Events.MANIFEST_PARSED, play)
     hls.loadSource(stream.url)

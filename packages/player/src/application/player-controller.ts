@@ -7,7 +7,8 @@ import type {
   TrackPreferencesBody,
 } from '@projo/shared/api/playback'
 
-import type { PlayerEngine } from '../core/engine.ts'
+import { decodeFallbackQuality } from '../core/decode-fallback.ts'
+import type { PlayerEngine, StreamFailure } from '../core/engine.ts'
 import type { MediaSnapshot } from '../core/media-state.ts'
 import { type PlayerFailure, playerFailure, toPlayerFailure } from '../core/failure.ts'
 import {
@@ -216,6 +217,10 @@ export const createPlayerController = ({
   let lastPositionMs: number | undefined
   let startPaused = false
   let played = false
+  // The session that reached `playing` last: its first frame was shown.
+  let playedSession: string | undefined
+  // The sources that already fell back to a transcoded session (§10.2): once each.
+  const fallenBack = new Set<string>()
   let pendingAudioMemory: { attempt: number } | undefined
   let unsubscribes: (() => void)[] = []
   const handledSegments = new Set<string>()
@@ -294,8 +299,13 @@ export const createPlayerController = ({
             autoplay: !startPaused,
             subtitleDelayMs: subtitleDelay,
           },
-          (failure) =>
-            interrupt(playerFailure(0, 'playback/stream_failed', failure.message), failure.network),
+          (failure) => {
+            if (fallBack(session, failure)) return
+            interrupt(
+              playerFailure(0, 'playback/stream_failed', failure.message),
+              failure.kind === 'network',
+            )
+          },
         ),
       transport,
       timers,
@@ -311,6 +321,7 @@ export const createPlayerController = ({
       },
       onPlaying: () => {
         played = true
+        playedSession = session.id
         const { reconnectAttempt, switching } = state()
         if (reconnectAttempt !== 0 || switching !== undefined)
           update({ reconnectAttempt: 0, switching: undefined })
@@ -408,11 +419,15 @@ export const createPlayerController = ({
       : (lastPositionMs ?? view().positionMs)
   }
 
-  const switchSession = async (change: SessionChange) => {
+  // `resume`: where and how the next session starts, instead of the media as it is now.
+  const switchSession = async (
+    change: SessionChange,
+    resume?: { positionMs: number; paused: boolean },
+  ) => {
     const current = state()
     const { session } = current
     if (session === undefined) return
-    const at = currentPositionMs()
+    const at = resume?.positionMs ?? currentPositionMs()
     const shown = view()
     update({
       switching: {
@@ -422,7 +437,10 @@ export const createPlayerController = ({
     })
     onSwitch()
     const last = teardown?.() ?? { positionMs: at, paused: false }
-    startPaused = change.type === 'retry' && last.paused === true && played
+    startPaused =
+      resume === undefined
+        ? change.type === 'retry' && last.paused === true && played
+        : resume.paused
     const next = nextRequest({
       request: current.request,
       session,
@@ -437,6 +455,26 @@ export const createPlayerController = ({
     await ends.endOnce(session.id, last)
     update({ interruption: undefined })
     setRequest(next)
+  }
+
+  // The engine cannot decode the stream as the server sent it (copied, not transcoded): once per
+  // source, the same session again at the best quality below Original, which transcodes (§10.2).
+  // Before the first frame, it starts where that session did and as it would have; after, at the
+  // position, paused if it was.
+  const fallBack = (session: PlaybackSessionDto, failure: StreamFailure): boolean => {
+    if (state().session?.id !== session.id || state().interruption !== undefined) return false
+    const quality = decodeFallbackQuality({ failure, session, fallenBack })
+    if (quality === undefined) return false
+    fallenBack.add(session.sourceId)
+    const shown = playedSession === session.id
+    void switchSession(
+      { type: 'quality', quality },
+      {
+        positionMs: shown ? currentPositionMs() : session.startPositionMs,
+        paused: shown ? engine.read().paused : startPaused,
+      },
+    )
+    return true
   }
 
   const reconnect = () => {
