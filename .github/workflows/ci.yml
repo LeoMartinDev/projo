@@ -443,8 +443,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
+      # generate_context! needs the bundled page (frontendDist) before any cargo build.
       - name: Rust tests
-        run: bun run --cwd apps/desktop test:rust
+        run: |
+          bun run --cwd apps/desktop build:ui
+          bun run --cwd apps/desktop test:rust
       - name: Build the installer
         run: bun run --cwd apps/desktop build
       - name: Sign the installer, write latest.json (dist/desktop-release)
