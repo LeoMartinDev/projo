@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { UpdateAdminSettingsBody } from '@projo/shared/api/settings'
 
 import { Field, RevealButton } from '../../../shared/ui/controls.tsx'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { KeyIcon } from '../admin-icons.tsx'
 import { useUpdateSettings } from './queries.ts'
@@ -146,35 +146,21 @@ export const ApiKeySetting = ({
         </a>
       )}
 
-      <Dialog
-        open={confirmRemove}
-        title={removeTitle}
-        onClose={() => {
-          setConfirmRemove(false)
-          remove.reset()
-        }}
-        footer={
-          <>
-            <button type="button" className="button" onClick={() => setConfirmRemove(false)}>
-              {t('common.cancel')}
-            </button>
-            <button
-              type="button"
-              className="button button--danger"
-              disabled={remove.isPending}
-              onClick={() =>
-                remove.mutate(toBody(''), { onSuccess: () => setConfirmRemove(false) })
-              }
-            >
-              {remove.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-              {t('admin.settings.removeKey')}
-            </button>
-          </>
-        }
-      >
-        <p className="dialog__text">{removeText}</p>
-        {remove.isError ? <ErrorAlert error={remove.error} /> : undefined}
-      </Dialog>
+      {confirmRemove ? (
+        <ConfirmDialog
+          title={removeTitle}
+          text={removeText}
+          confirmLabel={t('admin.settings.removeKey')}
+          tone="danger"
+          pending={remove.isPending}
+          error={remove.isError ? remove.error : undefined}
+          onConfirm={() => remove.mutate(toBody(''), { onSuccess: () => setConfirmRemove(false) })}
+          onClose={() => {
+            setConfirmRemove(false)
+            remove.reset()
+          }}
+        />
+      ) : undefined}
     </div>
   )
 }

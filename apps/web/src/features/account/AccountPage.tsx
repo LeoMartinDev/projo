@@ -10,13 +10,13 @@ import { formatRelative } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Field, RevealButton } from '../../shared/ui/controls.tsx'
 import { LockIcon } from '../../shared/ui/icons.tsx'
-import { BackLink } from '../../shared/ui/BackLink.tsx'
-import { ChevronLeftIcon, DevicesIcon } from '../../shared/ui/media-icons.tsx'
+import { DevicesIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
+import { SettingsPanel } from '../../shared/ui/SettingsPanel.tsx'
+import { SettingsPage } from '../../shared/ui/SettingsPage.tsx'
 import { NewPasswordFields, usePasswordPair } from '../setup/NewPasswordFields.tsx'
 import { ConnectDeviceDialog } from './ConnectDeviceDialog.tsx'
-import '../profiles/profiles.css'
 import './account.css'
 
 const sessionsQuery = queryOptions({
@@ -53,10 +53,7 @@ const PasswordPanel = () => {
   }
 
   return (
-    <section className="settings-panel" aria-labelledby={`${ids}-title`}>
-      <h2 id={`${ids}-title`} className="settings-panel__title">
-        {t('account.password.title')}
-      </h2>
+    <SettingsPanel title={t('account.password.title')}>
       <form className="account-form" onSubmit={submit} noValidate>
         {change.isError ? <ErrorAlert error={change.error} /> : undefined}
         {change.isSuccess ? (
@@ -99,13 +96,12 @@ const PasswordPanel = () => {
           </button>
         </div>
       </form>
-    </section>
+    </SettingsPanel>
   )
 }
 
 const DevicesPanel = () => {
   const { t } = useTranslation()
-  const ids = useId()
   const locale = currentLocale()
   const now = useNow()
   const queryClient = useQueryClient()
@@ -116,11 +112,9 @@ const DevicesPanel = () => {
     onSettled: () => queryClient.invalidateQueries({ queryKey: sessionsQuery.queryKey }),
   })
   return (
-    <section className="settings-panel" aria-labelledby={`${ids}-title`}>
-      <div className="devices__head">
-        <h2 id={`${ids}-title`} className="settings-panel__title">
-          {t('account.devices.title')}
-        </h2>
+    <SettingsPanel
+      title={t('account.devices.title')}
+      action={
         <button
           type="button"
           className="button button--glass button--small"
@@ -128,7 +122,8 @@ const DevicesPanel = () => {
         >
           {t('account.devices.connect')}
         </button>
-      </div>
+      }
+    >
       <ConnectDeviceDialog
         open={connecting}
         onClose={() => setConnecting(false)}
@@ -183,7 +178,7 @@ const DevicesPanel = () => {
           </ul>
         )}
       </div>
-    </section>
+    </SettingsPanel>
   )
 }
 
@@ -195,13 +190,9 @@ const healthQuery = queryOptions({
 
 const AboutPanel = () => {
   const { t } = useTranslation()
-  const ids = useId()
   const health = useQuery(healthQuery)
   return (
-    <section className="settings-panel" aria-labelledby={`${ids}-title`}>
-      <h2 id={`${ids}-title`} className="settings-panel__title">
-        {t('account.about.title')}
-      </h2>
+    <SettingsPanel title={t('account.about.title')}>
       <dl className="about">
         <div className="about__row">
           <dt>{t('account.about.version')}</dt>
@@ -209,29 +200,20 @@ const AboutPanel = () => {
         </div>
       </dl>
       <p className="about__credits">{t('account.about.segmentsCredit')}</p>
-    </section>
+    </SettingsPanel>
   )
 }
 
 export const AccountPage = ({ me }: { me: MeResponse }) => {
   const { t } = useTranslation()
   return (
-    <div className="page page--narrow settings">
-      <div className="settings__head">
-        <BackLink className="page__back" label={t('common.back')}>
-          <ChevronLeftIcon size={18} />
-        </BackLink>
-        <div className="settings__who">
-          <h1 className="page__title">{t('account.title')}</h1>
-          <span className="account__username">
-            {me.account.username} ·{' '}
-            {me.account.role === 'admin' ? t('shell.roleAdmin') : t('shell.roleUser')}
-          </span>
-        </div>
-      </div>
+    <SettingsPage
+      title={t('account.title')}
+      subtitle={`${me.account.username} · ${me.account.role === 'admin' ? t('shell.roleAdmin') : t('shell.roleUser')}`}
+    >
       <PasswordPanel />
       <DevicesPanel />
       <AboutPanel />
-    </div>
+    </SettingsPage>
   )
 }

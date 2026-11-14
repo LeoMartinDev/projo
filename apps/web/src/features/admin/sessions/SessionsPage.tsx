@@ -11,6 +11,7 @@ import { formatClock } from '../../../shared/format/format.ts'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { AdminAvatar, avatarColors } from '../accounts/parts.tsx'
 import { playbackSessionsQuery, playbackSessionsQueryKey } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import './sessions.css'
@@ -126,16 +127,14 @@ export const SessionsPage = () => {
 
   return (
     <div className="admin-page ses-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.sessions.title')}</h1>
-          {sessions.isSuccess && items.length > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.sessions.summary', { count: items.length })}
-            </p>
-          ) : undefined}
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.sessions.title')}
+        summary={
+          sessions.isSuccess && items.length > 0
+            ? t('admin.sessions.summary', { count: items.length })
+            : undefined
+        }
+      />
 
       {stop.isError ? <ErrorAlert error={stop.error} /> : undefined}
 

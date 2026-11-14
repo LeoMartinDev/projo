@@ -9,6 +9,7 @@ import { toApiFailure } from '../../../shared/api/failure.ts'
 import { Field } from '../../../shared/ui/controls.tsx'
 import { CheckIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { SearchIcon } from '../admin-icons.tsx'
 import { tmdbPosterUrl, tmdbSearchQuery } from './queries.ts'
 import './identify.css'
@@ -125,26 +126,13 @@ export const IdentifyForm = ({
   return (
     <form id={formId} className="identify" onSubmit={submit} noValidate>
       {modes.length > 1 ? (
-        <div
-          className={modes.length === 3 ? 'seg seg--3 identify__modes' : 'seg identify__modes'}
-          role="radiogroup"
-          aria-label={t('admin.identify.modeLabel')}
-          data-active={modes.indexOf(mode)}
-        >
-          <span className="seg__indicator" aria-hidden="true" />
-          {modes.map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="radio"
-              className="seg__option"
-              aria-checked={mode === value}
-              onClick={() => pickMode(value)}
-            >
-              {t(`admin.identify.mode.${value}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          className="identify__modes"
+          label={t('admin.identify.modeLabel')}
+          options={modes.map((value) => ({ value, label: t(`admin.identify.mode.${value}`) }))}
+          value={mode}
+          onChange={pickMode}
+        />
       ) : undefined}
 
       <div className="identify__search">

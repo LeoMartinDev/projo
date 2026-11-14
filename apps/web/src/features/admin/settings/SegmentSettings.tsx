@@ -6,6 +6,7 @@ import type { SegmentProviderIdDto, SegmentSettingsDto } from '@projo/shared/api
 import { Field, Switch } from '../../../shared/ui/controls.tsx'
 import { ChevronDownIcon, ChevronUpIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import {
   changedThresholds,
   checkThresholds,
@@ -114,18 +115,13 @@ const Fingerprint = ({ fingerprint }: { fingerprint: SegmentSettingsDto['fingerp
 
   return (
     <div className="settings-block">
-      <div className="setting">
-        <span id={`${id}-enabled`} className="setting__label">
-          {t('admin.settings.segments.fingerprint')}
-        </span>
-        <Switch
-          checked={enabled}
-          labelId={`${id}-enabled`}
-          onChange={(on) => {
-            if (!toggle.isPending) toggle.mutate({ segments: { fingerprint: { enabled: on } } })
-          }}
-        />
-      </div>
+      <SwitchSetting
+        label={t('admin.settings.segments.fingerprint')}
+        checked={enabled}
+        onChange={(on) => {
+          if (!toggle.isPending) toggle.mutate({ segments: { fingerprint: { enabled: on } } })
+        }}
+      />
       {toggle.isError ? <ErrorAlert error={toggle.error} /> : undefined}
       <form className="seg-thresholds" onSubmit={submit} noValidate data-disabled={!enabled}>
         {thresholdFields.map((field) => {
@@ -180,32 +176,22 @@ const Contribution = ({
   keyConfigured: boolean
 }) => {
   const { t } = useTranslation()
-  const id = useId()
   const update = useUpdateSettings()
   const on = contribution === 'manual_only'
   return (
     <div className="settings-block">
-      <div className="setting">
-        <span className="setting__text">
-          <span id={`${id}-label`} className="setting__label">
-            {t('admin.settings.segments.contribution')}
-          </span>
-          {keyConfigured ? undefined : (
-            <span className="setting__description">
-              {t('admin.settings.segments.contributionNeedsKey')}
-            </span>
-          )}
-        </span>
-        <Switch
-          checked={on}
-          labelId={`${id}-label`}
-          disabled={!keyConfigured && !on}
-          onChange={(next) => {
-            if (update.isPending || (next && !keyConfigured)) return
-            update.mutate({ segments: { contribution: next ? 'manual_only' : 'off' } })
-          }}
-        />
-      </div>
+      <SwitchSetting
+        label={t('admin.settings.segments.contribution')}
+        {...(keyConfigured
+          ? {}
+          : { description: t('admin.settings.segments.contributionNeedsKey') })}
+        checked={on}
+        disabled={!keyConfigured && !on}
+        onChange={(next) => {
+          if (update.isPending || (next && !keyConfigured)) return
+          update.mutate({ segments: { contribution: next ? 'manual_only' : 'off' } })
+        }}
+      />
       {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </div>
   )

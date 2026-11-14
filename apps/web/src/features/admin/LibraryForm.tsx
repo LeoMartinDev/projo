@@ -7,11 +7,12 @@ import type { LibraryDto, LibraryHint } from '@projo/shared/api/libraries'
 import { api, request } from '../../shared/api/client.ts'
 import { formatNumber } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
-import { Field, Switch } from '../../shared/ui/controls.tsx'
+import { Field } from '../../shared/ui/controls.tsx'
 import { SelectField } from '../../shared/ui/Select.tsx'
-import { Dialog } from '../../shared/ui/Dialog.tsx'
+import { ConfirmDialog } from '../../shared/ui/ConfirmDialog.tsx'
 import { CheckIcon, CloseIcon, FolderIcon, PlusIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
+import { SwitchSetting } from '../../shared/ui/Setting.tsx'
 import { FolderBrowser } from './FolderBrowser.tsx'
 import { nameFromFolder, parentOf } from './folder-paths.ts'
 import { countryLabel, languageLabel, metadataLanguages, ratingCountries } from './languages.ts'
@@ -283,27 +284,15 @@ export const LibraryForm = ({
       ) : undefined}
 
       {confirmingRemoval ? (
-        <Dialog
-          open
+        <ConfirmDialog
           title={t('admin.form.removeFoldersTitle', { count: removedRoots.length })}
+          confirmLabel={t('admin.form.removeFoldersConfirm')}
+          tone="danger"
+          onConfirm={() => {
+            setConfirmingRemoval(false)
+            save.mutate()
+          }}
           onClose={() => setConfirmingRemoval(false)}
-          footer={
-            <>
-              <button type="button" className="button" onClick={() => setConfirmingRemoval(false)}>
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                className="button button--danger"
-                onClick={() => {
-                  setConfirmingRemoval(false)
-                  save.mutate()
-                }}
-              >
-                {t('admin.form.removeFoldersConfirm')}
-              </button>
-            </>
-          }
         >
           <ul className="root-list well">
             {removedRoots.map((root) => (
@@ -322,7 +311,7 @@ export const LibraryForm = ({
             ))}
           </ul>
           <p className="dialog__text">{t('admin.form.removeFoldersText')}</p>
-        </Dialog>
+        </ConfirmDialog>
       ) : undefined}
     </>
   )
@@ -381,19 +370,13 @@ const AdvancedSettings = ({
 
       <div className="library-form__section library-form__options">
         {toggles.map((key) => (
-          <div key={key} className="setting">
-            <div className="setting__text">
-              <span id={`${formId}-${key}`} className="setting__label">
-                {t(`admin.options.${key}`)}
-              </span>
-              <span className="setting__description">{t(`admin.optionsDescription.${key}`)}</span>
-            </div>
-            <Switch
-              checked={options[key]}
-              labelId={`${formId}-${key}`}
-              onChange={(value) => setOptions({ ...options, [key]: value })}
-            />
-          </div>
+          <SwitchSetting
+            key={key}
+            label={t(`admin.options.${key}`)}
+            description={t(`admin.optionsDescription.${key}`)}
+            checked={options[key]}
+            onChange={(value) => setOptions({ ...options, [key]: value })}
+          />
         ))}
       </div>
 

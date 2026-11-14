@@ -17,6 +17,7 @@ import { invalidateAfterIdentify } from '../identify/queries.ts'
 import { HideSourceDialog } from './HideSourceDialog.tsx'
 import { fileName, initialFromSource, parsedSummary, reviewReason } from './parsed.ts'
 import { reviewQuery } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import './review.css'
 
@@ -111,19 +112,17 @@ export const ReviewPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.review.title')}</h1>
-          {queue.isSuccess && sources.length > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.review.summary', {
+      <AdminPageHeader
+        title={t('admin.review.title')}
+        summary={
+          queue.isSuccess && sources.length > 0
+            ? t('admin.review.summary', {
                 count: total,
                 formatted: formatNumber(total, locale),
-              })}
-            </p>
-          ) : undefined}
-        </div>
-      </div>
+              })
+            : undefined
+        }
+      />
 
       {queue.isError && sources.length === 0 ? (
         <ErrorState error={queue.error} onRetry={() => void queue.refetch()} />

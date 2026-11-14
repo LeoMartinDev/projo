@@ -16,10 +16,13 @@ import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { SelectField } from '../../../shared/ui/Select.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { JobsIcon } from '../admin-icons.tsx'
 import { jobTargetLabel } from './job-types.ts'
 import { jobsQuery, jobsQueryKey, statsQueryKey, useLiveJobs } from './queries.ts'
 import { formatContext, useStoredError } from './stored-error.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import '../admin-table.css'
@@ -247,16 +250,6 @@ const JobRow = ({
   )
 }
 
-const SkeletonRows = () => (
-  <>
-    {Array.from({ length: 10 }, (_, index) => (
-      <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
-        <span className="skeleton skeleton--line" />
-      </div>
-    ))}
-  </>
-)
-
 export const JobsPage = ({
   filter,
   onFilter,
@@ -284,30 +277,16 @@ export const JobsPage = ({
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.jobs.title')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.jobs.title')} />
 
       <div className="adm-toolbar">
-        <div
-          className="seg seg--4"
-          role="group"
-          aria-label={t('admin.jobs.filterLabel')}
-          data-active={jobFilters.indexOf(filter)}
-        >
-          <span className="seg__indicator" aria-hidden="true" />
-          {jobFilters.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className="seg__option"
-              aria-pressed={filter === value}
-              onClick={() => onFilter(value)}
-            >
-              {t(`admin.jobs.filter.${value}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          role="toggle"
+          label={t('admin.jobs.filterLabel')}
+          options={jobFilters.map((value) => ({ value, label: t(`admin.jobs.filter.${value}`) }))}
+          value={filter}
+          onChange={onFilter}
+        />
         <SelectField<JobTypeDto | ''>
           compact
           icon={<JobsIcon size={16} />}
@@ -341,7 +320,7 @@ export const JobsPage = ({
           <span role="columnheader" />
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={10} /> : undefined}
           {list.isError && jobs.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}

@@ -17,6 +17,7 @@ import { Field } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { LockSmallIcon, RestartIcon } from '../../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { tmdbPosterUrl } from '../identify/queries.ts'
 import { changesOf, formOf, type MetadataForm, toggleGenre } from './editing.ts'
 import {
@@ -416,27 +417,14 @@ export const EditItemDialog = ({
       }
     >
       <div className="edit-item">
-        <div
-          className="seg seg--3 edit-item__tabs"
-          role="tablist"
-          aria-label={t('admin.editItem.title')}
-          data-active={tabs.indexOf(tab)}
-        >
-          <span className="seg__indicator" aria-hidden="true" />
-          {tabs.map((value) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              className="seg__option"
-              aria-selected={tab === value}
-              aria-pressed={tab === value}
-              onClick={() => setTab(value)}
-            >
-              {t(`admin.editItem.tabs.${value}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          role="tab"
+          className="edit-item__tabs"
+          label={t('admin.editItem.title')}
+          options={tabs.map((value) => ({ value, label: t(`admin.editItem.tabs.${value}`) }))}
+          value={tab}
+          onChange={setTab}
+        />
         {item.isError ? (
           <div className="edit-item__scroll">
             <ErrorState error={item.error} onRetry={() => void item.refetch()} />

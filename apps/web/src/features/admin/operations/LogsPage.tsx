@@ -10,6 +10,7 @@ import { SelectField } from '../../../shared/ui/Select.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorState } from '../../../shared/ui/states.tsx'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { DownloadIcon, SearchIcon } from '../admin-icons.tsx'
 import {
   type LogFilterState,
@@ -21,6 +22,8 @@ import {
 } from './log-filters.ts'
 import { formatContext } from './stored-error.ts'
 import { logsExportUrl, logsQuery } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import '../admin-table.css'
@@ -143,16 +146,6 @@ const LogRow = ({ entry, onOpen }: { entry: LogEntryDto; onOpen: () => void }) =
   )
 }
 
-const SkeletonRows = () => (
-  <>
-    {Array.from({ length: 12 }, (_, index) => (
-      <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
-        <span className="skeleton skeleton--line" />
-      </div>
-    ))}
-  </>
-)
-
 export const LogsPage = () => {
   const { t } = useTranslation()
   const periodId = useId()
@@ -181,45 +174,42 @@ export const LogsPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.logs.title')}</h1>
-        <div className="admin-page__actions">
-          <button
-            type="button"
-            className="button button--glass button--small"
-            disabled={list.isFetching}
-            onClick={refresh}
-          >
-            <SyncIcon size={16} />
-            {t('admin.logs.refresh')}
-          </button>
-          <a className="button button--glass button--small" href={logsExportUrl(filters)} download>
-            <DownloadIcon size={16} />
-            {t('admin.logs.export')}
-          </a>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.logs.title')}
+        actions={
+          <>
+            <button
+              type="button"
+              className="button button--glass button--small"
+              disabled={list.isFetching}
+              onClick={refresh}
+            >
+              <SyncIcon size={16} />
+              {t('admin.logs.refresh')}
+            </button>
+            <a
+              className="button button--glass button--small"
+              href={logsExportUrl(filters)}
+              download
+            >
+              <DownloadIcon size={16} />
+              {t('admin.logs.export')}
+            </a>
+          </>
+        }
+      />
 
       <div className="adm-toolbar">
-        <div
-          className="seg seg--4"
-          role="group"
-          aria-label={t('admin.logs.levelLabel')}
-          data-active={logLevelFilters.indexOf(state.level)}
-        >
-          <span className="seg__indicator" aria-hidden="true" />
-          {logLevelFilters.map((value: LogLevelFilter) => (
-            <button
-              key={value}
-              type="button"
-              className="seg__option"
-              aria-pressed={state.level === value}
-              onClick={() => update({ level: value })}
-            >
-              {t(`admin.logs.levelFilter.${value}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented<LogLevelFilter>
+          role="toggle"
+          label={t('admin.logs.levelLabel')}
+          options={logLevelFilters.map((value) => ({
+            value,
+            label: t(`admin.logs.levelFilter.${value}`),
+          }))}
+          value={state.level}
+          onChange={(level) => update({ level })}
+        />
         <SelectField
           compact
           id={periodId}
@@ -276,7 +266,7 @@ export const LogsPage = () => {
           <span role="columnheader">{t('admin.logs.columns.message')}</span>
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={12} /> : undefined}
           {list.isError && entries.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}

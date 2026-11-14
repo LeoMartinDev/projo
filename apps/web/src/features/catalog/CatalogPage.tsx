@@ -15,6 +15,7 @@ import { FilterIcon, SortIcon } from '../../shared/ui/media-icons.tsx'
 import { Sheet } from '../../shared/ui/Sheet.tsx'
 import { EmptyState, ErrorState } from '../../shared/ui/states.tsx'
 import { useDevice } from '../../shared/ui/use-media.ts'
+import { Segmented } from '../../shared/ui/Segmented.tsx'
 import { useGridCardSheet } from '../media/CardSheet.tsx'
 import { PosterTile } from '../media/PosterTile.tsx'
 import { VirtualGrid } from '../media/VirtualGrid.tsx'
@@ -217,25 +218,13 @@ export const CatalogPage = ({ kind }: { kind: CatalogKind }) => {
               onChange={(value) => change({ ...state, sort: value })}
             />
           ) : (
-            <div
-              className="seg seg--4"
-              role="group"
-              aria-label={t('catalog.sortBy')}
-              data-active={sorts.indexOf(state.sort)}
-            >
-              <span className="seg__indicator" aria-hidden="true" />
-              {sorts.map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  className="seg__option"
-                  aria-pressed={state.sort === value}
-                  onClick={() => change({ ...state, sort: value })}
-                >
-                  {t(`catalog.sort.${value}`)}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              role="toggle"
+              label={t('catalog.sortBy')}
+              options={sorts.map((value) => ({ value, label: t(`catalog.sort.${value}`) }))}
+              value={state.sort}
+              onChange={(sort) => change({ ...state, sort })}
+            />
           )}
           <button
             type="button"

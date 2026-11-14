@@ -11,7 +11,8 @@ import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field, RevealButton } from '../../../shared/ui/controls.tsx'
 import { LockIcon, UserIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
-import { AdminPageTitle } from '../AdminPageTitle.tsx'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import { ColorPicker } from './parts.tsx'
 import { accountsQueryKey } from './queries.ts'
 import '../admin.css'
@@ -70,11 +71,7 @@ export const NewAccountPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__heading">
-        <AdminPageTitle back="/admin/accounts">
-          {t('admin.accounts.createAccount.title')}
-        </AdminPageTitle>
-      </div>
+      <AdminPageHeader title={t('admin.accounts.createAccount.title')} back="/admin/accounts" />
       <form className="acc-create acc-create--page" onSubmit={submit} noValidate>
         {create.isError ? <ErrorAlert error={create.error} /> : undefined}
         <div className="form-row">
@@ -129,26 +126,13 @@ export const NewAccountPage = () => {
           <span id={`${id}-role`} className="acc-label">
             {t('admin.accounts.roleLabel')}
           </span>
-          <div
-            className="seg acc-seg"
-            role="radiogroup"
-            aria-labelledby={`${id}-role`}
-            data-active={roles.indexOf(role)}
-          >
-            <span className="seg__indicator" aria-hidden="true" />
-            {roles.map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                className="seg__option"
-                aria-checked={role === value}
-                onClick={() => setRole(value)}
-              >
-                {t(`admin.accounts.role.${value}`)}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            className="acc-seg"
+            labelledBy={`${id}-role`}
+            options={roles.map((value) => ({ value, label: t(`admin.accounts.role.${value}`) }))}
+            value={role}
+            onChange={setRole}
+          />
         </div>
         <Field
           id={`${id}-profile`}

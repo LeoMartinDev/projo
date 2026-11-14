@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 
 import type { PlaybackSettingsDto } from '@projo/shared/api/settings'
 
-import { Field, Switch } from '../../../shared/ui/controls.tsx'
+import { Field } from '../../../shared/ui/controls.tsx'
 import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import { settingsQuery, useUpdateSettings } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import './settings.css'
 
@@ -41,22 +43,16 @@ const ToggleSetting = ({
   setting: Toggle
 }) => {
   const { t } = useTranslation()
-  const id = useId()
   const update = useUpdateSettings()
   return (
     <>
-      <div className="setting">
-        <span id={id} className="setting__label">
-          {t(toggleLabels[setting])}
-        </span>
-        <Switch
-          checked={isOn(playback, setting)}
-          labelId={id}
-          onChange={(on) => {
-            if (!update.isPending) update.mutate({ playback: bodyOf(setting, on) })
-          }}
-        />
-      </div>
+      <SwitchSetting
+        label={t(toggleLabels[setting])}
+        checked={isOn(playback, setting)}
+        onChange={(on) => {
+          if (!update.isPending) update.mutate({ playback: bodyOf(setting, on) })
+        }}
+      />
       {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </>
   )
@@ -159,9 +155,7 @@ export const PlaybackSettingsPage = () => {
   const settings = useQuery(settingsQuery)
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.playbackSettings.title')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.playbackSettings.title')} />
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
       ) : (

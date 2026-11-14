@@ -5,6 +5,7 @@ import { type AvatarColor, avatarColorSchema } from '@projo/shared/api/profiles'
 
 import { Field, Switch } from '../../shared/ui/controls.tsx'
 import { CheckIcon } from '../../shared/ui/icons.tsx'
+import { Setting } from '../../shared/ui/Setting.tsx'
 
 const colors = avatarColorSchema.options
 
@@ -67,19 +68,19 @@ export const PinFields = ({
   const ids = useId()
   return (
     <>
-      <div className="setting">
-        <div className="setting__text">
-          <span id={`${ids}-label`} className="setting__label">
-            {t('profiles.editor.pin')}
-          </span>
-          {hasPin && on && !changing ? (
+      <Setting
+        label={t('profiles.editor.pin')}
+        labelId={`${ids}-label`}
+        description={
+          hasPin && on && !changing ? (
             <button type="button" className="link-button" onClick={onChanging}>
               {t('profiles.editor.changePin')}
             </button>
-          ) : undefined}
-        </div>
+          ) : undefined
+        }
+      >
         <Switch checked={on} labelId={`${ids}-label`} onChange={onToggle} />
-      </div>
+      </Setting>
       <Field
         id={`${ids}-pin`}
         label={t('profiles.editor.newPin')}

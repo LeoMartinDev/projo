@@ -18,6 +18,8 @@ import { useNow } from '../../../shared/ui/use-now.ts'
 import { type LiveScan, scanPercent, useLiveScans } from '../live-scans.ts'
 import { useUpdateSummary } from '../updates/queries.ts'
 import { statsQuery, useLiveNotifications, useLiveStats } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../admin-table.css'
 import './operations.css'
@@ -195,9 +197,7 @@ export const DashboardPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.dashboard.title')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.dashboard.title')} />
 
       <section className="dash-counters" aria-label={t('admin.dashboard.counters')}>
         {groups.map((group, index) => (
@@ -216,9 +216,7 @@ export const DashboardPage = () => {
         <div className="adm-table" role="table" aria-labelledby="dash-scans">
           <div className="dash-scans__body">
             {data === undefined ? (
-              <div className="adm-tr adm-tr--skeleton" aria-hidden="true">
-                <span className="skeleton skeleton--line" />
-              </div>
+              <SkeletonRows count={1} />
             ) : data.runningScans.length === 0 ? (
               <EmptyState title={t('admin.dashboard.noScan')} />
             ) : (

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { type FormEvent, type ReactNode, useId, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -17,11 +17,13 @@ import {
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { pickActiveProfile } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
-import { BackLink } from '../../shared/ui/BackLink.tsx'
-import { Field, Switch } from '../../shared/ui/controls.tsx'
+import { Field } from '../../shared/ui/controls.tsx'
 import { SelectField } from '../../shared/ui/Select.tsx'
-import { ChevronLeftIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorAlert } from '../../shared/ui/states.tsx'
+import { Segmented } from '../../shared/ui/Segmented.tsx'
+import { SettingsPanel } from '../../shared/ui/SettingsPanel.tsx'
+import { SettingsPage } from '../../shared/ui/SettingsPage.tsx'
+import { Setting, SwitchSetting } from '../../shared/ui/Setting.tsx'
 import { languageName } from '../item/media-labels.ts'
 import { Avatar } from '../shell/Avatar.tsx'
 import { ColorSwatches, PinFields } from './IdentityFields.tsx'
@@ -60,45 +62,6 @@ const trackLanguages = [
 const locales: readonly UiLocale[] = ['fr', 'en']
 
 type Editable = Omit<UpdateProfileBody, 'currentPin' | 'pin' | 'libraryIds' | 'libraryAccess'>
-
-const SwitchSetting = ({
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  label: string
-  description?: string
-  checked: boolean
-  onChange: (value: boolean) => void
-}) => {
-  const id = useId()
-  return (
-    <div className="setting">
-      <div className="setting__text">
-        <span id={id} className="setting__label">
-          {label}
-        </span>
-        {description === undefined ? undefined : (
-          <span className="setting__description">{description}</span>
-        )}
-      </div>
-      <Switch checked={checked} labelId={id} onChange={onChange} />
-    </div>
-  )
-}
-
-const Panel = ({ title, children }: { title: string; children: ReactNode }) => {
-  const id = useId()
-  return (
-    <section className="settings-panel" aria-labelledby={id}>
-      <h2 id={id} className="settings-panel__title">
-        {title}
-      </h2>
-      <div className="settings-panel__body">{children}</div>
-    </section>
-  )
-}
 
 const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPin: boolean }) => {
   const { t } = useTranslation()
@@ -139,7 +102,7 @@ const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPi
   }
 
   return (
-    <Panel title={t('profiles.settings.profile')}>
+    <SettingsPanel title={t('profiles.settings.profile')}>
       <form className="settings-panel__form" onSubmit={submit} noValidate>
         {update.isError ? <ErrorAlert error={update.error} /> : undefined}
         <Field
@@ -185,7 +148,7 @@ const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPi
           </button>
         </div>
       </form>
-    </Panel>
+    </SettingsPanel>
   )
 }
 
@@ -205,16 +168,10 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
     }))
 
   return (
-    <div className="page page--narrow settings">
-      <div className="settings__head">
-        <BackLink className="page__back" label={t('common.back')}>
-          <ChevronLeftIcon size={18} />
-        </BackLink>
-        <Avatar name={profile.name} color={profile.avatarColor} size="xlarge" />
-        <div className="settings__who">
-          <h1 className="page__title">{profile.name}</h1>
-        </div>
-      </div>
+    <SettingsPage
+      title={profile.name}
+      leading={<Avatar name={profile.name} color={profile.avatarColor} size="xlarge" />}
+    >
       {update.isError ? <ErrorAlert error={update.error} /> : undefined}
 
       <IdentityPanel
@@ -222,37 +179,21 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
         canEditPin={profile.libraryAccess === 'all' && profile.maxContentRating === undefined}
       />
 
-      <Panel title={t('profiles.settings.language')}>
-        <div className="setting">
-          <div className="setting__text">
-            <span id={`${ids}-ui`} className="setting__label">
-              {t('profiles.settings.uiLocale')}
-            </span>
-          </div>
-          <div
-            className="seg"
-            role="radiogroup"
-            aria-labelledby={`${ids}-ui`}
-            data-active={locales.indexOf(value('uiLocale'))}
-          >
-            <span className="seg__indicator" aria-hidden="true" />
-            {locales.map((code) => (
-              <button
-                key={code}
-                type="button"
-                role="radio"
-                className="seg__option"
-                aria-checked={value('uiLocale') === code}
-                onClick={() => save({ uiLocale: code })}
-              >
-                {languageName(code, code)}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Panel>
+      <SettingsPanel title={t('profiles.settings.language')}>
+        <Setting label={t('profiles.settings.uiLocale')} labelId={`${ids}-ui`}>
+          <Segmented
+            labelledBy={`${ids}-ui`}
+            options={locales.map((code) => ({
+              value: code,
+              label: languageName(code, code) ?? code,
+            }))}
+            value={value('uiLocale')}
+            onChange={(uiLocale) => save({ uiLocale })}
+          />
+        </Setting>
+      </SettingsPanel>
 
-      <Panel title={t('profiles.settings.tracks')}>
+      <SettingsPanel title={t('profiles.settings.tracks')}>
         <div className="settings-panel__fields">
           <SelectField
             id={`${ids}-audio`}
@@ -285,9 +226,9 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
           checked={value('animeOriginalAudio')}
           onChange={(checked) => save({ animeOriginalAudio: checked })}
         />
-      </Panel>
+      </SettingsPanel>
 
-      <Panel title={t('profiles.settings.playback')}>
+      <SettingsPanel title={t('profiles.settings.playback')}>
         <SwitchSetting
           label={t('profiles.settings.autoplayNext')}
           checked={value('autoplayNext')}
@@ -303,9 +244,9 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
           checked={value('autoSkipCredits')}
           onChange={(checked) => save({ autoSkipCredits: checked })}
         />
-      </Panel>
+      </SettingsPanel>
 
-      <Panel title={t('profiles.settings.access')}>
+      <SettingsPanel title={t('profiles.settings.access')}>
         <dl className="settings-facts">
           <div className="settings-facts__row">
             <dt>{t('profiles.settings.libraries')}</dt>
@@ -325,8 +266,8 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
           </div>
         </dl>
         <p className="setting__description">{t('profiles.settings.accessByAdmin')}</p>
-      </Panel>
-    </div>
+      </SettingsPanel>
+    </SettingsPage>
   )
 }
 

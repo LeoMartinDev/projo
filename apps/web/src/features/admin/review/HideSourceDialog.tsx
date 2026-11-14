@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { SourceDto } from '@projo/shared/api/libraries'
 
 import { api, request } from '../../../shared/api/client.ts'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
-import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { reviewQueryKey } from '../identify/queries.ts'
 import { sourcesByStateQueryKey, statsQueryKey } from '../operations/queries.ts'
 import { fileName } from './parsed.ts'
@@ -32,31 +31,15 @@ export const HideSourceDialog = ({
     },
   })
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.hidden.hideTitle', { name: fileName(source.relativePath) })}
-      onClose={() => {
-        if (!hide.isPending) onClose()
-      }}
-      footer={
-        <>
-          <button type="button" className="button" disabled={hide.isPending} onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={hide.isPending}
-            onClick={() => hide.mutate()}
-          >
-            {hide.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.hidden.hide')}
-          </button>
-        </>
-      }
-    >
-      <p className="dialog__text">{t('admin.hidden.hideText')}</p>
-      {hide.isError ? <ErrorAlert error={hide.error} /> : undefined}
-    </Dialog>
+      text={t('admin.hidden.hideText')}
+      confirmLabel={t('admin.hidden.hide')}
+      tone="danger"
+      pending={hide.isPending}
+      error={hide.isError ? hide.error : undefined}
+      onConfirm={() => hide.mutate()}
+      onClose={onClose}
+    />
   )
 }

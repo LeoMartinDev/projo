@@ -6,10 +6,12 @@ import type { AccountRole } from '@projo/shared/api/auth'
 import type { AdminAccountDto, UpdateAccountBody } from '@projo/shared/api/accounts'
 
 import { api, request } from '../../../shared/api/client.ts'
-import { Field, RevealButton, Switch } from '../../../shared/ui/controls.tsx'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { Field, RevealButton } from '../../../shared/ui/controls.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { CheckIcon, LockIcon } from '../../../shared/ui/icons.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
+import { Setting, SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import { accountsQueryKey } from './queries.ts'
 
 const roles: readonly AccountRole[] = ['admin', 'user']
@@ -47,26 +49,13 @@ const ResetPasswordDialog = ({
     if (valid && !reset.isPending) reset.mutate()
   }
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.accounts.account.resetTitle', { username: account.username })}
+      confirmLabel={t('admin.accounts.account.resetPassword')}
+      form={`${id}-form`}
+      pending={reset.isPending}
+      error={reset.isError ? reset.error : undefined}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            form={`${id}-form`}
-            className="button button--primary"
-            disabled={reset.isPending}
-          >
-            {reset.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.accounts.account.resetPassword')}
-          </button>
-        </>
-      }
     >
       <form id={`${id}-form`} className="form-row" onSubmit={submit} noValidate>
         <Field
@@ -92,8 +81,7 @@ const ResetPasswordDialog = ({
         ) : undefined}
       </form>
       <p className="dialog__text">{t('admin.accounts.account.resetText')}</p>
-      {reset.isError ? <ErrorAlert error={reset.error} /> : undefined}
-    </Dialog>
+    </ConfirmDialog>
   )
 }
 
@@ -131,28 +119,17 @@ const DeleteAccountDialog = ({
     if (matches && !remove.isPending) remove.mutate()
   }
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.accounts.account.deleteTitle', { username: account.username })}
+      text={t('admin.accounts.account.deleteText')}
+      confirmLabel={t('admin.accounts.account.delete')}
+      tone="danger"
+      form={`${id}-form`}
+      pending={remove.isPending}
+      disabled={!matches}
+      error={remove.isError ? remove.error : undefined}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            form={`${id}-form`}
-            className="button button--danger"
-            disabled={!matches || remove.isPending}
-          >
-            {remove.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.accounts.account.delete')}
-          </button>
-        </>
-      }
     >
-      <p className="dialog__text">{t('admin.accounts.account.deleteText')}</p>
       <form id={`${id}-form`} onSubmit={submit} noValidate>
         <Field id={`${id}-confirm`} label={t('admin.accounts.account.confirmUsername')}>
           <input
@@ -167,8 +144,7 @@ const DeleteAccountDialog = ({
           />
         </Field>
       </form>
-      {remove.isError ? <ErrorAlert error={remove.error} /> : undefined}
-    </Dialog>
+    </ConfirmDialog>
   )
 }
 
@@ -207,44 +183,26 @@ export const AccountSettings = ({
           <span id={`${ids}-role`} className="acc-label">
             {t('admin.accounts.roleLabel')}
           </span>
-          <div
-            className="seg acc-seg"
-            role="radiogroup"
-            aria-labelledby={`${ids}-role`}
-            data-active={roles.indexOf(account.role)}
-          >
-            <span className="seg__indicator" aria-hidden="true" />
-            {roles.map((role) => (
-              <button
-                key={role}
-                type="button"
-                role="radio"
-                className="seg__option"
-                aria-checked={account.role === role}
-                disabled={update.isPending}
-                onClick={() => {
-                  if (account.role !== role) update.mutate({ role })
-                }}
-              >
-                {t(`admin.accounts.role.${role}`)}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            className="acc-seg"
+            labelledBy={`${ids}-role`}
+            options={roles.map((role) => ({
+              value: role,
+              label: t(`admin.accounts.role.${role}`),
+            }))}
+            value={account.role}
+            disabled={update.isPending}
+            onChange={(role) => update.mutate({ role })}
+          />
         </div>
 
         <div className="acc-prefs">
-          <div className="setting">
-            <span id={`${ids}-disabled`} className="setting__label">
-              {t('admin.accounts.account.disable')}
-            </span>
-            <Switch
-              checked={disabled}
-              labelId={`${ids}-disabled`}
-              onChange={(value) => update.mutate({ disabled: value })}
-            />
-          </div>
-          <div className="setting">
-            <span className="setting__label">{t('admin.accounts.account.password')}</span>
+          <SwitchSetting
+            label={t('admin.accounts.account.disable')}
+            checked={disabled}
+            onChange={(value) => update.mutate({ disabled: value })}
+          />
+          <Setting label={t('admin.accounts.account.password')}>
             <button
               type="button"
               className="button button--glass button--small"
@@ -252,14 +210,17 @@ export const AccountSettings = ({
             >
               {t('admin.accounts.account.reset')}
             </button>
-          </div>
-          <div className="setting">
-            <span className="setting__label">
-              {t('admin.accounts.account.sessionsLabel')}
-              <span className="acc-settings__count">
-                {t('admin.accounts.sessions', { count: account.activeSessions })}
-              </span>
-            </span>
+          </Setting>
+          <Setting
+            label={
+              <>
+                {t('admin.accounts.account.sessionsLabel')}
+                <span className="acc-settings__count">
+                  {t('admin.accounts.sessions', { count: account.activeSessions })}
+                </span>
+              </>
+            }
+          >
             <button
               type="button"
               className="button button--glass button--small"
@@ -273,9 +234,8 @@ export const AccountSettings = ({
               ) : undefined}
               {t('admin.accounts.account.revokeSessions')}
             </button>
-          </div>
-          <div className="setting">
-            <span className="setting__label">{t('admin.accounts.account.delete')}</span>
+          </Setting>
+          <Setting label={t('admin.accounts.account.delete')}>
             <button
               type="button"
               className="button button--danger button--small"
@@ -283,7 +243,7 @@ export const AccountSettings = ({
             >
               {t('admin.accounts.account.deleteShort')}
             </button>
-          </div>
+          </Setting>
         </div>
       </div>
 

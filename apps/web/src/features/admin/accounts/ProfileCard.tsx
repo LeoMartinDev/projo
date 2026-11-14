@@ -16,8 +16,9 @@ import { toApiFailure } from '../../../shared/api/failure.ts'
 import { profileUpdated, sessionQuery } from '../../../shared/session/session.ts'
 import { Checkrow, Field, Switch } from '../../../shared/ui/controls.tsx'
 import { SelectField } from '../../../shared/ui/Select.tsx'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { ErrorAlert } from '../../../shared/ui/states.tsx'
+import { Setting, SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import { toggleLibrary } from './library-access.ts'
 import { AdminAvatar, ColorPicker, ratingOptions, useRatingLabel } from './parts.tsx'
 import { accountsQueryKey } from './queries.ts'
@@ -116,28 +117,17 @@ const DeleteProfileDialog = ({
       failureCode === 'profile/pin_required' ||
       failureCode === 'profile/invalid_pin')
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.accounts.profile.deleteTitle', { name: profile.name })}
+      text={t('admin.accounts.profile.deleteText')}
+      confirmLabel={t('admin.accounts.profile.delete')}
+      tone="danger"
+      pending={remove.isPending}
+      disabled={askPin && !pinPattern.test(currentPin)}
+      error={remove.isError ? remove.error : undefined}
+      onConfirm={() => remove.mutate()}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={remove.isPending || (askPin && !pinPattern.test(currentPin))}
-            onClick={() => remove.mutate()}
-          >
-            {remove.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.accounts.profile.delete')}
-          </button>
-        </>
-      }
     >
-      <p className="dialog__text">{t('admin.accounts.profile.deleteText')}</p>
       {askPin ? (
         <Field
           id={`${id}-current-pin`}
@@ -159,8 +149,7 @@ const DeleteProfileDialog = ({
           />
         </Field>
       ) : undefined}
-      {remove.isError ? <ErrorAlert error={remove.error} /> : undefined}
-    </Dialog>
+    </ConfirmDialog>
   )
 }
 
@@ -270,40 +259,22 @@ export const ProfileCard = ({
           />
 
           <div className="acc-prefs">
-            <div className="setting">
-              <span id={`${ids}-autoplay`} className="setting__label">
-                {t('admin.accounts.profile.autoplayNext')}
-              </span>
-              <Switch
-                checked={draft.autoplayNext}
-                labelId={`${ids}-autoplay`}
-                onChange={(autoplayNext) => set({ autoplayNext })}
-              />
-            </div>
-            <div className="setting">
-              <span id={`${ids}-intro`} className="setting__label">
-                {t('admin.accounts.profile.autoSkipIntro')}
-              </span>
-              <Switch
-                checked={draft.autoSkipIntro}
-                labelId={`${ids}-intro`}
-                onChange={(autoSkipIntro) => set({ autoSkipIntro })}
-              />
-            </div>
-            <div className="setting">
-              <span id={`${ids}-credits`} className="setting__label">
-                {t('admin.accounts.profile.autoSkipCredits')}
-              </span>
-              <Switch
-                checked={draft.autoSkipCredits}
-                labelId={`${ids}-credits`}
-                onChange={(autoSkipCredits) => set({ autoSkipCredits })}
-              />
-            </div>
-            <div className="setting">
-              <span id={`${ids}-pin`} className="setting__label">
-                {t('admin.accounts.profile.pin')}
-              </span>
+            <SwitchSetting
+              label={t('admin.accounts.profile.autoplayNext')}
+              checked={draft.autoplayNext}
+              onChange={(autoplayNext) => set({ autoplayNext })}
+            />
+            <SwitchSetting
+              label={t('admin.accounts.profile.autoSkipIntro')}
+              checked={draft.autoSkipIntro}
+              onChange={(autoSkipIntro) => set({ autoSkipIntro })}
+            />
+            <SwitchSetting
+              label={t('admin.accounts.profile.autoSkipCredits')}
+              checked={draft.autoSkipCredits}
+              onChange={(autoSkipCredits) => set({ autoSkipCredits })}
+            />
+            <Setting label={t('admin.accounts.profile.pin')} labelId={`${ids}-pin`}>
               <div className="acc-pin-switch">
                 {profile.hasPin && draft.pinOn && !changingPin ? (
                   <button
@@ -323,7 +294,7 @@ export const ProfileCard = ({
                   }}
                 />
               </div>
-            </div>
+            </Setting>
             {needsNewPin ? (
               <Field id={`${ids}-new-pin`} label={t('admin.accounts.profile.newPin')} compact>
                 <input

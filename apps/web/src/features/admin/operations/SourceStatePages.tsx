@@ -13,13 +13,15 @@ import {
   formatRelative,
 } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { EyeIcon, EyeOffIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
 import { reviewQueryKey } from '../identify/queries.ts'
 import { HideSourceDialog } from '../review/HideSourceDialog.tsx'
 import { fileName } from '../review/parsed.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import {
   sourcesByStateQuery,
   sourcesByStateQueryKey,
@@ -29,16 +31,6 @@ import {
 import '../admin.css'
 import '../admin-table.css'
 import './operations.css'
-
-const SkeletonRows = () => (
-  <>
-    {[0, 1, 2, 3].map((index) => (
-      <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
-        <span className="skeleton skeleton--line" />
-      </div>
-    ))}
-  </>
-)
 
 const Ago = ({ iso }: { iso: string | undefined }) => {
   const locale = currentLocale()
@@ -103,16 +95,14 @@ export const PendingPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.pending.title')}</h1>
-          {total > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })}
-            </p>
-          ) : undefined}
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.pending.title')}
+        summary={
+          total > 0
+            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
+            : undefined
+        }
+      />
 
       {recheck.isError ? <ErrorAlert error={recheck.error} /> : undefined}
 
@@ -132,7 +122,7 @@ export const PendingPage = () => {
           <span role="columnheader" />
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={4} /> : undefined}
           {list.isError && sources.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
@@ -222,8 +212,7 @@ const PurgeDialog = ({ purging, onClose }: { purging: Purging; onClose: () => vo
     },
   })
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={
         purging.kind === 'one'
           ? t('admin.missing.purgeTitle', { name: fileName(purging.source.relativePath) })
@@ -232,29 +221,14 @@ const PurgeDialog = ({ purging, onClose }: { purging: Purging; onClose: () => vo
               formatted: formatNumber(purging.count, locale),
             })
       }
-      onClose={() => {
-        if (!purge.isPending) onClose()
-      }}
-      footer={
-        <>
-          <button type="button" className="button" disabled={purge.isPending} onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={purge.isPending}
-            onClick={() => purge.mutate()}
-          >
-            {purge.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.missing.purge')}
-          </button>
-        </>
-      }
-    >
-      <p className="dialog__text">{t('admin.missing.purgeText')}</p>
-      {purge.isError ? <ErrorAlert error={purge.error} /> : undefined}
-    </Dialog>
+      text={t('admin.missing.purgeText')}
+      confirmLabel={t('admin.missing.purge')}
+      tone="danger"
+      pending={purge.isPending}
+      error={purge.isError ? purge.error : undefined}
+      onConfirm={() => purge.mutate()}
+      onClose={onClose}
+    />
   )
 }
 
@@ -269,26 +243,26 @@ export const MissingPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.missing.title')}</h1>
-          {total > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })}
-            </p>
-          ) : undefined}
-        </div>
-        <div className="admin-page__actions">
-          <button
-            type="button"
-            className="button button--glass"
-            disabled={total === 0}
-            onClick={() => setPurging({ kind: 'all', count: total })}
-          >
-            {t('admin.missing.purgeAll')}
-          </button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.missing.title')}
+        summary={
+          total > 0
+            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
+            : undefined
+        }
+        actions={
+          <>
+            <button
+              type="button"
+              className="button button--glass"
+              disabled={total === 0}
+              onClick={() => setPurging({ kind: 'all', count: total })}
+            >
+              {t('admin.missing.purgeAll')}
+            </button>
+          </>
+        }
+      />
 
       <div className="adm-table" role="table" aria-label={t('admin.missing.title')}>
         <div className="adm-tr missing-tr adm-tr--head" role="row">
@@ -300,7 +274,7 @@ export const MissingPage = () => {
           <span role="columnheader" />
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={4} /> : undefined}
           {list.isError && sources.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
@@ -370,16 +344,14 @@ export const HiddenPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.hidden.title')}</h1>
-          {total > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })}
-            </p>
-          ) : undefined}
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.hidden.title')}
+        summary={
+          total > 0
+            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
+            : undefined
+        }
+      />
 
       {restore.isError ? <ErrorAlert error={restore.error} /> : undefined}
 
@@ -392,7 +364,7 @@ export const HiddenPage = () => {
           <span role="columnheader" />
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={4} /> : undefined}
           {list.isError && sources.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}

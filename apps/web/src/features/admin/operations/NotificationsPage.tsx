@@ -11,6 +11,7 @@ import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
+import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { notificationDetail, notificationTarget } from './notification-text.ts'
 import {
   notificationsQuery,
@@ -19,6 +20,8 @@ import {
   useLiveNotifications,
 } from './queries.ts'
 import { formatContext } from './stored-error.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import '../admin-table.css'
@@ -168,16 +171,6 @@ const NotificationRow = ({
   )
 }
 
-const SkeletonRows = () => (
-  <>
-    {[0, 1, 2, 3].map((index) => (
-      <div key={index} className="adm-tr adm-tr--skeleton" aria-hidden="true">
-        <span className="skeleton skeleton--line" />
-      </div>
-    ))}
-  </>
-)
-
 export const NotificationsPage = () => {
   const { t } = useTranslation()
   const [filter, setFilter] = useState<Filter>('all')
@@ -190,37 +183,26 @@ export const NotificationsPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.notificationCenter.title')}</h1>
-          {unread === undefined || unread === 0 ? undefined : (
-            <p className="admin-page__summary">
-              {t('admin.notificationCenter.unread', { count: unread })}
-            </p>
-          )}
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.notificationCenter.title')}
+        summary={
+          unread === undefined || unread === 0
+            ? undefined
+            : t('admin.notificationCenter.unread', { count: unread })
+        }
+      />
 
       <div className="adm-toolbar">
-        <div
-          className="seg seg--4"
-          role="group"
-          aria-label={t('admin.notificationCenter.filterLabel')}
-          data-active={filters.indexOf(filter)}
-        >
-          <span className="seg__indicator" aria-hidden="true" />
-          {filters.map((value) => (
-            <button
-              key={value}
-              type="button"
-              className="seg__option"
-              aria-pressed={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {t(`admin.notificationCenter.filter.${value}`)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          role="toggle"
+          label={t('admin.notificationCenter.filterLabel')}
+          options={filters.map((value) => ({
+            value,
+            label: t(`admin.notificationCenter.filter.${value}`),
+          }))}
+          value={filter}
+          onChange={setFilter}
+        />
       </div>
 
       {markRead.isError ? <ErrorAlert error={markRead.error} /> : undefined}
@@ -235,7 +217,7 @@ export const NotificationsPage = () => {
           <span role="columnheader" />
         </div>
         <div className="adm-table__body">
-          {list.isPending ? <SkeletonRows /> : undefined}
+          {list.isPending ? <SkeletonRows count={4} /> : undefined}
           {list.isError && items.length === 0 ? (
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}

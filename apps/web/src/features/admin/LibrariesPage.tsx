@@ -28,6 +28,7 @@ import {
   useScanLibrary,
 } from './library-status.tsx'
 import { librariesQuery } from './queries.ts'
+import { AdminPageHeader } from './AdminPageHeader.tsx'
 import './admin.css'
 
 const HintIcon = ({ hint }: { hint: LibraryDto['hint'] }) =>
@@ -154,38 +155,38 @@ export const LibrariesPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.libraries.title')}</h1>
-          {libraries.isSuccess && items.length > 0 ? (
-            <p className="admin-page__summary">
-              {t('admin.libraries.summary', {
+      <AdminPageHeader
+        title={t('admin.libraries.title')}
+        summary={
+          libraries.isSuccess && items.length > 0
+            ? t('admin.libraries.summary', {
                 count: items.length,
                 files: formatNumber(totalReady, locale),
-              })}
-            </p>
-          ) : undefined}
-        </div>
-        <div className="admin-page__actions">
-          {items.length > 0 ? (
-            <button
-              type="button"
-              className="button button--glass button--small"
-              disabled={scan.isPending}
-              onClick={() => {
-                for (const library of items) scan.mutate({ id: library.id, mode: 'quick' })
-              }}
-            >
-              <SyncIcon />
-              {t('admin.libraries.syncAll')}
-            </button>
-          ) : undefined}
-          <Link to="/admin/libraries/new" className="button button--primary button--small">
-            <PlusIcon />
-            {t('admin.libraries.add')}
-          </Link>
-        </div>
-      </div>
+              })
+            : undefined
+        }
+        actions={
+          <>
+            {items.length > 0 ? (
+              <button
+                type="button"
+                className="button button--glass button--small"
+                disabled={scan.isPending}
+                onClick={() => {
+                  for (const library of items) scan.mutate({ id: library.id, mode: 'quick' })
+                }}
+              >
+                <SyncIcon />
+                {t('admin.libraries.syncAll')}
+              </button>
+            ) : undefined}
+            <Link to="/admin/libraries/new" className="button button--primary button--small">
+              <PlusIcon />
+              {t('admin.libraries.add')}
+            </Link>
+          </>
+        }
+      />
 
       {scan.isError ? <ErrorAlert error={scan.error} /> : undefined}
 

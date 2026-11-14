@@ -11,7 +11,7 @@ import { Field } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { PlusIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
-import { AdminPageTitle } from '../AdminPageTitle.tsx'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import { librariesQuery } from '../queries.ts'
 import { AccountActivity } from './AccountActivity.tsx'
 import { AccountSettings } from './AccountSettings.tsx'
@@ -147,16 +147,19 @@ export const AccountDetailPage = ({ accountId }: { accountId: string }) => {
   const full = account.profiles.length >= maxProfiles
   return (
     <div className="admin-page acc-page">
-      <div className="admin-page__heading">
-        <AdminPageTitle back="/admin/accounts">{account.username}</AdminPageTitle>
-        <div className="acc-head">
-          <span className="acc-pill">{t(`admin.accounts.role.${account.role}`)}</span>
-          {account.disabledAt === undefined ? undefined : (
-            <span className="acc-pill acc-pill--off">{t('admin.accounts.disabledBadge')}</span>
-          )}
-          <AccountActivity account={account} />
-        </div>
-      </div>
+      <AdminPageHeader
+        title={account.username}
+        back="/admin/accounts"
+        summary={
+          <div className="acc-head">
+            <span className="acc-pill">{t(`admin.accounts.role.${account.role}`)}</span>
+            {account.disabledAt === undefined ? undefined : (
+              <span className="acc-pill acc-pill--off">{t('admin.accounts.disabledBadge')}</span>
+            )}
+            <AccountActivity account={account} />
+          </div>
+        }
+      />
 
       <AccountSettings
         account={account}

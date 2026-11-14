@@ -19,7 +19,7 @@ import {
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { reloadFresh } from '../../../shared/app-update/service-worker.ts'
 import { copyText } from '../../../shared/ui/copy-text.ts'
-import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { CheckIcon, SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useElement } from '../../../shared/ui/use-element.ts'
@@ -27,6 +27,8 @@ import { CopyIcon } from '../admin-icons.tsx'
 import { useStoredError } from '../operations/stored-error.ts'
 import { updatesQuery, updatesQueryKey, useLiveUpdates } from './queries.ts'
 import { parseInline, parseReleaseNotes } from './release-notes.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import './updates.css'
@@ -265,17 +267,7 @@ const RunRow = ({ run }: { run: UpdateRunDto }) => {
   )
 }
 
-const SkeletonRows = ({ count }: { count: number }) => (
-  <>
-    {Array.from({ length: count }, (_, index) => (
-      <div key={index} className="upd-tr upd-tr--skeleton" aria-hidden="true">
-        <span className="skeleton skeleton--line" />
-      </div>
-    ))}
-  </>
-)
-
-const ConfirmDialog = ({
+const ConfirmUpdateDialog = ({
   confirming,
   from,
   onClose,
@@ -301,34 +293,21 @@ const ConfirmDialog = ({
     },
   })
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={
         confirming.kind === 'update'
           ? t('admin.updates.confirmUpdate', { version: confirming.version })
           : t('admin.updates.confirmRollback', { version: confirming.version })
       }
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--primary"
-            disabled={run.isPending}
-            onClick={() => run.mutate()}
-          >
-            {run.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {confirming.kind === 'update' ? t('admin.updates.update') : t('admin.updates.rollback')}
-          </button>
-        </>
+      text={t('admin.updates.confirmText')}
+      confirmLabel={
+        confirming.kind === 'update' ? t('admin.updates.update') : t('admin.updates.rollback')
       }
-    >
-      <p className="dialog__text">{t('admin.updates.confirmText')}</p>
-      {run.isError ? <ErrorAlert error={run.error} /> : undefined}
-    </Dialog>
+      pending={run.isPending}
+      error={run.isError ? run.error : undefined}
+      onConfirm={() => run.mutate()}
+      onClose={onClose}
+    />
   )
 }
 
@@ -360,32 +339,34 @@ export const UpdatesPage = () => {
 
   return (
     <div className="admin-page upd-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.updates.title')}</h1>
-        <div className="admin-page__actions">
-          <button
-            type="button"
-            className="button button--glass"
-            disabled={reloading || restarting}
-            onClick={() => {
-              setReloading(true)
-              void reloadFresh()
-            }}
-          >
-            {reloading ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
-            {t('admin.updates.reloadApp')}
-          </button>
-          <button
-            type="button"
-            className="button button--glass"
-            disabled={data === undefined || !data.enabled || checking || busy}
-            onClick={() => check.mutate()}
-          >
-            {checking ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
-            {checking ? t('admin.updates.state.checking') : t('admin.updates.check')}
-          </button>
-        </div>
-      </div>
+      <AdminPageHeader
+        title={t('admin.updates.title')}
+        actions={
+          <>
+            <button
+              type="button"
+              className="button button--glass"
+              disabled={reloading || restarting}
+              onClick={() => {
+                setReloading(true)
+                void reloadFresh()
+              }}
+            >
+              {reloading ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
+              {t('admin.updates.reloadApp')}
+            </button>
+            <button
+              type="button"
+              className="button button--glass"
+              disabled={data === undefined || !data.enabled || checking || busy}
+              onClick={() => check.mutate()}
+            >
+              {checking ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
+              {checking ? t('admin.updates.state.checking') : t('admin.updates.check')}
+            </button>
+          </>
+        }
+      />
 
       {data !== undefined && !data.enabled ? (
         <p className="upd-notice">{t('errors.update/disabled')}</p>
@@ -484,7 +465,7 @@ export const UpdatesPage = () => {
             <span role="columnheader" />
           </div>
           <div className="upd-table__body upd-table__body--versions">
-            {data === undefined ? <SkeletonRows count={2} /> : undefined}
+            {data === undefined ? <SkeletonRows count={2} row="upd-tr" /> : undefined}
             {data !== undefined && data.versions.length === 0 ? (
               <EmptyState title={t('admin.updates.versionsEmpty')} />
             ) : undefined}
@@ -512,7 +493,7 @@ export const UpdatesPage = () => {
             <span role="columnheader">{t('admin.updates.columns.outcome')}</span>
           </div>
           <div className="upd-table__body">
-            {data === undefined ? <SkeletonRows count={3} /> : undefined}
+            {data === undefined ? <SkeletonRows count={3} row="upd-tr" /> : undefined}
             {data !== undefined && data.runs.length === 0 ? (
               <EmptyState title={t('admin.updates.logEmpty')} />
             ) : undefined}
@@ -524,7 +505,7 @@ export const UpdatesPage = () => {
       </section>
 
       {confirming === undefined || data === undefined ? undefined : (
-        <ConfirmDialog
+        <ConfirmUpdateDialog
           confirming={confirming}
           from={data.current.version}
           onClose={() => setConfirming(undefined)}

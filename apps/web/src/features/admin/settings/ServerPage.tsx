@@ -17,6 +17,7 @@ import { OptimizeImagesSetting } from '../metadata/RefreshLibrary.tsx'
 import { storageQuery } from '../operations/queries.ts'
 import { AssistantTokens } from './AssistantTokens.tsx'
 import { settingsQuery, useUpdateSettings } from './queries.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import '../admin-table.css'
 import '../operations/operations.css'
@@ -172,9 +173,7 @@ export const ServerPage = () => {
 
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.server.title')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.server.title')} />
 
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />

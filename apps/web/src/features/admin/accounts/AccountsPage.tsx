@@ -13,6 +13,7 @@ import { AdminAvatar, useRatingLabel } from './parts.tsx'
 import { librariesQuery } from '../queries.ts'
 import { accountsQuery } from './queries.ts'
 import { profileSummary } from './summary.ts'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import './accounts.css'
 
@@ -108,33 +109,33 @@ export const AccountsPage = () => {
 
   return (
     <div className="admin-page acc-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <h1 className="admin-page__title">{t('admin.accounts.title')}</h1>
-          {accounts.isSuccess ? (
-            <p className="admin-page__summary">
-              {[
+      <AdminPageHeader
+        title={t('admin.accounts.title')}
+        summary={
+          accounts.isSuccess
+            ? [
                 t('admin.accounts.summaryAccounts', { count: items.length }),
                 t('admin.accounts.summaryProfiles', { count: profileCount }),
-              ].join(' · ')}
-            </p>
-          ) : undefined}
-        </div>
-        <div className="admin-page__actions">
-          <Link to="/admin/accounts/new" className="button button--glass button--small">
-            {t('admin.accounts.create')}
-          </Link>
-          <button
-            type="button"
-            className="button button--primary button--small"
-            disabled={invite.isPending}
-            onClick={() => invite.mutate()}
-          >
-            {invite.isPending ? <span className="spinner" aria-hidden="true" /> : <PlusIcon />}
-            {t('admin.accounts.invite')}
-          </button>
-        </div>
-      </div>
+              ].join(' · ')
+            : undefined
+        }
+        actions={
+          <>
+            <Link to="/admin/accounts/new" className="button button--glass button--small">
+              {t('admin.accounts.create')}
+            </Link>
+            <button
+              type="button"
+              className="button button--primary button--small"
+              disabled={invite.isPending}
+              onClick={() => invite.mutate()}
+            >
+              {invite.isPending ? <span className="spinner" aria-hidden="true" /> : <PlusIcon />}
+              {t('admin.accounts.invite')}
+            </button>
+          </>
+        }
+      />
 
       {invite.isError ? <ErrorAlert error={invite.error} /> : undefined}
 

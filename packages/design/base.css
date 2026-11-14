@@ -993,7 +993,8 @@ select.field__input {
 
 .seg__option:hover,
 .seg__option[aria-pressed='true'],
-.seg__option[aria-checked='true'] {
+.seg__option[aria-checked='true'],
+.seg__option[aria-selected='true'] {
   color: var(--color-text-strong);
 }
 

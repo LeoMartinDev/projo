@@ -11,6 +11,7 @@ import {
 import { formatDate, formatDateTime, formatRelative } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field } from '../../../shared/ui/controls.tsx'
+import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { copyText } from '../../../shared/ui/copy-text.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { AlertIcon, CheckIcon, PlusIcon } from '../../../shared/ui/icons.tsx'
@@ -193,30 +194,16 @@ const RevokeAssistantDialog = ({
   const { t } = useTranslation()
   const revoke = useRevokeAssistantToken()
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.server.assistants.revokeTitle', { name: assistant.name })}
+      text={t('admin.server.assistants.revokeText')}
+      confirmLabel={t('admin.server.assistants.revoke')}
+      tone="danger"
+      pending={revoke.isPending}
+      error={revoke.isError ? revoke.error : undefined}
+      onConfirm={() => revoke.mutate(assistant.id, { onSuccess: onClose })}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={revoke.isPending}
-            onClick={() => revoke.mutate(assistant.id, { onSuccess: onClose })}
-          >
-            {revoke.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.server.assistants.revoke')}
-          </button>
-        </>
-      }
-    >
-      <p className="dialog__text">{t('admin.server.assistants.revokeText')}</p>
-      {revoke.isError ? <ErrorAlert error={revoke.error} /> : undefined}
-    </Dialog>
+    />
   )
 }
 

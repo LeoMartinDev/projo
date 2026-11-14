@@ -10,7 +10,7 @@ import { formatDateTime, formatNumber } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { SyncIcon } from '../../shared/ui/icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
-import { AdminPageTitle } from './AdminPageTitle.tsx'
+import { AdminPageHeader } from './AdminPageHeader.tsx'
 import { DeleteLibraryDialog } from './DeleteLibraryDialog.tsx'
 import { LibraryForm } from './LibraryForm.tsx'
 import { useLiveScans } from './live-scans.ts'
@@ -30,9 +30,7 @@ export const NewLibraryPage = () => {
   const navigate = useNavigate()
   return (
     <div className="admin-page">
-      <div className="admin-page__heading">
-        <AdminPageTitle back="/admin/libraries">{t('admin.libraries.addTitle')}</AdminPageTitle>
-      </div>
+      <AdminPageHeader title={t('admin.libraries.addTitle')} back="/admin/libraries" />
       <LibraryForm
         submitLabel={t('admin.form.createAndScan')}
         cancel={
@@ -107,32 +105,33 @@ export const EditLibraryPage = ({ libraryId }: { libraryId: string }) => {
   const state = libraryState(library.data, scans.get(libraryId))
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <div className="admin-page__heading">
-          <AdminPageTitle back="/admin/libraries">{library.data.name}</AdminPageTitle>
-          <LibraryStatus state={state} />
-        </div>
-        <div className="admin-page__actions">
-          <button
-            type="button"
-            className="button button--glass button--small"
-            disabled={scan.isPending || isScanning(state)}
-            onClick={() => scan.mutate({ id: libraryId, mode: 'quick' })}
-          >
-            <SyncIcon />
-            {t('admin.libraries.quickScan')}
-          </button>
-          <button
-            type="button"
-            className="button button--glass button--small"
-            disabled={scan.isPending || isScanning(state)}
-            onClick={() => scan.mutate({ id: libraryId, mode: 'full' })}
-          >
-            {t('admin.libraries.fullScan')}
-          </button>
-          <RefreshLibraryButton libraryId={libraryId} />
-        </div>
-      </div>
+      <AdminPageHeader
+        title={library.data.name}
+        back="/admin/libraries"
+        summary={<LibraryStatus state={state} />}
+        actions={
+          <>
+            <button
+              type="button"
+              className="button button--glass button--small"
+              disabled={scan.isPending || isScanning(state)}
+              onClick={() => scan.mutate({ id: libraryId, mode: 'quick' })}
+            >
+              <SyncIcon />
+              {t('admin.libraries.quickScan')}
+            </button>
+            <button
+              type="button"
+              className="button button--glass button--small"
+              disabled={scan.isPending || isScanning(state)}
+              onClick={() => scan.mutate({ id: libraryId, mode: 'full' })}
+            >
+              {t('admin.libraries.fullScan')}
+            </button>
+            <RefreshLibraryButton libraryId={libraryId} />
+          </>
+        }
+      />
       {scan.isError ? <ErrorAlert error={scan.error} /> : undefined}
 
       <LibraryForm

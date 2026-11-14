@@ -12,6 +12,7 @@ import { RefreshLibrarySetting } from '../metadata/RefreshLibrary.tsx'
 import { ApiKeySetting } from './ApiKeySetting.tsx'
 import { settingsQuery, tmdbKeyPageUrl, useUpdateSettings } from './queries.ts'
 import { SegmentSettings } from './SegmentSettings.tsx'
+import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import './settings.css'
 
@@ -60,9 +61,7 @@ export const MetadataSettingsPage = () => {
   const settings = useQuery(settingsQuery)
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.settings.metadata')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.settings.metadata')} />
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
       ) : (
@@ -101,9 +100,7 @@ export const SegmentsSettingsPage = () => {
   const settings = useQuery(settingsQuery)
   return (
     <div className="admin-page">
-      <div className="admin-page__header">
-        <h1 className="admin-page__title">{t('admin.settings.segments.title')}</h1>
-      </div>
+      <AdminPageHeader title={t('admin.settings.segments.title')} />
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
       ) : (

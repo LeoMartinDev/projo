@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { LibraryDto } from '@projo/shared/api/libraries'
 
 import { api, request } from '../../shared/api/client.ts'
-import { Dialog } from '../../shared/ui/Dialog.tsx'
-import { ErrorAlert } from '../../shared/ui/states.tsx'
+import { ConfirmDialog } from '../../shared/ui/ConfirmDialog.tsx'
 import { librariesQueryKey } from './queries.ts'
 
 export const DeleteLibraryDialog = ({
@@ -30,29 +29,15 @@ export const DeleteLibraryDialog = ({
     },
   })
   return (
-    <Dialog
-      open
+    <ConfirmDialog
       title={t('admin.delete.title', { name: library.name })}
+      text={t('admin.delete.text')}
+      confirmLabel={t('admin.delete.confirm')}
+      tone="danger"
+      pending={remove.isPending}
+      error={remove.isError ? remove.error : undefined}
+      onConfirm={() => remove.mutate()}
       onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="button"
-            className="button button--danger"
-            disabled={remove.isPending}
-            onClick={() => remove.mutate()}
-          >
-            {remove.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.delete.confirm')}
-          </button>
-        </>
-      }
-    >
-      <p className="dialog__text">{t('admin.delete.text')}</p>
-      {remove.isError ? <ErrorAlert error={remove.error} /> : undefined}
-    </Dialog>
+    />
   )
 }

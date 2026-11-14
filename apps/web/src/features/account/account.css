@@ -1,10 +1,5 @@
 @import '@projo/design/media.css';
 
-.account__username {
-  color: var(--color-text-muted);
-  font-size: 14px;
-}
-
 .account-form {
   display: flex;
   flex-direction: column;
@@ -96,13 +91,6 @@
   display: block;
   height: 64px;
   flex: 0 0 auto;
-}
-
-.devices__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .pairing {
