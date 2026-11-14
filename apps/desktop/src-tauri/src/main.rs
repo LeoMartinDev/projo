@@ -8,6 +8,7 @@ mod mpv;
 mod origin;
 mod server;
 mod state;
+mod window_size;
 
 use std::sync::{Arc, OnceLock};
 
@@ -172,13 +173,22 @@ fn main() {
             }
 
             let hooks = test_hooks();
+            // The window opens on the primary monitor: fit the minimum into its work area.
+            let work_area = handle.primary_monitor().ok().flatten().map(|monitor| {
+                let size = monitor
+                    .work_area()
+                    .size
+                    .to_logical::<f64>(monitor.scale_factor());
+                (size.width, size.height)
+            });
+            let (width, height) = window_size::fitted_minimum(work_area);
             let navigation = handle.clone();
             let page_loads = Arc::clone(&player);
             let mut builder =
                 WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
                     .title("projo")
-                    .inner_size(1280.0, 720.0)
-                    .min_inner_size(640.0, 360.0)
+                    .inner_size(width, height)
+                    .min_inner_size(width, height)
                     // Overlay scroll bars (shown while scrolling), like Windows 11's own apps,
                     // instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
                     .scroll_bar_style(ScrollBarStyle::FluentOverlay)
