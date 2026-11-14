@@ -4,6 +4,7 @@
 
 mod commands;
 mod config;
+mod load_failure;
 mod mpv;
 mod origin;
 mod server;
@@ -237,6 +238,8 @@ fn main() {
                     }
                 })
                 .build()?;
+            #[cfg(windows)]
+            load_failure::watch(&window, local_page_url())?;
             match window.window_handle().map(|handle| handle.as_raw()) {
                 Ok(RawWindowHandle::Win32(win32)) => player.set_wid(win32.hwnd.get() as i64),
                 Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),

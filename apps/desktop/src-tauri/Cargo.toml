@@ -22,6 +22,12 @@ ureq = { version = "3.5.1", default-features = false, features = [
 log = "0.4"
 env_logger = "0.11"
 
+# The WebView2 objects behind Tauri's window (page loads that fail, load_failure.rs): the versions
+# wry already uses.
+[target.'cfg(windows)'.dependencies]
+webview2-com = "0.39.1"
+windows-core = "0.62.2"
+
 [profile.release]
 codegen-units = 1
 lto = true

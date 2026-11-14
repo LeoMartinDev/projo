@@ -1,7 +1,8 @@
 // The bundled first-launch page: asks for the projo server, which the app checks (`/health`),
 // stores and opens (command `connect_server`). With a stored server it connects at once, and stays
 // here with the error when the server does not answer. `?change=1` (Ctrl+Shift+U) shows the form
-// with the stored address instead.
+// with the stored address instead; `?unreachable=1` (a server page that did not load, the app came
+// back here) shows it with the error, and the user retries.
 import { errorMessage, messagesFor, pickLocale } from './messages.ts'
 
 type Invoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>
@@ -75,11 +76,14 @@ form.addEventListener('submit', (event) => {
   connect(input.value.trim())
 })
 
-const changing = new URLSearchParams(location.search).has('change')
+const query = new URLSearchParams(location.search)
+const changing = query.has('change')
+const unreachable = query.has('unreachable')
 invoke<{ serverUrl?: string }>('get_setup').then(
   ({ serverUrl }) => {
-    if (serverUrl !== undefined && !changing) return connect(serverUrl)
+    if (serverUrl !== undefined && !changing && !unreachable) return connect(serverUrl)
     input.value = serverUrl ?? ''
+    if (unreachable) showError(messages.errors['server/unreachable'])
     input.focus()
   },
   (failure: unknown) => showError(errorMessage(messages, failure)),
