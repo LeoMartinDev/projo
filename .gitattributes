@@ -1,0 +1,13 @@
+# Every text file is committed and checked out with LF, whatever the OS or the tool that wrote it
+# (Windows editors and scripts write CRLF; git converts them on `git add`).
+* text=auto eol=lf
+
+# Binaries, never converted (text=auto detects them; listed so a misdetection cannot happen).
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.woff2 binary
+*.zip binary
+*.dll binary
