@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { listenTauri, tauriInternals } from './tauri.ts'
-
-const stringField = (value: unknown, key: string): string | undefined => {
-  const field = Object(value) === value ? (value as Record<string, unknown>)[key] : undefined
-  return typeof field === 'string' && field !== '' ? field : undefined
-}
+import { listenTauri, stringField, tauriInternals } from './tauri.ts'
 
 /**
  * A new version of the desktop app, downloaded and ready (§28.10), and the way to restart on it.

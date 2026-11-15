@@ -415,6 +415,7 @@
     "about": {
       "title": "À propos",
       "version": "Version",
+      "desktopApp": "Application Windows",
       "segmentsCredit": "Marqueurs de génériques fournis par TheIntroDB, IntroDB et SkipDB."
     }
   },

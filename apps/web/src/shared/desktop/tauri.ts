@@ -14,6 +14,12 @@ export type TauriWindow = Window & {
 export const tauriInternals = (): TauriInternals | undefined =>
   (window as TauriWindow).__TAURI_INTERNALS__
 
+/** A non-empty string field of a command's answer or an event's payload. */
+export const stringField = (value: unknown, key: string): string | undefined => {
+  const field = Object(value) === value ? (value as Record<string, unknown>)[key] : undefined
+  return typeof field === 'string' && field !== '' ? field : undefined
+}
+
 const payloadOf = (message: unknown): unknown =>
   Object(message) === message ? (message as Record<string, unknown>)['payload'] : undefined
 

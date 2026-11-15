@@ -415,6 +415,7 @@
     "about": {
       "title": "About",
       "version": "Version",
+      "desktopApp": "Windows app",
       "segmentsCredit": "Intro and credits markers provided by TheIntroDB, IntroDB and SkipDB."
     }
   },

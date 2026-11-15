@@ -13,6 +13,7 @@ import { LockIcon } from '../../shared/ui/icons.tsx'
 import { DevicesIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
+import { useDesktopVersion } from '../../shared/desktop/use-desktop-version.ts'
 import { SettingsPanel } from '../../shared/ui/SettingsPanel.tsx'
 import { SettingsPage } from '../../shared/ui/SettingsPage.tsx'
 import { NewPasswordFields, usePasswordPair } from '../setup/NewPasswordFields.tsx'
@@ -191,6 +192,7 @@ const healthQuery = queryOptions({
 const AboutPanel = () => {
   const { t } = useTranslation()
   const health = useQuery(healthQuery)
+  const desktopVersion = useDesktopVersion()
   return (
     <SettingsPanel title={t('account.about.title')}>
       <dl className="about">
@@ -198,6 +200,12 @@ const AboutPanel = () => {
           <dt>{t('account.about.version')}</dt>
           <dd className="mono">{health.data?.version ?? '—'}</dd>
         </div>
+        {desktopVersion === undefined ? undefined : (
+          <div className="about__row">
+            <dt>{t('account.about.desktopApp')}</dt>
+            <dd className="mono">{desktopVersion}</dd>
+          </div>
+        )}
       </dl>
       <p className="about__credits">{t('account.about.segmentsCredit')}</p>
     </SettingsPanel>
