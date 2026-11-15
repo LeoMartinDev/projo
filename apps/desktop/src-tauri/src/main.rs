@@ -6,6 +6,7 @@
 mod commands;
 mod config;
 mod device;
+mod fonts;
 mod media_session;
 mod mpv;
 mod origin;
@@ -127,6 +128,10 @@ fn main() {
                     }
                 }),
             );
+            match fonts::install(&config_dir) {
+                Ok(dir) => player.set_subtitle_fonts(dir),
+                Err(error) => log::warn!("subtitle fonts not installed: {error}"),
+            }
             app.manage(AppState::new(config_path, Arc::clone(&player), stored));
             let media_emitter = handle.clone();
             app.manage(MediaSession::new(Arc::new(move |action| {

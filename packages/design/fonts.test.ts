@@ -2,7 +2,13 @@ import { expect, test } from 'bun:test'
 
 import { Glob } from 'bun'
 
-import { geistCss, weights } from './scripts/fonts.ts'
+import {
+  desktopFontsDir,
+  desktopSubtitleFonts,
+  geistCss,
+  geistTrueType,
+  weights,
+} from './scripts/fonts.ts'
 
 // fonts/ holds Geist split by scripts/fonts.ts and committed: it must match the installed geist
 // (a geist upgrade fails here until `bun run --cwd packages/design fonts` regenerates it), and the
@@ -18,6 +24,13 @@ test('fonts/geist.css matches the installed geist', async () => {
         true,
       )
 }, 20_000)
+
+test('the subtitle fonts of the desktop app match the installed geist', async () => {
+  for (const file of desktopSubtitleFonts)
+    expect(Buffer.from(await Bun.file(`${desktopFontsDir}/${file}`).arrayBuffer())).toEqual(
+      Buffer.from(await Bun.file(geistTrueType(file)).arrayBuffer()),
+    )
+})
 
 test(`stylesheets set weights between ${weights.min} and ${weights.max}`, async () => {
   const outside: string[] = []

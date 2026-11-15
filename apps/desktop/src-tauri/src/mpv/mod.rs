@@ -107,6 +107,7 @@ pub struct Player {
     wid: AtomicI64,
     sink: Sink,
     version: OnceLock<String>,
+    subtitle_fonts: OnceLock<PathBuf>,
 }
 
 static API: OnceLock<Result<MpvApi, String>> = OnceLock::new();
@@ -136,12 +137,19 @@ impl Player {
             wid: AtomicI64::new(0),
             sink,
             version: OnceLock::new(),
+            subtitle_fonts: OnceLock::new(),
         })
     }
 
     /// The native window mpv draws into (HWND on Windows).
     pub fn set_wid(&self, wid: i64) {
         self.wid.store(wid, Ordering::SeqCst);
+    }
+
+    /// The directory holding Geist for subtitles (`fonts::install`): text subtitles are drawn in
+    /// it, like the web's captions. Without it libmpv keeps its own default font.
+    pub fn set_subtitle_fonts(&self, dir: PathBuf) {
+        let _ = self.subtitle_fonts.set(dir);
     }
 
     fn api(&self) -> Result<&'static MpvApi, MpvError> {
@@ -289,6 +297,10 @@ impl Player {
         };
         for (name, value) in guard::DEFAULT_OPTIONS {
             set(name, value)?;
+        }
+        if let Some(dir) = self.subtitle_fonts.get() {
+            set("sub-fonts-dir", &dir.to_string_lossy())?;
+            set("sub-font", crate::fonts::FAMILY)?;
         }
         for (name, value) in options {
             set(name, value)?;

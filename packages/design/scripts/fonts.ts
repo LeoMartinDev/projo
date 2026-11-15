@@ -3,6 +3,7 @@
 // character of the font), each declared with its unicode-range in fonts/geist.css. A page
 // downloads `rest` only if it shows one of its characters (a Cyrillic title, say), so the usual
 // page loads half the bytes. The weight axis is cut to the weights the stylesheets use.
+// It also copies the TrueType files the desktop app gives libmpv for subtitles (desktopSubtitleFonts).
 // Run after a geist upgrade: bun run --cwd packages/design fonts (fonts.test.ts fails until then).
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -50,6 +51,12 @@ export const families = [
     source: 'dist/fonts/geist-mono/GeistMono-Variable.woff2',
   },
 ] as const
+
+/** Geist as libass reads it (TrueType), for the desktop app's subtitles: the weight of the web's
+ * captions and its italic (apps/desktop/src-tauri/src/fonts.rs embeds them). */
+export const desktopSubtitleFonts = ['Geist-SemiBold.ttf', 'Geist-SemiBoldItalic.ttf'] as const
+export const desktopFontsDir = resolve(root, '../../apps/desktop/src-tauri/assets')
+export const geistTrueType = (file: string) => resolve(geist, 'dist/fonts/geist-sans', file)
 
 const inCore = (codePoint: number) =>
   coreRanges.some(([first, last]) => codePoint >= first && codePoint <= last)
@@ -130,4 +137,6 @@ if (import.meta.main) {
     }
   }
   await Bun.write(resolve(root, 'fonts/geist.css'), await geistCss())
+  for (const file of desktopSubtitleFonts)
+    await Bun.write(resolve(desktopFontsDir, file), Bun.file(geistTrueType(file)))
 }
