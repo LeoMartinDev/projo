@@ -10,6 +10,8 @@ export type SessionKind = z.infer<typeof sessionKindSchema>
 
 export const sessionCookieName = 'projo_session'
 export const profileIdHeader = 'X-Profile-Id'
+/** Query parameter carrying the media key (§20) on the loads that cannot send a header. */
+export const mediaKeyParam = 'key'
 
 export const usernameSchema = z
   .string()
@@ -44,6 +46,8 @@ export const meResponseSchema = z.object({
   profiles: z.array(profileDtoSchema),
   activeProfileId: z.string().optional(),
   needsProfileSelection: z.boolean(),
+  /** `GET /auth/me` over a bearer session only: the session's media key (§20). */
+  mediaKey: z.string().optional(),
 })
 export type MeResponse = z.infer<typeof meResponseSchema>
 

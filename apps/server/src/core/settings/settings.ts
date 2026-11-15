@@ -23,6 +23,7 @@ export const settingKeys = {
   updateLastCheck: 'updates.last_check',
   namingRulesVersion: 'scanner.naming_rules_version',
   needsReviewNotifiedAt: 'notifications.needs_review_notified_at',
+  mediaKeySecret: 'auth.media_key_secret',
 } as const
 
 export type SettingKey = (typeof settingKeys)[keyof typeof settingKeys]

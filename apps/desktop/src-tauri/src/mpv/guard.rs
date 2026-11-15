@@ -1,7 +1,8 @@
-//! What the server page may ask of mpv. The page is the user's own server, but an XSS there must not
-//! become code execution or file writes on the desktop: commands that run programs or scripts or
-//! write files are refused, and so are the options/properties that load scripts or configuration,
-//! open IPC servers or pick output files. Everything else (loadfile, seek, set, sub-add…) passes.
+//! What the page may ask of mpv. The page is the app's own bundle, but an XSS in it (through data
+//! from the server) must not become code execution or file writes on the desktop: commands that
+//! run programs or scripts or write files are refused, and so are the options/properties that load
+//! scripts or configuration, open IPC servers or pick output files. Everything else (loadfile,
+//! seek, set, sub-add…) passes.
 
 /// Options the app always sets, before the page's own (which cannot override `FORCED_OPTIONS`).
 pub const DEFAULT_OPTIONS: &[(&str, &str)] = &[

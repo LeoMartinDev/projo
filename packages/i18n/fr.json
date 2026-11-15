@@ -61,7 +61,12 @@
     "title": "Connexion",
     "username": "Identifiant",
     "password": "Mot de passe",
-    "submit": "Se connecter"
+    "submit": "Se connecter",
+    "useCode": "Se connecter avec un code",
+    "useCredentials": "Se connecter avec un mot de passe",
+    "codeTitle": "Saisir un code",
+    "code": "Code",
+    "codeSubmit": "Se connecter"
   },
   "setup": {
     "stepOf": "Étape {{step}} sur {{total}} · {{name}}",
@@ -1429,6 +1434,20 @@
       "connection/invalid_url": "Cette adresse n’est pas valide.",
       "connection/not_projo": "Aucun serveur projo à cette adresse.",
       "pairing/not_a_code": "Ce n’est pas un code projo."
+    }
+  },
+  "desktop": {
+    "unreachable": {
+      "title": "Serveur injoignable",
+      "retry": "Réessayer"
+    },
+    "setup": {
+      "title": "Terminez l’installation du serveur",
+      "open": "Ouvrir dans le navigateur"
+    },
+    "errors": {
+      "server/unreachable": "Aucune réponse à cette adresse.",
+      "desktop/config_not_saved": "L’adresse n’a pas pu être enregistrée."
     }
   },
   "errors": {

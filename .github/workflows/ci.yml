@@ -10,7 +10,9 @@
 #   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
 #   desktop app       on the same push to main, when apps/desktop/package.json's version has no
 #                     desktop-vX.Y.Z release yet: Windows installer signed for the app's updater
-#                     and latest.json, on a release never marked latest (§28.10).
+#                     and latest.json, on a release never marked latest (§28.10). Server first:
+#                     refused until server v<projo.minimumServerVersion of that package.json> is
+#                     released.
 # Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
 # Website (apps/www): deployed to Cloudflare Workers by a green push to main that changes it or
 # publishes a release (job www).
@@ -286,6 +288,13 @@ jobs:
               [ "$highest" = "$desktop_version" ] && [ "${desktop_previous#desktop-v}" != "$desktop_version" ] ||
                 fail "apps/desktop's version $desktop_version is not above the previous release $desktop_previous"
             fi
+            # Server first (§28.10): the bundled UI refuses a server below its minimum, so that
+            # server must be released (tag v<minimum>) before a desktop app requiring it ships.
+            minimum_server="$(node -p 'require("./apps/desktop/package.json").projo.minimumServerVersion')"
+            [[ "$minimum_server" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+              fail "projo.minimumServerVersion of apps/desktop/package.json must be X.Y.Z, got $minimum_server"
+            git rev-parse -q --verify "refs/tags/v$minimum_server" >/dev/null ||
+              fail "desktop $desktop_version needs server $minimum_server: publish server v$minimum_server first, then bump the desktop app in a later push"
           fi
           {
             echo "kind=$kind"
@@ -443,10 +452,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/desktop/src-tauri
-      # generate_context! needs the bundled page (frontendDist) before any cargo build.
+      # generate_context! needs the bundled UI (frontendDist: @projo/web-app with the desktop host,
+      # built by Vite into apps/desktop/web/dist) before any cargo build; tauri build rebuilds it.
       - name: Rust tests
         run: |
-          bun run --cwd apps/desktop build:ui
+          bun run --cwd apps/desktop build:web
           bun run --cwd apps/desktop test:rust
       - name: Build the installer
         run: bun run --cwd apps/desktop build
@@ -455,12 +465,15 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-      - name: Write the release notes (commits touching apps/desktop)
+      # The app and the UI it bundles (§28.10): commits touching either.
+      - name: Write the release notes (commits touching the desktop app or its UI)
         env:
           PREVIOUS_TAG: ${{ needs.release-plan.outputs.desktop-previous-tag }}
         run: |
           bun runtime/scripts/release-notes.ts --tag "$TAG" --from "$PREVIOUS_TAG" \
-            --path apps/desktop > dist/desktop-release-notes.md
+            --path apps/desktop --path packages/web-app --path packages/design \
+            --path packages/i18n --path packages/player --path packages/shared \
+            > dist/desktop-release-notes.md
           cat dist/desktop-release-notes.md
       - name: Create the GitHub release
         env:

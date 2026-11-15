@@ -4,15 +4,14 @@
   "version": "../package.json",
   "identifier": "dev.leomartin.projo.desktop",
   "build": {
-    "frontendDist": "../ui/dist",
-    "beforeDevCommand": "bun run build:ui",
-    "beforeBuildCommand": "bun run build:ui"
+    "frontendDist": "../web/dist",
+    "beforeDevCommand": "bun run build:web",
+    "beforeBuildCommand": "bun run build:web"
   },
   "app": {
-    "withGlobalTauri": true,
     "windows": [],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' http: https: data: blob:; media-src 'self' http: https: data: blob:; connect-src 'self' ipc: http://ipc.localhost http: https: data: blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'"
     }
   },
   "bundle": {

@@ -2,8 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["bun"]
+    "jsx": "react-jsx",
+    "types": ["vite/client", "bun"]
   },
-  "include": ["ui/src/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "ui/dist", "src-tauri"]
+  "include": ["web/src/**/*.ts", "web/src/**/*.tsx", "web/vite.config.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "web/dist", "src-tauri"]
 }

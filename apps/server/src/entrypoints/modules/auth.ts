@@ -5,10 +5,12 @@ import { resetAccountPasswordFactory } from '../../application/account/reset-acc
 import { revokeAccountSessionsFactory } from '../../application/account/revoke-account-sessions.ts'
 import { updateAccountFactory } from '../../application/account/update-account.ts'
 import { authenticateFactory } from '../../application/auth/authenticate.ts'
+import { authenticateMediaKeyFactory } from '../../application/auth/authenticate-media-key.ts'
 import { changePasswordFactory } from '../../application/auth/change-password.ts'
 import { claimPairingFactory } from '../../application/auth/claim-pairing.ts'
 import { createPairingFactory } from '../../application/auth/create-pairing.ts'
 import { getMeFactory } from '../../application/auth/get-me.ts'
+import { issueMediaKeyFactory } from '../../application/auth/issue-media-key.ts'
 import { listSessionsFactory } from '../../application/auth/list-sessions.ts'
 import { loginFactory } from '../../application/auth/login.ts'
 import { openSessionFactory } from '../../application/auth/open-session.ts'
@@ -24,12 +26,14 @@ import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { isRestricted } from '../../core/profile/restrictions.ts'
 import { settingKeys } from '../../core/settings/settings.ts'
 import { createBunPasswordHasher } from '../../infrastructure/auth/bun-password-hasher.ts'
+import { createHmacMediaKeySigner } from '../../infrastructure/auth/media-key-signer.ts'
 import { pairingCodes } from '../../infrastructure/auth/pairing-codes.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { createInMemoryRateLimiter } from '../../infrastructure/rate-limit/in-memory-rate-limiter.ts'
 import { createSqliteAccountActivity } from '../../infrastructure/sqlite/account-activity.ts'
 import { createSqliteAccountRepository } from '../../infrastructure/sqlite/account-repository.ts'
 import { createSqliteInvitationRepository } from '../../infrastructure/sqlite/invitation-repository.ts'
+import { loadOrCreateMediaKeySecret } from '../../infrastructure/sqlite/media-key-secret.ts'
 import { createSqlitePairingRepository } from '../../infrastructure/sqlite/pairing-repository.ts'
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
 import { createSqliteSessionRepository } from '../../infrastructure/sqlite/session-repository.ts'
@@ -70,12 +74,21 @@ export const buildAuthModule = (
   const services = buildAuthServices(platform)
   const { accountRepository, profileRepository, sessionRepository, passwordHasher } = services
   const settingsRepository = createSqliteSettingsRepository({ db })
+  const mediaKeySigner = createHmacMediaKeySigner({
+    secret: () => loadOrCreateMediaKeySecret({ db, clock, logger }),
+  })
 
   const middleware = createAuthMiddleware({
     authenticate: authenticateFactory({
       accountRepository,
       sessionRepository,
       sessionTokens,
+      clock,
+    }),
+    authenticateMediaKey: authenticateMediaKeyFactory({
+      accountRepository,
+      sessionRepository,
+      mediaKeySigner,
       clock,
     }),
     resolveProfile: resolveProfileFactory({ profileRepository, sessionRepository }),
@@ -122,6 +135,7 @@ export const buildAuthModule = (
           logger,
         }),
         getMe: services.getMe,
+        issueMediaKey: issueMediaKeyFactory({ mediaKeySigner }),
         openSession: services.openSession,
         listSessions: listSessionsFactory({ sessionRepository, clock }),
         revokeSession: revokeSessionFactory({ sessionRepository, clock, logger }),

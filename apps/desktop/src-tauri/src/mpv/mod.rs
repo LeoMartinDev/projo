@@ -1,4 +1,4 @@
-//! One libmpv instance drawn into the main window (`wid`), driven by the server page through IPC.
+//! One libmpv instance drawn into the main window (`wid`), driven by the bundled page through IPC.
 //!
 //! Threads and lifetimes (the reason for this shape):
 //! - Creating and destroying the instance runs on one `lifecycle` worker thread, in the order it was

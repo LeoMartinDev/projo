@@ -61,7 +61,12 @@
     "title": "Sign in",
     "username": "Username",
     "password": "Password",
-    "submit": "Sign in"
+    "submit": "Sign in",
+    "useCode": "Sign in with a code",
+    "useCredentials": "Sign in with a password",
+    "codeTitle": "Enter a code",
+    "code": "Code",
+    "codeSubmit": "Connect"
   },
   "setup": {
     "stepOf": "Step {{step}} of {{total}} · {{name}}",
@@ -1429,6 +1434,20 @@
       "connection/invalid_url": "This address is not valid.",
       "connection/not_projo": "No projo server at this address.",
       "pairing/not_a_code": "This is not a projo code."
+    }
+  },
+  "desktop": {
+    "unreachable": {
+      "title": "Server unreachable",
+      "retry": "Retry"
+    },
+    "setup": {
+      "title": "Finish setting up the server",
+      "open": "Open in the browser"
+    },
+    "errors": {
+      "server/unreachable": "No answer from this address.",
+      "desktop/config_not_saved": "The address could not be saved."
     }
   },
   "errors": {

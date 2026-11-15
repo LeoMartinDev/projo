@@ -7,7 +7,13 @@ import { Glob } from 'bun'
 // Holds for this package and for every app that draws with it.
 
 const root = new URL('../../', import.meta.url).pathname.replace(/^\/(\w:)/, '$1')
-const folders = ['packages/design', 'apps/web/src', 'apps/www/src']
+const folders = [
+  'packages/design',
+  'packages/web-app/src',
+  'apps/web/src',
+  'apps/www/src',
+  'apps/desktop/web/src',
+]
 
 const stylesheets = async () => {
   const files: { path: string; css: string }[] = []

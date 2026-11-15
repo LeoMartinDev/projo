@@ -98,7 +98,8 @@ export const renderReleaseNotes = ({
 const FIELD = '\u001f'
 const RECORD = '\u001e'
 
-export const readCommits = (to: string, from?: string, path?: string): Commit[] => {
+/** The commits of `from..to` (all of `to` without `from`), only those touching `paths` if any. */
+export const readCommits = (to: string, from?: string, paths: readonly string[] = []): Commit[] => {
   const range = from === undefined ? to : `${from}..${to}`
   const run = Bun.spawnSync([
     'git',
@@ -106,7 +107,7 @@ export const readCommits = (to: string, from?: string, path?: string): Commit[] 
     '--no-merges',
     `--format=%H${FIELD}%s${FIELD}%b${RECORD}`,
     range,
-    ...(path === undefined ? [] : ['--', path]),
+    ...(paths.length === 0 ? [] : ['--', ...paths]),
   ])
   if (run.exitCode !== 0) throw new Error(`git log ${range} failed: ${run.stderr.toString()}`)
   return run.stdout
@@ -128,7 +129,7 @@ if (import.meta.main) {
       from: { type: 'string' },
       manifest: { type: 'string' },
       'runtime-image': { type: 'string' },
-      path: { type: 'string' },
+      path: { type: 'string', multiple: true },
     },
   })
   const tag = values.tag
@@ -150,7 +151,11 @@ if (import.meta.main) {
   process.stdout.write(
     renderReleaseNotes({
       tag,
-      commits: readCommits(tag, from, values.path || undefined),
+      commits: readCommits(
+        tag,
+        from,
+        (values.path ?? []).filter((path) => path !== ''),
+      ),
       ...(from === undefined ? {} : { previousTag: from }),
       ...(runtimeMin === undefined ? {} : { runtimeMin }),
       ...(runtimeImage === undefined ? {} : { runtimeImage }),

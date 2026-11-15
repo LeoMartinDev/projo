@@ -2,7 +2,7 @@
 name = "projo-desktop"
 # The app's version is apps/desktop/package.json's (tauri.conf.json reads it): this one is unused.
 version = "0.0.0"
-description = "projo desktop: the projo web app over libmpv"
+description = "projo desktop: the projo web app, bundled, over libmpv"
 edition = "2021"
 publish = false
 
@@ -10,7 +10,7 @@ publish = false
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-tauri = { version = "2.12.5", features = [] }
+tauri = { version = "2.12.5", features = ["tray-icon"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.154"
 libloading = "0.8.9"
@@ -24,11 +24,14 @@ log = "0.4"
 env_logger = "0.11"
 tauri-plugin-updater = { version = "2.14.1", default-features = false, features = ["native-tls"] }
 
-# The WebView2 objects behind Tauri's window (page loads that fail, load_failure.rs): the versions
-# wry already uses.
 [target.'cfg(windows)'.dependencies]
-webview2-com = "0.39.1"
-windows-core = "0.62.2"
+# The session token in the Credential Manager (token.rs), the native backend only.
+keyring = { version = "=3.6.3", default-features = false, features = ["windows-native"] }
+# The computer's name (device.rs) and the user's locale (tray.rs): the version wry already uses.
+windows = { version = "0.62.2", features = [
+  "Win32_Globalization",
+  "Win32_System_SystemInformation",
+] }
 
 [profile.release]
 codegen-units = 1

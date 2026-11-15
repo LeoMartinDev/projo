@@ -1,5 +1,7 @@
 import { authenticateFactory } from '../../src/application/auth/authenticate.ts'
+import { authenticateMediaKeyFactory } from '../../src/application/auth/authenticate-media-key.ts'
 import { getMeFactory } from '../../src/application/auth/get-me.ts'
+import { issueMediaKeyFactory } from '../../src/application/auth/issue-media-key.ts'
 import { listSessionsFactory } from '../../src/application/auth/list-sessions.ts'
 import { loginFactory } from '../../src/application/auth/login.ts'
 import { openSessionFactory } from '../../src/application/auth/open-session.ts'
@@ -7,6 +9,7 @@ import { resolveProfileFactory } from '../../src/application/auth/resolve-profil
 import { revokeSessionFactory } from '../../src/application/auth/revoke-session.ts'
 import {
   createCountingRateLimiter,
+  createFakeMediaKeySigner,
   createFakePasswordHasher,
   createFakeSessionTokens,
   createInMemoryAccounts,
@@ -35,6 +38,7 @@ export const createAuthWorld = ({
   const sessionTokens = createFakeSessionTokens()
   const { hasher, calls } = createFakePasswordHasher()
   const rate = createCountingRateLimiter(10)
+  const mediaKeySigner = createFakeMediaKeySigner()
   const openSession = openSessionFactory({
     sessionRepository,
     sessionTokens,
@@ -60,6 +64,13 @@ export const createAuthWorld = ({
       accountRepository,
       sessionRepository,
       sessionTokens,
+      clock,
+    }),
+    issueMediaKey: issueMediaKeyFactory({ mediaKeySigner }),
+    authenticateMediaKey: authenticateMediaKeyFactory({
+      accountRepository,
+      sessionRepository,
+      mediaKeySigner,
       clock,
     }),
     resolveProfile: resolveProfileFactory({ profileRepository, sessionRepository }),

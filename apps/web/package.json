@@ -10,26 +10,11 @@
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@projo/design": "workspace:*",
-    "@projo/i18n": "workspace:*",
-    "@projo/player": "workspace:*",
     "@projo/shared": "workspace:*",
-    "@tanstack/react-query": "5.104.5",
-    "@tanstack/react-router": "1.170.46",
-    "hls.js": "1.7.3",
-    "hono": "4.13.16",
-    "i18next": "26.5.6",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "react-i18next": "17.1.4",
-    "uqr": "0.1.3",
-    "zod": "4.6.7"
+    "@projo/web-app": "workspace:*"
   },
   "devDependencies": {
-    "@projo/server": "workspace:*",
     "@types/bun": "1.4.4",
-    "@types/react": "19.3.0",
-    "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
     "vite": "8.3.5"
   }

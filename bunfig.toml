@@ -71,13 +71,18 @@ ignorePatterns = [
     { target = "./packages/i18n", from = "./apps", message = "packages/i18n never imports an app." },
     { target = "./packages/design", from = "./apps", message = "packages/design never imports an app." },
     { target = "./packages/player", from = "./apps", message = "packages/player never imports an app." },
+    { target = "./packages/web-app", from = "./apps", except = ["./server/src/entrypoints/http/api-type.ts"], message = "packages/web-app never imports an app (the server only for its AppType, as a type)." },
     { target = "./packages/player/src/core", from = ["./packages/player/src/application", "./packages/player/src/testing"], message = "@projo/player core/ imports nothing but core/ and @projo/shared." },
-    { target = "./apps/web/src/features/player/ui", from = "./apps/web/src/features/player/engines", message = "The player UI never imports an engine: it reads engine.capabilities (player-route.tsx picks the engine)." },
-    { target = "./apps/web/src/features/player/engines/mpv", from = "./apps/web/src/features/player/engines/html-video", message = "Engines never import each other." },
-    { target = "./apps/web/src/features/player/engines/html-video", from = "./apps/web/src/features/player/engines/mpv", message = "Engines never import each other." },
-    { target = "./apps/web", from = ["./apps/www", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
-    { target = "./apps/www", from = ["./apps/web", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
-    { target = "./apps/mobile", from = ["./apps/web", "./apps/www"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared)." },
+    { target = "./packages/web-app/src/features/player/ui", from = "./packages/web-app/src/features/player/engines", message = "The player UI never imports an engine: it reads engine.capabilities (the host picks the engine, AppHost.playerEngine)." },
+    { target = "./packages/web-app/src/features/player/engines/mpv", from = "./packages/web-app/src/features/player/engines/html-video", message = "Engines never import each other." },
+    { target = "./packages/web-app/src/features/player/engines/html-video", from = "./packages/web-app/src/features/player/engines/mpv", message = "Engines never import each other." },
+    { target = ["./packages/web-app/src/*.{ts,tsx}", "./packages/web-app/src/!(desktop|features)/**", "./packages/web-app/src/features/!(player)/**", "./packages/web-app/src/features/player/*.{ts,tsx}", "./packages/web-app/src/features/player/!(engines)/**", "./packages/web-app/src/features/player/engines/!(mpv)/**"], from = ["./packages/web-app/src/desktop", "./packages/web-app/src/features/player/engines/mpv"], message = "Desktop-only code (src/desktop/, the mpv engine) is reached only through its exports (@projo/web-app/desktop/*, @projo/web-app/engines/mpv), by the desktop host: the app goes through AppHost." },
+    { target = ["./apps/web/*.ts", "./apps/web/vite-plugins/**", "./apps/web/src/*.{ts,tsx}", "./apps/web/src/!(desktop-compat)/**"], from = ["./packages/web-app/src/desktop", "./packages/web-app/src/features/player/engines/mpv"], message = "The browser host never loads desktop-only code (Tauri, libmpv): it stays out of the browser bundle. Only the transitional src/desktop-compat/ chunk may (old desktop apps on the server's page, §28)." },
+    { target = "./apps/web/src/desktop-compat", from = "./packages/web-app/src/features/player/engines/mpv", message = "TRANSITIONAL desktop-compat (old desktop apps, §28, removed once they are gone): window buttons, update banner and About only, never the mpv engine." },
+    { target = "./apps/web", from = ["./apps/www", "./apps/mobile", "./apps/desktop"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared, @projo/web-app)." },
+    { target = "./apps/www", from = ["./apps/web", "./apps/mobile", "./apps/desktop"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared, @projo/web-app)." },
+    { target = "./apps/mobile", from = ["./apps/web", "./apps/www", "./apps/desktop"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared, @projo/web-app)." },
+    { target = "./apps/desktop", from = ["./apps/web", "./apps/www", "./apps/mobile"], message = "An app never imports another app: share it through a package (@projo/design, @projo/i18n, @projo/shared, @projo/web-app)." },
   ] },
 ]
 
@@ -144,10 +149,19 @@ rules = { "no-restricted-imports" = [
   ] },
 ] }
 
-# ── Web and mobile (§26.2: the same rules) ───────────────────────────────────
+# ── Web, mobile, the desktop's bundled UI (§26.2: the same rules) ─────────────────────
 
 [[lint.overrides]]
-files = ["apps/web/**/*.ts", "apps/web/**/*.tsx", "apps/mobile/**/*.ts", "apps/mobile/**/*.tsx"]
+files = [
+  "apps/web/**/*.ts",
+  "apps/web/**/*.tsx",
+  "packages/web-app/**/*.ts",
+  "packages/web-app/**/*.tsx",
+  "apps/mobile/**/*.ts",
+  "apps/mobile/**/*.tsx",
+  "apps/desktop/web/**/*.ts",
+  "apps/desktop/web/**/*.tsx",
+]
 [lint.overrides.rules]
 "no-restricted-imports" = [
   "error",
@@ -172,3 +186,28 @@ files = ["apps/web/**/*.ts", "apps/web/**/*.tsx", "apps/mobile/**/*.ts", "apps/m
 "react/unsupported-syntax" = "warn"
 "react/config" = "error"
 "react/gating" = "error"
+
+# The browser host (apps/web): no desktop-only code in the browser bundle (§28). Repeats the
+# @projo/server rule above, which this override replaces for apps/web.
+[[lint.overrides]]
+files = ["apps/web/**/*.ts", "apps/web/**/*.tsx"]
+rules = { "no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { group = ["@projo/server", "@projo/server/*"], allowTypeImports = true, message = "The apps only import types from the server (AppType): no server code in a client bundle." },
+    { group = ["@projo/web-app/engines/mpv", "@projo/web-app/desktop/*"], message = "The browser host never loads desktop-only code (Tauri, libmpv): it stays out of the browser bundle." },
+  ] },
+] }
+
+# TRANSITIONAL (§28): apps/web/src/desktop-compat/, a separate chunk for desktop apps older than
+# the bundled-UI release, may import @projo/web-app/desktop/*, never the mpv engine. Removed once
+# those desktop apps are gone.
+[[lint.overrides]]
+files = ["apps/web/src/desktop-compat/**/*.ts", "apps/web/src/desktop-compat/**/*.tsx"]
+rules = { "no-restricted-imports" = [
+  "error",
+  { patterns = [
+    { group = ["@projo/server", "@projo/server/*"], allowTypeImports = true, message = "The apps only import types from the server (AppType): no server code in a client bundle." },
+    { group = ["@projo/web-app/engines/mpv"], message = "TRANSITIONAL desktop-compat (old desktop apps, §28): window buttons, update banner and About only, never the mpv engine." },
+  ] },
+] }

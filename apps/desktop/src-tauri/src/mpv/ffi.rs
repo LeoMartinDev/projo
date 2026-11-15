@@ -1,5 +1,5 @@
 //! The subset of libmpv's C client API (`mpv/client.h`, API 2.x) the app uses, loaded at runtime
-//! with `libloading` so the executable starts (and shows the server page) even without the DLL.
+//! with `libloading` so the executable starts (and shows the bundled page) even without the DLL.
 
 use std::ffi::{c_char, c_double, c_int, c_void, CStr};
 use std::path::{Path, PathBuf};

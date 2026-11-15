@@ -9,6 +9,7 @@ import type {
   OAuthRepository,
   OAuthToken,
 } from '../../src/core/auth/oauth.ts'
+import type { MediaKeySigner } from '../../src/core/auth/media-key.ts'
 import type { Pairing, PairingCodes, PairingRepository } from '../../src/core/auth/pairing.ts'
 import type { PasswordHasher, RateLimiter, SessionTokens } from '../../src/core/auth/ports.ts'
 import type { Session, SessionRepository } from '../../src/core/auth/session.ts'
@@ -40,6 +41,12 @@ export const createFakeSessionTokens = (): SessionTokens => {
     },
     hash: (token) => `h(${token})`,
   }
+}
+
+/** Signs with a readable stand-in for the HMAC: `sig(<message>)` base64url-encoded. */
+export const createFakeMediaKeySigner = (): MediaKeySigner => {
+  const sign = (message: string) => Buffer.from(`sig(${message})`).toString('base64url')
+  return { sign, verify: ({ message, signature }) => sign(message) === signature }
 }
 
 export const createCountingRateLimiter = (limit = 10) => {

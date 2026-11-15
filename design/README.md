@@ -49,7 +49,7 @@ An additional [fictional film and series sample library](sample-library/README.m
 | `OnbReady.dc.html` | Onboarding 6 — All set: scrolling poster wall, animated check mark, analysis progress, Open projo / Go to administration | §15 |
 | `Components.dc.html` | UI kit v2: buttons, fields, controls, choice cards | §19 |
 
-The player menus are drawn from the web player as built (`apps/web/src/features/player/PlayerMenus.tsx`, `player.css`): one button per menu in the controls row (chapters when the file has some, speed, quality when there is a choice, subtitles and audio, Picture-in-Picture), smoked glass menus (`blur(44px) saturate(180%) brightness(.58)` over a dark gradient), radius 22 (28 for the wide subtitles menu), a check on the chosen option. `Player.dc.html` still shows the earlier row with a single "Subtitles and audio" button.
+The player menus are drawn from the web player as built (`packages/web-app/src/features/player/ui/PlayerMenus.tsx`, `player.css`): one button per menu in the controls row (chapters when the file has some, speed, quality when there is a choice, subtitles and audio, Picture-in-Picture), smoked glass menus (`blur(44px) saturate(180%) brightness(.58)` over a dark gradient), radius 22 (28 for the wide subtitles menu), a check on the chosen option. `Player.dc.html` still shows the earlier row with a single "Subtitles and audio" button.
 
 ## What the application keeps from the onboarding flow
 

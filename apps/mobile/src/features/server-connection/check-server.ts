@@ -1,7 +1,7 @@
 import { healthResponseSchema } from '@projo/shared/api/common'
 import { err, fromPromise, ok, type Result } from '@projo/shared/result'
+import { compareSemVer, parseSemVer } from '@projo/shared/semver'
 
-import { compareSemVer, parseSemVer } from '../../shared/version/semver.ts'
 import { type ConnectionError, connectionError } from './connection-error.ts'
 
 export type HealthFetch = (

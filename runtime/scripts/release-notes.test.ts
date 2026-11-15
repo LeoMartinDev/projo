@@ -99,10 +99,11 @@ describe('readCommits', () => {
     expect(head?.subject.length).toBeGreaterThan(0)
   })
 
-  test.skipIf(!Bun.which('git'))('keeps only the commits that touch a path', () => {
+  test.skipIf(!Bun.which('git'))('keeps only the commits that touch the paths', () => {
     // Works on CI's shallow checkout too (HEAD alone).
-    const commits = readCommits('HEAD', undefined, 'apps/desktop')
-    const touched = Bun.spawnSync(['git', 'log', '--format=%H', 'HEAD', '--', 'apps/desktop'])
+    const paths = ['apps/desktop', 'packages/web-app']
+    const commits = readCommits('HEAD', undefined, paths)
+    const touched = Bun.spawnSync(['git', 'log', '--format=%H', 'HEAD', '--', ...paths])
     expect(commits.map((commit) => commit.hash)).toEqual(
       touched.stdout
         .toString()

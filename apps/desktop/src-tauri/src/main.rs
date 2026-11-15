@@ -1,19 +1,21 @@
-//! projo desktop (PRODUCT.md §28): the user's projo server in a transparent window, played through
-//! libmpv drawn under the page.
+//! projo desktop (PRODUCT.md §28): the web app bundled with the app (`@projo/web-app`, built from
+//! `apps/desktop/web`), served at http://tauri.localhost in a transparent window, talking to the
+//! user's projo server as an API client, and playing through libmpv drawn under the page.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod commands;
 mod config;
-mod load_failure;
+mod device;
 mod mpv;
 mod origin;
 mod server;
 mod state;
+mod token;
+mod tray;
 mod updates;
-mod user_agent;
 mod window_size;
 
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use tauri::webview::{NewWindowResponse, PageLoadEvent, ScrollBarStyle};
@@ -24,22 +26,15 @@ use url::Url;
 
 use crate::commands::is_local_page;
 use crate::mpv::{Emitted, Player};
-use crate::origin::is_same_origin;
 use crate::state::AppState;
 
 pub const MAIN: &str = "main";
 
-/// Set once at startup: the dev server under `tauri dev`, else the bundled assets' origin.
-static LOCAL_PAGE: OnceLock<Url> = OnceLock::new();
-
-/// The bundled page's origin: `tauri dev` serves it from the CLI's dev server
-/// (`build.devUrl`, e.g. http://127.0.0.1:1430); a build serves it over http://tauri.localhost
-/// (Windows, Android) or tauri://localhost.
+/// The bundled page's address: Tauri serves `frontendDist` at http://tauri.localhost on Windows
+/// (never `useHttpsScheme`: an `http://` server would be mixed content), tauri://localhost
+/// elsewhere. Under `tauri dev` too: there is no dev server, the page must be on the origin the
+/// server's CORS allows (`desktopOrigins` of `@projo/shared/api/desktop`).
 pub fn local_page_url() -> Url {
-    LOCAL_PAGE.get().cloned().unwrap_or_else(bundled_page_url)
-}
-
-fn bundled_page_url() -> Url {
     let url = if cfg!(any(windows, target_os = "android")) {
         "http://tauri.localhost/"
     } else {
@@ -48,58 +43,15 @@ fn bundled_page_url() -> Url {
     Url::parse(url).unwrap_or_else(|_| unreachable!("constant URL"))
 }
 
-fn init_local_page(dev_url: Option<&Url>) -> Url {
-    let url = match dev_url {
-        Some(dev) if tauri::is_dev() => {
-            let mut origin = dev.clone();
-            origin.set_path("/");
-            origin.set_query(None);
-            origin.set_fragment(None);
-            origin
-        }
-        _ => bundled_page_url(),
-    };
-    LOCAL_PAGE.get_or_init(|| url).clone()
-}
-
-/// Ctrl+Shift+U on any page of the main window: back to the server picker.
-const SHORTCUT_SCRIPT: &str = r#"
-window.addEventListener('keydown', (event) => {
-  if (event.ctrlKey && event.shiftKey && !event.altKey && event.code === 'KeyU') {
-    event.preventDefault()
-    window.__TAURI_INTERNALS__.invoke('change_server').catch((error) => console.error('change_server', error))
-  }
-}, true)
-"#;
-
 /// Debug builds only, for driving the app in tests: `PROJO_DESKTOP_TEST_WINDOW=x,y` opens the window
-/// there without focus; `PROJO_DESKTOP_TEST_EXTRA_ORIGIN=<origin>` lets the main window navigate to
-/// one more origin (never granted IPC), to check that IPC is refused there.
-struct TestHooks {
-    window_position: Option<(f64, f64)>,
-    extra_origin: Option<String>,
-}
-
-fn test_hooks() -> TestHooks {
+/// there without focus.
+fn test_window_position() -> Option<(f64, f64)> {
     if !cfg!(debug_assertions) {
-        return TestHooks {
-            window_position: None,
-            extra_origin: None,
-        };
+        return None;
     }
-    let window_position = std::env::var("PROJO_DESKTOP_TEST_WINDOW")
-        .ok()
-        .and_then(|value| {
-            let (x, y) = value.split_once(',')?;
-            Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
-        });
-    let extra_origin = std::env::var("PROJO_DESKTOP_TEST_EXTRA_ORIGIN")
-        .ok()
-        .and_then(|value| origin::parse_server_origin(&value).ok());
-    TestHooks {
-        window_position,
-        extra_origin,
-    }
+    let value = std::env::var("PROJO_DESKTOP_TEST_WINDOW").ok()?;
+    let (x, y) = value.split_once(',')?;
+    Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
 }
 
 fn open_externally(url: &Url) {
@@ -127,15 +79,18 @@ fn main() {
             commands::mpv_observe,
             commands::mpv_destroy,
             commands::desktop_info,
+            commands::desktop_device,
             commands::desktop_update_status,
             commands::desktop_update_install,
-            commands::get_setup,
-            commands::connect_server,
+            commands::get_server,
+            commands::check_server,
+            commands::save_server,
+            commands::get_token,
+            commands::set_token,
+            commands::clear_token,
             commands::change_server,
         ])
         .setup(|app| {
-            let local_page = init_local_page(app.config().build.dev_url.as_ref());
-            log::info!("bundled page served from {local_page}");
             let handle = app.handle().clone();
             let config_dir = app.path().app_config_dir()?;
             let config_path = config::config_path(&config_dir);
@@ -167,20 +122,11 @@ fn main() {
                     }
                 }),
             );
-            app.manage(AppState::new(
-                config_path,
-                Arc::clone(&player),
-                stored.clone(),
-            ));
-            if let Some(origin) = &stored {
-                // The bundled page checks the server first, then navigates (connect_server).
-                commands::grant_server(&handle, &app.state::<AppState>(), origin)
-                    .map_err(|error| format!("{error:?}"))?;
-            }
+            app.manage(AppState::new(config_path, Arc::clone(&player), stored));
 
             updates::start(&handle);
+            tray::install(&handle)?;
 
-            let hooks = test_hooks();
             // The window opens on the primary monitor: fit the minimum into its work area.
             let work_area = handle.primary_monitor().ok().flatten().map(|monitor| {
                 let size = monitor
@@ -190,7 +136,6 @@ fn main() {
                 (size.width, size.height)
             });
             let (width, height) = window_size::fitted_minimum(work_area);
-            let navigation = handle.clone();
             let page_loads = Arc::clone(&player);
             let mut builder =
                 WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
@@ -212,22 +157,14 @@ fn main() {
                      --remote-debugging-port=9229",
                 );
             }
-            if let Some((x, y)) = hooks.window_position {
+            if let Some((x, y)) = test_window_position() {
                 builder = builder.position(x, y).focused(false);
             }
-            let extra_origin = hooks.extra_origin;
             let window = builder
-                .initialization_script(SHORTCUT_SCRIPT)
-                .on_navigation(move |url| {
-                    let server = navigation.state::<AppState>().server_origin();
-                    let allowed = is_local_page(url)
-                        || server
-                            .as_deref()
-                            .is_some_and(|origin| is_same_origin(url, origin))
-                        || extra_origin
-                            .as_deref()
-                            .is_some_and(|origin| is_same_origin(url, origin))
-                        || url.as_str() == "about:blank";
+                // The window shows the bundled page only (§28.4): any other address (a link to
+                // the server, TMDB, GitHub…) opens in the system browser.
+                .on_navigation(|url| {
+                    let allowed = is_local_page(url) || url.as_str() == "about:blank";
                     if !allowed {
                         log::info!("opening {url} in the browser");
                         open_externally(url);
@@ -245,10 +182,6 @@ fn main() {
                     }
                 })
                 .build()?;
-            #[cfg(windows)]
-            load_failure::watch(&window, local_page_url())?;
-            #[cfg(windows)]
-            user_agent::mark(&window, handle.package_info().version.to_string())?;
             match window.window_handle().map(|handle| handle.as_raw()) {
                 Ok(RawWindowHandle::Win32(win32)) => player.set_wid(win32.hwnd.get() as i64),
                 Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),

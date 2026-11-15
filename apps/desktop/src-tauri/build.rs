@@ -1,6 +1,6 @@
 fn main() {
-    // App commands get ACL permissions (`allow-mpv-init`…): the server origin is granted them at
-    // runtime (commands::SERVER_PERMISSIONS), the bundled page through capabilities/setup.json.
+    // App commands get ACL permissions (`allow-mpv-init`…), granted to the bundled page only by
+    // capabilities/main.json.
     let manifest = tauri_build::AppManifest::new().commands(&[
         "mpv_init",
         "mpv_command",
@@ -9,10 +9,15 @@ fn main() {
         "mpv_observe",
         "mpv_destroy",
         "desktop_info",
+        "desktop_device",
         "desktop_update_status",
         "desktop_update_install",
-        "get_setup",
-        "connect_server",
+        "get_server",
+        "check_server",
+        "save_server",
+        "get_token",
+        "set_token",
+        "clear_token",
         "change_server",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))

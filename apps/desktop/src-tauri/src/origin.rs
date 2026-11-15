@@ -1,5 +1,5 @@
-//! The server the app shows is one origin (`scheme://host[:port]`): what the user types is reduced to
-//! it, and every navigation / IPC call is checked against it.
+//! The server the app talks to is one origin (`scheme://host[:port]`): what the user types is
+//! reduced to it, and its token is kept under it (token.rs).
 
 use url::Url;
 
@@ -38,14 +38,25 @@ pub fn parse_server_origin(input: &str) -> Result<String, OriginError> {
     Ok(url.origin().ascii_serialization())
 }
 
-/// Whether `url` belongs to `origin` (as returned by `parse_server_origin`).
-pub fn is_same_origin(url: &Url, origin: &str) -> bool {
-    url.origin().ascii_serialization() == origin
+/// The origin a redirect of `<origin>/health` to `location` upgrades to, if it is only that: from
+/// `http://` to `https://`, the same host, the same port (both the scheme's default, or the same
+/// explicit one), no credentials. Anything else (another host, a downgrade) is not followed.
+pub fn upgraded_origin(origin: &str, location: &str) -> Option<String> {
+    let from = Url::parse(&format!("{origin}/health")).ok()?;
+    let to = from.join(location).ok()?;
+    let upgrade = from.scheme() == "http"
+        && to.scheme() == "https"
+        && to.host_str().is_some()
+        && to.host_str() == from.host_str()
+        && to.port() == from.port()
+        && to.username().is_empty()
+        && to.password().is_none();
+    upgrade.then(|| to.origin().ascii_serialization())
 }
 
-/// The capability pattern granting IPC to every page of the origin.
-pub fn remote_pattern(origin: &str) -> String {
-    format!("{origin}/*")
+/// Whether `url` belongs to `origin` (as returned by `parse_server_origin`, or the bundled page's).
+pub fn is_same_origin(url: &Url, origin: &str) -> bool {
+    url.origin().ascii_serialization() == origin
 }
 
 #[cfg(test)]
@@ -108,6 +119,47 @@ mod tests {
     }
 
     #[test]
+    fn follows_an_upgrade_to_https_of_the_same_server_only() {
+        let up = |origin: &str, location: &str| upgraded_origin(origin, location);
+        assert_eq!(
+            up(
+                "http://projo.example.com",
+                "https://projo.example.com/health"
+            )
+            .as_deref(),
+            Some("https://projo.example.com")
+        );
+        assert_eq!(
+            up("http://nas.local:8443", "https://nas.local:8443/health").as_deref(),
+            Some("https://nas.local:8443")
+        );
+        assert_eq!(
+            up("http://projo.example.com", "https://projo.example.com:443/").as_deref(),
+            Some("https://projo.example.com")
+        );
+        // Another host, another port, a downgrade, a path, credentials: not followed.
+        assert_eq!(
+            up("http://projo.example.com", "https://evil.example/health"),
+            None
+        );
+        assert_eq!(
+            up("http://nas.local:8080", "https://nas.local/health"),
+            None
+        );
+        assert_eq!(
+            up("http://nas.local", "https://nas.local:8443/health"),
+            None
+        );
+        assert_eq!(up("https://nas.local", "http://nas.local/health"), None);
+        assert_eq!(up("http://nas.local", "/login"), None);
+        assert_eq!(
+            up("http://nas.local", "https://user:pw@nas.local/health"),
+            None
+        );
+        assert_eq!(up("http://nas.local", "ftp://nas.local/health"), None);
+    }
+
+    #[test]
     fn matches_urls_of_the_origin_only() {
         let origin = "http://127.0.0.1:8791";
         let url = |value: &str| Url::parse(value).expect("test url");
@@ -127,6 +179,5 @@ mod tests {
             &url("http://tauri.localhost/index.html"),
             origin
         ));
-        assert_eq!(remote_pattern(origin), "http://127.0.0.1:8791/*");
     }
 }

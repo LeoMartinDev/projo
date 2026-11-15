@@ -35,6 +35,11 @@ const probeRoutes = () =>
     )
     .post('/probe', (c) => c.json({ ok: true }))
 const adminProbeRoutes = () => new Hono<AppEnv>().get('/libraries', (c) => c.json({ admin: true }))
+/** Stands in for a media route (§20: media key, CORP): who asked, for which profile. */
+const mediaProbeRoutes = () =>
+  new Hono<AppEnv>().get('/images/:id', (c) =>
+    c.json({ account: c.get('account')?.username, profileId: c.get('profileId') }),
+  )
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
@@ -102,7 +107,7 @@ export const createAuthTestApp = ({
       adminLibraries: adminProbeRoutes() as unknown as ApiRoutes['adminLibraries'],
       adminFs: unwired<'adminFs'>(),
       adminSources: unwired<'adminSources'>(),
-      images: unwired<'images'>(),
+      images: mediaProbeRoutes() as unknown as ApiRoutes['images'],
       adminSourceReview: unwired<'adminSourceReview'>(),
       adminItems: unwired<'adminItems'>(),
       adminSettings: unwired<'adminSettings'>(),

@@ -1,7 +1,7 @@
 //! Process-wide state shared by commands and window handlers.
 
-use std::collections::HashSet;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use crate::mpv::Player;
@@ -10,7 +10,9 @@ pub struct AppState {
     pub config_path: PathBuf,
     pub player: Arc<Player>,
     server_origin: Mutex<Option<String>>,
-    granted: Mutex<HashSet<String>>,
+    /// "Change server" asked by the tray (numbered) and the last one done (commands.rs).
+    change_requested: AtomicU64,
+    change_done: AtomicU64,
 }
 
 impl AppState {
@@ -23,7 +25,8 @@ impl AppState {
             config_path,
             player,
             server_origin: Mutex::new(server_origin),
-            granted: Mutex::new(HashSet::new()),
+            change_requested: AtomicU64::new(0),
+            change_done: AtomicU64::new(0),
         }
     }
 
@@ -40,18 +43,38 @@ impl AppState {
         }
     }
 
-    /// Records a grant; false when the origin already had one.
-    pub fn mark_granted(&self, origin: &str) -> bool {
-        self.granted
-            .lock()
-            .map(|mut granted| granted.insert(origin.to_string()))
-            .unwrap_or(false)
+    /// A "Change server" asked: its number.
+    pub fn begin_change_server(&self) -> u64 {
+        self.change_requested.fetch_add(1, Ordering::SeqCst) + 1
     }
 
-    pub fn granted_count(&self) -> usize {
-        self.granted
-            .lock()
-            .map(|granted| granted.len())
-            .unwrap_or(0)
+    /// Whether the request `number` is still waiting for the server change.
+    pub fn change_server_pending(&self, number: u64) -> bool {
+        self.change_done.load(Ordering::SeqCst) < number
+    }
+
+    /// The server changed: every request so far is done.
+    pub fn end_change_server(&self) {
+        self.change_done.store(
+            self.change_requested.load(Ordering::SeqCst),
+            Ordering::SeqCst,
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_change_of_server_is_pending_until_done() {
+        let player = Player::new(Vec::new(), Arc::new(|_| {}));
+        let state = AppState::new(PathBuf::from("config.json"), player, None);
+        let first = state.begin_change_server();
+        assert!(state.change_server_pending(first));
+        state.end_change_server();
+        assert!(!state.change_server_pending(first));
+        let second = state.begin_change_server();
+        assert!(state.change_server_pending(second));
     }
 }

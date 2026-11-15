@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./result": "./result.ts",
+    "./semver": "./semver.ts",
     "./errors": "./errors/index.ts",
     "./api/*": "./api/*.ts"
   },

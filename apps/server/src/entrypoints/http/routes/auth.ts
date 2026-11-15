@@ -1,6 +1,6 @@
 import { type Context, Hono, type MiddlewareHandler } from 'hono'
 
-import type { AppError } from '@projo/shared'
+import { appError, type AppError } from '@projo/shared'
 
 import {
   changePasswordBodySchema,
@@ -16,11 +16,13 @@ import {
   type SessionDto,
   type SessionsResponse,
 } from '@projo/shared/api/auth'
+import { isDesktopOrigin } from '@projo/shared/api/desktop'
 
 import type { ChangePassword } from '../../../application/auth/change-password.ts'
 import type { ClaimPairing } from '../../../application/auth/claim-pairing.ts'
 import type { CreatePairing } from '../../../application/auth/create-pairing.ts'
 import type { GetMe, Me } from '../../../application/auth/get-me.ts'
+import type { IssueMediaKey } from '../../../application/auth/issue-media-key.ts'
 import type { ListSessions } from '../../../application/auth/list-sessions.ts'
 import type { Login } from '../../../application/auth/login.ts'
 import type { OpenSession } from '../../../application/auth/open-session.ts'
@@ -88,6 +90,7 @@ type Deps = {
   login: Login
   changePassword: ChangePassword
   getMe: GetMe
+  issueMediaKey: IssueMediaKey
   openSession: OpenSession
   listSessions: ListSessions
   revokeSession: RevokeSession
@@ -102,6 +105,7 @@ export const authRoutes = ({
   login,
   changePassword,
   getMe,
+  issueMediaKey,
   openSession,
   listSessions,
   revokeSession,
@@ -115,6 +119,14 @@ export const authRoutes = ({
     .post('/auth/login', validate('json', loginBodySchema), async (c) => {
       const client = clientInfo(c, { trustProxy })
       const { username, password, deviceName, token: wantsToken } = c.req.valid('json')
+      if (wantsToken !== true && isDesktopOrigin(c.req.header('origin'))) {
+        return respondError(
+          c,
+          appError('auth/origin_mismatch', 'a desktop origin signs in with a bearer token', {
+            context: { origin: c.req.header('origin') },
+          }),
+        )
+      }
       const result = await login({
         username,
         password,
@@ -157,9 +169,18 @@ export const authRoutes = ({
       return noContent(c)
     })
     .get('/auth/me', (c) => {
-      const { account } = currentPrincipal(c)
+      const { account, session } = currentPrincipal(c)
       const me = getMe({ accountId: account.id, activeProfileId: c.get('profileId') })
-      return me.ok ? c.json(toMeResponse(me.value), 200) : respondError(c, me.error)
+      if (!me.ok) return respondError(c, me.error)
+      return c.json(
+        {
+          ...toMeResponse(me.value),
+          ...(session.kind === 'bearer'
+            ? { mediaKey: issueMediaKey({ sessionId: session.id }) }
+            : {}),
+        } satisfies MeResponse,
+        200,
+      )
     })
     .post('/auth/tokens', requireAccountActions, validate('json', createTokenBodySchema), (c) => {
       const { account } = currentPrincipal(c)

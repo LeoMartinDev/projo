@@ -21,7 +21,13 @@ test('fonts/geist.css matches the installed geist', async () => {
 
 test(`stylesheets set weights between ${weights.min} and ${weights.max}`, async () => {
   const outside: string[] = []
-  for (const folder of ['packages/design', 'apps/web/src', 'apps/www/src'])
+  for (const folder of [
+    'packages/design',
+    'packages/web-app/src',
+    'apps/web/src',
+    'apps/www/src',
+    'apps/desktop/web/src',
+  ])
     for await (const path of new Glob('**/*.{css,ts,tsx}').scan(`${root}${folder}`)) {
       if (path.includes('node_modules')) continue
       const text = await Bun.file(`${root}${folder}/${path}`).text()

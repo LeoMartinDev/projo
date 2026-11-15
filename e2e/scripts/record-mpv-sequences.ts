@@ -8,10 +8,12 @@
  *
  *   bun e2e/scripts/record-mpv-sequences.ts [path/to/projo-desktop.exe]
  *
- * The app opens without focus, connects to a stand-in server served here
- * (its `/health`, a blank page, the media with HTTP Range and a gate that
- * throttles or stops it) and is driven over WebView2's DevTools protocol.
- * libmpv runs with `ao=null`: no sound. Everything it created is removed.
+ * The app opens without focus on its bundled page (http://tauri.localhost,
+ * the page granted its IPC), which stays on its first screen: no server is
+ * connected. The recorder runs there, driving libmpv on media served here (HTTP
+ * Range and a gate that throttles or stops it), over WebView2's DevTools
+ * protocol. libmpv runs with `ao=null`: no sound. Everything it created is
+ * removed.
  */
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs'
@@ -21,12 +23,13 @@ import { join, resolve } from 'node:path'
 import { chromium } from '@playwright/test'
 
 const root = resolve(import.meta.dir, '../..')
-const engineDir = join(root, 'apps/web/src/features/player/engines/mpv')
+const engineDir = join(root, 'packages/web-app/src/features/player/engines/mpv')
 const output = join(engineDir, 'fixtures/contract-recording.json')
 const exe = process.argv[2] ?? process.env['PROJO_DESKTOP_EXE'] ?? 'C:\\t\\debug\\projo-desktop.exe'
 const identifier = 'dev.leomartin.projo.desktop'
 const mediaPort = 4891
-const devtoolsPort = 9334
+// A debug build opens DevTools there itself (main.rs); the variable below asks for the same port.
+const devtoolsPort = 9229
 const durationS = 60
 
 if (process.platform !== 'win32') throw new Error('the desktop app runs on Windows only')
@@ -106,12 +109,6 @@ const server = Bun.serve({
   port: mediaPort,
   fetch: (request) => {
     const url = new URL(request.url)
-    if (url.pathname === '/health')
-      return Response.json({ status: 'ok', version: '0.0.0-mpv-recording' })
-    if (url.pathname === '/')
-      return new Response('<!doctype html><title>mpv recording</title>', {
-        headers: { 'content-type': 'text/html' },
-      })
     if (url.pathname === '/gate') {
       const mode = url.searchParams.get('mode')
       if (mode === 'open' || mode === 'trickle' || mode === 'closed') gate = mode
@@ -164,9 +161,9 @@ try {
   const context = browser.contexts()[0]
   const page = context?.pages()[0]
   if (page === undefined) throw new Error('no page in the app window')
-  await page.locator('#url').fill(`http://127.0.0.1:${mediaPort}`)
-  await page.locator('#submit').click()
-  await page.waitForURL(`http://127.0.0.1:${mediaPort}/`)
+  // The bundled page, with its IPC: nothing to connect to.
+  await page.waitForURL((url) => url.origin === 'http://tauri.localhost')
+  await page.waitForFunction(() => '__TAURI_INTERNALS__' in window)
   await page.evaluate(recorder)
   const recording = await page.evaluate(async () => {
     const record = (window as { projoRecordContract?: () => Promise<unknown> }).projoRecordContract

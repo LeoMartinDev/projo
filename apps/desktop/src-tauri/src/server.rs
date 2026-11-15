@@ -5,6 +5,8 @@ use std::time::Duration;
 use serde::Deserialize;
 use ureq::tls::{RootCerts, TlsConfig, TlsProvider};
 
+use crate::origin::upgraded_origin;
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum HealthError {
     Unreachable(String),
@@ -30,7 +32,46 @@ pub fn parse_health(body: &str) -> Result<String, HealthError> {
     Ok(health.version)
 }
 
-pub fn check_health(origin: &str) -> Result<String, HealthError> {
+/// A projo server's origin and version.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Checked {
+    pub origin: String,
+    pub version: String,
+}
+
+/// `GET <origin>/health`. A redirect is followed once, and only when it upgrades the same server
+/// to HTTPS (`upgraded_origin`: an address typed without a scheme defaults to `http://`); the
+/// origin answering is the one to save.
+pub fn check_health(origin: &str) -> Result<Checked, HealthError> {
+    match fetch_health(origin)? {
+        Answer::Version(version) => Ok(Checked {
+            origin: origin.to_string(),
+            version,
+        }),
+        Answer::Redirect(location) => {
+            let upgraded = upgraded_origin(origin, &location).ok_or_else(|| {
+                HealthError::NotProjo(format!("/health redirected to {location}"))
+            })?;
+            log::info!("{origin} redirects to {upgraded}");
+            match fetch_health(&upgraded)? {
+                Answer::Version(version) => Ok(Checked {
+                    origin: upgraded,
+                    version,
+                }),
+                Answer::Redirect(location) => Err(HealthError::NotProjo(format!(
+                    "/health redirected again, to {location}"
+                ))),
+            }
+        }
+    }
+}
+
+enum Answer {
+    Version(String),
+    Redirect(String),
+}
+
+fn fetch_health(origin: &str) -> Result<Answer, HealthError> {
     let agent = ureq::Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(6)))
         .max_redirects(0)
@@ -49,6 +90,14 @@ pub fn check_health(origin: &str) -> Result<String, HealthError> {
         .header("accept", "application/json")
         .call()
         .map_err(|error| HealthError::Unreachable(error.to_string()))?;
+    if response.status().is_redirection() {
+        let location = response
+            .headers()
+            .get("location")
+            .and_then(|value| value.to_str().ok())
+            .ok_or_else(|| HealthError::NotProjo("/health redirected nowhere".into()))?;
+        return Ok(Answer::Redirect(location.to_string()));
+    }
     if response.status() != 200 {
         return Err(HealthError::NotProjo(format!(
             "/health answered HTTP {}",
@@ -63,7 +112,7 @@ pub fn check_health(origin: &str) -> Result<String, HealthError> {
         .map_err(|error| HealthError::Unreachable(error.to_string()))?;
     let version = parse_health(&body)?;
     log::info!("{origin} is projo {version}");
-    Ok(version)
+    Ok(Answer::Version(version))
 }
 
 #[cfg(test)]

@@ -9,6 +9,7 @@ import type { Logger } from '../../core/logger.ts'
 import type { StaticFiles } from '../../core/http/static-files.ts'
 import type { Api } from './api.ts'
 import type { AppEnv } from './context.ts'
+import { desktopCors } from './cors.ts'
 import { errorBody } from './errors.ts'
 import { healthRoutes, type HealthRoutesDeps } from './routes/health.ts'
 import { securityHeaders } from './security-headers.ts'
@@ -35,6 +36,7 @@ export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }:
     await next()
     requestLogger.debug('http request', {
       method: c.req.method,
+      // The path only, never the query: it may carry a media key (§20).
       path: c.req.path
         .replace(/^(\/api\/v1\/stream\/[^/]+\/)[^/]+/, '$1***')
         .replace(/^(\/api\/v1\/invitations\/)[^/]+/, '$1***'),
@@ -42,8 +44,9 @@ export const createHttpApp = ({ api, root = [], health, logger, ids, webFiles }:
       durationMs: Math.round(performance.now() - startedAt),
     })
   })
-  app.use('*', securityHeaders())
+  app.use('*', ...securityHeaders())
   app.use('*', compress())
+  app.use('*', desktopCors())
 
   app.route('/', healthRoutes(health))
   app.route('/api/v1', api)

@@ -3,18 +3,32 @@
   "version": "0.4.0",
   "private": true,
   "type": "module",
+  "projo": {
+    "minimumServerVersion": "1.25.0"
+  },
   "scripts": {
-    "dev": "bunx @tauri-apps/cli@2.12.4 dev",
+    "dev": "bunx @tauri-apps/cli@2.12.4 dev --no-dev-server",
     "build": "bunx @tauri-apps/cli@2.12.4 build",
-    "build:ui": "bun -e \"require('node:fs').rmSync('ui/dist', { recursive: true, force: true })\" && bun build ./ui/index.html --outdir ./ui/dist --minify",
+    "build:web": "vite build --config web/vite.config.ts",
     "fetch-libmpv": "bun scripts/fetch-libmpv.ts",
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "typecheck": "bun check"
   },
   "dependencies": {
-    "@projo/design": "workspace:*"
+    "@projo/design": "workspace:*",
+    "@projo/i18n": "workspace:*",
+    "@projo/shared": "workspace:*",
+    "@projo/web-app": "workspace:*",
+    "i18next": "26.5.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-i18next": "17.1.4"
   },
   "devDependencies": {
-    "@types/bun": "1.4.4"
+    "@types/bun": "1.4.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "8.3.5"
   }
 }

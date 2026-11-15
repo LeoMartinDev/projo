@@ -1,5 +1,7 @@
 const browsers: [RegExp, string][] = [
-  // The desktop app (§28.4) appends its token to WebView2's Edge user agent.
+  // TRANSITIONAL (§28.1): desktop apps older than 0.5.0 load the server's page in WebView2 and
+  // append this token to its Edge user agent (newer ones send `deviceName`). Removed together
+  // with apps/web/src/desktop-compat/, once those apps are gone.
   [/projo-desktop\//, 'projo desktop'],
   [/Edg\//, 'Edge'],
   [/Firefox\//, 'Firefox'],

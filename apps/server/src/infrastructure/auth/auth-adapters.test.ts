@@ -1,6 +1,8 @@
 import { describe, expect, spyOn, test } from 'bun:test'
+import { createHmac } from 'node:crypto'
 
 import { createBunPasswordHasher } from './bun-password-hasher.ts'
+import { createHmacMediaKeySigner } from './media-key-signer.ts'
 import { sessionTokens } from './session-tokens.ts'
 
 describe('createBunPasswordHasher', () => {
@@ -52,5 +54,37 @@ describe('sessionTokens', () => {
     expect(sessionTokens.generate()).not.toBe(a)
     expect(sessionTokens.hash(a)).toMatch(/^[0-9a-f]{64}$/)
     expect(sessionTokens.hash(a)).toBe(sessionTokens.hash(a))
+  })
+})
+
+describe('createHmacMediaKeySigner', () => {
+  const secretA = new Uint8Array(32).fill(1)
+  const secretB = new Uint8Array(32).fill(2)
+
+  test('HMAC-SHA256 in base64url, verified in constant time, under its own secret only', () => {
+    const signer = createHmacMediaKeySigner({ secret: () => secretA })
+    const signature = signer.sign('media:session-1')
+    expect(signature).toBe(
+      createHmac('sha256', secretA).update('media:session-1').digest('base64url'),
+    )
+    expect(signer.verify({ message: 'media:session-1', signature })).toBe(true)
+    expect(signer.verify({ message: 'media:session-2', signature })).toBe(false)
+    expect(signer.verify({ message: 'media:session-1', signature: signature.slice(1) })).toBe(false)
+    const other = createHmacMediaKeySigner({ secret: () => secretB })
+    expect(other.verify({ message: 'media:session-1', signature })).toBe(false)
+  })
+
+  test('reads the secret once, on first use', () => {
+    let reads = 0
+    const signer = createHmacMediaKeySigner({
+      secret: () => {
+        reads += 1
+        return secretA
+      },
+    })
+    expect(reads).toBe(0)
+    signer.sign('a')
+    signer.verify({ message: 'b', signature: 'c' })
+    expect(reads).toBe(1)
   })
 })

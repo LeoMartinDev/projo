@@ -1,16 +1,15 @@
-import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import { appError, err, type Result } from '@projo/shared'
 import type { SessionKind } from '@projo/shared/api/auth'
 
-import { type AccountRepository, toAuthAccount } from '../../core/auth/account.ts'
+import type { AccountRepository } from '../../core/auth/account.ts'
 import type { SessionTokens } from '../../core/auth/ports.ts'
-import type { AuthAccount } from '../../core/auth/principal.ts'
-import {
-  type Session,
-  sessionRefresh,
-  type SessionRepository,
-  sessionState,
-} from '../../core/auth/session.ts'
+import type { SessionRepository } from '../../core/auth/session.ts'
 import type { Clock } from '../../core/clock.ts'
+import {
+  type AdmittedSession,
+  sessionAdmissionFactory,
+  type SessionAdmissionError,
+} from './shared/session-admission.ts'
 
 type Deps = {
   accountRepository: AccountRepository
@@ -19,19 +18,18 @@ type Deps = {
   clock: Clock
 }
 
-export type AuthenticateError = AppError<
-  'auth/unauthenticated' | 'auth/session_expired' | 'auth/session_revoked' | 'auth/account_disabled'
->
+export type AuthenticateError = SessionAdmissionError
 
-export type Authenticated = {
-  account: AuthAccount
-  session: Session
-  renewed: boolean
-}
+export type Authenticated = AdmittedSession
 
-export const authenticateFactory =
-  ({ accountRepository, sessionRepository, sessionTokens, clock }: Deps) =>
-  ({
+export const authenticateFactory = ({
+  accountRepository,
+  sessionRepository,
+  sessionTokens,
+  clock,
+}: Deps) => {
+  const admit = sessionAdmissionFactory({ accountRepository, sessionRepository, clock })
+  return ({
     token,
     kind,
   }: {
@@ -42,44 +40,8 @@ export const authenticateFactory =
     if (session === undefined || session.kind !== kind) {
       return err(appError('auth/unauthenticated', 'unknown session'))
     }
-    const now = clock.now()
-    const state = sessionState(session, now)
-    if (state === 'revoked') {
-      return err(
-        appError('auth/session_revoked', 'session revoked', { context: { sessionId: session.id } }),
-      )
-    }
-    if (state === 'expired') {
-      return err(
-        appError('auth/session_expired', 'session expired', { context: { sessionId: session.id } }),
-      )
-    }
-    const account = accountRepository.findById(session.accountId)
-    if (account === undefined) return err(appError('auth/unauthenticated', 'unknown account'))
-    if (account.disabledAt !== undefined) {
-      return err(
-        appError('auth/account_disabled', 'account is disabled', {
-          context: { accountId: account.id },
-        }),
-      )
-    }
-
-    const refresh = sessionRefresh(session, now)
-    if (refresh !== undefined) {
-      sessionRepository.touch({
-        id: session.id,
-        lastSeenAt: refresh.lastSeenAt,
-        expiresAt: refresh.expiresAt,
-      })
-    }
-    return ok({
-      account: toAuthAccount(account),
-      session:
-        refresh === undefined
-          ? session
-          : { ...session, lastSeenAt: refresh.lastSeenAt, expiresAt: refresh.expiresAt },
-      renewed: refresh?.renewed ?? false,
-    })
+    return admit(session)
   }
+}
 
 export type Authenticate = ReturnType<typeof authenticateFactory>
