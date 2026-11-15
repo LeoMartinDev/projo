@@ -24,6 +24,7 @@ Pack de production du logo « Ouverture », choisi parmi les propositions de log
 | Android adaptatif | `native/android-adaptive-foreground-1024.png` + `android-background-dark-1024.png` ; paire noire/claire également fournie |
 | Android monochrome | `native/android-monochrome-1024.png` — couche alpha du symbole |
 | Windows | `native/windows-{dark,light}.ico` — 16, 24, 32, 48, 64, 128 et 256 px dans chaque fichier |
+| Application desktop (Windows) | `native/windows-desktop.ico` — carré sombre aux coins arrondis, symbole réduit ; produit par `build-desktop-icon.mjs`, copié vers `apps/desktop/src-tauri/icons/icon.ico` |
 | macOS | `native/macos.icns` — 16, 32, 64, 128, 256, 512 et 1024 px |
 | Vue d’ensemble | `preview.png` et `preview.html` |
 | Inventaire | `inventory.json` |
@@ -59,6 +60,7 @@ Depuis le dépôt, avec Node.js et `sharp` 0.35.5 accessibles :
 ```powershell
 node design/brand/ouverture/build-icons.mjs
 node design/brand/ouverture/verify-icons.mjs
+node design/brand/ouverture/build-desktop-icon.mjs
 ```
 
 Le petit `package.json` local documente la dépendance d’export ; elle n’est pas ajoutée à l’application. Le générateur lit la police fournie par `apps/web/node_modules/geist`. Il régénère le pack et les fichiers sous `apps/web/public/icons/ouverture/`. Il ne modifie pas le HTML ni le manifeste de l’application.
