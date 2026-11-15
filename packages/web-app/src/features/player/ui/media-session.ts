@@ -1,3 +1,7 @@
+import type { MediaSnapshot } from '@projo/player/core/media-state'
+
+import type { NowPlaying, SystemMediaAction, SystemMediaPosition } from '../../../host.ts'
+
 export const mediaSessionSkipS = 10
 
 export const nowPlayingOf = ({
@@ -11,19 +15,27 @@ export const nowPlayingOf = ({
   posterUrl?: string | undefined
   // The media URL of a server path (`mediaUrl`: the desktop app's origin and media key, §20).
   resolve?: (path: string) => string
-}): MediaMetadataInit => ({
+}): Omit<NowPlaying, 'actions'> => ({
   title: subtitle ?? title,
-  ...(subtitle === undefined ? {} : { artist: title }),
-  ...(posterUrl === undefined
-    ? {}
-    : { artwork: [{ src: resolve(`${posterUrl}?w=500`), sizes: '500x750' }] }),
+  ...(subtitle === undefined ? {} : { subtitle: title }),
+  ...(posterUrl === undefined ? {} : { artworkUrl: resolve(`${posterUrl}?w=500`) }),
 })
+
+/** What the system's controls offer: every action, the next track only with a next episode. */
+export const systemMediaActions = (hasNext: boolean): readonly SystemMediaAction[] => [
+  'play',
+  'pause',
+  'seekbackward',
+  'seekforward',
+  'seekto',
+  ...(hasNext ? (['nexttrack'] as const) : []),
+]
 
 export const positionStateOf = (
   duration: number,
   position: number,
   playbackRate: number,
-): MediaPositionState | undefined =>
+): { duration: number; position: number; playbackRate: number } | undefined =>
   Number.isFinite(duration) && duration > 0
     ? {
         duration,
@@ -31,3 +43,16 @@ export const positionStateOf = (
         playbackRate: playbackRate > 0 ? playbackRate : 1,
       }
     : undefined
+
+/** The position the system's timeline shows, once the duration is known. */
+export const systemMediaPositionOf = (media: MediaSnapshot): SystemMediaPosition | undefined => {
+  const state = positionStateOf(media.duration, media.currentTime, media.playbackRate)
+  return state === undefined
+    ? undefined
+    : {
+        playing: !media.paused && !media.ended,
+        positionMs: state.position * 1000,
+        durationMs: state.duration * 1000,
+        rate: state.playbackRate,
+      }
+}

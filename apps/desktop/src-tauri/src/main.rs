@@ -6,6 +6,7 @@
 mod commands;
 mod config;
 mod device;
+mod media_session;
 mod mpv;
 mod origin;
 mod server;
@@ -25,6 +26,7 @@ use tauri::{
 use url::Url;
 
 use crate::commands::is_local_page;
+use crate::media_session::MediaSession;
 use crate::mpv::{Emitted, Player};
 use crate::state::AppState;
 
@@ -89,6 +91,9 @@ fn main() {
             commands::set_token,
             commands::clear_token,
             commands::change_server,
+            commands::media_session_set,
+            commands::media_session_state,
+            commands::media_session_clear,
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -123,6 +128,15 @@ fn main() {
                 }),
             );
             app.manage(AppState::new(config_path, Arc::clone(&player), stored));
+            let media_emitter = handle.clone();
+            app.manage(MediaSession::new(Arc::new(move |action| {
+                let target = EventTarget::webview_window(MAIN);
+                if let Err(error) =
+                    media_emitter.emit_to(target, media_session::ACTION_EVENT, action)
+                {
+                    log::debug!("media action not delivered: {error}");
+                }
+            })));
 
             updates::start(&handle);
             tray::install(&handle)?;
@@ -175,15 +189,24 @@ fn main() {
                     open_externally(&url);
                     NewWindowResponse::Deny
                 })
-                .on_page_load(move |_window, payload| {
-                    // The page that drove mpv is gone (reload, change of server): stop the picture.
-                    if payload.event() == PageLoadEvent::Started && page_loads.has_instance() {
-                        page_loads.destroy_later();
+                .on_page_load(move |window, payload| {
+                    // The page that drove mpv is gone (reload, change of server): stop the picture
+                    // and hide its media session.
+                    if payload.event() == PageLoadEvent::Started {
+                        media_session::clear(window.app_handle());
+                        if page_loads.has_instance() {
+                            page_loads.destroy_later();
+                        }
                     }
                 })
                 .build()?;
             match window.window_handle().map(|handle| handle.as_raw()) {
-                Ok(RawWindowHandle::Win32(win32)) => player.set_wid(win32.hwnd.get() as i64),
+                Ok(RawWindowHandle::Win32(win32)) => {
+                    player.set_wid(win32.hwnd.get() as i64);
+                    if let Some(media) = handle.try_state::<MediaSession>() {
+                        media.set_hwnd(win32.hwnd.get());
+                    }
+                }
                 Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),
                 Err(error) => log::warn!("no window handle ({error}): mpv opens its own window"),
             }
@@ -193,6 +216,7 @@ fn main() {
             // mpv's video window is a child of this one: destroy mpv first (off the UI thread), then
             // the window.
             if let WindowEvent::CloseRequested { api, .. } = event {
+                media_session::clear(window.app_handle());
                 let player = Arc::clone(&window.state::<AppState>().player);
                 if player.has_instance() {
                     api.prevent_close();
@@ -216,6 +240,10 @@ fn main() {
     };
     app.run(|handle, event| {
         if let RunEvent::Exit = event {
+            // On the main thread: the media controls' WinRT calls belong there.
+            if let Some(media) = handle.try_state::<MediaSession>() {
+                media.shutdown();
+            }
             if let Some(state) = handle.try_state::<AppState>() {
                 state.player.destroy_blocking();
             }

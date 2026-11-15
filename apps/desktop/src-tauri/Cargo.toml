@@ -27,10 +27,17 @@ tauri-plugin-updater = { version = "2.14.1", default-features = false, features 
 [target.'cfg(windows)'.dependencies]
 # The session token in the Credential Manager (token.rs), the native backend only.
 keyring = { version = "=3.6.3", default-features = false, features = ["windows-native"] }
-# The computer's name (device.rs) and the user's locale (tray.rs): the version wry already uses.
+# The computer's name (device.rs), the user's locale (tray.rs) and the system media controls
+# (media_session.rs): the version wry already uses.
 windows = { version = "0.62.2", features = [
+  "Foundation",
+  "Graphics_Imaging",
+  "Media",
+  "Storage_Streams",
+  "Win32_Foundation",
   "Win32_Globalization",
   "Win32_System_SystemInformation",
+  "Win32_System_WinRT",
 ] }
 
 [profile.release]

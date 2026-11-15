@@ -26,6 +26,12 @@ export const bindFakeHost = ({
     sendLeave: unused,
     session,
     playerEngine: unused,
+    systemMedia: {
+      set: () => undefined,
+      position: () => undefined,
+      clear: () => undefined,
+      onAction: () => () => undefined,
+    },
     updates: {
       start: () => () => undefined,
       offered: () => undefined,

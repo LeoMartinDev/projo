@@ -2,8 +2,9 @@ import { useEffect, useEffectEvent } from 'react'
 
 import type { MediaEventType } from '@projo/player/core/media-state'
 
+import { type NowPlaying, type SystemMediaRequest, useHost } from '../../../host.ts'
 import type { WebPlayerEngine } from '../web-engine.ts'
-import { mediaSessionSkipS, positionStateOf } from './media-session.ts'
+import { mediaSessionSkipS, systemMediaActions, systemMediaPositionOf } from './media-session.ts'
 
 const positionEvents: ReadonlySet<MediaEventType> = new Set([
   'loadedmetadata',
@@ -12,8 +13,10 @@ const positionEvents: ReadonlySet<MediaEventType> = new Set([
   'ratechange',
   'play',
   'pause',
+  'ended',
 ])
 
+/** Drives the system's media controls (`AppHost.systemMedia`) while the player shows a title. */
 export const useMediaSession = ({
   engine,
   metadata,
@@ -21,31 +24,37 @@ export const useMediaSession = ({
   next,
 }: {
   engine: WebPlayerEngine
-  metadata: MediaMetadataInit | undefined
+  metadata: Omit<NowPlaying, 'actions'> | undefined
   seekBy: (deltaMs: number) => void
   next: (() => void) | undefined
 }) => {
+  const { systemMedia } = useHost()
   const onSeekBy = useEffectEvent(seekBy)
   const onNext = useEffectEvent(() => next?.())
   const hasNext = next !== undefined
 
   useEffect(() => {
-    if (metadata === undefined || !('mediaSession' in navigator)) return
-    const session = navigator.mediaSession
-    session.metadata = new MediaMetadata(metadata)
-    const handlers: [MediaSessionAction, MediaSessionActionHandler | undefined][] = [
-      ['play', () => engine.play()],
-      ['pause', () => engine.pause()],
-      ['seekbackward', () => onSeekBy(-mediaSessionSkipS * 1000)],
-      ['seekforward', () => onSeekBy(mediaSessionSkipS * 1000)],
-      ['seekto', (details) => engine.seek(details.seekTime ?? engine.read().currentTime)],
-      ['nexttrack', hasNext ? () => onNext() : undefined],
-    ]
-    for (const [action, handler] of handlers) session.setActionHandler(action, handler as never)
+    if (metadata === undefined) return
+    systemMedia.set({ ...metadata, actions: systemMediaActions(hasNext) })
+    const stopActions = systemMedia.onAction((request: SystemMediaRequest) => {
+      switch (request.action) {
+        case 'play':
+          return engine.play()
+        case 'pause':
+          return engine.pause()
+        case 'seekbackward':
+          return onSeekBy(-mediaSessionSkipS * 1000)
+        case 'seekforward':
+          return onSeekBy(mediaSessionSkipS * 1000)
+        case 'seekto':
+          return engine.seek(request.seekTimeMs / 1000)
+        case 'nexttrack':
+          return hasNext ? onNext() : undefined
+      }
+    })
     const position = () => {
-      const media = engine.read()
-      const state = positionStateOf(media.duration, media.currentTime, media.playbackRate)
-      if (state !== undefined) session.setPositionState(state)
+      const state = systemMediaPositionOf(engine.read())
+      if (state !== undefined) systemMedia.position(state)
     }
     position()
     const unsubscribe = engine.events.subscribe((event) => {
@@ -53,8 +62,8 @@ export const useMediaSession = ({
     })
     return () => {
       unsubscribe()
-      for (const [action] of handlers) session.setActionHandler(action, undefined as never)
-      session.metadata = undefined as never
+      stopActions()
+      systemMedia.clear()
     }
-  }, [engine, metadata, hasNext])
+  }, [systemMedia, engine, metadata, hasNext])
 }

@@ -49,6 +49,47 @@ export type HostSession =
       drop: () => Promise<void>
     }
 
+/** What the system's media controls can ask of the player (keys, overlays, lock screen). */
+export type SystemMediaAction =
+  'play' | 'pause' | 'seekbackward' | 'seekforward' | 'seekto' | 'nexttrack'
+
+/** An action the system asked for; `seekto` carries where to, in milliseconds. */
+export type SystemMediaRequest =
+  { action: Exclude<SystemMediaAction, 'seekto'> } | { action: 'seekto'; seekTimeMs: number }
+
+/** What the system shows of the playing title (§10.7). */
+export type NowPlaying = {
+  /** Shown first: the movie's title, or the episode's line. */
+  title: string
+  /** The series (absent for a movie). */
+  subtitle?: string
+  /** The poster, already through `mediaUrl()` (absolute on the desktop). */
+  artworkUrl?: string
+  /** The actions the system offers (`nexttrack` only with a next episode). */
+  actions: readonly SystemMediaAction[]
+}
+
+/** Where playback is, for the system's timeline. */
+export type SystemMediaPosition = {
+  playing: boolean
+  positionMs: number
+  durationMs: number
+  rate: number
+}
+
+/**
+ * The system's media controls: the Media Session in the browser, Windows' System Media Transport
+ * Controls on the desktop (over IPC). The player sets what plays, posts its position and listens
+ * to the actions; `clear` when it goes away.
+ */
+export type SystemMedia = {
+  set: (nowPlaying: NowPlaying) => void
+  position: (position: SystemMediaPosition) => void
+  clear: () => void
+  /** Listens to the actions the system asks for; returns the function that stops. */
+  onAction: (listener: (request: SystemMediaRequest) => void) => () => void
+}
+
 /** A row the host adds to Account → About (§28: the desktop app's version). */
 export type AboutRow = { label: 'desktopApp'; value: string }
 
@@ -107,6 +148,8 @@ export type AppHost = {
    * browser, libmpv on the desktop (`@projo/web-app/engines/mpv`, html-video as its fallback).
    */
   playerEngine: () => WebPlayerEngine | Promise<WebPlayerEngine>
+  /** The system's media controls, driven by the player (see `SystemMedia`). */
+  systemMedia: SystemMedia
   /**
    * Window chrome drawn over every page (the desktop's frameless window buttons, §28.4). It keeps
    * pages clear of itself by setting `--chrome-inset` on `:root` while shown.

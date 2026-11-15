@@ -19,6 +19,9 @@ fn main() {
         "set_token",
         "clear_token",
         "change_server",
+        "media_session_set",
+        "media_session_state",
+        "media_session_clear",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("tauri build configuration");

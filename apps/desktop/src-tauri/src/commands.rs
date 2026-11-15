@@ -13,6 +13,7 @@ use url::Url;
 
 use crate::config::{self, Config};
 use crate::device::device_name;
+use crate::media_session::{self, MediaError};
 use crate::mpv::{MpvError, Player};
 use crate::origin::{is_same_origin, parse_server_origin, OriginError};
 use crate::server::{check_health, HealthError};
@@ -38,6 +39,12 @@ impl CommandError {
 
 impl From<MpvError> for CommandError {
     fn from(error: MpvError) -> CommandError {
+        CommandError::new(error.code(), error.message())
+    }
+}
+
+impl From<MediaError> for CommandError {
+    fn from(error: MediaError) -> CommandError {
         CommandError::new(error.code(), error.message())
     }
 }
@@ -148,18 +155,78 @@ pub async fn mpv_observe<R: Runtime>(
     blocking(move || Ok(player.observe(&names)?)).await
 }
 
+/// Also clears the system media controls: nothing plays any more.
 #[tauri::command]
 pub async fn mpv_destroy<R: Runtime>(
+    app: AppHandle<R>,
     webview: Webview<R>,
     state: State<'_, AppState>,
 ) -> CommandResult<()> {
     require_local(&webview)?;
     let player = player(&state);
     blocking(move || {
+        media_session::clear(&app);
         player.destroy_blocking();
         Ok(())
     })
     .await
+}
+
+/// What plays, shown by Windows' media controls (media_session.rs). Synchronous: Tauri runs it on
+/// the main thread, where the WinRT calls belong.
+#[tauri::command]
+pub fn media_session_set<R: Runtime>(
+    app: AppHandle<R>,
+    webview: Webview<R>,
+    state: State<'_, AppState>,
+    title: String,
+    subtitle: Option<String>,
+    artwork_url: Option<String>,
+    actions: Vec<String>,
+) -> CommandResult<()> {
+    require_local(&webview)?;
+    let metadata = media_session::validate_metadata(
+        &title,
+        subtitle.as_deref(),
+        artwork_url.as_deref(),
+        &actions,
+        state.server_origin().as_deref(),
+    )?;
+    let artwork = metadata.artwork.clone();
+    let generation = media_session::on_main_thread(&app, move |session| session.set(&metadata))?;
+    if let Some(url) = artwork {
+        media_session::load_artwork(&app, generation, url);
+    }
+    Ok(())
+}
+
+/// Playing or paused, the position, the duration and the rate, for the media controls' timeline.
+#[tauri::command]
+pub fn media_session_state<R: Runtime>(
+    app: AppHandle<R>,
+    webview: Webview<R>,
+    playing: bool,
+    position_ms: f64,
+    duration_ms: f64,
+    rate: f64,
+) -> CommandResult<()> {
+    require_local(&webview)?;
+    let playback = media_session::validate_state(playing, position_ms, duration_ms, rate)?;
+    Ok(media_session::on_main_thread(&app, move |session| {
+        session.state(&playback)
+    })?)
+}
+
+/// Hides the media controls' session.
+#[tauri::command]
+pub fn media_session_clear<R: Runtime>(
+    app: AppHandle<R>,
+    webview: Webview<R>,
+) -> CommandResult<()> {
+    require_local(&webview)?;
+    Ok(media_session::on_main_thread(&app, |session| {
+        session.clear()
+    })?)
 }
 
 #[derive(Serialize)]
@@ -417,6 +484,7 @@ pub fn request_change_server<R: Runtime>(app: &AppHandle<R>) {
 pub fn change_server_now<R: Runtime>(app: &AppHandle<R>) -> CommandResult<()> {
     let state = app.state::<AppState>();
     state.end_change_server();
+    media_session::clear(app);
     state.player.destroy_blocking();
     if let Some(origin) = state.server_origin() {
         if let Err(TokenError(error)) = token::clear(&origin) {

@@ -1,5 +1,5 @@
 import { desktopAboutRows } from '@projo/web-app/desktop/about.ts'
-import type { TauriInternals } from '@projo/web-app/desktop/tauri.ts'
+import { listenTauri, type TauriInternals } from '@projo/web-app/desktop/tauri.ts'
 import { desktopUpdates } from '@projo/web-app/desktop/updates.ts'
 import { windowControlsChrome } from '@projo/web-app/desktop/WindowControls.tsx'
 import { saveBlob } from '@projo/web-app/download'
@@ -8,13 +8,15 @@ import type { AppHost } from '@projo/web-app/host'
 
 import type { DesktopCommands } from './desktop-commands.ts'
 import { serverRequests } from './server-requests.ts'
+import { desktopSystemMedia } from './system-media.ts'
 import { tokenSession } from './token-session.ts'
 
 /**
  * The desktop host (§28): the bundled page on http://tauri.localhost, an API client of the server
  * at `serverOrigin` with a bearer token (kept by the app in the Credential Manager). Events over a
  * `fetch` stream, downloads as blobs, the last heartbeat as a `keepalive` fetch, libmpv for
- * playback (html-video outside the app), the window buttons, the app's own update and version.
+ * playback (html-video outside the app), Windows' media controls over IPC, the window buttons, the
+ * app's own update and version.
  */
 export const desktopHost = ({
   version,
@@ -61,6 +63,10 @@ export const desktopHost = ({
       const { htmlVideoEngine } = await import('@projo/web-app/engines/html-video')
       return htmlVideoEngine(serverOrigin)
     },
+    systemMedia: desktopSystemMedia({
+      invoke: (command, args) => internals.invoke(command, args),
+      listen: (event, handle) => listenTauri(internals, event, handle),
+    }),
     chrome: windowControlsChrome(),
     updates: desktopUpdates(internals),
     aboutRows: desktopAboutRows(internals),
