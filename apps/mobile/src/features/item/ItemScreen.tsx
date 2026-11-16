@@ -26,7 +26,7 @@ const PlayableDetail = ({ item, regular, gutter }: { item: ItemDetailDto } & Lay
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
   const durationMs = durationMsOf(item)
-  const progress = item.progress
+  const { progress } = watched.progress(item)
   const resume = progress?.state === 'in_progress' ? progress.resumePositionMs : undefined
   const seen = watched.watched(item)
   const listed = watchlist.listed(item)

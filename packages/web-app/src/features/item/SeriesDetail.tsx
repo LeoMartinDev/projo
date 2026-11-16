@@ -48,8 +48,9 @@ const EpisodeRow = ({
   const locale = currentLocale()
   const watched = useWatchedToggle()
   const seen = watched.watched(episode)
-  const ratio = progressRatioOf(episode)
-  const remaining = remainingMsOf(episode)
+  const progress = watched.progress(episode)
+  const ratio = progressRatioOf(progress)
+  const remaining = remainingMsOf(progress)
   const durationMs = durationMsOf(episode)
   const number = episodeNumberLabel(episode) ?? '–'
   const title = itemTitle(t, episode)
@@ -248,7 +249,11 @@ export const SeriesDetail = ({
   const seasons = useQuery(childrenQuery(series.id))
   const seasonItems = (seasons.data?.items ?? []).toSorted(bySeason)
   const play = series.play
-  const selected = selectedSeasonOf(seasonItems, season ?? play?.seasonNumber)
+  // Without a season in the address, the page opens on the season of the play target, then stays
+  // there: marking episodes watched moves that target, and the list must not jump to another
+  // season under the pointer.
+  const [landing] = useState(play?.seasonNumber)
+  const selected = selectedSeasonOf(seasonItems, season ?? landing)
   const episodes = useQuery({
     ...childrenQuery(selected?.id ?? ''),
     enabled: selected !== undefined,

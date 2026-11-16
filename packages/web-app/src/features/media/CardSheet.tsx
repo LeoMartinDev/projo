@@ -31,6 +31,12 @@ export const CardSheet = ({
 }) => {
   const titleId = useId()
   const device = useDevice()
+  // The card left its list (marked watched in "Continue watching", a filtered grid): the menu
+  // closes for good, instead of opening again over a card that is gone if the item comes back.
+  const gone = anchor !== undefined && item === undefined
+  useEffect(() => {
+    if (gone) onClose()
+  }, [gone, onClose])
   if (device !== 'phone' && item !== undefined && anchor !== undefined)
     return <CardMenu item={item} place={place} anchor={anchor} onClose={onClose} />
   return (
@@ -156,7 +162,7 @@ const CardSheetBody = ({
   const text = useCardText()(item)
   const actions = useCardActions(item, place)
   const { listed, seen, error } = actions
-  const ratio = progressRatioOf(item)
+  const ratio = progressRatioOf(actions.progress)
   const rating = useRatingBadge()(item.contentRating)
   const target = detailTargetOf(item)
 

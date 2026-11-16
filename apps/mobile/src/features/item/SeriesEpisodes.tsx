@@ -47,8 +47,9 @@ const EpisodeRow = ({
   const locale = useLocale()
   const watched = useWatchedToggle()
   const seen = watched.watched(episode)
-  const ratio = progressRatioOf(episode)
-  const remaining = remainingMsOf(episode)
+  const progress = watched.progress(episode)
+  const ratio = progressRatioOf(progress)
+  const remaining = remainingMsOf(progress)
   const durationMs = durationMsOf(episode)
   const title = itemTitle(t, episode)
   const score = formatScore(episode.voteAverage, locale)
@@ -137,11 +138,14 @@ export const SeriesEpisodes = ({
   const queries = useCatalogQueries()
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
-  const [chosen, setChosen] = useState(season)
+  // Without a season asked for, the screen opens on the season of the play target, then stays
+  // there: marking episodes watched moves that target, and the list must not jump to another
+  // season under the finger.
+  const [chosen, setChosen] = useState(season ?? series.play?.seasonNumber)
   const seasons = useQuery(queries.children(series.id))
   const seasonItems = sortedSeasons(seasons.data?.items ?? [])
   const play = series.play
-  const selected = selectedSeasonOf(seasonItems, chosen ?? play?.seasonNumber)
+  const selected = selectedSeasonOf(seasonItems, chosen)
   const episodes = useQuery({
     ...queries.children(selected?.id ?? ''),
     enabled: selected !== undefined,

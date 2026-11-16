@@ -42,12 +42,19 @@ export const useWatchedToggle = () => {
         : request(() => api.items[':id'].watched.$delete({ param: { id } })),
     onSettled: refresh,
   })
+  const pendingOf = (item: Pick<ItemSummaryDto, 'id'>) =>
+    mutation.isPending && mutation.variables.id === item.id ? mutation.variables : undefined
   return {
     mutation,
     watched: (item: Pick<ItemSummaryDto, 'id' | 'progress' | 'watchStatus'>): boolean =>
-      mutation.isPending && mutation.variables.id === item.id
-        ? mutation.variables.watched
-        : isWatched(item),
+      pendingOf(item)?.watched ?? isWatched(item),
+    /**
+     * Where the item resumes, as the pending toggle leaves it: marking it watched or unwatched
+     * drops the resume position, so its bar and "Resume" go away with the tick, not one refetch
+     * later.
+     */
+    progress: (item: Pick<ItemSummaryDto, 'id' | 'progress'>): Pick<ItemSummaryDto, 'progress'> =>
+      pendingOf(item) === undefined ? item : {},
     set: (id: string, watched: boolean) => mutation.mutate({ id, watched }),
   }
 }
@@ -87,6 +94,7 @@ export const useCardActions = (item: ItemSummaryDto, place: CardPlace) => {
   const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
   const seen = watched.watched(item)
   return {
+    progress: watched.progress(item),
     canList: listTarget !== undefined,
     listed,
     toggleList: () => {

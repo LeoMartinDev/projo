@@ -22,10 +22,10 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: A
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
   const durationMs = durationMsOf(item)
-  const progress = item.progress
+  const { progress } = watched.progress(item)
   const resume = progress?.state === 'in_progress' ? progress.resumePositionMs : undefined
-  const ratio = resume === undefined ? undefined : progressRatioOf(item)
-  const remaining = remainingMsOf(item)
+  const ratio = resume === undefined ? undefined : progressRatioOf({ progress })
+  const remaining = remainingMsOf({ progress })
   const playable = item.sources.length > 0
   const seen = watched.watched(item)
   const listed = watchlist.listed(item)

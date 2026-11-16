@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { type SFSymbol, SymbolView } from 'expo-symbols'
-import { useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 
@@ -71,10 +71,22 @@ export const CardSheet = () => {
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
   const hide = useHideFromContinue()
+  const closed = useRef(false)
+  const close = () => {
+    if (closed.current) return
+    closed.current = true
+    router.back()
+  }
+  // The card left its list (marked watched in "Continue watching", a filtered grid): the sheet
+  // goes with it instead of staying open and empty.
+  const gone = item === undefined
+  useEffect(() => {
+    if (gone) close()
+  })
   if (item === undefined) return undefined
 
   const text = textOf(item)
-  const ratio = progressRatioOf(item)
+  const ratio = progressRatioOf(watched.progress(item))
   const listTarget = listTargetOf(item)
   const listed = listTarget === undefined ? false : watchlist.listed(listTarget)
   const seen = watched.watched(item)
@@ -114,7 +126,7 @@ export const CardSheet = () => {
           accessibilityLabel={t('common.close')}
           accessibilityRole="button"
           hitSlop={8}
-          onPress={() => router.back()}
+          onPress={close}
           style={({ pressed }) => [styles.close, pressed && styles.pressed]}
         >
           <SymbolView name="xmark" size={13} tintColor={colors.textMutedStrong} weight="bold" />
@@ -151,7 +163,7 @@ export const CardSheet = () => {
           icon="info.circle"
           label={t('card.info')}
           onPress={() => {
-            router.back()
+            close()
             router.push(itemHref(item))
           }}
         />
@@ -161,7 +173,7 @@ export const CardSheet = () => {
         <Pressable
           accessibilityRole="button"
           disabled={hide.isPending}
-          onPress={() => hide.mutate(item.id, { onSuccess: () => router.back() })}
+          onPress={() => hide.mutate(item.id, { onSuccess: close })}
           style={({ pressed }) => [styles.remove, pressed && styles.pressed]}
         >
           <SymbolView name="xmark" size={18} tintColor={colors.errorSoft} />
