@@ -159,10 +159,11 @@ export const openLanguagesMenu = async (page: Page, tab: LanguagesTab) => {
   return showLanguagesTab(page.getByRole('dialog', { name: fr.player.menu.title }), tab)
 }
 
+// The settings menu (speed, version, quality, playback info), open.
 export const openQualityMenu = async (page: Page) => {
   await wakePlayer(page)
-  await page.getByRole('button', { name: fr.player.menu.quality, exact: true }).click()
-  const menu = page.getByRole('dialog', { name: fr.player.menu.quality })
+  await page.getByRole('button', { name: fr.player.menu.settings, exact: true }).click()
+  const menu = page.getByRole('dialog', { name: fr.player.menu.settings })
   await expect(menu).toBeVisible()
   return menu
 }

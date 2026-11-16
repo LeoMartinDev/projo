@@ -35,6 +35,14 @@ describe('commandFor', () => {
     expect(commandFor(key('x'), idle)).toBeUndefined()
   })
 
+  test('< and > step the speed, whatever the layout puts them under', () => {
+    expect(commandFor(key('<'), idle)).toBe('speed_down')
+    expect(commandFor(key('>'), idle)).toBe('speed_up')
+    expect(commandFor(key('>', { ctrlKey: true }), idle)).toBeUndefined()
+    expect(commandFor(key('<'), { ...idle, inOverlay: true, overlayOpen: true })).toBeUndefined()
+    expect(commandFor(key('>'), { ...idle, editing: true })).toBeUndefined()
+  })
+
   test('modifiers and text fields belong to the browser', () => {
     expect(commandFor(key('f', { metaKey: true }), idle)).toBeUndefined()
     expect(commandFor(key('c', { ctrlKey: true }), idle)).toBeUndefined()

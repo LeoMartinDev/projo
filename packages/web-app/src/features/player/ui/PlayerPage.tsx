@@ -26,6 +26,7 @@ import {
   chapterIndexAt,
   chaptersOnItem,
   currentPartDurationMs,
+  endsAtMs,
   ratioOf,
   remainingMs,
   segmentZones,
@@ -39,12 +40,12 @@ import type { PlaybackQuality } from '@projo/shared/api/playback'
 import { mediaUrl } from '../../../shared/api/media.ts'
 import { useSessionFileUrl } from '../../../shared/api/use-session-file-url.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
-import { formatClock } from '../../../shared/format/format.ts'
+import { formatClock, formatTimeOfDay } from '../../../shared/format/format.ts'
 import { useErrorMessage } from '../../../shared/i18n/errors.ts'
+import { currentLocale } from '../../../shared/i18n/index.ts'
 import { pickActiveProfile } from '../../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../../shared/session/session.ts'
 import {
-  BackIcon,
   Forward10Icon,
   MutedIcon,
   PauseIcon,
@@ -81,25 +82,24 @@ import {
   CornersIcon,
   CornersInIcon,
   EpisodesIcon,
+  ExitArrowIcon,
   NextEpisodeIcon,
   PictureInPictureIcon,
-  QualityIcon,
   SeekArrowsIcon,
-  SpeedIcon,
+  SettingsIcon,
   SubtitlesIcon,
 } from './player-icons.tsx'
 import {
   ChaptersMenu,
-  hasQualityChoice,
   LanguagesMenu,
   type LanguagesTab,
   type PlayerMenu,
-  QualityMenu,
-  SpeedMenu,
+  SettingsMenu,
 } from './PlayerMenus.tsx'
 import {
   loadSubtitleSettings,
   loadPlaybackInfoShown,
+  rateStepFrom,
   savePlaybackInfoShown,
   saveSubtitleSettings,
   type SubtitleSettings,
@@ -123,6 +123,7 @@ import { useEngineSubtitles, usePictureBehindPage } from './use-picture-behind-p
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import { useStore } from './use-store.ts'
+import { useWallClock } from './use-wall-clock.ts'
 import './player.css'
 
 const seekStepMs = 10_000
@@ -249,6 +250,7 @@ export const PlayerPage = ({
   useWindowFullscreenScope(engine.windowFullscreen)
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useStore(controller)
+  const wallClockMs = useWallClock()
   const media = useStore(engine.state)
   const documentFullscreen = useIsFullscreen()
   const windowFullscreen = useStore(engine.windowFullscreen?.active ?? notInWindowFullscreen)
@@ -464,6 +466,10 @@ export const PlayerPage = ({
         return controller.toggleSubtitles()
       case 'toggle_info':
         return toggleInfo()
+      case 'speed_down':
+        return controller.setRate(rateStepFrom(controller.get().rate, -1))
+      case 'speed_up':
+        return controller.setRate(rateStepFrom(controller.get().rate, 1))
       case 'close_overlay':
         return closeOverlay()
       case 'exit':
@@ -711,11 +717,16 @@ export const PlayerPage = ({
     profile !== undefined &&
     profileDefaultsFor(toast.kind, toast.current, profile) !== undefined
   const limitReached = failure?.code === 'playback/transcode_limit_reached'
+  const remaining = formatClock(remainingMs(positionMs, totalMs))
+  const endsAt = endsAtMs({ nowMs: wallClockMs, positionMs, totalMs, rate: state.rate })
+  const endsAtText =
+    endsAt === undefined
+      ? ''
+      : t('player.endsAt', { time: formatTimeOfDay(endsAt, currentLocale()) })
 
   const menuTitles: Record<PlayerMenu, string> = {
     languages: t('player.menu.title'),
-    speed: t('player.menu.speed'),
-    quality: t('player.menu.quality'),
+    settings: t('player.menu.settings'),
     chapters: t('player.menu.chapters'),
   }
   const menuButton = (menu: PlayerMenu, icon: ReactNode) => (
@@ -889,7 +900,7 @@ export const PlayerPage = ({
           aria-label={t('player.quit')}
           onClick={exit}
         >
-          <BackIcon size={22} />
+          <ExitArrowIcon size={22} />
         </button>
         {session?.burnIn === true ? (
           <span className="player__badge">{t('player.burnIn')}</span>
@@ -1017,11 +1028,11 @@ export const PlayerPage = ({
               onSubtitleSettings={changeSubtitleSettings}
               sizeAdjustable={!hlsSubtitles}
             />
-          ) : overlay === 'speed' ? (
-            <SpeedMenu rate={state.rate} onRate={controller.setRate} onClose={closeOverlay} />
-          ) : overlay === 'quality' ? (
-            <QualityMenu
+          ) : overlay === 'settings' ? (
+            <SettingsMenu
               session={session}
+              rate={state.rate}
+              onRate={controller.setRate}
               onQuality={(quality: PlaybackQuality) => controller.chooseQuality(quality)}
               onVersion={controller.chooseVersion}
               infoShown={infoShown}
@@ -1079,13 +1090,17 @@ export const PlayerPage = ({
                 preloadImages(sheetUrls(trickplayUrl, trickplay.data))
             }}
           />
-          <span
-            className="player__remaining"
-            aria-label={t('player.remaining', {
-              time: formatClock(remainingMs(positionMs, totalMs)),
-            })}
-          >
-            −{formatClock(remainingMs(positionMs, totalMs))}
+          <span className="player__remaining">
+            <span aria-hidden="true">−{remaining}</span>
+            {endsAt === undefined ? undefined : (
+              <span className="player__ends-at player__ends-at--bar" aria-hidden="true">
+                {` · ${endsAtText}`}
+              </span>
+            )}
+            <span className="visually-hidden">
+              {t('player.remaining', { time: remaining })}
+              {endsAt === undefined ? '' : `, ${endsAtText}`}
+            </span>
           </span>
         </div>
 
@@ -1152,6 +1167,11 @@ export const PlayerPage = ({
             {subtitle === undefined ? undefined : (
               <span className="player__subtitle">{subtitle}</span>
             )}
+            {endsAt === undefined ? undefined : (
+              <span className="player__ends-at player__ends-at--heading" aria-hidden="true">
+                {endsAtText}
+              </span>
+            )}
           </div>
 
           {nextEpisode === undefined ? undefined : (
@@ -1176,11 +1196,8 @@ export const PlayerPage = ({
             </button>
           ) : undefined}
           {chapters.length > 0 ? menuButton('chapters', <ChaptersIcon size={22} />) : undefined}
-          {menuButton('speed', <SpeedIcon size={22} />)}
-          {session !== undefined && hasQualityChoice(session)
-            ? menuButton('quality', <QualityIcon size={22} />)
-            : undefined}
           {menuButton('languages', <SubtitlesIcon size={22} />)}
+          {menuButton('settings', <SettingsIcon size={22} />)}
           {engine.capabilities.pictureInPicture ? (
             <button
               type="button"

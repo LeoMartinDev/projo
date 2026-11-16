@@ -12,6 +12,12 @@ const svg = (size: number) => ({
   focusable: false,
 })
 
+export const ExitArrowIcon = ({ size = 22 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.75}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </svg>
+)
+
 export const NextEpisodeIcon = ({ size = 22 }: IconProps) => (
   <svg {...svg(size)}>
     <path d="M5.5 5v14l10-7z" fill="currentColor" stroke="none" />
@@ -33,15 +39,7 @@ export const SubtitlesIcon = ({ size = 22 }: IconProps) => (
   </svg>
 )
 
-export const SpeedIcon = ({ size = 22 }: IconProps) => (
-  <svg {...svg(size)} strokeWidth={1.6}>
-    <path d="M4.2 17.5a8.5 8.5 0 1 1 15.6 0" />
-    <path d="M12 14l3.5-4.5" />
-    <circle cx="12" cy="14" r="1.2" fill="currentColor" stroke="none" />
-  </svg>
-)
-
-export const QualityIcon = ({ size = 22 }: IconProps) => (
+export const SettingsIcon = ({ size = 22 }: IconProps) => (
   <svg {...svg(size)} strokeWidth={1.6}>
     <path d="M4 7.5h8.5M16.5 7.5H20M4 16.5h3.5M11.5 16.5H20" />
     <circle cx="14.5" cy="7.5" r="2" />

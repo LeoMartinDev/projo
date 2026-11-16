@@ -85,6 +85,20 @@ export const snapToSeekPoint = (
 export const remainingMs = (positionMs: number, totalMs: number) =>
   Math.max(0, totalMs - Math.max(0, positionMs))
 
+/** The clock time the item ends at, playing on at `rate`; unknown without a duration. */
+export const endsAtMs = ({
+  nowMs,
+  positionMs,
+  totalMs,
+  rate,
+}: {
+  nowMs: number
+  positionMs: number
+  totalMs: number
+  rate: number
+}): number | undefined =>
+  totalMs <= 0 || rate <= 0 ? undefined : nowMs + remainingMs(positionMs, totalMs) / rate
+
 export const ratioOf = (positionMs: number, totalMs: number) =>
   totalMs > 0 ? Math.min(1, Math.max(0, positionMs / totalMs)) : 0
 

@@ -10,6 +10,8 @@ export type PlayerCommand =
   | 'next_episode'
   | 'toggle_subtitles'
   | 'toggle_info'
+  | 'speed_down'
+  | 'speed_up'
   | 'close_overlay'
   | 'exit'
 
@@ -46,6 +48,9 @@ const keys: Record<string, PlayerCommand> = {
   ArrowRight: 'seek_forward',
   ArrowUp: 'volume_up',
   ArrowDown: 'volume_down',
+  // Shift is not a modifier here: `>` needs it on most layouts.
+  '<': 'speed_down',
+  '>': 'speed_up',
 }
 
 export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand | undefined => {

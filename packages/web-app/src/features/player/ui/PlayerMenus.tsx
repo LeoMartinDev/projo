@@ -43,7 +43,7 @@ import {
 } from '@projo/player/core/subtitles'
 import { ratioAtPointer } from '@projo/player/core/timeline'
 
-export type PlayerMenu = 'languages' | 'speed' | 'quality' | 'chapters'
+export type PlayerMenu = 'languages' | 'settings' | 'chapters'
 
 export type LanguagesTab = 'audio' | 'subtitles'
 
@@ -428,23 +428,23 @@ export const LanguagesMenu = ({
   )
 }
 
-export const SpeedMenu = ({
+const SpeedSlider = ({
   rate,
   onRate,
-  onClose,
+  label,
+  valueText,
+  number,
 }: {
   rate: number
   onRate: (rate: number) => void
-  onClose: () => void
+  label: string
+  valueText: string
+  number: Intl.NumberFormat
 }) => {
-  const { t } = useTranslation()
   const [drag, setDrag] = useState<number>()
-  const number = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 2 })
   const percent = (value: number) => `${ratioOfRate(value) * 100}%`
   const thumbRatio = drag ?? ratioOfRate(rate)
   const thumb = `${thumbRatio * 100}%`
-  const value = number.format(rate)
-  const label = `${value}×`
 
   const dragTo = (event: PointerEvent<HTMLDivElement>) => {
     const ratio = ratioAtPointer(event.clientX, event.currentTarget.getBoundingClientRect())
@@ -472,70 +472,69 @@ export const SpeedMenu = ({
   }
 
   return (
-    <>
-      <MenuHeader title={t('player.menu.speed')} onClose={onClose} />
-      <div className="speed-value" aria-hidden="true">
-        {value}
-        <span className="speed-value__unit">×</span>
-      </div>
-      <div className="speed-slider">
-        <div
-          className="speed-slider__control"
-          role="slider"
-          tabIndex={0}
-          aria-label={t('player.menu.speed')}
-          aria-valuemin={playbackRates[0]}
-          aria-valuemax={playbackRates[playbackRates.length - 1]}
-          aria-valuenow={rate}
-          aria-valuetext={label}
-          data-dragging={drag === undefined ? undefined : ''}
-          onKeyDown={onKeyDown}
-          onPointerDown={(event) => {
-            if (event.button !== 0) return
-            event.currentTarget.setPointerCapture(event.pointerId)
-            dragTo(event)
-          }}
-          onPointerMove={(event) => {
-            if (drag !== undefined) dragTo(event)
-          }}
-          onPointerUp={() => setDrag(undefined)}
-          onPointerCancel={() => setDrag(undefined)}
-        >
-          <span className="speed-slider__track" aria-hidden="true">
-            <span className="speed-slider__fill" style={{ width: thumb }} />
-            {playbackRates.map((value) => (
-              <span
-                key={value}
-                className="speed-slider__detent"
-                data-passed={ratioOfRate(value) <= thumbRatio ? '' : undefined}
-                style={{ left: percent(value) }}
-              />
-            ))}
-          </span>
-          <span className="speed-slider__thumb" aria-hidden="true" style={{ left: thumb }} />
-        </div>
-        <div className="speed-slider__labels" aria-hidden="true">
+    <div className="speed-slider">
+      <div
+        className="speed-slider__control"
+        role="slider"
+        tabIndex={0}
+        aria-label={label}
+        aria-valuemin={playbackRates[0]}
+        aria-valuemax={playbackRates[playbackRates.length - 1]}
+        aria-valuenow={rate}
+        aria-valuetext={valueText}
+        data-dragging={drag === undefined ? undefined : ''}
+        onKeyDown={onKeyDown}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return
+          event.currentTarget.setPointerCapture(event.pointerId)
+          dragTo(event)
+        }}
+        onPointerMove={(event) => {
+          if (drag !== undefined) dragTo(event)
+        }}
+        onPointerUp={() => setDrag(undefined)}
+        onPointerCancel={() => setDrag(undefined)}
+      >
+        <span className="speed-slider__track" aria-hidden="true">
+          <span className="speed-slider__fill" style={{ width: thumb }} />
           {playbackRates.map((value) => (
-            <button
+            <span
               key={value}
-              type="button"
-              tabIndex={-1}
-              className="speed-slider__label"
-              data-current={value === rate ? '' : undefined}
+              className="speed-slider__detent"
+              data-passed={ratioOfRate(value) <= thumbRatio ? '' : undefined}
               style={{ left: percent(value) }}
-              onClick={() => onRate(value)}
-            >
-              {number.format(value)}
-            </button>
+            />
           ))}
-        </div>
+        </span>
+        <span className="speed-slider__thumb" aria-hidden="true" style={{ left: thumb }} />
       </div>
-    </>
+      <div className="speed-slider__labels" aria-hidden="true">
+        {playbackRates.map((value) => (
+          <button
+            key={value}
+            type="button"
+            tabIndex={-1}
+            className="speed-slider__label"
+            data-current={value === rate ? '' : undefined}
+            style={{ left: percent(value) }}
+            onClick={() => onRate(value)}
+          >
+            {number.format(value)}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
-export const QualityMenu = ({
+/**
+ * Speed, then version and quality when there is a choice, then the playback
+ * info switch (§10.7).
+ */
+export const SettingsMenu = ({
   session,
+  rate,
+  onRate,
   onQuality,
   onVersion,
   infoShown,
@@ -543,6 +542,8 @@ export const QualityMenu = ({
   onClose,
 }: {
   session: PlaybackSessionDto
+  rate: number
+  onRate: (rate: number) => void
   onQuality: (quality: PlaybackQuality) => void
   onVersion: (sourceId: string) => void
   infoShown: boolean
@@ -550,26 +551,37 @@ export const QualityMenu = ({
   onClose: () => void
 }) => {
   const { t } = useTranslation()
+  const speedTitleId = useId()
   const infoLabelId = useId()
+  const number = new Intl.NumberFormat(currentLocale(), { maximumFractionDigits: 2 })
+  const rateText = `${number.format(rate)}×`
   const versionNames = versionLabels(
     t,
     session.versions.map((version) => version.version),
   )
-  const qualityOptions = (
+  const qualities =
     session.availableQualities.length > 0 ? session.availableQualities : (['original'] as const)
-  ).map((quality) => (
-    <Option
-      key={quality}
-      checked={quality === session.quality}
-      label={quality === 'original' ? t('player.menu.original') : quality}
-      onSelect={() => onQuality(quality)}
-    />
-  ))
   return (
     <>
-      <MenuHeader title={t('player.menu.quality')} onClose={onClose} />
-      {session.versions.length > 1 ? (
-        <div className="menu-list">
+      <MenuHeader title={t('player.menu.settings')} onClose={onClose} />
+      <div className="menu-list settings-menu__sections">
+        <section className="menu-section" aria-labelledby={speedTitleId}>
+          <h3 id={speedTitleId} className="menu-section__title">
+            {t('player.menu.speed')}
+            <span className="menu-section__value" aria-hidden="true">
+              {' · '}
+              {rateText}
+            </span>
+          </h3>
+          <SpeedSlider
+            rate={rate}
+            onRate={onRate}
+            label={t('player.menu.speed')}
+            valueText={rateText}
+            number={number}
+          />
+        </section>
+        {hasQualityChoice(session) && session.versions.length > 1 ? (
           <Section title={t('player.menu.version')}>
             {session.versions.map((version, position) => (
               <Option
@@ -580,13 +592,20 @@ export const QualityMenu = ({
               />
             ))}
           </Section>
-          <Section title={t('player.menu.quality')}>{qualityOptions}</Section>
-        </div>
-      ) : (
-        <div className="menu-list" role="radiogroup" aria-label={t('player.menu.quality')}>
-          {qualityOptions}
-        </div>
-      )}
+        ) : undefined}
+        {hasQualityChoice(session) ? (
+          <Section title={t('player.menu.quality')}>
+            {qualities.map((quality) => (
+              <Option
+                key={quality}
+                checked={quality === session.quality}
+                label={quality === 'original' ? t('player.menu.original') : quality}
+                onSelect={() => onQuality(quality)}
+              />
+            ))}
+          </Section>
+        ) : undefined}
+      </div>
       <div className="menu-info">
         <span id={infoLabelId} className="menu-info__label">
           {t('player.info.title')}

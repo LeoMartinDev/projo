@@ -475,6 +475,7 @@
     "nextEpisode": "Épisode suivant",
     "episodes": "Liste des épisodes",
     "remaining": "{{time}} restantes",
+    "endsAt": "Fin à {{time}}",
     "burnIn": "Sous-titres incrustés, qualité réduite",
     "reconnecting": "Connexion perdue, reprise…",
     "skip": {
@@ -530,6 +531,7 @@
       "version": "Version",
       "original": "Original",
       "speed": "Vitesse",
+      "settings": "Réglages",
       "pip": "Picture-in-Picture",
       "airplay": "AirPlay",
       "chapterNumber": "Chapitre {{number}}",

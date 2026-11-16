@@ -32,8 +32,8 @@ An additional [fictional film and series sample library](sample-library/README.m
 | `Player.dc.html` | Player: bar with segment zones, controls, "Skip intro" with an 8 s bar, Undo toast | §10.7, §12.4 |
 | `PlayerNext.dc.html` | Player, end of episode: shrunk video, next episode card, Next episode / Watch the credits | §10.7, §12.4 |
 | `PlayerChapters.dc.html` | Player — Chapters menu: list with start times, the current chapter highlighted | §10.7 |
-| `PlayerSpeed.dc.html` | Player — Speed menu: the speed in large, slider on four steps (0.5×, 1×, 1.5×, 2×) in a card, steps as chips | §10.7 |
-| `PlayerQuality.dc.html` | Player — Quality menu: Version (when the item has several) then Quality (Original, 1080p, 720p, 480p) | §7.7, §10.2 |
+| `PlayerSpeed.dc.html` | Player — Speed menu (earlier, separate): the speed in large, slider on four steps (0.5×, 1×, 1.5×, 2×) in a card, steps as chips; now the Speed section of the Settings menu | §10.7 |
+| `PlayerQuality.dc.html` | Player — Quality menu (earlier, separate): Version (when the item has several) then Quality (Original, 1080p, 720p, 480p); now sections of the Settings menu | §7.7, §10.2 |
 | `PlayerLanguages.dc.html` | Player — Subtitles and audio, wide: two columns, tags (Forced, SDH, Image) and details, size and delay card under the subtitles, subtitles shown beside the menu | §10.4, §10.7 |
 | `MobilePlayerLanguages.dc.html` | Mobile — Subtitles and audio, compact: Audio / Subtitles tabs sharing the height of the longer, size and delay side by side | §10.7, §26 |
 | `AdminLibraries.dc.html` | Admin — Libraries: one card per library, Resync, Recent activity | §15 |
@@ -49,7 +49,7 @@ An additional [fictional film and series sample library](sample-library/README.m
 | `OnbReady.dc.html` | Onboarding 6 — All set: scrolling poster wall, animated check mark, analysis progress, Open projo / Go to administration | §15 |
 | `Components.dc.html` | UI kit v2: buttons, fields, controls, choice cards | §19 |
 
-The player menus are drawn from the web player as built (`packages/web-app/src/features/player/ui/PlayerMenus.tsx`, `player.css`): one button per menu in the controls row (chapters when the file has some, speed, quality when there is a choice, subtitles and audio, Picture-in-Picture), smoked glass menus (`blur(44px) saturate(180%) brightness(.58)` over a dark gradient), radius 22 (28 for the wide subtitles menu), a check on the chosen option. `Player.dc.html` still shows the earlier row with a single "Subtitles and audio" button.
+The player menus are drawn from the web player as built (`packages/web-app/src/features/player/ui/PlayerMenus.tsx`, `player.css`): one button per menu in the controls row (chapters when the file has some, subtitles and audio, settings, Picture-in-Picture); speed and quality share the Settings menu (the speed slider with its value beside the section title, then Version and Quality when there is a choice, then the playback info switch), which `PlayerSpeed` and `PlayerQuality` still show as two separate menus until the canvas is updated; smoked glass menus (`blur(44px) saturate(180%) brightness(.58)` over a dark gradient), radius 22 (28 for the wide subtitles menu), a check on the chosen option. `Player.dc.html` still shows the earlier row with a single "Subtitles and audio" button.
 
 ## What the application keeps from the onboarding flow
 

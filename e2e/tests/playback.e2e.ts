@@ -194,7 +194,10 @@ test('quality: 480p from the menu transcodes at the same position, the old sessi
   const ended = page.waitForResponse(isSessionEnd(first.id))
   const next = nextSession(page)
   const before = await currentTime(video)
-  await menu.getByRole('radio', { name: '480p' }).click()
+  await menu
+    .getByRole('radiogroup', { name: fr.player.menu.quality, exact: true })
+    .getByRole('radio', { name: '480p' })
+    .click()
   const second = await next
 
   expect(second.mode).toBe('hls_transcode')

@@ -8,6 +8,7 @@ import {
   formatRelative,
   formatScore,
   formatSoon,
+  formatTimeOfDay,
 } from './format.ts'
 
 const plain = (value: string) => value.replace(/[\u00a0\u202f]/g, ' ')
@@ -88,6 +89,15 @@ describe('formatSoon', () => {
   test('the time today, the day later', () => {
     expect(formatSoon(new Date('2026-10-24T14:32:00').toISOString(), 'fr', now)).toBe('14:32')
     expect(formatSoon(new Date('2026-10-25T09:00:00').toISOString(), 'fr', now)).toBe('25 oct.')
+  })
+})
+
+describe('formatTimeOfDay', () => {
+  test('hours and minutes, in the locale’s clock', () => {
+    const evening = new Date(2026, 0, 1, 22, 47).getTime()
+    expect(formatTimeOfDay(evening, 'fr')).toBe('22:47')
+    expect(plain(formatTimeOfDay(evening, 'en'))).toBe('10:47 PM')
+    expect(formatTimeOfDay(new Date(2026, 0, 1, 9, 5).getTime(), 'fr')).toBe('09:05')
   })
 })
 
