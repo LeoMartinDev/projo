@@ -46,6 +46,17 @@ const titlePrefix = (title: string): string | undefined => {
 
 const isNotFound = (error: TmdbError): boolean => error.code === 'metadata/tmdb_not_found'
 
+/**
+ * The names to match, in order (§9.2): the full name, then, only when it finds nothing, the name
+ * without the complete-set markers ending it (`withoutMarkers`, §8.1).
+ */
+const namesToTry = (name: string, parsed: ParsedName): readonly string[] => {
+  const shorter = parsed.withoutMarkers?.trim()
+  return shorter === undefined || shorter === '' || normalizeTitle(shorter) === normalizeTitle(name)
+    ? [name]
+    : [name, shorter]
+}
+
 export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
   const seriesCache = new Map<string, { expiresAt: number; lookup: SeriesLookup }>()
 
@@ -115,6 +126,18 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     return enriched.length === 0 ? ok(outcome) : ok(pickBest(query, [...hits, ...enriched]))
   }
 
+  /** Runs `match` on each name in turn while it ends in `no_match`; an ambiguity stops there. */
+  const firstMatch = async (
+    names: readonly string[],
+    match: (name: string) => Promise<Result<PickOutcome, TmdbError>>,
+  ): Promise<Result<PickOutcome, TmdbError>> => {
+    const [name, ...rest] = names
+    if (name === undefined) return ok({ kind: 'no_match' })
+    const outcome = await match(name)
+    if (!outcome.ok || outcome.value.kind !== 'no_match' || rest.length === 0) return outcome
+    return firstMatch(rest, match)
+  }
+
   const reviewOf = (outcome: PickOutcome): Extract<Resolution, { kind: 'review' }> | undefined =>
     outcome.kind === 'no_match'
       ? { kind: 'review', reason: 'no_match' }
@@ -137,27 +160,31 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
       if (movie.ok) return ok({ kind: 'movie', movie: movie.value })
       if (!isNotFound(movie.error)) return movie
     }
-    const title = parsed.title?.trim()
-    if (title === undefined || title === '') return ok({ kind: 'review', reason: 'no_match' })
+    const fullTitle = parsed.title?.trim()
+    if (fullTitle === undefined || fullTitle === '')
+      return ok({ kind: 'review', reason: 'no_match' })
     const { year } = parsed
-    const query = { title, ...(year === undefined ? {} : { year }) }
-    const prefix = titlePrefix(title)
-    const hits = await searchUntilCandidate(query, [
-      () => tmdb.searchMovies({ query: title, ...(year === undefined ? {} : { year }), language }),
-      ...(year === undefined ? [] : [() => tmdb.searchMovies({ query: title, language })]),
-      ...(prefix === undefined
-        ? []
-        : [
-            () =>
-              tmdb.searchMovies({
-                query: prefix,
-                ...(year === undefined ? {} : { year }),
-                language,
-              }),
-          ]),
-    ])
-    if (!hits.ok) return hits
-    const picked = await pick('movie', query, hits.value)
+    const matchTitle = async (title: string): Promise<Result<PickOutcome, TmdbError>> => {
+      const query = { title, ...(year === undefined ? {} : { year }) }
+      const prefix = titlePrefix(title)
+      const hits = await searchUntilCandidate(query, [
+        () =>
+          tmdb.searchMovies({ query: title, ...(year === undefined ? {} : { year }), language }),
+        ...(year === undefined ? [] : [() => tmdb.searchMovies({ query: title, language })]),
+        ...(prefix === undefined
+          ? []
+          : [
+              () =>
+                tmdb.searchMovies({
+                  query: prefix,
+                  ...(year === undefined ? {} : { year }),
+                  language,
+                }),
+            ]),
+      ])
+      return hits.ok ? pick('movie', query, hits.value) : hits
+    }
+    const picked = await firstMatch(namesToTry(fullTitle, parsed), matchTitle)
     if (!picked.ok) return picked
     const outcome = picked.value
     const review = reviewOf(outcome)
@@ -182,20 +209,22 @@ export const resolveMatchFactory = ({ tmdb, clock }: Deps) => {
     const now = clock.now().getTime()
     const cached = seriesCache.get(cacheKey)
     if (cached !== undefined && cached.expiresAt > now) return ok(cached.lookup)
-    const query = { title: name, ...(year === undefined ? {} : { year }) }
-    const prefix = titlePrefix(name)
-    const hits = await searchUntilCandidate(query, [
-      () =>
-        tmdb.searchSeries({
-          query: name,
-          ...(year === undefined ? {} : { firstAirYear: year }),
-          language,
-        }),
-      ...(year === undefined ? [] : [() => tmdb.searchSeries({ query: name, language })]),
-      ...(prefix === undefined ? [] : [() => tmdb.searchSeries({ query: prefix, language })]),
-    ])
-    if (!hits.ok) return hits
-    const picked = await pick('series', query, hits.value)
+    const matchName = async (title: string): Promise<Result<PickOutcome, TmdbError>> => {
+      const query = { title, ...(year === undefined ? {} : { year }) }
+      const prefix = titlePrefix(title)
+      const hits = await searchUntilCandidate(query, [
+        () =>
+          tmdb.searchSeries({
+            query: title,
+            ...(year === undefined ? {} : { firstAirYear: year }),
+            language,
+          }),
+        ...(year === undefined ? [] : [() => tmdb.searchSeries({ query: title, language })]),
+        ...(prefix === undefined ? [] : [() => tmdb.searchSeries({ query: prefix, language })]),
+      ])
+      return hits.ok ? pick('series', query, hits.value) : hits
+    }
+    const picked = await firstMatch(namesToTry(name, parsed), matchName)
     if (!picked.ok) return picked
     const outcome = picked.value
     const lookup: SeriesLookup =

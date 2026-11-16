@@ -552,4 +552,59 @@ describe('scanner on a messy folder (§7, §8)', () => {
       { state: 'ready', ready_at: readyAt },
     ])
   })
+
+  test('new naming rules re-read a file to review and request its match again (§7.4)', async () => {
+    const root = tmp.path
+    const path =
+      'Dragon Ball Super 2015-2018 Intégral (131EP) TrueFrench 1080p HDLight BluRay AC3 x265-GRP/001 Une récompense pour la paix.mkv'
+    placeVideo(root, path)
+    const library = await createLibrary([root], { hint: 'series' })
+    await world.runJobs(['scan_library'])
+    await settle()
+    const source = sourceAt(path)
+    expect(source.state).toBe('ready')
+    // As left by the previous rules, then by a TMDB search that found nothing.
+    world.db.$client.query(`UPDATE jobs SET state = 'done' WHERE type = 'match_source'`).run()
+    world.db.$client
+      .query(
+        `UPDATE sources SET parsed = ?, match_state = 'needs_review', review_reason = 'no_match' WHERE id = ?`,
+      )
+      .run(
+        JSON.stringify({
+          series: 'Dragon Ball Super 2015-2018 Intégral (131EP)',
+          season: 1,
+          episode: 1,
+          episodeTitle: 'Une récompense pour la paix',
+        }),
+        source.id,
+      )
+
+    world.jobQueue.enqueue({
+      type: 'scan_library',
+      payload: { libraryId: library.id, kind: 'rules_update' },
+      dedupeKey: `library:${library.id}`,
+    })
+    await world.runJobs(['scan_library'])
+
+    const [row] = world.query<{ parsed: string; match_state: string; review_reason?: string }>(
+      'SELECT parsed, match_state, review_reason FROM sources WHERE id = ?',
+      source.id,
+    )
+    expect(row === undefined ? undefined : JSON.parse(row.parsed)).toEqual({
+      series: 'Dragon Ball Super',
+      year: 2015,
+      season: 1,
+      episode: 1,
+      episodeTitle: 'Une récompense pour la paix',
+    })
+    expect(row).toMatchObject({ match_state: 'unmatched' })
+    expect(row?.review_reason).toBeUndefined()
+    expect(
+      world
+        .query<{ payload: string }>(
+          `SELECT payload FROM jobs WHERE type = 'match_source' AND state = 'queued'`,
+        )
+        .map((job) => JSON.parse(job.payload)),
+    ).toEqual([{ sourceId: source.id }])
+  })
 })

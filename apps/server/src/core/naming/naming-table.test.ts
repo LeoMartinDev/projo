@@ -62,6 +62,26 @@ describe('§8.1 Films', () => {
         year: 2017,
       })
     })
+
+    test.each([
+      'Show 2015-2018.mkv',
+      'Show 2015 - 2018.mkv',
+      'Show 2015–2018.mkv',
+      'Show (2015-2018).mkv',
+      'Show [2015-2018].mkv',
+      'Show.2015-2018.FRENCH.1080p.mkv',
+    ])('une plage d’années termine le titre et disparaît, sans donner d’année : %s', (path) => {
+      expect(analyze(path, 'movies').parsed).toEqual({ title: 'Show' })
+    })
+
+    test('une plage d’années ne fait pas un dossier de film : le fichier garde son titre', () => {
+      expect(analyze('Star Wars 1977-2019/Star.Wars.Episode.IV.1977.1080p.mkv')).toEqual({
+        classification: 'movie',
+        parsed: { title: 'Star Wars Episode IV', year: 1977 },
+        displayTitle: 'Star Wars Episode IV',
+      })
+      expect(analyze('Star Wars 1977-2019/Star.Wars.mkv').parsed).toEqual({ title: 'Star Wars' })
+    })
   })
 
   test('Sans année', () => {
@@ -129,6 +149,78 @@ describe('§8.1 Films', () => {
       ['Heat.FR.mkv', 'Heat'],
     ])('coupe au token de release : %s', (path, title) => {
       expect(analyze(path).parsed.title).toBe(title)
+    })
+
+    test.each([
+      'Show (131EP) 1080p.mkv',
+      'Show 131EP 1080p.mkv',
+      'Show 131 EP 1080p.mkv',
+      'Show 131 eps 1080p.mkv',
+      'Show 131 épisodes 1080p.mkv',
+      'Show 131 Episodes 1080p.mkv',
+      'Show [131 ep] 1080p.mkv',
+      'Show 2015-2018 Intégral (131EP) TrueFrench 1080p.mkv',
+    ])('nombre d’épisodes, mot faible coupé : %s', (path) => {
+      expect(analyze(path, 'movies').parsed).toEqual({ title: 'Show' })
+    })
+
+    test.each<[string, ParsedName]>([
+      ['Show.Intégrale.1080p.mkv', { title: 'Show Intégrale', withoutMarkers: 'Show' }],
+      ['Show Intégral FRENCH.mkv', { title: 'Show Intégral', withoutMarkers: 'Show' }],
+      ['Show Integrale VOSTFR.mkv', { title: 'Show Integrale', withoutMarkers: 'Show' }],
+      ['Show INTEGRAL 2010.mkv', { title: 'Show INTEGRAL', withoutMarkers: 'Show', year: 2010 }],
+      ['SHOW INTEGRALE 1080p.mkv', { title: 'Show Integrale', withoutMarkers: 'Show' }],
+      ['Show Complete 1080p.mkv', { title: 'Show Complete', withoutMarkers: 'Show' }],
+      ['Show Complète MULTi 1080p.mkv', { title: 'Show Complète', withoutMarkers: 'Show' }],
+      ['Show Complet.mkv', { title: 'Show Complet', withoutMarkers: 'Show' }],
+      [
+        'Show Intégrale (131EP) TrueFrench 1080p.mkv',
+        { title: 'Show Intégrale', withoutMarkers: 'Show' },
+      ],
+      ['Show MULTi Intégrale 1080p.mkv', { title: 'Show MULTi Intégrale', withoutMarkers: 'Show' }],
+      ['Show Complete Intégrale.mkv', { title: 'Show Complete Intégrale', withoutMarkers: 'Show' }],
+      ['Mission.Complete.mkv', { title: 'Mission Complete', withoutMarkers: 'Mission' }],
+      [
+        'Mission Complete (2019).mkv',
+        { title: 'Mission Complete', withoutMarkers: 'Mission', year: 2019 },
+      ],
+      ['Intégrale.1080p.mkv', { title: 'Intégrale' }],
+    ])(
+      'marqueur d’intégrale en fin : gardé dans le titre, withoutMarkers sans lui : %s',
+      (path, parsed) => {
+        expect(analyze(path, 'movies').parsed).toEqual(parsed)
+      },
+    )
+
+    test('dossier de film terminé par un marqueur : le titre du dossier et sa forme courte', () => {
+      expect(analyze('Les Visiteurs Intégrale/Les.Visiteurs.1993.mkv').parsed).toEqual({
+        title: 'Les Visiteurs',
+        year: 1993,
+      })
+      expect(analyze('Les Visiteurs Intégrale (1993)/film.mkv', 'movies').parsed).toEqual({
+        title: 'Les Visiteurs Intégrale',
+        withoutMarkers: 'Les Visiteurs',
+        year: 1993,
+      })
+      expect(analyze('Les Visiteurs Intégrale/1080p.mkv', 'movies').parsed).toEqual({
+        title: 'Les Visiteurs Intégrale',
+        withoutMarkers: 'Les Visiteurs',
+      })
+    })
+
+    test('suivis d’un mot du titre, ils restent dans le titre, sans withoutMarkers', () => {
+      expect(analyze('A.Complete.Unknown.2024.1080p.mkv')).toEqual({
+        classification: 'movie',
+        parsed: { title: 'A Complete Unknown', year: 2024 },
+        displayTitle: 'A Complete Unknown',
+      })
+      expect(analyze('Integral Calculus Explained.mkv').parsed).toEqual({
+        title: 'Integral Calculus Explained',
+      })
+      expect(analyze('Show Intégrale French Part 1.mkv', 'movies').parsed).toEqual({
+        title: 'Show Intégrale French',
+        part: { index: 1, label: 'Part 1' },
+      })
     })
 
     test('[...] en fin retirés, underscores en espaces', () => {
@@ -453,6 +545,152 @@ describe('§8.2 Séries', () => {
       series: 'Fleabag',
       season: 1,
       episode: 3,
+    })
+  })
+
+  describe('Nom de série', () => {
+    const dbs =
+      'Dragon Ball Super 2015-2018 Intégral (131EP) TrueFrench 1080p HDLight BluRay AC3 x265-Thebatou8652'
+
+    test('exemple de la spec : plage d’années, intégrale et nombre d’épisodes retirés du dossier', () => {
+      expect(
+        analyze(
+          `${dbs}/001 Une récompense pour la paix. À Qui reviennent les 100 Millions de Zenis..mkv`,
+          'series',
+        ),
+      ).toEqual({
+        classification: 'episode',
+        parsed: {
+          series: 'Dragon Ball Super',
+          year: 2015,
+          season: 1,
+          episode: 1,
+          episodeTitle: 'Une récompense pour la paix. À Qui reviennent les 100 Millions de Zenis',
+        },
+        displayTitle: 'Dragon Ball Super',
+      })
+    })
+
+    test('même dossier en bibliothèque auto : le nom dans le fichier fait l’épisode', () => {
+      expect(analyze(`${dbs}/Dragon Ball Super - 001.mkv`).parsed).toEqual({
+        series: 'Dragon Ball Super',
+        year: 2015,
+        absoluteEpisode: 1,
+      })
+      expect(analyze(`${dbs}/Saison 1/001 Titre.mkv`).parsed).toEqual({
+        series: 'Dragon Ball Super',
+        year: 2015,
+        season: 1,
+        episode: 1,
+        episodeTitle: 'Titre',
+      })
+      expect(analyze(`${dbs}/Dragon.Ball.Super.S01E01.mkv`).parsed).toEqual({
+        series: 'Dragon Ball Super',
+        year: 2015,
+        season: 1,
+        episode: 1,
+      })
+    })
+
+    test.each<[string, ParsedName]>([
+      ['Show 2015 - 2018/01 - Titre.mkv', { series: 'Show', year: 2015 }],
+      ['Show 2015–2018/01 - Titre.mkv', { series: 'Show', year: 2015 }],
+      ['Show (2015-2018)/01 - Titre.mkv', { series: 'Show', year: 2015 }],
+      ['Show [2015-2018]/01 - Titre.mkv', { series: 'Show', year: 2015 }],
+      [
+        'Show Intégrale (131EP) TrueFrench 1080p/01 - Titre.mkv',
+        { series: 'Show Intégrale', withoutMarkers: 'Show' },
+      ],
+      [
+        'Show Intégrale VOSTFR 1080p/01 - Titre.mkv',
+        { series: 'Show Intégrale', withoutMarkers: 'Show' },
+      ],
+      [
+        'Show Integrale VOSTFR/01 - Titre.mkv',
+        { series: 'Show Integrale', withoutMarkers: 'Show' },
+      ],
+      [
+        'Show Complète 131 épisodes 1080p/01 - Titre.mkv',
+        { series: 'Show Complète', withoutMarkers: 'Show' },
+      ],
+      [
+        'Les Visiteurs Intégrale/01 - Titre.mkv',
+        { series: 'Les Visiteurs Intégrale', withoutMarkers: 'Les Visiteurs' },
+      ],
+      ['Show (2008) 2008-2013/01 - Titre.mkv', { series: 'Show', year: 2008 }],
+    ])('dossier série nettoyé : %s', (path, identity) => {
+      expect(analyze(path, 'series').parsed).toEqual({
+        ...identity,
+        season: 1,
+        episode: 1,
+        episodeTitle: 'Titre',
+      })
+    })
+
+    test('une plage d’années dans le nom du fichier donne aussi la première année', () => {
+      expect(analyze('Show 2015-2018 S01E01.mkv').parsed).toEqual({
+        series: 'Show',
+        year: 2015,
+        season: 1,
+        episode: 1,
+      })
+    })
+
+    test('marqueur d’intégrale en fin de nom de série : gardé, withoutMarkers sans lui', () => {
+      expect(
+        analyze('Dragon Ball Super Intégral (131EP) TrueFrench 1080p/001 Title.mkv', 'series'),
+      ).toEqual({
+        classification: 'episode',
+        parsed: {
+          series: 'Dragon Ball Super Intégral',
+          withoutMarkers: 'Dragon Ball Super',
+          season: 1,
+          episode: 1,
+          episodeTitle: 'Title',
+        },
+        displayTitle: 'Dragon Ball Super Intégral',
+      })
+      expect(analyze('Show.Intégrale.S01E01.1080p.mkv').parsed).toEqual({
+        series: 'Show Intégrale',
+        withoutMarkers: 'Show',
+        season: 1,
+        episode: 1,
+      })
+    })
+
+    test('dossier avec marqueur, fichier sans : même série, année et ids du dossier gardés', () => {
+      expect(analyze('Show Intégrale (2010) [tmdbid-42]/Show - 05.mkv').parsed).toEqual({
+        series: 'Show Intégrale',
+        withoutMarkers: 'Show',
+        year: 2010,
+        absoluteEpisode: 5,
+        ids: { tmdb: 42 },
+      })
+      expect(analyze('Show Intégrale 2010/Show - 05.mkv').parsed).toEqual({
+        series: 'Show Intégrale',
+        withoutMarkers: 'Show',
+        year: 2010,
+        absoluteEpisode: 5,
+      })
+      expect(analyze('Show Intégrale (2010)/Show S01E02.mkv').parsed).toEqual({
+        series: 'Show Intégrale',
+        withoutMarkers: 'Show',
+        year: 2010,
+        season: 1,
+        episode: 2,
+      })
+      expect(analyze('Mob Psycho 100 Intégrale/Mob Psycho 100 05.mkv', 'series').parsed).toEqual({
+        series: 'Mob Psycho 100 Intégrale',
+        withoutMarkers: 'Mob Psycho 100',
+        absoluteEpisode: 5,
+      })
+    })
+
+    test('un nombre seul n’est pas un nombre d’épisodes', () => {
+      expect(analyze('Mob Psycho 100 05.mkv', 'series').parsed).toEqual({
+        series: 'Mob Psycho 100',
+        absoluteEpisode: 5,
+      })
     })
   })
 

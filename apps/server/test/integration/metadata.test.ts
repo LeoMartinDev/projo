@@ -359,6 +359,20 @@ describe('TMDB identification (§9.2)', () => {
       undefined,
     ])
   })
+
+  test('a title ending with a complete-set marker TMDB does not know: matched without it', async () => {
+    await world.setKey()
+    place('Heat Intégrale (1995) MULTi 1080p x265-QTZ.mkv')
+    await createLibrary('movies')
+    await settle()
+    expect(sourceRow('x265-QTZ.mkv')).toMatchObject({ match_state: 'matched' })
+    expect(items()).toMatchObject([{ kind: 'movie', tmdb_id: 949 }])
+    expect(world.tmdb.callsTo('search/movie').map((call) => call.params['query'])).toEqual([
+      'Heat Intégrale',
+      'Heat Intégrale',
+      'Heat',
+    ])
+  })
 })
 
 describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {

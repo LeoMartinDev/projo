@@ -19,6 +19,7 @@ import { registerOAuthClientFactory } from '../../application/auth/register-oaut
 import { revokeAssistantTokenFactory } from '../../application/auth/revoke-assistant-token.ts'
 import { assistantAccessFactory } from '../../application/auth/shared/assistant-access.ts'
 import type { ListLogs } from '../../application/logs/list-logs.ts'
+import type { ListReviewGroups } from '../../application/metadata/list-review-groups.ts'
 import type { TmdbDetails } from '../../application/metadata/shared/tmdb-details.ts'
 import type { ClientMetadataFetcher } from '../../core/auth/oauth.ts'
 import { verifyPkceS256 } from '../../infrastructure/auth/pkce.ts'
@@ -32,6 +33,7 @@ import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/libra
 import { createSqliteMetadataItemRepository } from '../../infrastructure/sqlite/metadata-item-repository.ts'
 import { createSqliteOAuthRepository } from '../../infrastructure/sqlite/oauth-repository.ts'
 import { createSqliteProfileRepository } from '../../infrastructure/sqlite/profile-repository.ts'
+import { createSqliteReviewQueue } from '../../infrastructure/sqlite/review-queue.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { adminAssistantsRoutes } from '../http/routes/admin-assistants.ts'
 import { oauthConsentRoutes } from '../http/routes/oauth-consent.ts'
@@ -49,8 +51,15 @@ import { defineModule } from './types.ts'
 
 export type AssistantPorts = Pick<
   AssistantToolsDeps,
-  'searchTmdb' | 'assignSource' | 'rematchItem' | 'rejectSource' | 'restoreSource'
+  | 'searchTmdb'
+  | 'assignSource'
+  | 'rematchItem'
+  | 'rejectSource'
+  | 'rejectSourceGroup'
+  | 'restoreSource'
 > & {
+  /** "To review" by series group, behind `list_review_queue`. */
+  listReviewGroups: ListReviewGroups
   tmdbDetails: Pick<TmdbDetails, 'series' | 'season'>
   metadataLanguage: () => string
 }
@@ -136,9 +145,11 @@ export const buildAssistantsModule = (
 
   const {
     searchTmdb,
+    listReviewGroups,
     assignSource,
     rematchItem,
     rejectSource,
+    rejectSourceGroup,
     restoreSource,
     tmdbDetails,
     metadataLanguage,
@@ -150,8 +161,14 @@ export const buildAssistantsModule = (
   const protocol = createMcpProtocol({
     tools: buildAssistantTools({
       getReviewSummary: getReviewSummaryFactory({ sources, libraries }),
-      listReviewQueue: listReviewQueueFactory({ sources, libraries }),
-      getReviewSource: getReviewSourceFactory({ sources, libraries, items, visibleItems: catalog }),
+      listReviewQueue: listReviewQueueFactory({ listReviewGroups, libraries }),
+      getReviewSource: getReviewSourceFactory({
+        sources,
+        reviewQueue: createSqliteReviewQueue({ db }),
+        libraries,
+        items,
+        visibleItems: catalog,
+      }),
       getTmdbSeries: getTmdbSeriesFactory({ tmdbDetails, metadataLanguage }),
       findCatalogItems: findCatalogItemsFactory({ catalogReadModel: catalog, items }),
       getItemFiles: getItemFilesFactory({ sources, libraries, items, visibleItems: catalog }),
@@ -160,6 +177,7 @@ export const buildAssistantsModule = (
       assignSource,
       rematchItem,
       rejectSource,
+      rejectSourceGroup,
       restoreSource,
       listLogs,
     }),

@@ -56,8 +56,9 @@ type PageQuery = Parameters<SourceRepository['page']>[0]
 /** In-memory `SourceRepository` reads: filters like the SQL page, without a real cursor. */
 export const inMemorySources = (rows: readonly SourceListItem[]) => {
   const queries: PageQuery[] = []
-  const sources: Pick<SourceRepository, 'findById' | 'page' | 'reviewSummary'> = {
+  const sources: Pick<SourceRepository, 'findById' | 'page' | 'listByIds' | 'reviewSummary'> = {
     findById: (id) => rows.find((row) => row.id === id),
+    listByIds: (ids) => ids.flatMap((id) => rows.find((row) => row.id === id) ?? []),
     page: (query) => {
       queries.push(query)
       const matching = rows.filter(

@@ -11,6 +11,7 @@ import type {
   Source,
   SourceCounts,
   SourcePatch,
+  SourceListItem,
   SourceRepository,
   SourceSnapshot,
 } from '../../core/source/source.ts'
@@ -158,6 +159,40 @@ const itemLabels = (db: Db, itemIds: string[]): Map<string, LinkedItemLabel> => 
       return [id, label] as const
     }),
   )
+}
+
+type ListedRow = { source: SourceRow; rootPath: string }
+
+/** Sources with the items they are linked to, in two queries whatever their number. */
+const withItems = (db: Db, rows: readonly ListedRow[]): SourceListItem[] => {
+  const ids = rows.map((row) => row.source.id)
+  const links: { sourceId: string; itemId: string }[] = []
+  for (let i = 0; i < ids.length; i += INSERT_CHUNK) {
+    links.push(
+      ...db
+        .select()
+        .from(sourceItems)
+        .where(inArray(sourceItems.sourceId, ids.slice(i, i + INSERT_CHUNK)))
+        .all(),
+    )
+  }
+  const itemIdsBySource = new Map<string, string[]>()
+  for (const link of links) {
+    itemIdsBySource.set(link.sourceId, [...(itemIdsBySource.get(link.sourceId) ?? []), link.itemId])
+  }
+  const labels = itemLabels(db, [...new Set(links.map((link) => link.itemId))])
+  return rows.map((row) => {
+    const itemIds = itemIdsBySource.get(row.source.id) ?? []
+    return {
+      ...toSource(row.source),
+      rootPath: row.rootPath,
+      itemIds,
+      items: itemIds.flatMap((id) => {
+        const label = labels.get(id)
+        return label === undefined ? [] : [label]
+      }),
+    }
+  })
 }
 
 export const createSqliteSourceRepository = ({
@@ -312,36 +347,31 @@ export const createSqliteSourceRepository = ({
       .limit(limit + 1)
       .all()
     const pageRows = rows.slice(0, limit)
-    const pageIds = pageRows.map((row) => row.source.id)
-    const links =
-      pageIds.length === 0
-        ? []
-        : db.select().from(sourceItems).where(inArray(sourceItems.sourceId, pageIds)).all()
-    const itemIdsBySource = new Map<string, string[]>()
-    for (const link of links) {
-      itemIdsBySource.set(link.sourceId, [
-        ...(itemIdsBySource.get(link.sourceId) ?? []),
-        link.itemId,
-      ])
-    }
-    const labels = itemLabels(db, [...new Set(links.map((link) => link.itemId))])
     const last = pageRows.at(-1)
     return {
       total,
-      items: pageRows.map((row) => {
-        const itemIds = itemIdsBySource.get(row.source.id) ?? []
-        return {
-          ...toSource(row.source),
-          rootPath: row.rootPath,
-          itemIds,
-          items: itemIds.flatMap((id) => {
-            const label = labels.get(id)
-            return label === undefined ? [] : [label]
-          }),
-        }
-      }),
+      items: withItems(db, pageRows),
       ...(rows.length > limit && last !== undefined ? { nextCursor: last.source.id } : {}),
     }
+  },
+
+  listByIds: (ids) => {
+    const rows: ListedRow[] = []
+    for (let i = 0; i < ids.length; i += INSERT_CHUNK) {
+      rows.push(
+        ...db
+          .select({ source: sources, rootPath: libraryRoots.path })
+          .from(sources)
+          .innerJoin(libraryRoots, eq(libraryRoots.id, sources.rootId))
+          .where(inArray(sources.id, ids.slice(i, i + INSERT_CHUNK)))
+          .all(),
+      )
+    }
+    const listed = new Map(withItems(db, rows).map((source) => [source.id, source]))
+    return ids.flatMap((id) => {
+      const source = listed.get(id)
+      return source === undefined ? [] : [source]
+    })
   },
 
   reviewSummary: () => {

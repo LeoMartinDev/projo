@@ -882,6 +882,18 @@
       "identified_one": "{{count}} file identified",
       "identified_other": "{{count}} files identified",
       "more": "Show more",
+      "columns": {
+        "file": "File",
+        "parsed": "From the name",
+        "reason": "Reason"
+      },
+      "groupLabel_one": "{{series}} · {{formatted}} file",
+      "groupLabel_other": "{{series}} · {{formatted}} files",
+      "reasonCount": "{{reason}} ({{formatted}})",
+      "identifyGroupTitle": "Identify the series",
+      "hideGroupTitle_one": "Hide the file of “{{series}}”?",
+      "hideGroupTitle_other": "Hide the {{formatted}} files of “{{series}}”?",
+      "hideGroupText": "They won’t show up anywhere again, even after a full scan. You can show them again one by one from “Hidden”.",
       "classification": {
         "movie": "Movie",
         "episode": "Episode",
@@ -1586,6 +1598,7 @@
     "source/file_missing": "The file is gone from the disk.",
     "source/not_missing": "Only a missing file can be purged.",
     "source/not_rejected": "This file is not hidden.",
+    "source/not_to_review": "This file is not waiting for review.",
     "update/disabled": "Updates from the admin are not available on this installation.",
     "update/check_failed": "Could not check for updates: GitHub does not answer.",
     "update/invalid_release": "This published version is incomplete or invalid.",

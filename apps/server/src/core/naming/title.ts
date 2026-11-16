@@ -109,14 +109,24 @@ const WEAK_RELEASE_TOKENS = sticky(
     'xxx',
     'screener',
     'r5',
+    String.raw`\d{1,4}[\s._-]*(?:eps?|[eé]pisodes?)`,
   ].join('|'),
+)
+
+/**
+ * Complete-set markers (§8.1): never cut, since a title can end with one (`Mission Complete`).
+ * Ending the title, they give `withoutMarkers`, which the matching tries only after the full title.
+ */
+const COMPLETE_SET_MARKERS = sticky(
+  [String.raw`int[eé]grale?`, String.raw`compl[eèé]te?`].join('|'),
 )
 
 const YEAR = /^(?:19|20)\d{2}(?![\dx×])/u
 const DATE_AFTER = /^[.\-_ ]\d{2}[.\-_ ]\d{2}(?!\d)/u
 const DATE_BEFORE = /\d{2}[.-]\d{2}[.-]$/u
-const RANGE_AFTER = /^\s*-\s*(?:19|20)\d{2}(?!\d)/u
-const RANGE_BEFORE = /(?:19|20)\d{2}\s*-\s*$/u
+const RANGE_AFTER = /^\s*[-–—]\s*(?:19|20)\d{2}(?!\d)/u
+const RANGE_BEFORE = /(?:19|20)\d{2}\s*[-–—]\s*$/u
+const YEAR_RANGE = /^((?:19|20)\d{2})\s*[-–—]\s*(?:19|20)\d{2}(?![\dx×])/u
 
 const EDITIONS: readonly (readonly [RegExp, EditionId])[] = [
   [sticky(String.raw`director'?[’]?s[\s._-]*cut`), 'directors_cut'],
@@ -239,14 +249,23 @@ const dropUnmatchedClosers = (value: string): string => {
   return dropUnmatchedClosers(value.slice(0, -1).trim())
 }
 
-export const prettifyTitle = (slice: string): string => {
+const cleanTitle = (slice: string): string => {
   const spaced = replaceDots(slice.replace(/_/gu, ' '))
     .replace(/\(\s*\)|\[\s*\]|\{\s*\}/gu, ' ')
     .replace(/\s+/gu, ' ')
     .replace(TRIM_EDGES, '')
     .replace(/\s+-$/u, '')
     .trim()
-  return fixCasing(dropUnmatchedClosers(dropUnmatchedOpeners(spaced)))
+  return dropUnmatchedClosers(dropUnmatchedOpeners(spaced))
+}
+
+export const prettifyTitle = (slice: string): string => fixCasing(cleanTitle(slice))
+
+/** A shorter form of a title, cased like the title (`SHOW INTEGRALE` → `Show`, not `SHOW`). */
+const prettifyShorter = (slice: string, full: string): string => {
+  const cleanFull = cleanTitle(full)
+  const short = cleanTitle(slice)
+  return fixCasing(cleanFull) === cleanFull ? short : capitalizeWords(short)
 }
 
 type Token = { readonly index: number; readonly text: string }
@@ -293,6 +312,14 @@ const yearAt = (value: string, token: Token): YearHit | undefined => {
   return { index: token.index, end, year: Number(match[0]), bracketed }
 }
 
+type RangeHit = { readonly index: number; readonly start: number }
+
+const rangeAt = (value: string, token: Token): RangeHit | undefined => {
+  const match = YEAR_RANGE.exec(value.slice(token.index)) ?? undefined
+  if (match === undefined || !hasContentBefore(value, token.index)) return undefined
+  return { index: token.index, start: Number(match[1]) }
+}
+
 const matchesAt = (pattern: RegExp, value: string, index: number): RegExpExecArray | undefined =>
   pattern.exec(value.slice(index)) ?? undefined
 
@@ -303,6 +330,10 @@ export const releaseTagIndex = (value: string): number =>
 export type TitleFragment = {
   readonly title: string
   readonly year?: number
+  /** First year of a range of years (`2015-2018`): never a movie's year, a show's first year. */
+  readonly rangeStart?: number
+  /** The title without the complete-set markers ending it (§8.1); absent when none ends it. */
+  readonly withoutMarkers?: string
   readonly edition?: EditionId
   readonly editionName?: string
   readonly part?: PartInfo
@@ -351,27 +382,44 @@ export const parseTitleFragment = (
       })
     : []
   const year = years.filter((y) => y.bracketed).at(-1) ?? years.at(-1)
+  const range = detectYear
+    ? tokens.flatMap((t) => {
+        const hit = t.index < strongIndex ? rangeAt(value, t) : undefined
+        return hit === undefined ? [] : [hit]
+      })[0]
+    : undefined
 
   const bracketIndex =
     [...value.matchAll(BRACKET_GROUP)].find((group) => hasContentBefore(value, group.index))
       ?.index ?? value.length
 
-  const isWeakAt = (token: Token): boolean =>
-    matchesAt(WEAK_RELEASE_TOKENS, value, token.index) !== undefined
-
-  const hardBoundary = Math.min(year?.index ?? value.length, strongIndex, bracketIndex)
-  const extendOverWeak = (boundary: number): number => {
-    const before = tokens.filter((t) => t.index < boundary)
-    let result = boundary
-    for (let i = before.length - 1; i >= 0; i--) {
-      const token = before[i]
-      if (token === undefined || !isWeakAt(token)) break
-      if (!ONLY_DELIMITERS.test(value.slice(token.index + token.text.length, result))) break
-      result = token.index
-    }
-    return result
+  const endsRightBefore = (pattern: RegExp, token: Token, end: number): boolean => {
+    const match = matchesAt(pattern, value, token.index)
+    if (match === undefined) return false
+    const tokenEnd = token.index + match[0].length
+    return tokenEnd <= end && ONLY_DELIMITERS.test(value.slice(tokenEnd, end))
   }
-  const releaseBoundary = extendOverWeak(hardBoundary)
+  // A word can span two tokens (`131 EP`), hence the last two tokens before `end`.
+  const startBefore = (patterns: readonly RegExp[], end: number): number | undefined =>
+    tokens
+      .filter((t) => t.index < end)
+      .slice(-2)
+      .reverse()
+      .find((t) => patterns.some((pattern) => endsRightBefore(pattern, t, end)))?.index
+  const extendOver =
+    (patterns: readonly RegExp[]) =>
+    (boundary: number): number => {
+      const start = startBefore(patterns, boundary)
+      return start === undefined ? boundary : extendOver(patterns)(start)
+    }
+
+  const hardBoundary = Math.min(
+    year?.index ?? value.length,
+    range?.index ?? value.length,
+    strongIndex,
+    bracketIndex,
+  )
+  const releaseBoundary = extendOver([WEAK_RELEASE_TOKENS])(hardBoundary)
 
   const isAfterDash = (index: number): boolean => /[\s._]-[\s._]*$/u.test(value.slice(0, index))
   const edition: { index: number; id?: EditionId; name?: string } | undefined =
@@ -413,10 +461,19 @@ export const parseTitleFragment = (
 
   const titleEnd = Math.min(afterEdition, part?.index ?? value.length)
   const title = prettifyTitle(value.slice(0, titleEnd))
+  const endsWithMarker = startBefore([COMPLETE_SET_MARKERS], titleEnd) !== undefined
+  const withoutMarkers = endsWithMarker
+    ? prettifyShorter(
+        value.slice(0, extendOver([COMPLETE_SET_MARKERS, WEAK_RELEASE_TOKENS])(titleEnd)),
+        value.slice(0, titleEnd),
+      )
+    : ''
 
   return {
     title,
     ...(year === undefined ? {} : { year: year.year }),
+    ...(range === undefined ? {} : { rangeStart: range.start }),
+    ...(withoutMarkers === '' ? {} : { withoutMarkers }),
     ...(edition?.id === undefined ? {} : { edition: edition.id }),
     ...(edition?.name === undefined ? {} : { editionName: edition.name }),
     ...(part === undefined ? {} : { part: part.info }),

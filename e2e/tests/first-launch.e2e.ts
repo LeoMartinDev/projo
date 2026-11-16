@@ -113,7 +113,10 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
       .getByRole('link', { name: startsWith(fr.admin.review.title) })
       .click()
     await expect(page.getByRole('heading', { name: fr.admin.review.title, level: 1 })).toBeVisible()
-    const queue = page.getByRole('list', { name: fr.admin.review.title }).getByRole('listitem')
+    const queue = page
+      .getByRole('table', { name: fr.admin.review.title })
+      .getByRole('row')
+      .filter({ has: page.getByRole('cell') })
     await expect(queue).toHaveCount(1, { timeout: 30_000 })
     await expect(queue).toContainText('Show.Name.S01E02.1080p.WEB.x264.mkv')
     await expect(queue).toContainText(fr.admin.review.reason.no_match)

@@ -7,4 +7,5 @@ export const sourceErrorStatus = {
   'source/file_missing': 410,
   'source/not_missing': 409,
   'source/not_rejected': 409,
+  'source/not_to_review': 409,
 } satisfies ErrorStatusMap<SourceErrorCode>

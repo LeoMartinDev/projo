@@ -40,7 +40,7 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     renameSync(join(incomingDir, unidentifiedFile.path), join(libraryDir, unidentifiedFile.path))
   })
 
-  const queue = page.getByRole('list', { name: fr.admin.review.title }).getByRole('listitem')
+  const queue = page.getByRole('table', { name: fr.admin.review.title }).getByRole('row')
   const entry = queue.filter({ hasText: unidentifiedFile.path })
 
   await test.step('the admin finds it in "To review": TMDB has no such title', async () => {

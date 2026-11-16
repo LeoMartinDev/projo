@@ -10,6 +10,7 @@ export const parsedNameSchema = z.object({
   title: z.string().optional(),
   year: z.number().int().optional(),
   series: z.string().optional(),
+  withoutMarkers: z.string().optional(),
   season: z.number().int().optional(),
   episode: z.number().int().optional(),
   episodeEnd: z.number().int().optional(),

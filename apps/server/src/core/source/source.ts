@@ -150,6 +150,8 @@ export type SourceRepository = {
     items: SourceListItem[]
     nextCursor?: string
   }
+  /** The sources of these ids, in that order (an unknown id is skipped). */
+  listByIds: (ids: readonly string[]) => SourceListItem[]
   reviewSummary: () => {
     toReview: { libraryId: string; reason?: ReviewReason; count: number }[]
     byState: SourceCounts

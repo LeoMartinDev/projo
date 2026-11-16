@@ -9,7 +9,7 @@ import type {
   MetadataItemRepository,
   MetadataSettings,
 } from '../../core/metadata/ports.ts'
-import { showFolderOf } from '../../core/naming/index.ts'
+import { awaitsReview, type ReviewQueue, reviewGroupOf } from '../../core/source/review-groups.ts'
 import type { Source, SourceRepository } from '../../core/source/source.ts'
 import type { ObserveLeavingFiles } from './observe-leaving-files.ts'
 import type { QueueRefreshIfContextDiffers } from './queue-refresh-if-context-differs.ts'
@@ -35,8 +35,9 @@ type Deps = {
   applyMatch: ApplyMatch
   observeLeavingFiles: ObserveLeavingFiles
   queueRefreshIfContextDiffers: QueueRefreshIfContextDiffers
-  items: Pick<MetadataItemRepository, 'transaction' | 'linkedItems' | 'findItem' | 'sourcesUnder'>
+  items: Pick<MetadataItemRepository, 'transaction'>
   sourceRepository: Pick<SourceRepository, 'findById'>
+  reviewQueue: ReviewQueue
   libraryRepository: Pick<LibraryRepository, 'findById'>
   manualMatches: Pick<ManualMatchRepository, 'save'>
   settings: Pick<MetadataSettings, 'language'>
@@ -46,9 +47,6 @@ type Deps = {
 }
 
 export type AssignSourceError = AssignmentError | AppError<'source/not_found'>
-
-const awaitsReview = (source: Source): boolean =>
-  source.matchState === 'needs_review' && source.state === 'ready'
 
 const keepsOwnNumbers = (prepared: PreparedMatch): boolean => {
   const { parsed } = prepared.source
@@ -65,6 +63,7 @@ export const assignSourceFactory = ({
   queueRefreshIfContextDiffers,
   items,
   sourceRepository,
+  reviewQueue,
   libraryRepository,
   manualMatches,
   settings,
@@ -81,20 +80,28 @@ export const assignSourceFactory = ({
     clock,
   })
 
+  /** The other files of its series group (§7.8), with the numbers of the episode they sit on. */
   const reviewSiblings = (source: Source) => {
-    const episode = items.linkedItems(source.id).find((item) => item.kind === 'episode')
-    const season = episode?.parentId === undefined ? undefined : items.findItem(episode.parentId)
-    if (season?.parentId === undefined) return []
-    const folder = showFolderOf(source.relativePath)
-    return items.sourcesUnder(season.parentId).flatMap((link) => {
-      const sibling =
-        link.sourceId === source.id ? undefined : sourceRepository.findById(link.sourceId)
-      return sibling !== undefined &&
-        awaitsReview(sibling) &&
-        sibling.rootId === source.rootId &&
-        showFolderOf(sibling.relativePath) === folder
-        ? [{ sibling, link }]
-        : []
+    if (!awaitsReview(source)) return []
+    const group = reviewGroupOf(reviewQueue.candidates({ libraryId: source.libraryId }), source.id)
+    if (group?.series === undefined) return []
+    return group.files.flatMap(({ id, episode }) => {
+      const sibling = id === source.id ? undefined : sourceRepository.findById(id)
+      return sibling === undefined
+        ? []
+        : [
+            {
+              sibling,
+              link: {
+                ...(episode?.seasonNumber === undefined
+                  ? {}
+                  : { seasonNumber: episode.seasonNumber }),
+                ...(episode?.episodeNumber === undefined
+                  ? {}
+                  : { episodeNumber: episode.episodeNumber }),
+              },
+            },
+          ]
     })
   }
 

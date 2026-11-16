@@ -20,6 +20,12 @@ export type ParsedName = {
   readonly title?: string
   readonly year?: number
   readonly series?: string
+  /**
+   * The movie title (or, for an episode, the show name) without the complete-set markers ending
+   * it (`Les Visiteurs Intégrale` → `Les Visiteurs`, §8.1); absent when none ends it. The matching
+   * tries it only when the full name finds nothing (§9.2).
+   */
+  readonly withoutMarkers?: string
   readonly season?: number
   readonly episode?: number
   readonly episodeEnd?: number

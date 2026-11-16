@@ -367,4 +367,53 @@ describe('assigning a file (§7.8)', () => {
       { seriesTmdbId: DARK, language: 'de-DE', at: { seasonNumber: 1, episodeNumber: 1 } },
     ])
   })
+
+  test('the files taken along are those of the series group "To review" lists (§7.8)', async () => {
+    const dark = localDark([1, 2, 3, 4, 5, 6])
+    const world = setup({
+      sources: [
+        episodeSource(1),
+        episodeSource(2),
+        episodeSource(3),
+        episodeSource(4, { matchState: 'matched', reviewReason: undefined }),
+        episodeSource(5, { rootId: 'other-root' }),
+        episodeSource(6, { relativePath: 'Dark (copy)/Season 1/Dark S01E06.mkv' }),
+        movieSource('m1'),
+      ],
+      ...dark,
+      missing: ['1x3'],
+    })
+    const listed = world.listReviewGroups({ limit: 50 })
+    const darkGroup = listed.items.find((entry) => entry.first.id === 'e1')
+    expect(darkGroup?.group.files.map((file) => file.id)).toEqual(['e1', 'e2', 'e3'])
+    expect(listed.total).toBe(6)
+
+    const preview = await world.assignSource({
+      sourceId: 'e2',
+      assignment: { kind: 'episode', seriesTmdbId: DARK },
+      accountId: 'account-1',
+      dryRun: true,
+    })
+    expect(preview.ok).toBe(true)
+    if (!preview.ok) return
+    const along = [
+      ...preview.value.identified.map((entry) => entry.sourceId),
+      ...preview.value.needsReview.map((entry) => entry.sourceId),
+    ]
+    expect(along.toSorted()).toEqual(['e1', 'e2', 'e3'])
+  })
+
+  test('a file not to review takes nothing along', async () => {
+    const dark = localDark([1, 2])
+    const world = setup({
+      sources: [episodeSource(1, { matchState: 'matched' }), episodeSource(2)],
+      ...dark,
+    })
+    const result = await world.assignSource({
+      sourceId: 'e1',
+      assignment: { kind: 'episode', seriesTmdbId: DARK },
+      accountId: 'account-1',
+    })
+    expect(result.ok && result.value.sourceIds).toEqual(['e1'])
+  })
 })

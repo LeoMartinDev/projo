@@ -7,8 +7,10 @@ import { fetchImagesFactory } from '../../application/metadata/fetch-images.ts'
 import { generateImageVariantsFactory } from '../../application/metadata/generate-image-variants.ts'
 import { getImageFactory } from '../../application/metadata/get-image.ts'
 import { getItemMetadataFactory } from '../../application/metadata/get-item-metadata.ts'
+import { getReviewGroupFactory } from '../../application/metadata/get-review-group.ts'
 import { getMetadataSettingsFactory } from '../../application/metadata/get-metadata-settings.ts'
 import { listImageAlternativesFactory } from '../../application/metadata/list-image-alternatives.ts'
+import { listReviewGroupsFactory } from '../../application/metadata/list-review-groups.ts'
 import { loadCurrentMetadataFactory } from '../../application/metadata/load-current-metadata.ts'
 import { matchSourceFactory } from '../../application/metadata/match-source.ts'
 import { notifyIfTmdbKeyMissingFactory } from '../../application/metadata/notify-if-tmdb-key-missing.ts'
@@ -21,6 +23,7 @@ import { queueRefreshIfContextDiffersFactory } from '../../application/metadata/
 import { queueStaleLanguageRefreshFactory } from '../../application/metadata/queue-stale-language-refresh.ts'
 import { refreshItemMetadataFactory } from '../../application/metadata/refresh-item-metadata.ts'
 import { refreshLibraryMetadataFactory } from '../../application/metadata/refresh-library-metadata.ts'
+import { rejectSourceGroupFactory } from '../../application/metadata/reject-source-group.ts'
 import { rejectSourceFactory } from '../../application/metadata/reject-source.ts'
 import { rematchItemFactory } from '../../application/metadata/rematch-item.ts'
 import { removeItemOverrideFactory } from '../../application/metadata/remove-item-override.ts'
@@ -51,6 +54,7 @@ import {
 } from '../../infrastructure/sqlite/metadata-editing-repository.ts'
 import { createSqliteMetadataItemRepository } from '../../infrastructure/sqlite/metadata-item-repository.ts'
 import { createSqliteMetadataSettings } from '../../infrastructure/sqlite/metadata-settings-repository.ts'
+import { createSqliteReviewQueue } from '../../infrastructure/sqlite/review-queue.ts'
 import { createSqliteSourceRepository } from '../../infrastructure/sqlite/source-repository.ts'
 import { createSqliteTmdbResponseStore } from '../../infrastructure/sqlite/tmdb-response-store.ts'
 import { createTmdbClient } from '../../infrastructure/tmdb/tmdb-client.ts'
@@ -180,6 +184,7 @@ export const buildMetadataModule = (
     queueRefreshIfContextDiffers,
     items,
     sourceRepository,
+    reviewQueue: createSqliteReviewQueue({ db }),
     libraryRepository,
     manualMatches,
     settings,
@@ -188,8 +193,11 @@ export const buildMetadataModule = (
     logger: moduleLogger,
   }
   const searchTmdb = searchTmdbFactory(reviewDeps)
+  const listReviewGroups = listReviewGroupsFactory(reviewDeps)
+  const getReviewGroup = getReviewGroupFactory(reviewDeps)
   const assignSource = assignSourceFactory(reviewDeps)
   const rejectSource = rejectSourceFactory(reviewDeps)
+  const rejectSourceGroup = rejectSourceGroupFactory(reviewDeps)
   const restoreSource = restoreSourceFactory(reviewDeps)
   const rematchItem = rematchItemFactory(reviewDeps)
 
@@ -266,9 +274,11 @@ export const buildMetadataModule = (
       },
       assistantPorts: {
         searchTmdb,
+        listReviewGroups,
         assignSource,
         rematchItem,
         rejectSource,
+        rejectSourceGroup,
         restoreSource,
         tmdbDetails,
         metadataLanguage: settings.language,
@@ -305,7 +315,14 @@ export const buildMetadataModule = (
             jobQueue.enqueue({ type: 'image_variants', payload: {}, dedupeKey: 'image_variants' })
               .job,
         }),
-        adminSourceReview: adminSourceReviewRoutes({ assignSource, rejectSource, restoreSource }),
+        adminSourceReview: adminSourceReviewRoutes({
+          listReviewGroups,
+          getReviewGroup,
+          assignSource,
+          rejectSource,
+          rejectSourceGroup,
+          restoreSource,
+        }),
       },
     },
     jobHandlers: defineJobHandlers({

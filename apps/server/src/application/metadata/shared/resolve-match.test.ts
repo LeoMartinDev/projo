@@ -394,6 +394,191 @@ describe('episodes', () => {
   })
 })
 
+describe('titles ending with complete-set markers (withoutMarkers, §9.2)', () => {
+  const missionComplete = searchHit({ tmdbId: 501, title: 'Mission Complete', year: 2019 })
+  const visiteurs = searchHit({ tmdbId: 11687, title: 'Les Visiteurs', year: 1993 })
+
+  test('the full title found: the title without markers is never searched', async () => {
+    const world = setup({
+      ...movies([tmdbMovie({ tmdbId: 501, title: 'Mission Complete' })]),
+      searchMovies: async ({ query }) =>
+        ok(
+          query === 'Mission Complete'
+            ? [missionComplete]
+            : [searchHit({ tmdbId: 502, title: 'Mission', year: 2019 })],
+        ),
+    })
+    const resolved = await resolveMovie(world, {
+      title: 'Mission Complete',
+      withoutMarkers: 'Mission',
+      year: 2019,
+    })
+    expect(resolved.ok && resolved.value.kind === 'movie' && resolved.value.movie.tmdbId).toBe(501)
+    expect(world.callsTo('searchMovies')).toEqual([
+      { query: 'Mission Complete', year: 2019, language },
+    ])
+  })
+
+  test('the full title finds nothing: the same searches run with the title without markers', async () => {
+    const world = setup({
+      ...movies([tmdbMovie({ tmdbId: 11687, title: 'Les Visiteurs' })]),
+      searchMovies: async ({ query, year }) =>
+        ok(query === 'Les Visiteurs' && year === undefined ? [visiteurs] : []),
+    })
+    const resolved = await resolveMovie(world, {
+      title: 'Les Visiteurs Intégrale',
+      withoutMarkers: 'Les Visiteurs',
+      year: 1993,
+    })
+    expect(resolved.ok && resolved.value.kind === 'movie' && resolved.value.movie.tmdbId).toBe(
+      11687,
+    )
+    expect(world.callsTo('searchMovies')).toEqual([
+      { query: 'Les Visiteurs Intégrale', year: 1993, language },
+      { query: 'Les Visiteurs Intégrale', language },
+      { query: 'Les Visiteurs', year: 1993, language },
+      { query: 'Les Visiteurs', language },
+    ])
+  })
+
+  test('candidates are scored against the full title, then against the shorter one', async () => {
+    const world = setup({
+      ...movies([tmdbMovie({ tmdbId: 11687, title: 'Les Visiteurs' })]),
+      searchMovies: async () => ok([visiteurs]),
+    })
+    const resolved = await resolveMovie(world, {
+      title: 'Les Visiteurs Intégrale',
+      withoutMarkers: 'Les Visiteurs',
+    })
+    expect(resolved.ok && resolved.value.kind === 'movie' && resolved.value.movie.tmdbId).toBe(
+      11687,
+    )
+    expect(world.callsTo('searchMovies').map((call) => call.query)).toEqual([
+      'Les Visiteurs Intégrale',
+      'Les Visiteurs',
+    ])
+    expect(world.callsTo('alternativeTitles')).toEqual([{ kind: 'movie', tmdbId: 11687 }])
+  })
+
+  test('neither finds anything: no_match', async () => {
+    const world = setup()
+    expect(
+      await resolveMovie(world, { title: 'Nothing Complete', withoutMarkers: 'Nothing' }),
+    ).toEqual(ok({ kind: 'review', reason: 'no_match' }))
+    expect(world.callsTo('searchMovies').map((call) => call.query)).toEqual([
+      'Nothing Complete',
+      'Nothing',
+    ])
+  })
+
+  test('the full title ambiguous: stays ambiguous, no second pass', async () => {
+    const twins = [
+      searchHit({ tmdbId: 1, title: 'Solaris Complete', year: 2002, voteCount: 100 }),
+      searchHit({ tmdbId: 2, title: 'Solaris Complete', year: 2002, voteCount: 90 }),
+    ]
+    const world = setup({
+      searchMovies: async ({ query }) =>
+        ok(query === 'Solaris' ? [searchHit({ tmdbId: 3, title: 'Solaris', year: 2002 })] : twins),
+    })
+    const resolved = await resolveMovie(world, {
+      title: 'Solaris Complete',
+      withoutMarkers: 'Solaris',
+      year: 2002,
+    })
+    expect(resolved).toMatchObject({
+      ok: true,
+      value: { kind: 'review', reason: 'ambiguous_match' },
+    })
+    expect(world.callsTo('searchMovies').map((call) => call.query)).toEqual(['Solaris Complete'])
+  })
+
+  test('a search failure in the second pass is an error', async () => {
+    const world = setup({
+      searchMovies: async ({ query }) =>
+        query === 'Les Visiteurs' ? tmdbFailure('metadata/tmdb_unavailable') : ok([]),
+    })
+    expect(
+      await resolveMovie(world, {
+        title: 'Les Visiteurs Intégrale',
+        withoutMarkers: 'Les Visiteurs',
+      }),
+    ).toMatchObject({ ok: false, error: { code: 'metadata/tmdb_unavailable' } })
+  })
+
+  test('without withoutMarkers, a title finding nothing is searched once, as before', async () => {
+    const world = setup()
+    expect(await resolveMovie(world, { title: 'Les Visiteurs Intégrale' })).toEqual(
+      ok({ kind: 'review', reason: 'no_match' }),
+    )
+    expect(world.callsTo('searchMovies')).toEqual([{ query: 'Les Visiteurs Intégrale', language }])
+  })
+
+  describe('series', () => {
+    const dbs = tmdbSeries({ tmdbId: 62715, title: 'Dragon Ball Super' })
+    const dbsHit = searchHit({ tmdbId: 62715, title: 'Dragon Ball Super', year: 2015 })
+    const parsed = (episode: number): ParsedName => ({
+      series: 'Dragon Ball Super Intégral',
+      withoutMarkers: 'Dragon Ball Super',
+      season: 1,
+      episode,
+    })
+
+    test('the full name finds nothing: found without markers, then remembered', async () => {
+      const world = setup({
+        ...seriesWith(dbs),
+        searchSeries: async ({ query }) => ok(query === 'Dragon Ball Super' ? [dbsHit] : []),
+      })
+      const first = await resolveEpisode(world, parsed(1))
+      expect(first.ok && first.value.kind === 'episodes' && first.value.series.tmdbId).toBe(62715)
+      expect(world.callsTo('searchSeries').map((call) => call.query)).toEqual([
+        'Dragon Ball Super Intégral',
+        'Dragon Ball Super',
+      ])
+      const second = await resolveEpisode(world, parsed(2))
+      expect(second.ok && second.value.kind === 'episodes' && second.value.episodes).toEqual([
+        tmdbEpisode(2),
+      ])
+      expect(world.callsTo('searchSeries')).toHaveLength(2)
+    })
+
+    test('the full name found: never searched without markers', async () => {
+      const full = searchHit({ tmdbId: 62715, title: 'Dragon Ball Super Intégral', year: 2015 })
+      const world = setup({ ...seriesWith(dbs), searchSeries: async () => ok([full]) })
+      const resolved = await resolveEpisode(world, parsed(1))
+      expect(resolved.ok && resolved.value.kind).toBe('episodes')
+      expect(world.callsTo('searchSeries').map((call) => call.query)).toEqual([
+        'Dragon Ball Super Intégral',
+      ])
+    })
+
+    test('the full name ambiguous: stays ambiguous, no second pass, remembered', async () => {
+      const twins = [1, 2].map((tmdbId) =>
+        searchHit({ tmdbId, title: 'Dragon Ball Super Intégral', voteCount: 100 - tmdbId }),
+      )
+      const world = setup({
+        searchSeries: async ({ query }) => ok(query === 'Dragon Ball Super' ? [dbsHit] : twins),
+      })
+      expect(await resolveEpisode(world, parsed(1))).toMatchObject({
+        ok: true,
+        value: { kind: 'review', reason: 'ambiguous_match' },
+      })
+      await resolveEpisode(world, parsed(2))
+      expect(world.callsTo('searchSeries').map((call) => call.query)).toEqual([
+        'Dragon Ball Super Intégral',
+      ])
+    })
+
+    test('neither finds anything: no_match, remembered for both passes', async () => {
+      const world = setup()
+      expect(await resolveEpisode(world, parsed(1))).toEqual(
+        ok({ kind: 'review', reason: 'no_match' }),
+      )
+      await resolveEpisode(world, parsed(2))
+      expect(world.callsTo('searchSeries')).toHaveLength(2)
+    })
+  })
+})
+
 describe('chosen by the admin', () => {
   test('movie(id) fetches that movie; an unknown id is an error', async () => {
     const world = setup(movies([tmdbMovie()]))

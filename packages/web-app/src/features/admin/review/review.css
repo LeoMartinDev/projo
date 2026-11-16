@@ -1,80 +1,44 @@
 @import '@projo/design/media.css';
 
-.review-list {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+/* "To review" (§7.8): one row per group; a group of several files unfolds to its files, as nested
+   rows of the same table. */
+.review-table {
+  max-width: none;
 }
 
-.review-row {
-  display: grid;
+.review-tr {
   grid-template-columns: 40px minmax(0, 2.2fr) minmax(0, 1.6fr) minmax(max-content, 1.1fr) auto;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 12px;
-  border-bottom: 1px solid var(--color-border-subtle);
-  transition: background-color 0.25s ease;
+  min-height: 72px;
 }
 
-.review-row:not(.review-row--skeleton):hover {
-  background: var(--fill-1);
+.review-tr.adm-tr--head {
+  min-height: 0;
 }
 
-.review-row--skeleton {
-  grid-template-columns: 40px minmax(0, 1fr);
-}
-
-.review-row__skeleton-text {
-  width: 60%;
-}
-
-.review-row__text,
-.review-row__parsed {
+.review-tr__lead {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
+  align-items: center;
+  justify-content: center;
 }
 
-.review-row__name,
-.review-row__summary {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.review-row__name {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.review-row__path {
-  direction: rtl;
-  text-align: left;
-  overflow: hidden;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.review-row__kind {
+.review-tr__kind {
   color: var(--color-text-muted);
   font-size: 12px;
 }
 
-.review-row__summary {
+.review-tr__summary {
+  overflow: hidden;
   color: var(--color-text-muted-strong);
   font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.review-row__reason {
+.review-tr__reason {
   min-width: 0;
 }
 
-.review-row__reason .badge {
+.review-tr__reason .badge {
   max-width: 100%;
   height: auto;
   min-height: 22px;
@@ -83,15 +47,96 @@
   white-space: normal;
 }
 
-.review-row__actions {
-  display: flex;
+.review-reasons {
+  display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
   gap: 6px;
+  max-width: 100%;
 }
 
-.review-more {
-  align-self: center;
+/* Above the row's toggle, so that its tooltip (every reason) shows on hover. */
+.review-reasons__more {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The disclosure of a group; its hit area covers the whole row, below the actions. */
+.review-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--fill-1);
+  color: var(--color-text-muted-strong);
+  cursor: pointer;
+}
+
+.review-toggle::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.review-toggle svg {
+  transition: transform var(--duration-fast) ease;
+}
+
+.review-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
+.review-toggle:focus-visible {
+  outline: none;
+}
+
+.adm-tr:has(.review-toggle:focus-visible) {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.review-tr--group:hover .review-toggle {
+  background: var(--fill-2);
+  color: var(--color-text);
+}
+
+/* The files of an unfolded group: a guide line under the toggle, the file name indented. */
+.review-tr--nested::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 32px;
+  width: 1px;
+  background: var(--color-border);
+  content: '';
+}
+
+.review-tr--nested .review-tr__file {
+  padding-inline-start: 20px;
+}
+
+.adm-tr--skeleton.review-tr--nested {
+  padding-inline-start: 88px;
+}
+
+.review-err {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.review-err__message {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  min-width: 0;
+  padding-inline-start: 20px;
+  font-size: 14px;
 }
 
 .review-file {
@@ -106,54 +151,78 @@
   white-space: nowrap;
 }
 
-@media not (--wide) {
-  .review-row {
+@media not (--wide), (--phone) {
+  .review-tr {
     grid-template-columns: 40px minmax(0, 1fr) auto;
     grid-template-areas:
-      'icon text actions'
+      'lead file actions'
       '. parsed parsed'
       '. reason reason';
     gap: 8px 12px;
     padding: 16px 4px;
   }
 
-  .review-row--skeleton {
-    grid-template-columns: 40px minmax(0, 1fr);
-    grid-template-areas: none;
+  .review-tr.adm-tr--head {
+    display: none;
   }
 
-  .review-row > .lib-row__icon {
-    grid-area: icon;
+  .review-tr__lead {
+    grid-area: lead;
+    align-self: start;
   }
 
-  .review-row__text {
-    grid-area: text;
+  .review-tr__file {
+    grid-area: file;
   }
 
-  .review-row__parsed {
+  .review-tr__parsed {
     grid-area: parsed;
   }
 
-  .review-row__reason {
+  .review-tr__parsed:empty {
+    display: none;
+  }
+
+  .review-tr__reason {
     grid-area: reason;
   }
 
-  .review-row__actions {
+  .review-tr__actions {
     grid-area: actions;
+  }
+
+  .review-tr--nested::before {
+    inset-inline-start: 24px;
+  }
+
+  .review-tr--nested :is(.review-tr__parsed, .review-tr__reason) {
+    padding-inline-start: 20px;
+  }
+
+  .adm-tr--skeleton.review-tr--nested {
+    padding-inline-start: 76px;
+  }
+
+  .review-err {
+    padding-inline: 4px;
   }
 }
 
-@media (--compact) {
-  .review-row {
+@media (--phone) {
+  .review-tr {
     grid-template-columns: 40px minmax(0, 1fr);
     grid-template-areas:
-      'icon text'
+      'lead file'
       '. parsed'
       '. reason'
       '. actions';
   }
 
-  .review-row__actions {
+  .review-tr__actions {
     justify-content: flex-start;
+  }
+
+  .review-tr--nested .review-tr__actions {
+    padding-inline-start: 20px;
   }
 }

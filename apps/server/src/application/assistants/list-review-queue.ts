@@ -1,21 +1,25 @@
 import type { ReviewReason } from '@projo/shared/api/metadata'
 
-import type { SourceListItem, SourceRepository } from '../../core/source/source.ts'
-import { type LibraryNames, type NamedSource, nameSources } from './shared/library-names.ts'
+import type { ReviewGroup } from '../../core/source/review-groups.ts'
+import type { SourceListItem } from '../../core/source/source.ts'
+import type { ListReviewGroups } from '../metadata/list-review-groups.ts'
+import { type LibraryNames, libraryNamesOf } from './shared/library-names.ts'
 
 type Deps = {
-  sources: Pick<SourceRepository, 'page'>
+  listReviewGroups: ListReviewGroups
   libraries: LibraryNames
 }
 
 export type ReviewQueuePage = {
+  /** Files, not groups. */
   total: number
-  items: NamedSource<SourceListItem>[]
+  items: { group: ReviewGroup; first: SourceListItem; library: string | undefined }[]
   nextCursor?: string
 }
 
+/** "To review" by series group (§7.8, §27.4), with each group's library name. */
 export const listReviewQueueFactory =
-  ({ sources, libraries }: Deps) =>
+  ({ listReviewGroups, libraries }: Deps) =>
   ({
     libraryId,
     reason,
@@ -27,17 +31,16 @@ export const listReviewQueueFactory =
     cursor?: string
     limit: number
   }): ReviewQueuePage => {
-    const page = sources.page({
-      state: 'ready',
-      matchState: 'needs_review',
+    const page = listReviewGroups({
       limit,
       ...(libraryId === undefined ? {} : { libraryId }),
       ...(reason === undefined ? {} : { reviewReason: reason }),
       ...(cursor === undefined ? {} : { cursor }),
     })
+    const names = libraryNamesOf(libraries)
     return {
       total: page.total,
-      items: nameSources(libraries, page.items),
+      items: page.items.map((entry) => ({ ...entry, library: names.get(entry.first.libraryId) })),
       ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
     }
   }

@@ -263,21 +263,43 @@ describe('tools (§27.4, §27.5)', () => {
       ]),
     )
 
-    const queue = await call('list_review_queue', { reason: 'no_match', limit: 2 })
-    expect(queue.structuredContent).toMatchObject({ total: 3 })
-    expect(queue.structuredContent?.['items']).toHaveLength(2)
+    const queue = await call('list_review_queue', { limit: 1 })
+    expect(queue.structuredContent).toMatchObject({ total: 4 })
+    expect(queue.structuredContent?.['items']).toHaveLength(1)
     expect(queue.structuredContent?.['nextCursor']).toBeString()
+    const groups = await call('list_review_queue', {})
+    expect(groups.structuredContent).toMatchObject({
+      total: 4,
+      items: [
+        {
+          id: 'ours-e1',
+          count: 3,
+          series: 'Ours',
+          showFolder: 'Ours',
+          reasons: [{ reason: 'no_match', count: 3 }],
+          first: {
+            id: 'ours-e1',
+            library: 'library-1',
+            path: 'Ours/Season 1/Ours.S01E01.mkv',
+            reason: 'no_match',
+            parsed: { series: 'Ours', season: 1, episode: 1 },
+          },
+        },
+        { id: 'dune', count: 1, reasons: [{ reason: 'ambiguous_match', count: 1 }] },
+      ],
+    })
+    const byReason = await call('list_review_queue', { reason: 'ambiguous_match' })
+    expect(byReason.structuredContent).toMatchObject({ total: 1, items: [{ id: 'dune' }] })
 
-    const detail = await call('get_review_source', { sourceId: 'ours-e1' })
+    const detail = await call('get_review_source', { sourceId: 'ours-e2' })
     expect(detail.structuredContent).toMatchObject({
-      source: { id: 'ours-e1', reason: 'no_match', parsed: { series: 'Ours', episode: 1 } },
-      items: [{ id: 'local-ours-e1', kind: 'episode', episodeNumber: 1 }],
+      source: { id: 'ours-e2', reason: 'no_match', parsed: { series: 'Ours', episode: 2 } },
+      items: [{ id: 'local-ours-e2', kind: 'episode', episodeNumber: 2 }],
+      sameFolderToReview: [],
     })
     expect(
-      (detail.structuredContent?.['sameFolderToReview'] as { id: string }[])
-        .map((other) => other.id)
-        .toSorted(),
-    ).toEqual(['ours-e2', 'ours-e9'])
+      (detail.structuredContent?.['seriesGroup'] as { id: string }[]).map((other) => other.id),
+    ).toEqual(['ours-e1', 'ours-e2', 'ours-e9'])
 
     const series = await call('get_tmdb_series', { tmdbId: 136315, seasonNumber: 1 })
     expect(series.structuredContent).toMatchObject({ tmdbId: 136315 })
@@ -333,7 +355,8 @@ describe('tools (§27.4, §27.5)', () => {
   test('hide and restore; find, read and preview a rematch of a movie', async () => {
     await world.setKey()
     seedReview()
-    await call('hide_source', { sourceId: 'dune' })
+    const one = await call('hide_source', { sourceId: 'dune' })
+    expect(one.structuredContent).toMatchObject({ sourceIds: ['dune'], hidden: true })
     expect(sourceRow('Dune.mkv')?.state).toBe('rejected')
     const hidden = await call('list_hidden_sources')
     expect(hidden.structuredContent).toMatchObject({ total: 1, items: [{ path: 'Dune.mkv' }] })
@@ -364,5 +387,21 @@ describe('tools (§27.4, §27.5)', () => {
       identified: [{ sourceId: 'dune', kind: 'movie', tmdbId: 841 }],
     })
     expect(world.query('SELECT tmdb_id FROM manual_matches')).toEqual([{ tmdb_id: 438631 }])
+  })
+
+  test('hide_source with wholeGroup hides the series group of the file', async () => {
+    seedReview()
+    const hidden = await call('hide_source', { sourceId: 'ours-e9', wholeGroup: true })
+    expect(hidden.structuredContent).toEqual({
+      sourceId: 'ours-e9',
+      sourceIds: ['ours-e1', 'ours-e2', 'ours-e9'],
+      hidden: true,
+    })
+    for (const name of ['Ours.S01E01.mkv', 'Ours.S01E02.mkv', 'Ours.S01E09.mkv'])
+      expect(sourceRow(name)?.state).toBe('rejected')
+    expect(sourceRow('Dune.mkv')?.state).toBe('ready')
+    const again = await call('hide_source', { sourceId: 'ours-e9', wholeGroup: true })
+    expect(again.isError).toBe(true)
+    expect(again.structuredContent).toMatchObject({ error: { code: 'source/not_to_review' } })
   })
 })

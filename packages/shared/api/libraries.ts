@@ -191,6 +191,7 @@ export const parsedNameDtoSchema = z.object({
   title: z.string().optional(),
   year: z.number().int().optional(),
   series: z.string().optional(),
+  withoutMarkers: z.string().optional(),
   season: z.number().int().optional(),
   episode: z.number().int().optional(),
   episodeEnd: z.number().int().optional(),
@@ -248,6 +249,46 @@ export type SourceDto = z.infer<typeof sourceDtoSchema>
 
 export const sourcesPageSchema = pageSchema(sourceDtoSchema).extend({ total: z.number().int() })
 export type SourcesPage = z.infer<typeof sourcesPageSchema>
+
+/** `GET /admin/sources/review-groups`: "To review" by series group (§7.8), pages of groups. */
+export const reviewGroupsQuerySchema = paginationQuerySchema.extend({
+  libraryId: z.string().min(1).optional(),
+})
+export type ReviewGroupsQuery = z.infer<typeof reviewGroupsQuerySchema>
+
+export const reviewReasonCountSchema = z.object({
+  reason: reviewReasonSchema,
+  count: z.number().int(),
+})
+export type ReviewReasonCount = z.infer<typeof reviewReasonCountSchema>
+
+export const reviewGroupDtoSchema = z.object({
+  /** The id of its first file (lowest season, then episode, then path). */
+  id: z.string(),
+  /** Its number of files. */
+  count: z.number().int(),
+  /** A series group: the show's name, and its folder relative to the library root. */
+  series: z.string().optional(),
+  showFolder: z.string().optional(),
+  /** The reasons of its files, most frequent first. */
+  reasons: z.array(reviewReasonCountSchema),
+  first: sourceDtoSchema,
+})
+export type ReviewGroupDto = z.infer<typeof reviewGroupDtoSchema>
+
+/** `total` counts files, not groups (the counter of "To review"). */
+export const reviewGroupsPageSchema = pageSchema(reviewGroupDtoSchema).extend({
+  total: z.number().int(),
+})
+export type ReviewGroupsPage = z.infer<typeof reviewGroupsPageSchema>
+
+/** `GET /admin/sources/:id/review-group`: the files of that file's group, first file first. */
+export const reviewGroupFilesResponseSchema = z.object({ items: z.array(sourceDtoSchema) })
+export type ReviewGroupFilesResponse = z.infer<typeof reviewGroupFilesResponseSchema>
+
+/** `POST /admin/sources/:id/reject-group`: the files hidden. */
+export const rejectGroupResponseSchema = z.object({ sourceIds: z.array(z.string()) })
+export type RejectGroupResponse = z.infer<typeof rejectGroupResponseSchema>
 
 export const purgeMissingBodySchema = z.object({ libraryId: z.string().min(1).optional() })
 export type PurgeMissingBody = z.infer<typeof purgeMissingBodySchema>

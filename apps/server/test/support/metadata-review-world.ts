@@ -3,6 +3,9 @@ import { expect } from 'bun:test'
 import { ok, type Result } from '@projo/shared'
 
 import { assignSourceFactory } from '../../src/application/metadata/assign-source.ts'
+import { getReviewGroupFactory } from '../../src/application/metadata/get-review-group.ts'
+import { listReviewGroupsFactory } from '../../src/application/metadata/list-review-groups.ts'
+import { rejectSourceGroupFactory } from '../../src/application/metadata/reject-source-group.ts'
 import { rejectSourceFactory } from '../../src/application/metadata/reject-source.ts'
 import { rematchItemFactory } from '../../src/application/metadata/rematch-item.ts'
 import { restoreSourceFactory } from '../../src/application/metadata/restore-source.ts'
@@ -13,7 +16,7 @@ import type { Library } from '../../src/core/library/library.ts'
 import type { ManualMatch } from '../../src/core/metadata/ports.ts'
 import type { TmdbError } from '../../src/core/metadata/tmdb.ts'
 import type { ParsedName } from '../../src/core/naming/index.ts'
-import type { Source, SourcePatch } from '../../src/core/source/source.ts'
+import type { Source, SourceListItem, SourcePatch } from '../../src/core/source/source.ts'
 import { createManualClock } from './clock.ts'
 import { createRecordingJobQueue } from './fakes.ts'
 import { silentLogger } from './logger.ts'
@@ -27,10 +30,11 @@ import {
   tmdbSeason,
   tmdbSeries,
 } from './metadata-fakes.ts'
+import { inMemoryReviewQueue } from './review-queue-fakes.ts'
 
 /**
  * Fixtures and in-memory fakes of the review use cases (search, assign, reject, restore,
- * rematch), for their unit tests. `metadata-world.ts` is the real one: modules, SQLite and the
+ * rematch, the series groups of "To review"), for their unit tests. `metadata-world.ts` is the real one: modules, SQLite and the
  * replayed TMDB server.
  */
 
@@ -168,6 +172,9 @@ export const createReviewWorld = ({
   const deps: Parameters<typeof searchTmdbFactory>[0] &
     Parameters<typeof assignSourceFactory>[0] &
     Parameters<typeof rejectSourceFactory>[0] &
+    Parameters<typeof rejectSourceGroupFactory>[0] &
+    Parameters<typeof listReviewGroupsFactory>[0] &
+    Parameters<typeof getReviewGroupFactory>[0] &
     Parameters<typeof restoreSourceFactory>[0] &
     Parameters<typeof rematchItemFactory>[0] = {
     tmdb: tmdb.tmdb,
@@ -223,7 +230,18 @@ export const createReviewWorld = ({
         const source = sources.get(id)
         if (source !== undefined) sources.set(id, { ...source, ...patch } as Source)
       },
+      listByIds: (ids) =>
+        ids.flatMap((id): SourceListItem[] => {
+          const source = sources.get(id)
+          if (source === undefined) return []
+          return [{ ...source, rootPath: '/media', itemIds: items.links.get(id) ?? [], items: [] }]
+        }),
     },
+    reviewQueue: inMemoryReviewQueue({
+      sources: () => sources.values(),
+      item: (id) => items.items.get(id),
+      linksOf: (sourceId) => items.links.get(sourceId) ?? [],
+    }),
     libraryRepository: { findById: (id) => libraries.find((lib) => lib.id === id) },
     manualMatches: {
       save: (match) => void saved.push(match),
@@ -238,6 +256,9 @@ export const createReviewWorld = ({
     searchTmdb: searchTmdbFactory(deps),
     assignSource: assignSourceFactory(deps),
     rejectSource: rejectSourceFactory(deps),
+    rejectSourceGroup: rejectSourceGroupFactory(deps),
+    listReviewGroups: listReviewGroupsFactory(deps),
+    getReviewGroup: getReviewGroupFactory(deps),
     restoreSource: restoreSourceFactory(deps),
     rematchItem: rematchItemFactory(deps),
     timeline,

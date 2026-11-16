@@ -3,12 +3,18 @@ import { Hono } from 'hono'
 import {
   type PurgeMissingResponse,
   purgeMissingBodySchema,
-  type SourceDto,
+  type RejectGroupResponse,
+  type ReviewGroupFilesResponse,
+  type ReviewGroupsPage,
+  reviewGroupsQuerySchema,
   sourcesQuerySchema,
 } from '@projo/shared/api/libraries'
 import { type AssignResponse, assignBodySchema } from '@projo/shared/api/metadata'
 
 import type { AssignSource } from '../../../application/metadata/assign-source.ts'
+import type { GetReviewGroup } from '../../../application/metadata/get-review-group.ts'
+import type { ListReviewGroups } from '../../../application/metadata/list-review-groups.ts'
+import type { RejectSourceGroup } from '../../../application/metadata/reject-source-group.ts'
 import type { RejectSource } from '../../../application/metadata/reject-source.ts'
 import type { RestoreSource } from '../../../application/metadata/restore-source.ts'
 import type { AssignResult } from '../../../application/metadata/shared/source-assignment.ts'
@@ -16,53 +22,17 @@ import type { PurgeAllMissingSources } from '../../../application/operations/pur
 import type { PurgeMissingSource } from '../../../application/operations/purge-missing-source.ts'
 import type { ListSources } from '../../../application/scanner/list-sources.ts'
 import type { RecheckSource } from '../../../application/scanner/recheck-source.ts'
-import { sourceVersionOf } from '../../../core/media/version.ts'
-import type { SourceListItem } from '../../../core/source/source.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
 import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
-import { toParsedNameDto } from './sources-dto.ts'
-
-const baseName = (relativePath: string): string => relativePath.split('/').at(-1) ?? relativePath
-
-const iso = <K extends string>(key: K, value: Date | undefined) =>
-  (value === undefined ? {} : { [key]: value.toISOString() }) as { [P in K]?: string }
+import { toReviewGroupDto, toSourceDto } from './sources-dto.ts'
 
 export const toAssignResponse = ({
   sourceIds,
   itemIds,
   needsReview,
 }: AssignResult): AssignResponse => ({ sourceIds, itemIds, needsReview })
-
-export const toSourceDto = (source: SourceListItem): SourceDto => ({
-  id: source.id,
-  libraryId: source.libraryId,
-  rootId: source.rootId,
-  path:
-    source.rootPath === '/'
-      ? `/${source.relativePath}`
-      : `${source.rootPath}/${source.relativePath}`,
-  relativePath: source.relativePath,
-  state: source.state,
-  sizeBytes: source.sizeBytes,
-  discoveredAt: source.discoveredAt.toISOString(),
-  classification: source.classification,
-  displayTitle: source.parsed.title ?? source.parsed.series ?? baseName(source.relativePath),
-  matchState: source.matchState,
-  parsed: toParsedNameDto(source.parsed),
-  itemIds: source.itemIds,
-  items: source.items,
-  ...(source.pendingReason === undefined ? {} : { pendingReason: source.pendingReason }),
-  ...iso('pendingSince', source.pendingSince),
-  ...(source.state === 'pending' ? iso('unchangedSince', source.unchangedSince) : {}),
-  ...iso('stableSince', source.stableSince),
-  ...iso('readyAt', source.readyAt),
-  ...iso('missingSince', source.missingSince),
-  ...(source.reviewReason === undefined ? {} : { reviewReason: source.reviewReason }),
-  version: sourceVersionOf(source.probe?.video[0], source.parsed),
-  ...(source.probe === undefined ? {} : { durationMs: Math.round(source.probe.durationMs) }),
-})
 
 export const adminSourcesRoutes = ({
   listSources,
@@ -98,15 +68,41 @@ export const adminSourcesRoutes = ({
 export type AdminSourcesRoutes = ReturnType<typeof adminSourcesRoutes>
 
 export const adminSourceReviewRoutes = ({
+  listReviewGroups,
+  getReviewGroup,
   assignSource,
   rejectSource,
+  rejectSourceGroup,
   restoreSource,
 }: {
+  listReviewGroups: ListReviewGroups
+  getReviewGroup: GetReviewGroup
   assignSource: AssignSource
   rejectSource: RejectSource
+  rejectSourceGroup: RejectSourceGroup
   restoreSource: RestoreSource
 }) =>
   new Hono<AppEnv>()
+    .get('/sources/review-groups', validate('query', reviewGroupsQuerySchema), (c) => {
+      const { libraryId, cursor, limit } = c.req.valid('query')
+      const page = listReviewGroups({
+        limit,
+        ...(libraryId === undefined ? {} : { libraryId }),
+        ...(cursor === undefined ? {} : { cursor }),
+      })
+      const body: ReviewGroupsPage = {
+        total: page.total,
+        items: page.items.map(toReviewGroupDto),
+        ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
+      }
+      return c.json(body, 200)
+    })
+    .get('/sources/:id/review-group', (c) => {
+      const result = getReviewGroup({ sourceId: c.req.param('id') })
+      if (!result.ok) return respondError(c, result.error)
+      const body: ReviewGroupFilesResponse = { items: result.value.files.map(toSourceDto) }
+      return c.json(body, 200)
+    })
     .post('/sources/:id/assign', validate('json', assignBodySchema), async (c) => {
       const account = c.get('account')
       if (account === undefined) throw new Error('admin route without account')
@@ -120,6 +116,12 @@ export const adminSourceReviewRoutes = ({
     .post('/sources/:id/reject', (c) => {
       const result = rejectSource({ sourceId: c.req.param('id') })
       return result.ok ? noContent(c) : respondError(c, result.error)
+    })
+    .post('/sources/:id/reject-group', (c) => {
+      const result = rejectSourceGroup({ sourceId: c.req.param('id') })
+      return result.ok
+        ? c.json(result.value satisfies RejectGroupResponse, 200)
+        : respondError(c, result.error)
     })
     .post('/sources/:id/restore', (c) => {
       const result = restoreSource({ sourceId: c.req.param('id') })

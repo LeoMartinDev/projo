@@ -882,6 +882,18 @@
       "identified_one": "{{count}} fichier identifié",
       "identified_other": "{{count}} fichiers identifiés",
       "more": "Afficher plus",
+      "columns": {
+        "file": "Fichier",
+        "parsed": "Lu dans le nom",
+        "reason": "Raison"
+      },
+      "groupLabel_one": "{{series}} · {{formatted}} fichier",
+      "groupLabel_other": "{{series}} · {{formatted}} fichiers",
+      "reasonCount": "{{reason}} ({{formatted}})",
+      "identifyGroupTitle": "Identifier la série",
+      "hideGroupTitle_one": "Masquer le fichier de « {{series}} » ?",
+      "hideGroupTitle_other": "Masquer les {{formatted}} fichiers de « {{series}} » ?",
+      "hideGroupText": "Ils n’apparaîtront plus nulle part, même après un scan complet. Vous pourrez les afficher à nouveau un par un depuis « Masqués ».",
       "classification": {
         "movie": "Film",
         "episode": "Épisode",
@@ -1586,6 +1598,7 @@
     "source/file_missing": "Le fichier a disparu du disque.",
     "source/not_missing": "Seul un fichier manquant peut être purgé.",
     "source/not_rejected": "Ce fichier n’est pas masqué.",
+    "source/not_to_review": "Ce fichier n’est pas à vérifier.",
     "update/disabled": "Les mises à jour depuis l’administration ne sont pas disponibles sur cette installation.",
     "update/check_failed": "Impossible de vérifier les mises à jour : GitHub ne répond pas.",
     "update/invalid_release": "Cette version publiée est incomplète ou invalide.",

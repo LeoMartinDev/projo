@@ -34,7 +34,7 @@ import type {
   ParsedName,
 } from './types'
 
-export const NAMING_RULES_VERSION = 3
+export const NAMING_RULES_VERSION = 4
 
 type Context = {
   readonly hint: LibraryHint
@@ -82,9 +82,20 @@ const parentFolder = (ctx: Context): string | undefined => ctx.parents.at(-1)
 const sameTitle = (a: string, b: string): boolean =>
   a !== '' && normalizeTitle(a) === normalizeTitle(b)
 
+const namesOf = (fragment: TitleFragment): readonly string[] =>
+  fragment.withoutMarkers === undefined
+    ? [fragment.title]
+    : [fragment.title, fragment.withoutMarkers]
+
+/** Same name, with or without the complete-set markers ending either (`Show Intégrale` ≡ `Show`). */
+const sameName = (a: TitleFragment, b: TitleFragment): boolean =>
+  namesOf(a).some((name) => namesOf(b).some((other) => sameTitle(name, other)))
+
 const withIds = (ids: IdTags | undefined): { ids?: IdTags } => (ids === undefined ? {} : { ids })
 
-const compact = (parsed: { [K in keyof ParsedName]: ParsedName[K] | undefined }): ParsedName =>
+type LooseParsedName = { [K in keyof ParsedName]: ParsedName[K] | undefined }
+
+const compact = (parsed: LooseParsedName): ParsedName =>
   Object.fromEntries(
     Object.entries(parsed).filter(([, value]) => value !== undefined && value !== ''),
   ) as ParsedName
@@ -101,7 +112,12 @@ const result = (
   ...(reviewReason === undefined ? {} : { reviewReason }),
 })
 
-type SeriesIdentity = { readonly series?: string; readonly year?: number; readonly ids?: IdTags }
+type SeriesIdentity = {
+  readonly series?: string
+  readonly withoutMarkers?: string
+  readonly year?: number
+  readonly ids?: IdTags
+}
 
 const resolveSeries = (ctx: Context, prefix: string): SeriesIdentity => {
   const fromPrefix = parseTitleFragment({ value: prefix }, { detectParts: false, detectYear: true })
@@ -116,21 +132,20 @@ const resolveSeries = (ctx: Context, prefix: string): SeriesIdentity => {
     (ctx.seasonFolder !== undefined ||
       fromPrefix.title === '' ||
       fromFolder.ids !== undefined ||
-      sameTitle(fromFolder.title, fromPrefix.title))
+      sameName(fromFolder, fromPrefix))
   const chosen: TitleFragment | undefined = folderIsStructural
     ? fromFolder
     : fromPrefix.title === ''
       ? undefined
       : fromPrefix
   const other = chosen === fromFolder ? fromPrefix : fromFolder
-  const year =
-    chosen?.year ??
-    (chosen !== undefined && other !== undefined && sameTitle(chosen.title, other.title)
-      ? other.year
-      : undefined)
+  const sameShow =
+    chosen !== undefined && other !== undefined && sameName(chosen, other) ? other : undefined
+  const year = chosen?.year ?? sameShow?.year ?? chosen?.rangeStart ?? sameShow?.rangeStart
   const ids = mergeIds(ctx.file.ids, folderIsStructural ? fromFolder?.ids : undefined)
   return {
     ...(chosen === undefined ? {} : { series: chosen.title }),
+    ...(chosen?.withoutMarkers === undefined ? {} : { withoutMarkers: chosen.withoutMarkers }),
     ...(year === undefined ? {} : { year }),
     ...withIds(ids),
   }
@@ -180,6 +195,7 @@ const episodeResult = (
   const folderSeason = ctx.seasonFolder?.season
   const parsed = compact({
     series: series.series,
+    withoutMarkers: series.withoutMarkers,
     year: series.year,
     ...(numbers.kind === 'standard'
       ? {
@@ -219,15 +235,15 @@ const movieParsed = (ctx: Context): ParsedName => {
     folder !== undefined &&
     !yearsDisagree &&
     (looksLikeMovieFolder(folder) || (file.title === '' && folder.title !== ''))
-  const title = useFolder ? folder.title : file.title
+  const named = useFolder ? folder : file
   const year = useFolder
     ? (folder.year ?? file.year)
-    : (file.year ??
-      (folder !== undefined && sameTitle(folder.title, file.title) ? folder.year : undefined))
+    : (file.year ?? (folder !== undefined && sameName(folder, file) ? folder.year : undefined))
   const editionFrom =
     file.edition === undefined && file.editionName === undefined && useFolder ? folder : file
   return compact({
-    title,
+    title: named.title,
+    withoutMarkers: named.withoutMarkers,
     year,
     edition: editionFrom.edition,
     editionName: editionFrom.editionName,
@@ -249,7 +265,7 @@ const movieResult = (ctx: Context, forced: boolean): MediaPathAnalysis => {
   return result('movie', parsed, parsed.title ?? fallbackTitle(ctx.stem), undefined)
 }
 
-const unknownResult = (ctx: Context, extra: ParsedName): MediaPathAnalysis => {
+const unknownResult = (ctx: Context, extra: LooseParsedName): MediaPathAnalysis => {
   const parsed = compact({ ...movieParsed(ctx), ...extra })
   return result(
     'unknown',
@@ -259,30 +275,34 @@ const unknownResult = (ctx: Context, extra: ParsedName): MediaPathAnalysis => {
   )
 }
 
-const showFolderTitle = (ctx: Context): string => {
+/** The show folder's name, with and without the complete-set markers ending it, normalised. */
+const showFolderTitles = (ctx: Context): readonly string[] => {
   const folderName = ctx.seasonFolder === undefined ? parentFolder(ctx) : ctx.seriesFolder
-  return folderName === undefined
-    ? ''
-    : normalizeTitle(parseTitleFragment(folderName, { detectParts: false, detectYear: true }).title)
+  if (folderName === undefined) return []
+  const fragment = parseTitleFragment(folderName, { detectParts: false, detectYear: true })
+  return namesOf(fragment)
+    .map(normalizeTitle)
+    .filter((name) => name !== '')
 }
 
 const folderTitleEnd = (ctx: Context): number => {
-  const title = showFolderTitle(ctx)
+  const titles = showFolderTitles(ctx)
   const value = ctx.file.value
-  if (title === '') return 0
+  if (titles.length === 0) return 0
   const end = [...value.matchAll(/[\p{L}\p{N}]+/gu)]
     .map((word) => word.index + word[0].length)
-    .find((wordEnd) => normalizeTitle(value.slice(0, wordEnd)) === title)
+    .findLast((wordEnd) => titles.includes(normalizeTitle(value.slice(0, wordEnd))))
   return end ?? 0
 }
 
 const isInSeriesFolder = (ctx: Context, hit: AbsoluteHit): boolean => {
-  const folder = showFolderTitle(ctx)
   const prefix = normalizeTitle(
     parseTitleFragment({ value: ctx.file.value.slice(0, hit.index) }).title,
   )
-  if (folder === '' || prefix === '') return false
-  return folder.startsWith(prefix) || prefix.startsWith(folder)
+  if (prefix === '') return false
+  return showFolderTitles(ctx).some(
+    (folder) => folder.startsWith(prefix) || prefix.startsWith(folder),
+  )
 }
 
 const numberAfterName = (ctx: Context, hit: AbsoluteHit): EpisodeNumbers => {
@@ -369,11 +389,11 @@ export const analyzeMediaPath = (input: MediaPathInput): MediaPathAnalysis => {
   const date = findAirDate(value)
   if (date !== undefined) {
     if (ctx.parents.length > 0) return episodeResult(ctx, { kind: 'date', hit: date }, undefined)
-    const title = parseTitleFragment(
+    const { title, withoutMarkers } = parseTitleFragment(
       { value: value.slice(0, date.index) },
       { detectParts: false, detectYear: false },
-    ).title
-    return unknownResult(ctx, compact({ title, airDate: date.airDate }))
+    )
+    return unknownResult(ctx, { title, withoutMarkers, airDate: date.airDate })
   }
 
   return movieResult(ctx, false)
