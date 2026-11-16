@@ -47,6 +47,7 @@ export const InvitationCreatedDialog = ({
             ref={inputRef}
             id={`${id}-link`}
             className="field__input mono"
+            spellCheck={false}
             readOnly
             value={link}
             onFocus={(event) => event.target.select()}

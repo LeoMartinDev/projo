@@ -2,10 +2,12 @@
 // unreachable, server too old, setup in the browser), then `@projo/web-app` mounted with the
 // desktop host on the ready server. "Change server" (the tray's `desktop://change-server`,
 // Ctrl+Shift+U) signs out on the server, then the app forgets the token and reloads this page
-// with `?change=1`.
+// with `?change=1`. One visual from launch to the first screen: the splash of index.html, painted
+// before this script, shows the hidden window and stays over it until a screen is drawn.
 import '@projo/design/fonts.css'
 import '@projo/design/tokens.css'
 import '@projo/design/base.css'
+import './native.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -15,26 +17,38 @@ import { listenTauri, tauriInternals } from '@projo/web-app/desktop/tauri.ts'
 import { WindowControls } from '@projo/web-app/desktop/WindowControls.tsx'
 import { mountApp } from '@projo/web-app/mount'
 
-import { connectServerFactory, fetchSetupCompleted } from './connect-server.ts'
+import { connectServerFactory, fetchSetupStatus } from './connect-server.ts'
 import { tauriCommands } from './desktop-commands.ts'
 import { desktopHost } from './desktop-host.ts'
 import { Entry } from './Entry.tsx'
-import { startingStep } from './entry-flow.ts'
+import { type ReadyServer, startingStep } from './entry-flow.ts'
 import { entryI18n } from './entry-i18n.ts'
 import { leaveServerFactory } from './leave-server.ts'
 import { minimumServerVersion } from './server-version.ts'
+import { afterNextPaint, splashFactory } from './splash.ts'
 
-const container = document.getElementById('root')
-if (!container) throw new Error('#root element missing from index.html')
 const internals = tauriInternals()
 if (internals === undefined) throw new Error('the bundled UI runs inside the projo desktop app')
+
+const splash = splashFactory({
+  element: document.getElementById('splash') ?? undefined,
+  showWindow: () => internals.invoke('desktop_window_ready'),
+  afterPaint: afterNextPaint,
+  later: (run, ms) => void setTimeout(run, ms),
+  warn: (message, cause) => console.warn(message, cause),
+})
+splash.showWindow()
+
+const container = document.getElementById('root')
+const entryContainer = document.getElementById('entry')
+if (!container || !entryContainer) throw new Error('#root or #entry missing from index.html')
 
 const commands = tauriCommands(internals)
 const changing = new URLSearchParams(location.search).has('change')
 const connect = connectServerFactory({
   commands,
-  setupCompleted: fetchSetupCompleted((url) =>
-    fetch(url, { credentials: 'omit', headers: { accept: 'application/json' } }),
+  setupStatus: fetchSetupStatus((url, signal) =>
+    fetch(url, { credentials: 'omit', headers: { accept: 'application/json' }, signal }),
   ),
   minimumServerVersion,
 })
@@ -60,34 +74,60 @@ const appLocation = () => {
   return changing ? '/' : `${path}${location.search}${location.hash}`
 }
 
+// A first route still loading past this shows its pending page rather than the splash.
+const firstRouteTimeoutMs = 8_000
+
 const start = async () => {
+  // Read with the server check, not after it: the saved server's token and the device name.
+  const credentials = Promise.all([commands.getToken(), commands.deviceName()])
   const saved = await commands.getServer()
   if (!saved.ok) console.warn('no saved server', saved.error)
-  const root = createRoot(container)
-  const ready = async (serverOrigin: string) => {
-    const [token, deviceName] = await Promise.all([commands.getToken(), commands.deviceName()])
+  const savedUrl = saved.ok ? saved.value : undefined
+  const entryRoot = createRoot(entryContainer)
+
+  let mounting = false
+  const ready = async ({ serverUrl, setupStatus }: ReadyServer) => {
+    if (mounting) return
+    mounting = true
+    // Another server than the saved one (typed, or upgraded to https) has its own token.
+    const [early, deviceName] = await credentials
+    const token = serverUrl === savedUrl ? early : await commands.getToken()
     if (!token.ok) console.warn('the session token could not be read', token.error)
-    root.unmount()
     history.replaceState(history.state, '', appLocation())
+
+    // The Entry (or the splash) stays over the app until its first route is drawn: no blank
+    // frame between them.
+    let handedOver = false
+    const handOver = () => {
+      if (handedOver) return
+      handedOver = true
+      entryRoot.unmount()
+      entryContainer.remove()
+      splash.dismiss()
+    }
+    setTimeout(handOver, firstRouteTimeoutMs)
     mountApp(
       container,
       desktopHost({
         version: __PROJO_VERSION__,
-        serverOrigin,
+        serverOrigin: serverUrl,
         token: token.ok ? token.value : undefined,
         deviceName,
         commands,
         internals,
       }),
+      { setupStatus, onFirstRoute: handOver },
     )
   }
-  root.render(
+
+  entryRoot.render(
     <StrictMode>
       <I18nextProvider i18n={entryI18n()}>
         <Entry
-          start={startingStep({ saved: saved.ok ? saved.value : undefined, changing })}
+          start={startingStep({ saved: savedUrl, changing })}
           connect={connect}
-          onReady={(serverOrigin) => void ready(serverOrigin)}
+          onReady={(server) => void ready(server)}
+          onShown={splash.dismiss}
         />
         <WindowControls />
       </I18nextProvider>

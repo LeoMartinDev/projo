@@ -39,9 +39,6 @@ export const desktopHost = ({
     bearer,
     fetch: (url, init) => fetch(url, init),
   })
-  const reload = async () => {
-    location.reload()
-  }
   return {
     version,
     uiFromServer: false,
@@ -70,8 +67,13 @@ export const desktopHost = ({
     chrome: windowControlsChrome(),
     updates: desktopUpdates(internals),
     aboutRows: desktopAboutRows(internals),
-    // The UI ships with the app: a server update changes nothing here, a reload starts it again.
-    reloadToLatest: reload,
-    reloadFresh: reload,
+    // The UI ships with the app (§28.10): a server update changes nothing of it, so nothing
+    // reloads (a reload would stop libmpv and run the whole start again); the app refreshes its
+    // data in place once the server is back.
+    reloadToLatest: async () => undefined,
+    // Never offered (`uiFromServer: false`): there is no other build to fetch.
+    reloadFresh: async () => {
+      location.reload()
+    },
   }
 }

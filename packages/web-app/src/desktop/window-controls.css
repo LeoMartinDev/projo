@@ -4,6 +4,48 @@
   --chrome-inset: 146px;
 }
 
+/* Its title bar: the top strip (first in the document, WindowControls.tsx) and
+   the regions marked `data-window-drag` outside full screen. WebView2 treats
+   `app-region: drag` as the window's caption: it moves the window natively
+   (Aero snap, double click to maximize, right click for the system menu).
+   The strip paints under everything (no `pointer-events: none`, which could
+   drop it from the regions): what lies over it keeps the pointer. */
+.window-drag-strip {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: -1;
+  height: 32px;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+:root[data-window-controls] [data-window-drag] {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+/* What takes the pointer for itself is never part of the title bar. */
+:root[data-window-controls]
+  :is(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    label,
+    summary,
+    dialog,
+    [contenteditable],
+    [role='button'],
+    [role='slider'],
+    [tabindex]:not([tabindex='-1'])
+  ) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
 .window-controls {
   position: fixed;
   top: 0;
@@ -48,4 +90,10 @@
 .window-controls__button--close:hover {
   background: #c42b1c;
   color: #ffffff;
+}
+
+/* Hidden with the player's chrome: their place is the title bar's again. */
+:root[data-window-controls]:has(.player--idle) .window-controls .window-controls__button {
+  -webkit-app-region: drag;
+  app-region: drag;
 }

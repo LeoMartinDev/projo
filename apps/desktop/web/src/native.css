@@ -1,0 +1,34 @@
+/* The desktop app feels like an application, not a web page (§28.4): its interface is not
+   selectable text, images and links are not dragged out of the window. What is typed, or shown to
+   be copied (addresses, paths, codes, ids, log lines, errors), stays selectable. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']),
+pre,
+code,
+.mono,
+.adm-mono,
+.adm-path,
+.adm-error,
+.adm-details dd,
+.adm-context,
+.log-tr__detail,
+.root-item__path,
+.upd-tr__mono,
+.ses-tr__mono,
+.tech-grid,
+.alert,
+.entry__server {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+img,
+a {
+  -webkit-user-drag: none;
+}

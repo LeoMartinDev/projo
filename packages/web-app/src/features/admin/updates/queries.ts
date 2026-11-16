@@ -7,6 +7,7 @@ import { api, request } from '../../../shared/api/client.ts'
 import { readHealth } from '../../../shared/app-update/health.ts'
 import { useHost } from '../../../host.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
+import { followServerRestart } from './server-restart.ts'
 
 export const updatesQueryKey = ['admin', 'updates'] as const
 
@@ -32,6 +33,11 @@ export const useUpdateSummary = (): {
 
 const HEALTH_POLL_MS = 2_000
 
+/**
+ * The server's update as it happens (`update.state` events), and its restart followed to the end
+ * (`followServerRestart`): the browser reloads on the new web app; a host whose UI ships with it
+ * (the desktop app) stays, refreshes every query and ends the "restarting" state.
+ */
 export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: string) => void } => {
   const { reloadToLatest } = useHost()
   const queryClient = useQueryClient()
@@ -61,27 +67,22 @@ export const useLiveUpdates = (): { restarting: boolean; watchRestart: (from: st
   useEffect(() => {
     if (restartingFrom === undefined) return
     let stopped = false
-    let sawDown = false
-    const poll = async () => {
-      while (!stopped) {
-        await new Promise((resolve) => setTimeout(resolve, HEALTH_POLL_MS))
-        const health = await readHealth()
-        if (stopped) return
-        if (health === undefined) {
-          sawDown = true
-          continue
-        }
-        if (sawDown || health.version !== restartingFrom) {
-          await reloadToLatest()
-          return
-        }
-      }
-    }
-    void poll()
+    void followServerRestart({
+      from: restartingFrom,
+      readVersion: async () => (await readHealth())?.version,
+      wait: () => new Promise((resolve) => setTimeout(resolve, HEALTH_POLL_MS)),
+      stopped: () => stopped,
+      reloadToLatest,
+      // The updates status refetched first: it no longer says "restarting" once cleared.
+      refresh: async () => {
+        await queryClient.invalidateQueries()
+        setWatchedFrom(undefined)
+      },
+    })
     return () => {
       stopped = true
     }
-  }, [restartingFrom, reloadToLatest])
+  }, [restartingFrom, reloadToLatest, queryClient])
 
   return { restarting: restartingFrom !== undefined, watchRestart: setWatchedFrom }
 }

@@ -77,6 +77,7 @@ const PullCommand = ({ command }: { command: string }) => {
         <input
           ref={inputRef}
           className="upd-pull__command"
+          spellCheck={false}
           readOnly
           value={command}
           aria-label={t('admin.updates.runtimeTooOld')}

@@ -7,14 +7,17 @@ mod commands;
 mod config;
 mod device;
 mod fonts;
+mod main_window;
 mod media_session;
 mod mpv;
+mod navigation;
 mod origin;
 mod server;
 mod state;
 mod token;
 mod tray;
 mod updates;
+mod webview_settings;
 mod window_size;
 
 use std::sync::Arc;
@@ -26,9 +29,10 @@ use tauri::{
 };
 use url::Url;
 
-use crate::commands::is_local_page;
+use crate::main_window::MainWindow;
 use crate::media_session::MediaSession;
 use crate::mpv::{Emitted, Player};
+use crate::navigation::NewWindow;
 use crate::state::AppState;
 
 pub const MAIN: &str = "main";
@@ -47,7 +51,7 @@ pub fn local_page_url() -> Url {
 }
 
 /// Debug builds only, for driving the app in tests: `PROJO_DESKTOP_TEST_WINDOW=x,y` opens the window
-/// there without focus.
+/// there (logical pixels) without focus, whatever bounds were saved, and saves none.
 fn test_window_position() -> Option<(f64, f64)> {
     if !cfg!(debug_assertions) {
         return None;
@@ -57,22 +61,14 @@ fn test_window_position() -> Option<(f64, f64)> {
     Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
 }
 
-fn open_externally(url: &Url) {
-    if url.scheme() != "http" && url.scheme() != "https" {
-        return;
-    }
-    // The default browser, without a shell in between (no quoting issue).
-    let opened = std::process::Command::new("rundll32")
-        .args(["url.dll,FileProtocolHandler", url.as_str()])
-        .spawn();
-    if let Err(error) = opened {
-        log::warn!("cannot open {url}: {error}");
-    }
-}
-
 fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let app = tauri::Builder::default()
+        // First: a second launch hands over to the running app (it comes to the front) and exits
+        // before anything else starts.
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            main_window::bring_forward(app);
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::mpv_init,
@@ -81,6 +77,7 @@ fn main() {
             commands::mpv_get_property,
             commands::mpv_observe,
             commands::mpv_destroy,
+            commands::desktop_window_ready,
             commands::desktop_info,
             commands::desktop_device,
             commands::desktop_update_status,
@@ -100,7 +97,8 @@ fn main() {
             let handle = app.handle().clone();
             let config_dir = app.path().app_config_dir()?;
             let config_path = config::config_path(&config_dir);
-            let stored = config::load(&config_path)
+            let config = config::load(&config_path);
+            let stored = config
                 .server_url
                 .and_then(|url| origin::parse_server_origin(&url).ok());
             log::info!(
@@ -146,21 +144,22 @@ fn main() {
             updates::start(&handle);
             tray::install(&handle)?;
 
-            // The window opens on the primary monitor: fit the minimum into its work area.
-            let work_area = handle.primary_monitor().ok().flatten().map(|monitor| {
-                let size = monitor
-                    .work_area()
-                    .size
-                    .to_logical::<f64>(monitor.scale_factor());
-                (size.width, size.height)
-            });
-            let (width, height) = window_size::fitted_minimum(work_area);
+            // Where it was when the app last closed, else centered on the primary monitor; never
+            // below the minimum fitted into the primary monitor's work area.
+            let test_position = test_window_position();
+            let (minimum, placement) = main_window::opening(&handle, config.window.as_ref());
+            let placement = test_position.is_none().then_some(placement);
+            app.manage(MainWindow::new(placement.as_ref(), config.window));
+            let (width, height) = placement.map_or(minimum, |placement| placement.size);
             let page_loads = Arc::clone(&player);
             let mut builder =
                 WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App("index.html".into()))
                     .title("projo")
                     .inner_size(width, height)
-                    .min_inner_size(width, height)
+                    .min_inner_size(minimum.0, minimum.1)
+                    // Shown once the page painted its first screen (`desktop_window_ready`): the
+                    // transparent window never shows empty while WebView2 starts.
+                    .visible(false)
                     // Overlay scroll bars (shown while scrolling), like Windows 11's own apps,
                     // instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
                     .scroll_bar_style(ScrollBarStyle::FluentOverlay)
@@ -176,22 +175,30 @@ fn main() {
                      --remote-debugging-port=9229",
                 );
             }
-            if let Some((x, y)) = test_window_position() {
+            if let Some((x, y)) = test_position {
                 builder = builder.position(x, y).focused(false);
             }
             let window = builder
                 // The window shows the bundled page only (§28.4): any other address (a link to
                 // the server, TMDB, GitHub…) opens in the system browser.
                 .on_navigation(|url| {
-                    let allowed = is_local_page(url) || url.as_str() == "about:blank";
+                    let allowed = navigation::may_load(url);
                     if !allowed {
                         log::info!("opening {url} in the browser");
-                        open_externally(url);
+                        navigation::open_in_browser(url);
                     }
                     allowed
                 })
+                // Never another window: another site opens in the browser, a page of the app
+                // (a middle click, Ctrl or Shift + click on a link) nowhere.
                 .on_new_window(|url, _features| {
-                    open_externally(&url);
+                    match navigation::new_window(&url) {
+                        NewWindow::OpenInBrowser => {
+                            log::info!("opening {url} in the browser");
+                            navigation::open_in_browser(&url);
+                        }
+                        NewWindow::Ignore => log::debug!("new window ignored: {url}"),
+                    }
                     NewWindowResponse::Deny
                 })
                 .on_page_load(move |window, payload| {
@@ -205,6 +212,12 @@ fn main() {
                     }
                 })
                 .build()?;
+            // An app, not a browser: no browser context menu nor accelerator keys (§28.4).
+            webview_settings::apply(&window);
+            if let Some(placement) = &placement {
+                main_window::place(&window, placement);
+            }
+            main_window::show_later(&handle);
             match window.window_handle().map(|handle| handle.as_raw()) {
                 Ok(RawWindowHandle::Win32(win32)) => {
                     player.set_wid(win32.hwnd.get() as i64);
@@ -217,10 +230,14 @@ fn main() {
             }
             Ok(())
         })
-        .on_window_event(|window, event| {
+        .on_window_event(|window, event| match event {
+            WindowEvent::Moved(_) | WindowEvent::Resized(_) if window.label() == MAIN => {
+                main_window::observe(window);
+            }
             // mpv's video window is a child of this one: destroy mpv first (off the UI thread), then
             // the window.
-            if let WindowEvent::CloseRequested { api, .. } = event {
+            WindowEvent::CloseRequested { api, .. } => {
+                main_window::remember(window.app_handle());
                 media_session::clear(window.app_handle());
                 let player = Arc::clone(&window.state::<AppState>().player);
                 if player.has_instance() {
@@ -234,6 +251,7 @@ fn main() {
                     });
                 }
             }
+            _ => {}
         })
         .build(tauri::generate_context!());
     let app = match app {
@@ -245,6 +263,8 @@ fn main() {
     };
     app.run(|handle, event| {
         if let RunEvent::Exit = event {
+            // The tray's "Quit" closes no window first.
+            main_window::remember(handle);
             // On the main thread: the media controls' WinRT calls belong there.
             if let Some(media) = handle.try_state::<MediaSession>() {
                 media.shutdown();

@@ -1,0 +1,35 @@
+/* The desktop app's splash (index.html, PRODUCT.md §28.4), painted before any script: the
+   window is shown once it is (desktop_window_ready). Its own file, not the bundle's CSS: the page's
+   CSP has no 'unsafe-inline' for styles. Removed by src/splash.ts once the first screen is drawn. */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  /* --color-bg and --color-text of @projo/design/tokens.css, before they load. */
+  background: #0a0a0b;
+  color: #f4f4f5;
+  transition: opacity 0.18s ease-out;
+  /* Moves the window like a title bar while it shows. */
+  -webkit-app-region: drag;
+  app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.splash--leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash__logo {
+  width: 104px;
+  height: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .splash {
+    transition: none;
+  }
+}

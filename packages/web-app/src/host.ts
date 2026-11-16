@@ -159,9 +159,19 @@ export type AppHost = {
   updates: HostUpdates
   /** Extra rows of Account → About (the desktop app's version); none in the browser. */
   aboutRows?: () => Promise<readonly AboutRow[]>
-  /** Reloads on the latest build of the app (after a server update). */
+  /**
+   * Called once the server came back from its update (§16.4), so that the page runs the app that
+   * matches it. The browser reloads on the latest build the server serves (the promise does not
+   * matter: the page goes away). A host whose UI ships with it (`uiFromServer: false`, the desktop
+   * app) resolves without reloading: nothing of the app changed, and a reload would only stop the
+   * player and start the host again. Either way the caller then refreshes its data in place
+   * (every query invalidated) and ends its "restarting" state.
+   */
   reloadToLatest: () => Promise<void>
-  /** Reloads from scratch, dropping any cached build (Admin → Updates → reload the app). */
+  /**
+   * Reloads from scratch, dropping any cached build (Admin → Updates → "Reload the app"). Offered
+   * only when `uiFromServer`: a host whose UI ships with it has no other build to fetch.
+   */
   reloadFresh: () => Promise<void>
 }
 

@@ -4,15 +4,48 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer, Serialize};
 
 pub const FILE_NAME: &str = "config.json";
 
-#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub server_url: Option<String>,
+    /// The main window's bounds when the app last closed (§28.4); absent before the first close
+    /// (or in a config written by an older app).
+    #[serde(
+        default,
+        deserialize_with = "lenient",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub window: Option<WindowBounds>,
+}
+
+/// The main window outside full screen: its outer position in physical pixels (the virtual
+/// screen's coordinates, which every monitor shares), its inner size in logical pixels (the size
+/// the page is drawn at, whatever the monitor's scale) and whether it was maximized. When it was,
+/// the position and size are the ones it restores to.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowBounds {
+    pub x: i32,
+    pub y: i32,
+    pub width: f64,
+    pub height: f64,
+    #[serde(default)]
+    pub maximized: bool,
+}
+
+/// A field the app can live without: an unreadable value is absent rather than the whole file
+/// unreadable (a broken `window` must not forget the server).
+fn lenient<'de, D: Deserializer<'de>, T: DeserializeOwned>(
+    deserializer: D,
+) -> Result<Option<T>, D::Error> {
+    let value = serde_json::Value::deserialize(deserializer)?;
+    Ok(serde_json::from_value(value).ok())
 }
 
 pub fn config_path(config_dir: &Path) -> PathBuf {
@@ -77,6 +110,7 @@ mod tests {
         let path = config_path(&dir);
         let config = Config {
             server_url: Some("http://nas.local:8080".into()),
+            window: None,
         };
         save(&path, &config).expect("save");
         assert_eq!(load(&path), config);
@@ -101,8 +135,73 @@ mod tests {
         assert_eq!(
             load(&path),
             Config {
-                server_url: Some("http://a:1".into())
+                server_url: Some("http://a:1".into()),
+                window: None,
             }
+        );
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn saves_and_loads_the_window_bounds() {
+        let dir = temp_dir("window");
+        let path = config_path(&dir);
+        let config = Config {
+            server_url: Some("http://nas.local:8080".into()),
+            window: Some(WindowBounds {
+                x: -1800,
+                y: 120,
+                width: 1440.5,
+                height: 900.0,
+                maximized: true,
+            }),
+        };
+        save(&path, &config).expect("save");
+        assert_eq!(load(&path), config);
+        let text = fs::read_to_string(&path).expect("read");
+        assert!(text.contains("\"maximized\": true"), "{text}");
+        fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn an_unreadable_window_keeps_the_server() {
+        let dir = temp_dir("window-corrupt");
+        let path = config_path(&dir);
+        for window in [
+            r#""wide""#,
+            r#"{ "x": 1, "y": 2 }"#,
+            r#"{ "x": 1.5, "y": 2, "width": 1280, "height": 720 }"#,
+            "null",
+        ] {
+            fs::write(
+                &path,
+                format!(r#"{{ "serverUrl": "http://a:1", "window": {window} }}"#),
+            )
+            .expect("write");
+            assert_eq!(
+                load(&path),
+                Config {
+                    server_url: Some("http://a:1".into()),
+                    window: None,
+                },
+                "{window}"
+            );
+        }
+        // `maximized` left out: not maximized.
+        fs::write(
+            &path,
+            r#"{ "window": { "x": 10, "y": 20, "width": 1280, "height": 720 } }"#,
+        )
+        .expect("write");
+        assert_eq!(
+            load(&path).window,
+            Some(WindowBounds {
+                x: 10,
+                y: 20,
+                width: 1280.0,
+                height: 720.0,
+                maximized: false,
+            })
         );
         fs::remove_dir_all(dir).ok();
     }

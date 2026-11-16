@@ -11,6 +11,7 @@
     "allow-mpv-get-property",
     "allow-mpv-observe",
     "allow-mpv-destroy",
+    "allow-desktop-window-ready",
     "allow-desktop-info",
     "allow-desktop-device",
     "allow-desktop-update-status",

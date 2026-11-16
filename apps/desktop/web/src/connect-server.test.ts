@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test'
 
 import { err, ok, type Result } from '@projo/shared/result'
 
-import { type ConnectError, connectServerFactory, fetchSetupCompleted } from './connect-server.ts'
+import { type ConnectError, connectServerFactory, fetchSetupStatus } from './connect-server.ts'
 import type { CommandFailure, ServerCheck } from './desktop-commands.ts'
 
 const world = ({
@@ -22,18 +22,23 @@ const world = ({
         return ok(url)
       },
     },
-    setupCompleted: async () => (typeof completed === 'boolean' ? ok(completed) : err(completed)),
+    setupStatus: async () =>
+      typeof completed === 'boolean' ? ok({ completed, serverName: 'Maison' }) : err(completed),
     minimumServerVersion: '1.25.0',
   })
   return { connect, saved }
 }
 
-test('a set-up server recent enough is ready, and saved', async () => {
+test('a set-up server recent enough is ready with its setup status, and saved', async () => {
   const { connect, saved } = world({
     check: async () => ok({ serverUrl: 'http://nas.local:8080', version: '1.26.1' }),
   })
   expect(await connect('nas.local:8080/admin')).toEqual(
-    ok({ kind: 'ready', serverUrl: 'http://nas.local:8080' }),
+    ok({
+      kind: 'ready',
+      serverUrl: 'http://nas.local:8080',
+      setupStatus: { completed: true, serverName: 'Maison' },
+    }),
   )
   expect(saved).toEqual(['http://nas.local:8080'])
 })
@@ -77,24 +82,59 @@ test('a setup status that cannot be read is unreachable, and not saved', async (
 
 test('the setup status is read from the server over fetch', async () => {
   const asked: string[] = []
-  const completed = fetchSetupCompleted(async (url) => {
+  const status = fetchSetupStatus(async (url) => {
     asked.push(url)
     return Response.json({ completed: false })
   })
-  expect(await completed('http://nas:8080')).toEqual(ok(false))
+  expect(await status('http://nas:8080')).toEqual(ok({ completed: false }))
   expect(asked).toEqual(['http://nas:8080/api/v1/setup/status'])
 })
 
 test('a failed or odd setup status is unreachable', async () => {
-  const failing = fetchSetupCompleted(async () => {
+  const failing = fetchSetupStatus(async () => {
     throw new TypeError('Failed to fetch')
   })
   expect(await failing('http://nas:8080')).toMatchObject({
     ok: false,
     error: { code: 'server/unreachable' },
   })
-  const odd = fetchSetupCompleted(async () => Response.json({ hello: true }))
+  const odd = fetchSetupStatus(async () => Response.json({ hello: true }))
   expect(await odd('http://nas:8080')).toMatchObject({
+    ok: false,
+    error: { code: 'server/unreachable' },
+  })
+})
+
+test('a server that never answers is unreachable in time, its request aborted', async () => {
+  const aborted: string[] = []
+  const silent = fetchSetupStatus(
+    (_url, signal) =>
+      new Promise<Response>((_resolve, reject) => {
+        signal.addEventListener('abort', () => {
+          aborted.push('aborted')
+          reject(new Error('aborted'))
+        })
+      }),
+    { timeoutMs: 20 },
+  )
+  expect(await silent('http://nas:8080')).toMatchObject({
+    ok: false,
+    error: { code: 'server/unreachable' },
+  })
+  expect(aborted).toEqual(['aborted'])
+})
+
+test('a body that never ends, or a fetch deaf to the signal, is given up in time', async () => {
+  const endless = fetchSetupStatus(
+    async () => new Response(new ReadableStream({ start: () => undefined })),
+    { timeoutMs: 20 },
+  )
+  expect(await endless('http://nas:8080')).toMatchObject({
+    ok: false,
+    error: { code: 'server/unreachable' },
+  })
+  const deaf = fetchSetupStatus(() => new Promise<Response>(() => undefined), { timeoutMs: 20 })
+  expect(await deaf('http://nas:8080')).toMatchObject({
     ok: false,
     error: { code: 'server/unreachable' },
   })

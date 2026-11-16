@@ -261,6 +261,7 @@ export const LogsPage = () => {
             id={searchId}
             className="field__input"
             type="search"
+            spellCheck={false}
             maxLength={200}
             placeholder={t('admin.logs.searchPlaceholder')}
             value={state.text}

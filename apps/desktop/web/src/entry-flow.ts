@@ -13,8 +13,10 @@ export type EntryScreen =
   /** Setup runs in the browser (§3), never in the app. */
   | { readonly kind: 'not_set_up'; readonly serverUrl: string }
 
-/** A screen, or the app on a server ready for it. */
-export type EntryStep = EntryScreen | { readonly kind: 'ready'; readonly serverUrl: string }
+/** A screen, or the app on a server ready for it (with its setup status, handed to the app). */
+export type EntryStep = EntryScreen | ReadyServer
+
+export type ReadyServer = Extract<ServerState, { kind: 'ready' }>
 
 /** Where an attempt came from: the address typed, or the saved server (launch, retry). */
 export type AttemptSource = 'typed' | 'saved'

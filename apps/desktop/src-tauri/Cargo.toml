@@ -23,12 +23,14 @@ ureq = { version = "3.5.1", default-features = false, features = [
 log = "0.4"
 env_logger = "0.11"
 tauri-plugin-updater = { version = "2.14.1", default-features = false, features = ["native-tls"] }
+# A second launch focuses the running app instead of starting another process (§28.4).
+tauri-plugin-single-instance = "=2.5.5"
 
 [target.'cfg(windows)'.dependencies]
 # The session token in the Credential Manager (token.rs), the native backend only.
 keyring = { version = "=3.6.3", default-features = false, features = ["windows-native"] }
 # The computer's name (device.rs), the user's locale (tray.rs) and the system media controls
-# (media_session.rs): the version wry already uses.
+# (media_session.rs), the window's maximized state (main_window.rs): the version wry already uses.
 windows = { version = "0.62.2", features = [
   "Foundation",
   "Graphics_Imaging",
@@ -38,7 +40,11 @@ windows = { version = "0.62.2", features = [
   "Win32_Globalization",
   "Win32_System_SystemInformation",
   "Win32_System_WinRT",
+  "Win32_UI_WindowsAndMessaging",
 ] }
+# The webview's context menu and accelerator keys (webview_settings.rs): the version wry and Tauri
+# use, so that the controller Tauri hands over has this crate's types.
+webview2-com = "=0.39.1"
 
 [profile.release]
 codegen-units = 1

@@ -1,4 +1,17 @@
-/* The screens before the app (Entry.tsx), on the sign-in page's frame (EntryFrame). */
+/* The screens before the app (Entry.tsx), on the sign-in page's frame (EntryFrame). Their layer
+   covers the window: once a server is ready, the app mounts under it in #root and the layer goes
+   away when the app's first route is drawn (main.tsx), so no blank frame shows in between. */
+#entry {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+#entry:empty {
+  display: none;
+}
+
 .entry__starting {
   min-height: 100vh;
   background: var(--color-bg);

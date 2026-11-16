@@ -5,7 +5,13 @@ import { EntryFrame, Field } from '@projo/web-app/desktop/EntryFrame.tsx'
 
 import type { ConnectServer } from './connect-server.ts'
 import { minimumServerVersion } from './server-version.ts'
-import { type AttemptSource, type EntryScreen, type EntryStep, stepAfter } from './entry-flow.ts'
+import {
+  type AttemptSource,
+  type EntryScreen,
+  type EntryStep,
+  type ReadyServer,
+  stepAfter,
+} from './entry-flow.ts'
 import './entry.css'
 
 const ServerIcon = () => (
@@ -187,16 +193,19 @@ const SavedServerScreen = ({
 /**
  * The screens before the app (§28.3): the server's address, then the saved server's state
  * (unreachable, too old, not set up), until a server is ready: `onReady` mounts the app on it.
- * `start`: the first screen, or the saved server to connect to (`startingStep`).
+ * `start`: the first screen, or the saved server to connect to (`startingStep`). `onShown`: a
+ * screen other than the blank start is drawn (the splash can go).
  */
 export const Entry = ({
   start,
   connect,
   onReady,
+  onShown,
 }: {
   start: { connect: string } | EntryScreen
   connect: ConnectServer
-  onReady: (serverUrl: string) => void
+  onReady: (server: ReadyServer) => void
+  onShown: () => void
 }) => {
   const [screen, setScreen] = useState<EntryScreen>(
     'connect' in start ? { kind: 'starting' } : start,
@@ -205,11 +214,15 @@ export const Entry = ({
 
   const show = useCallback(
     (step: EntryStep) => {
-      if (step.kind === 'ready') onReady(step.serverUrl)
+      if (step.kind === 'ready') onReady(step)
       else setScreen(step)
     },
     [onReady],
   )
+
+  useEffect(() => {
+    if (screen.kind !== 'starting') onShown()
+  }, [screen.kind, onShown])
 
   // Launch with a saved server: straight to it.
   useEffect(() => {
@@ -223,11 +236,13 @@ export const Entry = ({
     }
   }, [start, connect, show])
 
+  // A server ready keeps the screen busy while the app mounts under it.
   const attempt = (url: string, source: AttemptSource) => {
     setBusy(true)
     void connect(url).then((result) => {
-      setBusy(false)
-      show(stepAfter(url, source, result))
+      const step = stepAfter(url, source, result)
+      if (step.kind !== 'ready') setBusy(false)
+      show(step)
     })
   }
 

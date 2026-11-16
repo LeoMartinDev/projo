@@ -8,6 +8,7 @@ fn main() {
         "mpv_get_property",
         "mpv_observe",
         "mpv_destroy",
+        "desktop_window_ready",
         "desktop_info",
         "desktop_device",
         "desktop_update_status",

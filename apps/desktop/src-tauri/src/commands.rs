@@ -11,8 +11,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, EventTarget, Manager, Runtime, State, Webview};
 use url::Url;
 
-use crate::config::{self, Config};
 use crate::device::device_name;
+use crate::main_window;
 use crate::media_session::{self, MediaError};
 use crate::mpv::{MpvError, Player};
 use crate::origin::{is_same_origin, parse_server_origin, OriginError};
@@ -229,6 +229,18 @@ pub fn media_session_clear<R: Runtime>(
     })?)
 }
 
+/// The page's first screen is painted: shows the window, hidden until then so that WebView2's start
+/// never shows an empty transparent window (§28.4; the app shows it anyway after 3 s). Idempotent.
+#[tauri::command]
+pub fn desktop_window_ready<R: Runtime>(
+    app: AppHandle<R>,
+    webview: Webview<R>,
+) -> CommandResult<()> {
+    require_local(&webview)?;
+    main_window::reveal(&app);
+    Ok(())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopInfo {
@@ -308,6 +320,8 @@ pub async fn desktop_update_install<R: Runtime>(
         Ok(())
     })
     .await?;
+    // The process ends without the app's exit (§28.10): keep the window's bounds first.
+    main_window::remember(&app);
     updates::install_now(&app).map_err(|error| CommandError::new("desktop/update_failed", error))
 }
 
@@ -371,10 +385,8 @@ pub async fn save_server<R: Runtime>(
     require_local(&webview)?;
     let origin = parse_server_origin(&url)?;
     let previous = state.server_origin();
-    let config = Config {
-        server_url: Some(origin.clone()),
-    };
-    config::save(&state.config_path, &config)
+    state
+        .update_config(|config| config.server_url = Some(origin.clone()))
         .map_err(|error| CommandError::new("desktop/config_not_saved", error.to_string()))?;
     state.set_server_origin(origin.clone());
     if let Some(previous) = previous.filter(|previous| *previous != origin) {
@@ -451,7 +463,7 @@ pub async fn change_server<R: Runtime>(
     webview: Webview<R>,
 ) -> CommandResult<()> {
     require_local(&webview)?;
-    blocking(move || change_server_now(&app)).await
+    blocking(move || change_server_now(&app, Reload::Replace)).await
 }
 
 /// Sent to the page by the tray's "Change server": the page signs out on the server (best
@@ -473,15 +485,24 @@ pub fn request_change_server<R: Runtime>(app: &AppHandle<R>) {
         std::thread::sleep(CHANGE_SERVER_GRACE);
         if app.state::<AppState>().change_server_pending(request) {
             log::warn!("change server: no answer from the page, changing without signing out");
-            if let Err(error) = change_server_now(&app) {
+            if let Err(error) = change_server_now(&app, Reload::Navigate) {
                 log::error!("change server: {error:?}");
             }
         }
     });
 }
 
+/// How the bundled page goes to the server address screen.
+pub enum Reload {
+    /// The page asked (it is alive): it replaces itself, so no history entry leads back to the
+    /// signed-out app (the mouse's back button, Alt+Left).
+    Replace,
+    /// The page never answered (it may hang): the webview navigates.
+    Navigate,
+}
+
 /// Blocking: libmpv is destroyed and the credential store written before the page reloads.
-pub fn change_server_now<R: Runtime>(app: &AppHandle<R>) -> CommandResult<()> {
+pub fn change_server_now<R: Runtime>(app: &AppHandle<R>, reload: Reload) -> CommandResult<()> {
     let state = app.state::<AppState>();
     state.end_change_server();
     media_session::clear(app);
@@ -496,7 +517,29 @@ pub fn change_server_now<R: Runtime>(app: &AppHandle<R>) -> CommandResult<()> {
         .ok_or_else(|| CommandError::new("desktop/internal", "main window missing"))?;
     let mut target = local_page_url();
     target.set_query(Some("change=1"));
-    window
-        .navigate(target)
-        .map_err(|error| CommandError::new("desktop/internal", error.to_string()))
+    let done = match reload {
+        Reload::Replace => window.eval(replace_script(&target)),
+        Reload::Navigate => window.navigate(target),
+    };
+    done.map_err(|error| CommandError::new("desktop/internal", error.to_string()))
+}
+
+/// `location.replace` of `target`, quoted as a JSON string.
+fn replace_script(target: &Url) -> String {
+    format!("window.location.replace({})", Value::from(target.as_str()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn replaces_the_page_with_the_server_screen() {
+        let mut target = local_page_url();
+        target.set_query(Some("change=1"));
+        assert_eq!(
+            replace_script(&target),
+            format!("window.location.replace(\"{}?change=1\")", local_page_url())
+        );
+    }
 }

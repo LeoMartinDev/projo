@@ -3,10 +3,10 @@
 
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 use crate::commands::request_change_server;
-use crate::MAIN;
+use crate::main_window::bring_forward;
 
 const CHANGE_SERVER: &str = "change_server";
 const QUIT: &str = "quit";
@@ -55,14 +55,6 @@ fn user_locale() -> Option<String> {
     std::env::var("LANG").ok()
 }
 
-fn show_window<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(window) = app.get_webview_window(MAIN) {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
-    }
-}
-
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let labels = labels(user_locale().as_deref().is_some_and(is_french));
     let change = MenuItem::with_id(app, CHANGE_SERVER, labels.change_server, true, None::<&str>)?;
@@ -74,7 +66,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             CHANGE_SERVER => {
-                show_window(app);
+                bring_forward(app);
                 request_change_server(app);
             }
             QUIT => app.exit(0),
@@ -87,7 +79,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 ..
             } = event
             {
-                show_window(tray.app_handle());
+                bring_forward(tray.app_handle());
             }
         });
     if let Some(icon) = app.default_window_icon() {

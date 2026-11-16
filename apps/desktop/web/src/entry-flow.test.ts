@@ -20,9 +20,11 @@ test('"Change server" asks again, with the saved address filled in', () => {
 
 test('a server ready, too old or not set up is its own step, however it was reached', () => {
   for (const source of ['typed', 'saved'] as const) {
-    expect(stepAfter(nas, source, ok({ kind: 'ready', serverUrl: nas }))).toEqual({
+    const setupStatus = { completed: true }
+    expect(stepAfter(nas, source, ok({ kind: 'ready', serverUrl: nas, setupStatus }))).toEqual({
       kind: 'ready',
       serverUrl: nas,
+      setupStatus,
     })
     expect(
       stepAfter(nas, source, ok({ kind: 'outdated', serverUrl: nas, version: '1.24.0' })),
