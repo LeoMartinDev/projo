@@ -164,6 +164,24 @@
   height: 3px;
 }
 
+.watch-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.watch-progress__episode {
+  color: var(--color-text-soft);
+}
+
+.watch-progress__bar {
+  width: 120px;
+  height: 3px;
+}
+
 .cw {
   position: relative;
   flex: 0 0 var(--card-width);

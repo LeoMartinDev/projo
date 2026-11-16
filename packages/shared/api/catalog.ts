@@ -158,6 +158,7 @@ export const playTargetDtoSchema = z.object({
   episodeNumber: z.number().int().optional(),
   title: z.string().optional(),
   positionMs: z.number().int(),
+  durationMs: z.number().int().optional(),
 })
 export type PlayTargetDto = z.infer<typeof playTargetDtoSchema>
 

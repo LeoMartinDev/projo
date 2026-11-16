@@ -3,19 +3,20 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { type KeyboardEvent, type ReactNode, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { itemTitle, listedNumber, playEpisodeLabel } from '@projo/i18n/item-titles'
+import { episodeLine, itemTitle, listedNumber, playEpisodeLabel } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { formatDuration, formatScore } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { Artwork } from '../../shared/ui/Artwork.tsx'
-import { CheckIcon, MoreIcon, PlayIcon } from '../../shared/ui/icons.tsx'
-import { AddedIcon, AddIcon, CheckCircleIcon, RestartIcon } from '../../shared/ui/media-icons.tsx'
+import { MoreIcon, PlayIcon } from '../../shared/ui/icons.tsx'
+import { AddedIcon, AddIcon, CheckCircleIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { childrenQuery } from '../catalog/queries.ts'
 import { useWatchedToggle, useWatchlistToggle } from '../media/actions.ts'
 import {
   durationMsOf,
+  episodeLabelOf,
   formatRemaining,
   playLabelOf,
   progressRatioOf,
@@ -23,10 +24,13 @@ import {
   toneOf,
 } from '../media/media.ts'
 import { Score } from '../media/Score.tsx'
+import { WatchProgress } from '../media/WatchProgress.tsx'
 import { episodeCards, episodeNumberLabel } from '../player/ui/next-episode.ts'
 import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
+import { playProgressOf } from './play-progress.ts'
 import { bySeason, selectedSeasonOf } from './seasons.ts'
+import { AdminMenu, TitleMenu } from './TitleMenu.tsx'
 
 const byEpisode = (a: ItemSummaryDto, b: ItemSummaryDto) =>
   (a.episodeNumber ?? 0) - (b.episodeNumber ?? 0)
@@ -132,7 +136,34 @@ const EpisodeRow = ({
   )
 }
 
-const BulkMenu = ({ series, season }: { series: ItemDetailDto; season: ItemSummaryDto }) => {
+const EpisodeAdminMenu = ({
+  episode,
+  labels,
+}: {
+  episode: ItemSummaryDto
+  labels: { season: string; episode: string }
+}) => {
+  const name = episodeLabelOf(episode, labels)
+  return (
+    <AdminMenu
+      itemId={episode.id}
+      kind="episode"
+      align="end"
+      {...(name === undefined ? {} : { name })}
+      {...(episode.durationMs === undefined ? {} : { durationMs: episode.durationMs })}
+    />
+  )
+}
+
+const BulkMenu = ({
+  series,
+  season,
+  seasonWatched,
+}: {
+  series: ItemDetailDto
+  season: ItemSummaryDto
+  seasonWatched: boolean
+}) => {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const watched = useWatchedToggle()
@@ -168,9 +199,9 @@ const BulkMenu = ({ series, season }: { series: ItemDetailDto; season: ItemSumma
             type="button"
             role="menuitem"
             className="menu__item"
-            onClick={() => run(season.id, false)}
+            onClick={() => run(season.id, !seasonWatched)}
           >
-            {t('item.bulk.seasonUnwatched')}
+            {seasonWatched ? t('item.bulk.seasonUnwatched') : t('item.bulk.seasonWatched')}
           </button>
           <button
             type="button"
@@ -197,16 +228,13 @@ const BulkMenu = ({ series, season }: { series: ItemDetailDto; season: ItemSumma
 export const SeriesDetail = ({
   series,
   season,
-  admin,
-  episodeAdmin,
+  isAdmin = false,
 }: {
   series: ItemDetailDto
   season?: number
-  admin?: (season: ItemSummaryDto | undefined) => ReactNode
-  episodeAdmin?: (episode: ItemSummaryDto) => ReactNode
+  isAdmin?: boolean
 }) => {
   const { t } = useTranslation()
-  const locale = currentLocale()
   const navigate = useNavigate()
   const watchlist = useWatchlistToggle()
   const watched = useWatchedToggle()
@@ -219,9 +247,15 @@ export const SeriesDetail = ({
     enabled: selected !== undefined,
   })
   const episodeItems = (episodes.data?.items ?? []).toSorted(byEpisode)
-  const playing = episodeItems.find((item) => item.id === play?.itemId)
-  const playingRatio = playing === undefined ? undefined : progressRatioOf(playing)
-  const playingRemaining = playing === undefined ? undefined : remainingMsOf(playing)
+  const playProgress = playProgressOf(
+    play,
+    episodeItems.find((item) => item.id === play?.itemId),
+  )
+  const fromStart =
+    series.firstEpisodeId === undefined ||
+    (play?.action === 'play' && play.itemId === series.firstEpisodeId)
+      ? undefined
+      : series.firstEpisodeId
   const listed = watchlist.listed(series)
   const seasonStatus = selected?.watchStatus
   const seasonWatched = seasonStatus?.state === 'watched'
@@ -233,6 +267,12 @@ export const SeriesDetail = ({
       : item.seasonNumber === undefined
         ? itemTitle(t, item)
         : t('item.season', { number: item.seasonNumber })
+  const onlySeason = seasonItems.length === 1 ? seasonItems[0] : undefined
+  const sectionTitle =
+    onlySeason === undefined || onlySeason.seasonNumber === 1
+      ? t('item.episodes')
+      : seasonLabel(onlySeason)
+  const labels = { season: t('item.seasonShort'), episode: t('item.episodeShort') }
   const error = watchlist.mutation.error || watched.mutation.error
 
   const selectSeason = (item: ItemSummaryDto) =>
@@ -276,63 +316,60 @@ export const SeriesDetail = ({
         <div className="rise r3">
           <CreditsLine item={series} />
         </div>
-        <div className="detail-hero__actions rise r4">
-          {play === undefined ? (
+        <div className="detail-hero__cta rise r4">
+          <div className="detail-hero__actions">
+            {play === undefined ? (
+              <button
+                type="button"
+                className="button button--primary button--large detail-hero__play"
+                disabled
+              >
+                {t('item.notPlayable')}
+              </button>
+            ) : (
+              <Link
+                to="/watch/$itemId"
+                params={{ itemId: play.itemId }}
+                className="button button--primary button--large detail-hero__play"
+              >
+                <PlayIcon />
+                {playLabelOf(t, series, play)}
+              </Link>
+            )}
             <button
               type="button"
-              className="button button--primary button--large detail-hero__play"
-              disabled
-            >
-              {t('item.notPlayable')}
-            </button>
-          ) : (
-            <Link
-              to="/watch/$itemId"
-              params={{ itemId: play.itemId }}
-              className="button button--primary button--large detail-hero__play"
-            >
-              <PlayIcon />
-              {playLabelOf(t, series, play)}
-            </Link>
-          )}
-          <button
-            type="button"
-            className="button button--glass button--large detail-action"
-            aria-pressed={listed}
-            onClick={() => watchlist.toggle(series, !listed)}
-          >
-            {listed ? <AddedIcon /> : <AddIcon />}
-            <span className="detail-action__label">{t('card.myList')}</span>
-          </button>
-          {series.firstEpisodeId === undefined ? undefined : (
-            <Link
-              to="/watch/$itemId"
-              params={{ itemId: series.firstEpisodeId }}
-              search={{ from: 'start' }}
               className="button button--glass button--large detail-action"
+              aria-pressed={listed}
+              onClick={() => watchlist.toggle(series, !listed)}
             >
-              <RestartIcon />
-              <span className="detail-action__label">{t('item.fromStart')}</span>
-            </Link>
-          )}
-          {admin?.(selected)}
-        </div>
-        {error ? <ErrorAlert error={error} /> : undefined}
-        {playingRatio === undefined ? undefined : (
-          <div className="progress-line detail-hero__progress">
-            <progress
-              className="bar"
-              value={playingRatio}
-              max={1}
-              aria-label={t('catalog.inProgress')}
+              {listed ? <AddedIcon /> : <AddIcon />}
+              <span className="detail-action__label">{t('card.myList')}</span>
+            </button>
+            <TitleMenu
+              {...(fromStart === undefined ? {} : { fromStart })}
+              {...(isAdmin
+                ? {
+                    admin: {
+                      itemId: series.id,
+                      kind: 'series',
+                      ...(selected === undefined
+                        ? {}
+                        : { season: { id: selected.id, name: seasonLabel(selected) } }),
+                    },
+                  }
+                : {})}
             />
-            {playingRemaining === undefined ? undefined : (
-              <span>
-                {t('item.remaining', { duration: formatRemaining(playingRemaining, locale) })}
-              </span>
-            )}
           </div>
-        )}
+          {play === undefined || playProgress === undefined ? undefined : (
+            <WatchProgress
+              className="detail-hero__progress"
+              ratio={playProgress.ratio}
+              remainingMs={playProgress.remainingMs}
+              episode={episodeLine(t, { kind: 'episode', ...play })}
+            />
+          )}
+          {error ? <ErrorAlert error={error} /> : undefined}
+        </div>
       </DetailHero>
 
       <div className="detail__body">
@@ -340,9 +377,9 @@ export const SeriesDetail = ({
           <div className="episodes__bar">
             <div className="episodes__tabs-wrap">
               <h2 id="episodes-title" className="episodes__title">
-                {t('item.episodes')}
+                {sectionTitle}
               </h2>
-              {seasonItems.length > 0 ? (
+              {onlySeason !== undefined ? undefined : seasonItems.length > 0 ? (
                 <div
                   className="season-tabs"
                   role="tablist"
@@ -383,23 +420,19 @@ export const SeriesDetail = ({
                 {known !== undefined && known > available ? (
                   <span>{t('item.episodesOf', { available, total: known })}</span>
                 ) : undefined}
-                <button
-                  type="button"
-                  className="button button--glass button--small episodes__mark"
-                  onClick={() => watched.set(selected.id, !seasonWatched)}
-                >
-                  <CheckIcon size={16} />
-                  {seasonWatched ? t('item.markSeasonUnwatched') : t('item.markSeasonWatched')}
-                </button>
-                <BulkMenu series={series} season={selected} />
+                <BulkMenu series={series} season={selected} seasonWatched={seasonWatched} />
               </div>
             )}
           </div>
 
           <div
             id="season-panel"
-            role={selected === undefined ? undefined : 'tabpanel'}
-            aria-labelledby={selected === undefined ? undefined : `season-tab-${selected.id}`}
+            role={selected === undefined || onlySeason !== undefined ? undefined : 'tabpanel'}
+            aria-labelledby={
+              selected === undefined || onlySeason !== undefined
+                ? undefined
+                : `season-tab-${selected.id}`
+            }
           >
             {seasons.isError ? (
               <ErrorState error={seasons.error} onRetry={() => void seasons.refetch()} />
@@ -420,7 +453,9 @@ export const SeriesDetail = ({
                     key={episode.id}
                     episode={episode}
                     fallbackArt={series.images.backdrop}
-                    {...(episodeAdmin === undefined ? {} : { admin: episodeAdmin(episode) })}
+                    {...(isAdmin
+                      ? { admin: <EpisodeAdminMenu episode={episode} labels={labels} /> }
+                      : {})}
                   />
                 ))}
               </ol>

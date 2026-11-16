@@ -158,6 +158,8 @@
     "play": "Lire",
     "resumeAt": "Reprendre à {{time}}",
     "fromStart": "Depuis le début",
+    "more": "Plus",
+    "moreActions": "Plus d’actions",
     "notPlayable": "Aucun fichier lisible",
     "markWatched": "Marquer comme vu",
     "markUnwatched": "Marquer comme non vu",
@@ -171,8 +173,6 @@
     "playEpisode": "Lire « {{title}} »",
     "markEpisodeWatched": "Marquer « {{title}} » comme vu",
     "markEpisodeUnwatched": "Marquer « {{title}} » comme non vu",
-    "markSeasonWatched": "Tout marquer comme vu",
-    "markSeasonUnwatched": "Tout marquer comme non vu",
     "season": "Saison {{number}}",
     "specials": "Épisodes spéciaux",
     "episodeNumber": "Épisode {{number}}",
@@ -253,6 +253,7 @@
     },
     "bulk": {
       "more": "Plus d’actions sur les épisodes",
+      "seasonWatched": "Marquer la saison comme vue",
       "seasonUnwatched": "Marquer la saison comme non vue",
       "seriesWatched": "Marquer la série comme vue",
       "seriesUnwatched": "Marquer la série comme non vue"

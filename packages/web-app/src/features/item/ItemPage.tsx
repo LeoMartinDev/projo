@@ -2,14 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Navigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
-import type { ItemSummaryDto } from '@projo/shared/api/catalog'
-
 import { canAdminister } from '../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../shared/session/session.ts'
 import { ErrorState } from '../../shared/ui/states.tsx'
 import { itemQuery } from '../catalog/queries.ts'
 import { episodeLabelOf } from '../media/media.ts'
-import { AdminMenu } from './AdminActions.tsx'
 import { PlayableDetail } from './PlayableDetail.tsx'
 import { SeriesDetail } from './SeriesDetail.tsx'
 import '../media/media.css'
@@ -48,41 +45,7 @@ export const ItemPage = ({ itemId, season }: { itemId: string; season?: number }
         <SeriesDetail
           series={data}
           {...(season === undefined ? {} : { season })}
-          {...(isAdmin
-            ? {
-                admin: (shown: ItemSummaryDto | undefined) => (
-                  <AdminMenu
-                    itemId={data.id}
-                    kind="series"
-                    {...(shown === undefined
-                      ? {}
-                      : {
-                          season: {
-                            id: shown.id,
-                            name:
-                              shown.seasonNumber === 0
-                                ? t('item.specials')
-                                : t('item.season', { number: shown.seasonNumber ?? 1 }),
-                          },
-                        })}
-                  />
-                ),
-                episodeAdmin: (episode: ItemSummaryDto) => {
-                  const name = episodeLabelOf(episode, labels)
-                  return (
-                    <AdminMenu
-                      itemId={episode.id}
-                      kind="episode"
-                      align="end"
-                      {...(name === undefined ? {} : { name })}
-                      {...(episode.durationMs === undefined
-                        ? {}
-                        : { durationMs: episode.durationMs })}
-                    />
-                  )
-                },
-              }
-            : {})}
+          isAdmin={isAdmin}
         />
       )
     case 'season':
@@ -103,14 +66,12 @@ export const ItemPage = ({ itemId, season }: { itemId: string; season?: number }
           item={data}
           {...(isAdmin
             ? {
-                admin: (
-                  <AdminMenu
-                    itemId={data.id}
-                    kind={data.kind}
-                    {...(name === undefined ? {} : { name })}
-                    {...(data.durationMs === undefined ? {} : { durationMs: data.durationMs })}
-                  />
-                ),
+                admin: {
+                  itemId: data.id,
+                  kind: data.kind,
+                  ...(name === undefined ? {} : { name }),
+                  ...(data.durationMs === undefined ? {} : { durationMs: data.durationMs }),
+                },
               }
             : {})}
         />

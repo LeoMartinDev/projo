@@ -161,6 +161,7 @@ export const toPlayTargetDto = (play: PlayButton): PlayTargetDto => ({
   ...optional('episodeNumber', play.item.episodeNumber),
   ...optional('title', play.item.title),
   positionMs: play.positionMs,
+  ...optional('durationMs', play.durationMs),
 })
 
 type Deps = {

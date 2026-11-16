@@ -10,20 +10,13 @@ import { MutedIcon, PlayIcon, VolumeIcon } from '../../shared/ui/icons.tsx'
 import { AddedIcon, AddIcon, InfoIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useWatchlistToggle } from '../media/actions.ts'
-import {
-  formatRemaining,
-  playLabelOf,
-  progressRatioOf,
-  toneOf,
-  yearsLabel,
-} from '../media/media.ts'
+import { playLabelOf, progressRatioOf, toneOf, yearsLabel } from '../media/media.ts'
 import { RatingBadge, useRatingBadge } from '../media/RatingBadge.tsx'
-import { currentLocale } from '../../shared/i18n/index.ts'
+import { WatchProgress } from '../media/WatchProgress.tsx'
 import { useHeroPreview } from './hero-preview.ts'
 
 export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
   const { t } = useTranslation()
-  const locale = currentLocale()
   const watchlist = useWatchlistToggle()
   const ratingBadge = useRatingBadge()
   const { item, episode, play } = hero
@@ -130,20 +123,12 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
         </div>
         {watchlist.mutation.isError ? <ErrorAlert error={watchlist.mutation.error} /> : undefined}
         {ratio === undefined ? undefined : (
-          <div className="hero__progress rise r5">
-            {episode === undefined ? undefined : (
-              <span className="hero__episode">{episodeLine(t, episode)}</span>
-            )}
-            <progress
-              className="bar hero__bar"
-              value={ratio}
-              max={1}
-              aria-label={t('catalog.inProgress')}
-            />
-            {remainingMs === undefined ? undefined : (
-              <span>{t('item.remaining', { duration: formatRemaining(remainingMs, locale) })}</span>
-            )}
-          </div>
+          <WatchProgress
+            className="hero__progress rise r5"
+            ratio={ratio}
+            remainingMs={remainingMs}
+            episode={episode === undefined ? undefined : episodeLine(t, episode)}
+          />
         )}
       </div>
       {preview.visible ? (

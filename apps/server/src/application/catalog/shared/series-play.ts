@@ -6,7 +6,19 @@ import type {
 import type { ProgressRepository } from '../../../core/progress/progress.ts'
 import { seriesPlayTarget } from '../../../core/progress/rows.ts'
 
-export type PlayButton = { action: 'resume' | 'play'; item: CatalogItem; positionMs: number }
+export type PlayButton = {
+  action: 'resume' | 'play'
+  item: CatalogItem
+  positionMs: number
+  durationMs?: number
+}
+
+/** The duration `positionMs` is relative to: the one recorded with the progress, else the item's. */
+export const playDurationMs = (
+  item: CatalogItem,
+  progress: { durationMs: number } | undefined,
+): number | undefined =>
+  progress !== undefined && progress.durationMs > 0 ? progress.durationMs : item.durationMs
 
 type Deps = {
   catalogReadModel: Pick<CatalogReadModel, 'findVisible' | 'listSeriesEpisodes'>
@@ -35,7 +47,15 @@ export const seriesPlayFactory =
       target === undefined
         ? undefined
         : catalogReadModel.findVisible({ id: target.episode.id, scope })
-    return target === undefined || item === undefined
-      ? undefined
-      : { action: target.action, item, positionMs: target.positionMs }
+    if (target === undefined || item === undefined) return undefined
+    const durationMs = playDurationMs(
+      item,
+      target.action === 'resume' ? progress.get(item.id) : undefined,
+    )
+    return {
+      action: target.action,
+      item,
+      positionMs: target.positionMs,
+      ...(durationMs === undefined ? {} : { durationMs }),
+    }
   }

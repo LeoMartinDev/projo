@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { ItemDetailDto } from '@projo/shared/api/catalog'
@@ -7,15 +6,17 @@ import type { ItemDetailDto } from '@projo/shared/api/catalog'
 import { formatClock, formatDuration } from '../../shared/format/format.ts'
 import { currentLocale } from '../../shared/i18n/index.ts'
 import { PlayIcon } from '../../shared/ui/icons.tsx'
-import { AddedIcon, AddIcon, RestartIcon, SeenIcon } from '../../shared/ui/media-icons.tsx'
+import { AddedIcon, AddIcon, SeenIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
 import { useWatchedToggle, useWatchlistToggle } from '../media/actions.ts'
-import { durationMsOf, episodeLabelOf, formatRemaining } from '../media/media.ts'
+import { durationMsOf, episodeLabelOf, progressRatioOf, remainingMsOf } from '../media/media.ts'
+import { WatchProgress } from '../media/WatchProgress.tsx'
 import { CastSection } from './CastSection.tsx'
 import { CreditsLine, DetailHero, MetaLine } from './DetailHero.tsx'
 import { TechSection } from './TechSection.tsx'
+import { type AdminTarget, TitleMenu } from './TitleMenu.tsx'
 
-export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: ReactNode }) => {
+export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: AdminTarget }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const watchlist = useWatchlistToggle()
@@ -23,6 +24,8 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
   const durationMs = durationMsOf(item)
   const progress = item.progress
   const resume = progress?.state === 'in_progress' ? progress.resumePositionMs : undefined
+  const ratio = resume === undefined ? undefined : progressRatioOf(item)
+  const remaining = remainingMsOf(item)
   const playable = item.sources.length > 0
   const seen = watched.watched(item)
   const listed = watchlist.listed(item)
@@ -68,78 +71,64 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: R
         <div className="rise r3">
           <CreditsLine item={item} />
         </div>
-        <div className="detail-hero__actions rise r4">
-          {playable ? (
-            <Link
-              to="/watch/$itemId"
-              params={{ itemId: item.id }}
-              className="button button--primary button--large detail-hero__play"
-            >
-              <PlayIcon />
-              {resume === undefined
-                ? t('item.play')
-                : t('item.resumeAt', { time: formatClock(resume) })}
-            </Link>
-          ) : (
+        <div className="detail-hero__cta rise r4">
+          <div className="detail-hero__actions">
+            {playable ? (
+              <Link
+                to="/watch/$itemId"
+                params={{ itemId: item.id }}
+                className="button button--primary button--large detail-hero__play"
+              >
+                <PlayIcon />
+                {resume === undefined
+                  ? t('item.play')
+                  : t('item.resumeAt', { time: formatClock(resume) })}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="button button--primary button--large detail-hero__play"
+                disabled
+              >
+                {t('item.notPlayable')}
+              </button>
+            )}
+            {item.kind === 'movie' ? (
+              <button
+                type="button"
+                className="button button--glass button--large detail-action"
+                aria-pressed={listed}
+                onClick={() => watchlist.toggle(item, !listed)}
+              >
+                {listed ? <AddedIcon /> : <AddIcon />}
+                <span className="detail-action__label">{t('card.myList')}</span>
+              </button>
+            ) : undefined}
             <button
               type="button"
-              className="button button--primary button--large detail-hero__play"
-              disabled
-            >
-              {t('item.notPlayable')}
-            </button>
-          )}
-          {playable && resume !== undefined ? (
-            <Link
-              to="/watch/$itemId"
-              params={{ itemId: item.id }}
-              search={{ from: 'start' }}
               className="button button--glass button--large detail-action"
+              aria-pressed={seen}
+              onClick={() => watched.set(item.id, !seen)}
             >
-              <RestartIcon />
-              <span className="detail-action__label">{t('item.fromStart')}</span>
-            </Link>
-          ) : undefined}
-          {item.kind === 'movie' ? (
-            <button
-              type="button"
-              className="button button--glass button--large detail-action"
-              aria-pressed={listed}
-              onClick={() => watchlist.toggle(item, !listed)}
-            >
-              {listed ? <AddedIcon /> : <AddIcon />}
-              <span className="detail-action__label">{t('card.myList')}</span>
+              <SeenIcon />
+              <span className="detail-action__label">
+                {seen ? t('item.markUnwatched') : t('item.markWatched')}
+              </span>
             </button>
-          ) : undefined}
-          <button
-            type="button"
-            className="button button--glass button--large detail-action"
-            aria-pressed={seen}
-            onClick={() => watched.set(item.id, !seen)}
-          >
-            <SeenIcon />
-            <span className="detail-action__label">
-              {seen ? t('item.markUnwatched') : t('item.markWatched')}
-            </span>
-          </button>
-          {admin}
-        </div>
-        {error ? <ErrorAlert error={error} /> : undefined}
-        {resume !== undefined && progress !== undefined ? (
-          <div className="progress-line detail-hero__progress">
-            <progress
-              className="bar"
-              value={progress.positionMs}
-              max={progress.durationMs}
-              aria-label={t('catalog.inProgress')}
+            <TitleMenu
+              {...(playable && resume !== undefined ? { fromStart: item.id } : {})}
+              {...(admin === undefined ? {} : { admin })}
             />
-            <span>
-              {t('item.remaining', {
-                duration: formatRemaining(progress.durationMs - progress.positionMs, locale),
-              })}
-            </span>
           </div>
-        ) : undefined}
+          {ratio === undefined ? undefined : (
+            <WatchProgress
+              className="detail-hero__progress"
+              ratio={ratio}
+              remainingMs={remaining}
+            />
+          )}
+          {error ? <ErrorAlert error={error} /> : undefined}
+        </div>
       </DetailHero>
       <div className="detail__body">
         <CastSection cast={item.cast} crew={item.crew} series={false} />

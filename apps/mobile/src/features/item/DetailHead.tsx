@@ -57,8 +57,21 @@ export const HeadAction = ({
   selected?: boolean
 }) => (regular ? <GlassButton {...action} showLabel /> : <ActionButton {...action} />)
 
-export const ProgressLine = ({ ratio, remaining }: { ratio: number; remaining: string }) => (
+export const ProgressLine = ({
+  ratio,
+  remaining,
+  episode,
+}: {
+  ratio: number
+  remaining: string
+  episode?: string | undefined
+}) => (
   <View style={styles.progress}>
+    {episode === undefined ? undefined : (
+      <Text numberOfLines={1} style={styles.episode}>
+        {episode}
+      </Text>
+    )}
     <ProgressBar ratio={ratio} style={styles.bar} />
     <Text style={styles.remaining}>{remaining}</Text>
   </View>
@@ -179,7 +192,8 @@ const styles = StyleSheet.create({
   credits: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 21 },
   names: { color: colors.textSoft },
   progress: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  bar: { flex: 1 },
+  episode: { flexShrink: 1, color: colors.textSoft, fontFamily: fonts.regular, fontSize: 13 },
+  bar: { flex: 1, minWidth: 64 },
   remaining: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 12 },
   wide: { width: '100%', overflow: 'hidden' },
   shadeLeft: {

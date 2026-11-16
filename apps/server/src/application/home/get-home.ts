@@ -9,7 +9,7 @@ import {
 } from '../../core/progress/rows.ts'
 import type { WatchlistRepository } from '../../core/watchlist/watchlist.ts'
 import type { CatalogEntries, CatalogEntry } from '../catalog/shared/catalog-entries.ts'
-import type { PlayButton, SeriesPlay } from '../catalog/shared/series-play.ts'
+import { type PlayButton, playDurationMs, type SeriesPlay } from '../catalog/shared/series-play.ts'
 
 export type HomeHero = {
   item: CatalogEntry
@@ -108,15 +108,26 @@ export const getHomeFactory =
       }
     }
 
+    const playOf = (entry: CatalogEntry, resumeAtMs: number | undefined): PlayButton => {
+      const progress = entry.progress?.kind === 'playable' ? entry.progress.progress : undefined
+      const durationMs = playDurationMs(entry.item, resumeAtMs === undefined ? undefined : progress)
+      return {
+        action: resumeAtMs === undefined ? 'play' : 'resume',
+        item: entry.item,
+        positionMs: resumeAtMs ?? 0,
+        ...(durationMs === undefined ? {} : { durationMs }),
+      }
+    }
+
     const heroOf = (): HomeHero | undefined => {
       if (hero === undefined) return undefined
       if (hero.kind === 'continue') {
         const playable = entryOf(hero.entry.itemId, hero.entry.seriesId)
         if (playable === undefined) return undefined
-        const play: PlayButton =
-          hero.entry.kind === 'resume'
-            ? { action: 'resume', item: playable.item, positionMs: hero.entry.positionMs }
-            : { action: 'play', item: playable.item, positionMs: 0 }
+        const play = playOf(
+          playable,
+          hero.entry.kind === 'resume' ? hero.entry.positionMs : undefined,
+        )
         if (playable.item.kind === 'movie') return { item: playable, play }
         const series =
           hero.entry.seriesId === undefined ? undefined : entries.get(hero.entry.seriesId)
@@ -139,10 +150,10 @@ export const getHomeFactory =
       const progress = item.progress?.kind === 'playable' ? item.progress.progress : undefined
       return {
         item,
-        play:
-          progress !== undefined && isResumable(progress)
-            ? { action: 'resume', item: item.item, positionMs: progress.positionMs }
-            : { action: 'play', item: item.item, positionMs: 0 },
+        play: playOf(
+          item,
+          progress !== undefined && isResumable(progress) ? progress.positionMs : undefined,
+        ),
       }
     }
 

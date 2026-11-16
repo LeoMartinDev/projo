@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ActionSheetIOS, Pressable, StyleSheet, Text, View } from 'react-native'
 
 import { formatDuration, formatScore } from '@projo/i18n/format'
-import { itemTitle, listedNumber, seasonLabel } from '@projo/i18n/item-titles'
+import { episodeLine, itemTitle, listedNumber, seasonLabel } from '@projo/i18n/item-titles'
 import {
   durationMsOf,
   formatRemaining,
@@ -17,7 +17,6 @@ import type { ItemDetailDto, ItemSummaryDto } from '@projo/shared/api/catalog'
 import { episodeCards, episodeNumberLabel, sortedSeasons } from '@projo/shared/api/next-episode'
 
 import { colors, fonts, radii } from '../../shared/styles/tokens.ts'
-import { Button } from '../../shared/ui/Button.tsx'
 import { Segmented } from '../../shared/ui/Choices.tsx'
 import { EmptyState, ErrorState, Skeleton } from '../../shared/ui/states.tsx'
 import { useWatchedToggle, useWatchlistToggle } from '../catalog/actions.ts'
@@ -27,6 +26,7 @@ import { PlayButton } from '../media/buttons.tsx'
 import { useLocale } from '../media/card-text.ts'
 import { ProgressBar, Score } from '../media/parts.tsx'
 import { DetailHead, HeadAction, ProgressLine } from './DetailHead.tsx'
+import { resumeProgressOf } from './resume-progress.ts'
 import { CastRow, Section } from './sections.tsx'
 
 const selectedSeasonOf = (seasons: readonly ItemSummaryDto[], wanted: number | undefined) =>
@@ -147,9 +147,16 @@ export const SeriesEpisodes = ({
     enabled: selected !== undefined,
   })
   const episodeItems = episodeCards(episodes.data?.items ?? [])
-  const playing = episodeItems.find((item) => item.id === play?.itemId)
-  const playingRatio = playing === undefined ? undefined : progressRatioOf(playing)
-  const playingRemaining = playing === undefined ? undefined : remainingMsOf(playing)
+  const resume = resumeProgressOf(play, episodeItems)
+  const playingEpisode =
+    play === undefined || (play.seasonNumber === undefined && play.episodeNumber === undefined)
+      ? undefined
+      : episodeLine(t, {
+          kind: 'episode',
+          seasonNumber: play.seasonNumber,
+          episodeNumber: play.episodeNumber,
+          title: play.title,
+        })
   const listed = watchlist.listed(series)
   const status = selected?.watchStatus
   const seasonWatched = status?.state === 'watched'
@@ -157,10 +164,18 @@ export const SeriesEpisodes = ({
   const known = selected?.episodeCountTmdb
   const labelOf = (item: ItemSummaryDto) =>
     item.seasonNumber === undefined ? itemTitle(t, item) : seasonLabel(t, item.seasonNumber)
+  const onlySeason = seasonItems.length === 1 ? seasonItems[0] : undefined
+  const sectionTitle =
+    onlySeason === undefined || onlySeason.seasonNumber === 1
+      ? t('item.episodes')
+      : labelOf(onlySeason)
 
   const bulk = (current: ItemSummaryDto) => {
     const actions = [
-      { label: t('item.bulk.seasonUnwatched'), run: () => watched.set(current.id, false) },
+      {
+        label: seasonWatched ? t('item.bulk.seasonUnwatched') : t('item.bulk.seasonWatched'),
+        run: () => watched.set(current.id, !seasonWatched),
+      },
       { label: t('item.bulk.seriesWatched'), run: () => watched.set(series.id, true) },
       { label: t('item.bulk.seriesUnwatched'), run: () => watched.set(series.id, false) },
     ]
@@ -227,11 +242,12 @@ export const SeriesEpisodes = ({
           )
         }
         progress={
-          playingRatio === undefined || playingRemaining === undefined ? undefined : (
+          resume === undefined ? undefined : (
             <ProgressLine
-              ratio={playingRatio}
+              episode={playingEpisode}
+              ratio={resume.ratio}
               remaining={t('item.remaining', {
-                duration: formatRemaining(playingRemaining, locale),
+                duration: formatRemaining(resume.remainingMs, locale),
               })}
             />
           )
@@ -239,9 +255,9 @@ export const SeriesEpisodes = ({
         regular={regular}
       />
       <View style={[styles.divider, { marginHorizontal: gutter }]} />
-      <Section gutter={gutter} title={t('item.episodes')}>
+      <Section gutter={gutter} title={sectionTitle}>
         <View style={[styles.body, { paddingHorizontal: gutter }]}>
-          {seasonItems.length > 0 ? (
+          {seasonItems.length > 1 ? (
             <Segmented
               choices={seasonItems.map((item) => ({ value: item.id, label: labelOf(item) }))}
               label={t('item.seasons')}
@@ -269,25 +285,15 @@ export const SeriesEpisodes = ({
                   .filter((part) => part !== undefined)
                   .join(' · ')}
               </Text>
-              <View style={styles.summaryActions}>
-                <Button
-                  label={
-                    seasonWatched ? t('item.markSeasonUnwatched') : t('item.markSeasonWatched')
-                  }
-                  onPress={() => watched.set(selected.id, !seasonWatched)}
-                  size="small"
-                  variant="secondary"
-                />
-                <Pressable
-                  accessibilityLabel={t('item.bulk.more')}
-                  accessibilityRole="button"
-                  hitSlop={6}
-                  onPress={() => bulk(selected)}
-                  style={({ pressed }) => [styles.more, pressed && styles.pressed]}
-                >
-                  <SymbolView name="ellipsis" size={18} tintColor={colors.text} />
-                </Pressable>
-              </View>
+              <Pressable
+                accessibilityLabel={t('item.bulk.more')}
+                accessibilityRole="button"
+                hitSlop={6}
+                onPress={() => bulk(selected)}
+                style={({ pressed }) => [styles.more, pressed && styles.pressed]}
+              >
+                <SymbolView name="ellipsis" size={18} tintColor={colors.text} />
+              </Pressable>
             </View>
           )}
           {list()}
@@ -301,15 +307,8 @@ export const SeriesEpisodes = ({
 const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255, 255, 255, 0.06)' },
   body: { gap: 16 },
-  summary: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  summaryText: { color: colors.textMuted, fontFamily: fonts.regular, fontSize: 13 },
-  summaryActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  summaryText: { flex: 1, color: colors.textMuted, fontFamily: fonts.regular, fontSize: 13 },
   more: {
     width: 36,
     height: 36,

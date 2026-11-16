@@ -28,7 +28,7 @@ An additional [fictional film and series sample library](sample-library/README.m
 |---|---|---|
 | `Main.dc.html` | Profiles — "Who's watching?" (initial + colour avatars, PIN padlock, Add, Manage profiles) | §13.6, §14 |
 | `Home.dc.html` | Home: pill nav Home · Shows · Movies · My list, search, hero with video and sound preview, Continue watching, Up next, Recently added and My list rows, cards with hover actions | §13.2, §13.3 |
-| `Series.dc.html` | Show page: Resume, My list, From the beginning, underlined season tabs, episode list with progress, Mark all as watched | §13.5 |
+| `Series.dc.html` | Show page: Resume, My list, "⋮" (From the beginning), progress line, underlined season tabs, "⋯" bulk actions (mark the season or the show watched), episode list with progress | §13.5 |
 | `Player.dc.html` | Player: bar with segment zones, controls, "Skip intro" with an 8 s bar, Undo toast | §10.7, §12.4 |
 | `PlayerNext.dc.html` | Player, end of episode: shrunk video, next episode card, Next episode / Watch the credits | §10.7, §12.4 |
 | `PlayerChapters.dc.html` | Player — Chapters menu: list with start times, the current chapter highlighted | §10.7 |

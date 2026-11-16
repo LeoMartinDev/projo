@@ -353,6 +353,7 @@ describe('GET /items/:id', () => {
       episodeNumber: 1,
       title: 'show-s2e1',
       positionMs: hour / 4,
+      durationMs: hour,
     })
     expect((await get<ItemDetailDto>('/items/show-s1')).play).toMatchObject({
       itemId: 'show-s1e1',

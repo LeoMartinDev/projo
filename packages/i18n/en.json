@@ -158,6 +158,8 @@
     "play": "Play",
     "resumeAt": "Resume at {{time}}",
     "fromStart": "From the beginning",
+    "more": "More",
+    "moreActions": "More actions",
     "notPlayable": "No playable file",
     "markWatched": "Mark as watched",
     "markUnwatched": "Mark as unwatched",
@@ -171,8 +173,6 @@
     "playEpisode": "Play “{{title}}”",
     "markEpisodeWatched": "Mark “{{title}}” as watched",
     "markEpisodeUnwatched": "Mark “{{title}}” as unwatched",
-    "markSeasonWatched": "Mark all as watched",
-    "markSeasonUnwatched": "Mark all as unwatched",
     "season": "Season {{number}}",
     "specials": "Specials",
     "episodeNumber": "Episode {{number}}",
@@ -253,6 +253,7 @@
     },
     "bulk": {
       "more": "More episode actions",
+      "seasonWatched": "Mark the season as watched",
       "seasonUnwatched": "Mark the season as unwatched",
       "seriesWatched": "Mark the series as watched",
       "seriesUnwatched": "Mark the series as unwatched"

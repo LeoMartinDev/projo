@@ -180,24 +180,6 @@
   background: var(--fill-4);
 }
 
-.hero__progress {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  color: var(--color-text-muted);
-  font-size: 13px;
-}
-
-.hero__episode {
-  color: var(--color-text-soft);
-}
-
-.hero__bar {
-  width: 120px;
-  height: 3px;
-}
-
 .hero--skeleton {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(10, 10, 11, 0) 100%);
 }
@@ -414,7 +396,7 @@
 
   .hero__eyebrow,
   .hero__overview,
-  .hero__progress {
+  .hero .hero__progress {
     display: none;
   }
 
