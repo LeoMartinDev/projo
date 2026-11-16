@@ -8,6 +8,8 @@ export type MediaEnvironment = {
   preferNativeHls: boolean
   screenHeight?: number
   appleTouch?: boolean
+  // The video plane renders HDR (`video-dynamic-range: high`); absent: unknown (no matchMedia).
+  hdrVideo?: boolean
 }
 
 export const videoProbes: Record<VideoCodecId, readonly string[]> = {
@@ -92,6 +94,7 @@ export const detectCapabilities = async (env: MediaEnvironment): Promise<ClientC
     audioCodecs,
     hls,
     ...(hls === 'native' && env.appleTouch === true ? { subtitleDelivery: 'hls' as const } : {}),
+    ...(env.hdrVideo === undefined ? {} : { hdrVideo: env.hdrVideo }),
     ...(env.screenHeight === undefined || env.screenHeight <= 0
       ? {}
       : { screenHeight: Math.round(env.screenHeight) }),
@@ -99,6 +102,15 @@ export const detectCapabilities = async (env: MediaEnvironment): Promise<ClientC
 }
 
 type MediaSourceStatic = { isTypeSupported: (type: string) => boolean }
+
+/**
+ * Whether the video plane renders HDR (`video-dynamic-range`, Media Queries 5), which is what
+ * decides how Safari takes an HDR HLS variant (§10.2); `dynamic-range` (the page's graphics) can
+ * differ: an iPhone answered `dynamic-range: high` but not `video-dynamic-range: high`. A browser
+ * that does not know the feature answers false too.
+ */
+export const hdrVideoOf = (matches: (query: string) => boolean): boolean =>
+  matches('(video-dynamic-range: high)')
 
 export const browserMediaEnvironment = (hlsJsSupported: boolean): MediaEnvironment => {
   const scope = window as unknown as {
@@ -108,6 +120,10 @@ export const browserMediaEnvironment = (hlsJsSupported: boolean): MediaEnvironme
   const mediaSource = scope.MediaSource ?? scope.ManagedMediaSource
   const video = document.createElement('video')
   const capabilities = navigator.mediaCapabilities as MediaCapabilities | undefined
+  const hdrVideo =
+    typeof window.matchMedia === 'function'
+      ? hdrVideoOf((query) => window.matchMedia(query).matches)
+      : undefined
   return {
     ...(mediaSource === undefined
       ? {}
@@ -120,5 +136,6 @@ export const browserMediaEnvironment = (hlsJsSupported: boolean): MediaEnvironme
     preferNativeHls: navigator.vendor.startsWith('Apple'),
     appleTouch: navigator.vendor.startsWith('Apple') && navigator.maxTouchPoints > 1,
     screenHeight: window.screen.height * window.devicePixelRatio,
+    ...(hdrVideo === undefined ? {} : { hdrVideo }),
   }
 }

@@ -430,6 +430,91 @@ describe('player controller: decode fallback (§10.2)', () => {
   })
 })
 
+describe('player controller: startup watch (§10.7)', () => {
+  const answer =
+    (overrides: Partial<PlaybackSessionDto> = {}) =>
+    (body: CreatePlaybackSessionBody, index: number) =>
+      sessionDto(`s${index + 1}`, {
+        startPositionMs: body.startPositionMs ?? 600_000,
+        quality: body.quality ?? 'original',
+        mode: (body.quality ?? 'original') === 'original' ? 'hls_remux' : 'hls_transcode',
+        availableQualities: ['original', '1080p', '720p', '480p'],
+        ...overrides,
+      })
+  const opened = async (overrides: Partial<PlaybackSessionDto> = {}) => {
+    const w = world({ answer: answer(overrides) })
+    w.controller.start()
+    await w.settle()
+    w.fake.current()?.open()
+    return w
+  }
+
+  test('a copied stream without a first frame 15 s after it opened falls back, transcoded', async () => {
+    const w = await opened()
+    await w.play(14_750)
+    expect(w.server.created).toHaveLength(1)
+    await w.play(250)
+    expect(w.server.log).toContain('end s1')
+    expect(creations(w.server.created).at(-1)).toMatchObject({
+      quality: '1080p',
+      startPositionMs: 600_000,
+    })
+    expect(w.fake.current()?.load).toMatchObject({ startSeconds: 600, autoplay: true })
+    // The transcoded session is not watched: it may take its time.
+    w.fake.current()?.open()
+    await w.play(60_000)
+    expect(w.server.created).toHaveLength(2)
+    expect(w.controller.view().blocked).toBe(false)
+  })
+
+  test('the first frame, leaving, or a stream never opened (keyframe wait) stop the watch', async () => {
+    const shown = await opened()
+    shown.fake.loaded(1200)
+    await shown.play(30_000)
+    expect(shown.server.created).toHaveLength(1)
+
+    const left = await opened()
+    left.controller.stop()
+    await left.play(30_000)
+    expect(left.server.created).toHaveLength(1)
+
+    const waiting = world({ answer: answer() })
+    waiting.controller.start()
+    await waiting.play(60_000)
+    expect(waiting.server.created).toHaveLength(1)
+  })
+
+  test('waiting for the user (metadata loaded, paused) is not stuck; watched again from play', async () => {
+    const w = await opened()
+    w.fake.emit('durationchange', { duration: 1200 })
+    w.fake.emit('loadedmetadata', { ready: true })
+    await w.play(30_000)
+    expect(w.server.created).toHaveLength(1)
+    // Play pressed, no frame comes.
+    w.fake.emit('play', { paused: false })
+    w.fake.stall()
+    await w.settle()
+    w.clock.advance(14_000)
+    await w.settle()
+    expect(w.server.created).toHaveLength(1)
+    w.clock.advance(1000)
+    await w.settle()
+    expect(creations(w.server.created).at(-1)).toMatchObject({ quality: '1080p' })
+  })
+
+  test('without a quality to fall back to, it keeps waiting rather than blocking', async () => {
+    const w = await opened({ availableQualities: ['original'] })
+    await w.play(30_000)
+    expect(w.server.created).toHaveLength(1)
+    expect(w.controller.view()).toMatchObject({ blocked: false, loading: true })
+  })
+
+  test('the session says how its subtitles are drawn (§10.4)', async () => {
+    const w = await opened({ subtitleDelivery: 'track' })
+    expect(w.controller.get().subtitles).toBe('track')
+  })
+})
+
 describe('player controller: tracks and quality (§11.3)', () => {
   const tracks = {
     audioTracks: [audio(1, 'en'), audio(2, 'fr')],

@@ -1,5 +1,9 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
-import type { ClientCapabilities, PlaybackQuality } from '@projo/shared/api/playback'
+import type {
+  ClientCapabilities,
+  PlaybackQuality,
+  SessionSubtitleDelivery,
+} from '@projo/shared/api/playback'
 
 import {
   type CatalogItem,
@@ -38,6 +42,7 @@ import {
   type PlaybackSession,
   type PlaybackSessionRepository,
 } from '../../core/playback/session.ts'
+import { sessionSubtitleDelivery } from '../../core/playback/subtitle-delivery.ts'
 import {
   engineSubtitleDelivery,
   type SubtitleTrack,
@@ -113,6 +118,8 @@ export type CreatedPlaybackSession = {
   tracks: ResolvedTracks
   burnInEnabled: boolean
   subtitlesInEngine: boolean
+  // How its text subtitles reach the screen (§10.4), and so which playlist its stream names.
+  subtitleDelivery: SessionSubtitleDelivery
   availableQualities: PlaybackQuality[]
   versions: VersionChoice[]
   parts: TimelinePart[]
@@ -485,6 +492,7 @@ export const createPlaybackSessionFactory = ({
         }),
       )
     }
+    const subtitleDelivery = sessionSubtitleDelivery({ plan, capabilities })
     logger.info('playback session started', {
       sessionId: session.id,
       itemId,
@@ -494,6 +502,7 @@ export const createPlaybackSessionFactory = ({
       trackSelection: selectedTracks.origin,
       ...(plan.mode === 'hls_transcode' ? { reasons: plan.reasons } : {}),
       ...(plan.mode === 'hls_remux' ? { audio: plan.audio?.delivery } : {}),
+      subtitleDelivery,
     })
 
     return ok({
@@ -518,6 +527,7 @@ export const createPlaybackSessionFactory = ({
       tracks: selectedTracks,
       burnInEnabled: settings.burnInEnabled,
       subtitlesInEngine,
+      subtitleDelivery,
       availableQualities: availableQualities(media.video[0]),
       versions: versions.map((candidate) => ({
         sourceId: candidate.parts[0].id,

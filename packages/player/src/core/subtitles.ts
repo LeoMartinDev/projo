@@ -1,5 +1,6 @@
 import {
   type PlaybackSessionDto,
+  type SessionSubtitleDelivery,
   type SubtitleTrackDto,
   subtitleRenditionNames,
 } from '@projo/shared/api/playback'
@@ -92,7 +93,7 @@ export type SubtitleChoice = { kind: 'off' } | { kind: 'track'; track: SubtitleT
 export const needsNewSession = (
   session: Pick<PlaybackSessionDto, 'burnIn' | 'mode'>,
   choice: SubtitleChoice,
-  delivery: 'overlay' | 'hls' | 'engine' = 'overlay',
+  delivery: SessionSubtitleDelivery = 'overlay',
 ): boolean =>
   session.burnIn ||
   (choice.kind === 'track' &&

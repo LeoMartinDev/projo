@@ -37,6 +37,8 @@ export type FakeLoad = {
   load: EngineLoad
   active: boolean
   fail: (failure: StreamFailure) => void
+  // The engine handed the stream to its decoder (`onOpened` of `load`).
+  open: () => void
 }
 
 export type FakeEngine = {
@@ -141,7 +143,7 @@ export const createFakeEngine = ({
       commands.push(`rate ${rate}`)
       if (rate !== media.playbackRate) emit('ratechange', { playbackRate: rate })
     },
-    load: (load, onFailure) => {
+    load: (load, onFailure, onOpened) => {
       commands.push(
         `load ${load.session.id} at ${load.startSeconds}${load.autoplay ? '' : ' paused'}`,
       )
@@ -150,6 +152,9 @@ export const createFakeEngine = ({
         active: true,
         fail: (failure) => {
           if (entry.active) onFailure(failure)
+        },
+        open: () => {
+          if (entry.active) onOpened?.()
         },
       }
       loads.push(entry)

@@ -251,6 +251,20 @@ describe.skipIf(!hasFfmpeg())('subtitles (§10.4)', () => {
     expect(wrong.status).toBe(404)
   })
 
+  test('a sidecar <track>: under the capability URL, plain WebVTT on the media timeline', async () => {
+    const plain = new Hono<AppEnv>().route('/', assets.routes.subtitles)
+    const response = await plain.request('/stream/session-1/secret-1/tracks/track-fr.vtt')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('text/vtt; charset=utf-8')
+    const text = await response.text()
+    expect(text).toStartWith('WEBVTT')
+    expect(text).not.toContain('X-TIMESTAMP-MAP')
+    expect(text).toContain('Été, déjà là')
+    expect(text).toBe(await (await get('/subtitles/source-movie/track-fr.vtt')).text())
+    expect((await plain.request('/stream/session-1/nope/tracks/track-fr.vtt')).status).toBe(404)
+    expect((await plain.request('/stream/session-1/secret-1/tracks/nope.vtt')).status).toBe(404)
+  })
+
   test('an embedded text track is extracted', async () => {
     const response = await get('/subtitles/source-subs/track-embedded.vtt')
     expect(response.status).toBe(200)

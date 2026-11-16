@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 
-import { detectCapabilities, hlsSupport, type MediaEnvironment } from './capabilities.ts'
+import {
+  detectCapabilities,
+  hdrVideoOf,
+  hlsSupport,
+  type MediaEnvironment,
+} from './capabilities.ts'
 
 const chromeLike = (overrides: Partial<MediaEnvironment> = {}): MediaEnvironment => ({
   isTypeSupported: (type) =>
@@ -83,6 +88,16 @@ describe('detectCapabilities', () => {
     ).not.toHaveProperty('subtitleDelivery')
   })
 
+  test('says whether the video plane renders HDR when the browser does (§10.2)', async () => {
+    expect(await detectCapabilities(chromeLike({ hdrVideo: false }))).toMatchObject({
+      hdrVideo: false,
+    })
+    expect(await detectCapabilities(chromeLike({ hdrVideo: true }))).toMatchObject({
+      hdrVideo: true,
+    })
+    expect(await detectCapabilities(chromeLike())).not.toHaveProperty('hdrVideo')
+  })
+
   test('falls back to the second probe of a codec (hev1)', async () => {
     const capabilities = await detectCapabilities(
       chromeLike({ isTypeSupported: (type) => type.includes('hev1') }),
@@ -110,5 +125,13 @@ describe('hlsSupport', () => {
   test('native without hls.js, none without either', () => {
     expect(hlsSupport(env(true, false, false))).toBe('native')
     expect(hlsSupport(env(false, false, false))).toBe('none')
+  })
+})
+
+describe('hdrVideoOf', () => {
+  test('video-dynamic-range: high, not the graphics dynamic-range', () => {
+    const iphone = (query: string) => query === '(dynamic-range: high)'
+    expect(hdrVideoOf(iphone)).toBe(false)
+    expect(hdrVideoOf((query) => query === '(video-dynamic-range: high)')).toBe(true)
   })
 })

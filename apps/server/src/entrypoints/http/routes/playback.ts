@@ -25,6 +25,7 @@ import type { StopPlaybackSession } from '../../../application/playback/stop-pla
 import type { VisibilityScopeResolver } from '../../../core/catalog/catalog.ts'
 import { chapterTitle } from '../../../core/catalog/generic-titles.ts'
 import { sessionTimings } from '../../../core/playback/session.ts'
+import { streamPlaylistOf } from '../../../core/playback/subtitle-delivery.ts'
 import {
   engineSubtitleDelivery,
   isBitmapSubtitle,
@@ -47,9 +48,17 @@ const encode = encodeURIComponent
 /** A session whose subtitles the engine draws (mpv, §10.4): WebVTT under its capability URL. */
 type EngineSubtitles = { direct: boolean; streamBase: string }
 
+type SubtitleSourceOptions = {
+  burnInEnabled: boolean
+  engine?: EngineSubtitles
+  // A session whose text tracks are sidecar `<track>`s (`subtitleDelivery: 'track'`, §10.4):
+  // plain WebVTT on the media timeline, under the session's capability URL.
+  sidecar?: { streamBase: string }
+}
+
 const subtitleSource = (
   track: SubtitleTrack,
-  { burnInEnabled, engine }: { burnInEnabled: boolean; engine?: EngineSubtitles },
+  { burnInEnabled, engine, sidecar }: SubtitleSourceOptions,
 ): Pick<SubtitleTrackDto, 'delivery' | 'url'> => {
   if (engine !== undefined) {
     const delivery = engineSubtitleDelivery(track, engine)
@@ -58,6 +67,9 @@ const subtitleSource = (
       : { delivery }
   }
   if (isBitmapSubtitle(track)) return { delivery: burnInEnabled ? 'burn_in' : 'unsupported' }
+  if (sidecar !== undefined) {
+    return { delivery: 'vtt', url: `${sidecar.streamBase}/tracks/${encode(track.id)}.vtt` }
+  }
   return {
     delivery: 'vtt',
     url: `${apiPrefix}/subtitles/${encode(track.sourceId)}/${encode(track.id)}.vtt`,
@@ -66,7 +78,7 @@ const subtitleSource = (
 
 export const toSubtitleTrackDto = (
   track: SubtitleTrack,
-  options: { burnInEnabled: boolean; engine?: EngineSubtitles },
+  options: SubtitleSourceOptions,
 ): SubtitleTrackDto => {
   return {
     id: track.id,
@@ -106,10 +118,7 @@ const toPlaybackMediaDto = ({
   }
 }
 
-export const toPlaybackSessionDto = (
-  created: CreatedPlaybackSession,
-  { hlsSubtitles }: { hlsSubtitles: boolean },
-): PlaybackSessionDto => {
+export const toPlaybackSessionDto = (created: CreatedPlaybackSession): PlaybackSessionDto => {
   const { session, plan, media, startPositionMs, durationMs, mediaSegments, tracks } = created
   const streamBase = `${apiPrefix}/stream/${encode(session.id)}/${encode(created.streamSecret)}`
   return {
@@ -120,7 +129,8 @@ export const toPlaybackSessionDto = (
     stream:
       plan.mode === 'direct'
         ? { type: 'direct', url: `${streamBase}/direct`, mimeType: plan.mimeType }
-        : { type: 'hls', url: `${streamBase}/${hlsSubtitles ? 'master' : 'index'}.m3u8` },
+        : { type: 'hls', url: `${streamBase}/${streamPlaylistOf(created.subtitleDelivery)}` },
+    subtitleDelivery: created.subtitleDelivery,
     ...optional('durationMs', durationMs),
     startPositionMs,
     heartbeatIntervalMs: sessionTimings.heartbeatIntervalMs,
@@ -142,6 +152,7 @@ export const toPlaybackSessionDto = (
         ...(created.subtitlesInEngine
           ? { engine: { direct: plan.mode === 'direct', streamBase } }
           : {}),
+        ...(created.subtitleDelivery === 'track' ? { sidecar: { streamBase } } : {}),
       }),
     ),
     ...optional('selectedSubtitleTrackId', tracks.subtitle?.id),
@@ -238,12 +249,7 @@ export const playbackRoutes = ({
         ...optional('startPositionMs', body.startPositionMs),
       })
       return result.ok
-        ? c.json(
-            toPlaybackSessionDto(result.value, {
-              hlsSubtitles: body.capabilities.subtitleDelivery === 'hls',
-            }),
-            201,
-          )
+        ? c.json(toPlaybackSessionDto(result.value), 201)
         : respondError(c, result.error)
     })
     .put('/playback/sessions/:id/heartbeat', validate('json', playbackHeartbeatBodySchema), (c) =>

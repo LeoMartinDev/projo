@@ -437,6 +437,32 @@ describe('createPlaybackSession: transcode limit (§10.3)', () => {
   })
 })
 
+describe('createPlaybackSession: subtitle delivery (§10.4)', () => {
+  const dolbyVision = source('dv', 'mkv', {
+    ...media('hevc', 'eac3', { height: 2160 }),
+    video: [{ index: 0, codec: 'hevc', width: 3840, height: 2160, dynamicRange: 'dv' }],
+  })
+  const iphone: ClientCapabilities = { ...safari, subtitleDelivery: 'hls', hdrVideo: false }
+
+  test('a copied HDR video for an iPhone without HDR video: sidecar tracks', async () => {
+    const { play } = build({ sources: [dolbyVision] })
+    expect(await play({ capabilities: iphone })).toMatchObject({
+      ok: true,
+      value: { plan: { mode: 'hls_remux' }, subtitleDelivery: 'track' },
+    })
+  })
+
+  test('otherwise what the client asked for, overlay by default', async () => {
+    const { play } = build({ sources: [dolbyVision] })
+    expect(await play({ capabilities: { ...iphone, hdrVideo: true } })).toMatchObject({
+      value: { subtitleDelivery: 'hls' },
+    })
+    expect(await play({ capabilities: safari })).toMatchObject({
+      value: { subtitleDelivery: 'overlay' },
+    })
+  })
+})
+
 describe('createPlaybackSession: tracks (§11)', () => {
   const multi = media('h264', 'aac', {
     audio: [

@@ -18,6 +18,9 @@ export const clientCapabilitiesSchema = z.object({
   screenHeight: z.number().int().positive().optional(),
   subtitleDelivery: z.enum(['overlay', 'hls', 'engine']).optional(),
   engine: z.enum(['browser', 'mpv']).optional(),
+  // The client renders HDR video (`video-dynamic-range: high` in a browser); absent: unknown
+  // (§10.2).
+  hdrVideo: z.boolean().optional(),
 })
 export type ClientCapabilities = z.infer<typeof clientCapabilitiesSchema>
 
@@ -36,6 +39,12 @@ export const subtitleRenditionNames = (
     return count === 1 ? base : `${base} (${count})`
   })
 }
+
+// How a session's text subtitles reach the screen, decided by the server (§10.4): what the client
+// asked for (`subtitleDelivery` of its capabilities, `overlay` by default), or `track`: sidecar
+// WebVTT files the engine attaches to its media element as `<track>`s, drawn by the browser itself.
+export const sessionSubtitleDeliverySchema = z.enum(['overlay', 'hls', 'engine', 'track'])
+export type SessionSubtitleDelivery = z.infer<typeof sessionSubtitleDeliverySchema>
 
 export const playbackQualitySchema = z.enum(['original', '1080p', '720p', '480p'])
 export type PlaybackQuality = z.infer<typeof playbackQualitySchema>
@@ -157,6 +166,8 @@ export const playbackSessionDtoSchema = z.object({
   sourceId: z.string(),
   mode: playbackModeSchema,
   stream: playbackStreamDtoSchema,
+  // Absent from older servers: the client goes by the delivery it asked for.
+  subtitleDelivery: sessionSubtitleDeliverySchema.optional(),
   durationMs: z.number().int().optional(),
   startPositionMs: z.number().int(),
   heartbeatIntervalMs: z.number().int(),

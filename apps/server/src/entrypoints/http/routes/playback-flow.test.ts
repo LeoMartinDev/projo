@@ -662,6 +662,90 @@ describe('tracks, memory, parts and multi-episode files over HTTP (§7.7, §8.4,
     expect((await call(`${url}?subtitleOffsetMs=60000`)).status).toBe(400)
   })
 
+  test('a copied Dolby Vision video on an iPhone without HDR video: media playlist, sidecar tracks (§10.2, §10.4)', async () => {
+    insertItem(db, { id: 'dv-movie', kind: 'movie', title: 'Dolby', sortTitle: 'dolby' })
+    insertSource(db, {
+      id: 'dv-file',
+      itemId: 'dv-movie',
+      probe: {
+        durationMs: 7_200_000,
+        container: 'matroska,webm',
+        streams: [
+          {
+            index: 0,
+            codec_type: 'video',
+            codec_name: 'hevc',
+            profile: 'Main 10',
+            width: 3840,
+            height: 2160,
+            pix_fmt: 'yuv420p10le',
+            color_transfer: 'smpte2084',
+            dynamicRange: 'dv',
+          },
+          { index: 1, codec_type: 'audio', codec_name: 'eac3', disposition: { default: 1 } },
+        ],
+      },
+    })
+    db.insert(sourceSubtitles)
+      .values([
+        {
+          id: 'dv-fr',
+          sourceId: 'dv-file',
+          kind: 'external',
+          path: '/media/dv.fr.srt',
+          language: 'fr',
+          format: 'srt',
+        },
+        {
+          id: 'dv-pgs',
+          sourceId: 'dv-file',
+          kind: 'embedded',
+          streamIndex: 2,
+          language: 'en',
+          format: 'pgs',
+        },
+      ])
+      .run()
+    const iphone = {
+      videoCodecs: ['avc1', 'hvc1'],
+      audioCodecs: ['mp4a.40.2', 'ac-3', 'ec-3'],
+      hls: 'native',
+      subtitleDelivery: 'hls',
+      hdrVideo: false,
+    }
+
+    const { session } = await play({
+      itemId: 'dv-movie',
+      subtitleTrackId: 'dv-fr',
+      capabilities: iphone,
+    })
+    expect(session).toMatchObject({
+      mode: 'hls_remux',
+      subtitleDelivery: 'track',
+      selectedSubtitleTrackId: 'dv-fr',
+      subtitleTracks: [
+        { id: 'dv-fr', delivery: 'vtt' },
+        { id: 'dv-pgs', delivery: 'burn_in' },
+      ],
+    })
+    const { url } = session.stream as { url: string }
+    expect(url).toMatch(/\/index\.m3u8$/)
+    const tracks = session.subtitleTracks as { url?: string }[]
+    expect(tracks[0]?.url).toBe(url.replace(/index\.m3u8$/, 'tracks/dv-fr.vtt'))
+    expect(tracks[1]).not.toHaveProperty('url')
+
+    const hdr = await play({
+      itemId: 'dv-movie',
+      subtitleTrackId: 'dv-fr',
+      capabilities: { ...iphone, hdrVideo: true },
+    })
+    expect(hdr.session).toMatchObject({ mode: 'hls_remux', subtitleDelivery: 'hls' })
+    expect((hdr.session.stream as { url: string }).url).toMatch(/\/master\.m3u8$/)
+    expect((hdr.session.subtitleTracks as { url?: string }[])[0]?.url).toBe(
+      '/api/v1/subtitles/dv-file/dv-fr.vtt',
+    )
+  })
+
   test('the cascade, the series memory, PUT / DELETE track-preferences', async () => {
     seedAnime()
     const first = await play({ itemId: 'a1' })

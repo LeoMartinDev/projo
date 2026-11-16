@@ -26,6 +26,12 @@ import {
 } from '../core/segment-skip.ts'
 import type { SessionEnds } from '../core/session-ends.ts'
 import {
+  startupFailure,
+  startupStuck,
+  startupTimeoutMs,
+  watchesStartup,
+} from '../core/startup-watch.ts'
+import {
   initialRequest,
   nextRequest,
   reconnectDelay,
@@ -219,6 +225,10 @@ export const createPlayerController = ({
   let played = false
   // The session that reached `playing` last: its first frame was shown.
   let playedSession: string | undefined
+  // The session whose stream the engine opened last (`onOpened`), and the running watch of its
+  // first frame (§10.7).
+  let openedSession: string | undefined
+  let startupWatch: (() => void) | undefined
   // The sources that already fell back to a transcoded session (§10.2): once each.
   const fallenBack = new Set<string>()
   let pendingAudioMemory: { attempt: number } | undefined
@@ -283,6 +293,27 @@ export const createPlayerController = ({
     engine.setVolume(saved.volume, saved.muted)
   }
 
+  // The stream is detached: no watch until an engine opens one again.
+  const stopStartupWatch = () => {
+    openedSession = undefined
+    const stop = startupWatch
+    startupWatch = undefined
+    stop?.()
+  }
+
+  // A session whose video is sent as is that shows no first frame within `startupTimeoutMs` of
+  // its stream being opened is a decoding failure (§10.7): an engine may refuse such a stream
+  // without an error. Watched again from the next `play` when it was only waiting for the user.
+  const watchStartup = (session: PlaybackSessionDto) => {
+    if (startupWatch !== undefined || !watchesStartup(session)) return
+    if (openedSession !== session.id || playedSession === session.id) return
+    startupWatch = timeout(() => {
+      startupWatch = undefined
+      if (state().session?.id !== session.id || playedSession === session.id) return
+      if (startupStuck(engine.read())) fallBack(session, startupFailure)
+    }, startupTimeoutMs)
+  }
+
   const attach = (session: PlaybackSessionDto) => {
     if (openingMemory === undefined) openingMemory = { value: memoryAtOpen(session) }
     restoreVolume()
@@ -306,6 +337,11 @@ export const createPlayerController = ({
               failure.kind === 'network',
             )
           },
+          () => {
+            if (state().session?.id !== session.id) return
+            openedSession = session.id
+            watchStartup(session)
+          },
         ),
       transport,
       timers,
@@ -322,6 +358,7 @@ export const createPlayerController = ({
       onPlaying: () => {
         played = true
         playedSession = session.id
+        stopStartupWatch()
         const { reconnectAttempt, switching } = state()
         if (reconnectAttempt !== 0 || switching !== undefined)
           update({ reconnectAttempt: 0, switching: undefined })
@@ -338,7 +375,10 @@ export const createPlayerController = ({
     })
     lifecycle = opened
     heartbeat = opened.heartbeat
-    teardown = opened.teardown
+    teardown = () => {
+      stopStartupWatch()
+      return opened.teardown()
+    }
     engine.selectSubtitle(subtitleTrackOf(session, view().subtitleId))
     engine.setSubtitleDelay(subtitleDelay)
   }
@@ -348,6 +388,7 @@ export const createPlayerController = ({
     lifecycle = undefined
     teardown = undefined
     heartbeat = undefined
+    stopStartupWatch()
     current?.dispose()
   }
 
@@ -384,7 +425,10 @@ export const createPlayerController = ({
       await ends.settled()
       const capabilities = await engine.clientCapabilities()
       const session = await api.createSession({ ...toCreateBody(itemId, request), capabilities })
-      return { session, subtitles: capabilities.subtitleDelivery ?? 'overlay' }
+      return {
+        session,
+        subtitles: session.subtitleDelivery ?? capabilities.subtitleDelivery ?? 'overlay',
+      }
     }
     opened().then(
       ({ session, subtitles }) => {
@@ -619,6 +663,9 @@ export const createPlayerController = ({
         engine.state.subscribe(reconcile),
         engine.events.subscribe((event) => {
           if (event.type === 'timeupdate') onSegmentTime(event.media)
+          const { session } = state()
+          if (event.type === 'play' && lifecycle !== undefined && session !== undefined)
+            watchStartup(session)
         }),
       ]
       const { session, creation } = state()

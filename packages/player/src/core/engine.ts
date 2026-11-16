@@ -18,7 +18,9 @@ export type EngineCapabilities = {
   // The media element itself can go fullscreen (iOS Safari), when the page cannot.
   nativeFullscreen: boolean
   // Who draws the subtitles: the page over the picture (WebVTT cues), the
-  // browser's native HLS renditions, or the engine itself.
+  // browser's native HLS renditions, or the engine itself. A session may
+  // still say otherwise (`subtitleDelivery`, §10.4: `track` in Safari on an
+  // iPhone that cannot be given a master playlist).
   subtitles: 'overlay' | 'hls' | 'engine'
   // An audio track change happens in the engine, without a new session.
   switchesAudioInPlace: boolean
@@ -85,7 +87,16 @@ export type PlayerEngine = {
   setRate: (rate: number) => void
   // Starts the session's stream; returns what stops it. `onFailure` reports a
   // fatal stream error, never after the returned function was called.
-  load: (load: EngineLoad, onFailure: (failure: StreamFailure) => void) => () => void
+  // `onOpened`: the stream was handed to a decoder that may refuse it without
+  // an error (a direct file's URL set, a native HLS playlist once the keyframe
+  // wait is over, hls.js's manifest parsed): the player watches for its first
+  // frame from then on (§10.7). An engine that always reports what it cannot
+  // play (mpv) never calls it.
+  load: (
+    load: EngineLoad,
+    onFailure: (failure: StreamFailure) => void,
+    onOpened?: () => void,
+  ) => () => void
   // In-engine track switches (when the engine draws or decodes them itself).
   selectAudio: (track: AudioTrackDto) => void
   selectSubtitle: (track: SubtitleTrackDto | undefined) => void

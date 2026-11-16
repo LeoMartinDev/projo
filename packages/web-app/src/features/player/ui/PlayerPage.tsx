@@ -267,7 +267,8 @@ export const PlayerPage = ({
   )
   const view = playerView(state, media, context)
   const { session, positionMs, totalMs, bufferedMs, streamMs, blocked, failure, networkLost } = view
-  const hlsSubtitles = state.subtitles === 'hls'
+  // The browser draws the cues itself (HLS renditions, sidecar `<track>`s): its size, not ours.
+  const browserCues = state.subtitles === 'hls' || state.subtitles === 'track'
 
   useEffect(() => controller.setContext(context), [controller, context])
   useEffect(() => {
@@ -1026,7 +1027,7 @@ export const PlayerPage = ({
               onSubtitle={controller.chooseSubtitle}
               subtitleSettings={subtitleSettings}
               onSubtitleSettings={changeSubtitleSettings}
-              sizeAdjustable={!hlsSubtitles}
+              sizeAdjustable={!browserCues}
             />
           ) : overlay === 'settings' ? (
             <SettingsMenu

@@ -76,5 +76,29 @@ export const subtitlesRoutes = ({
         return c.body(mapped, 200, vttHeaders(Buffer.byteLength(mapped)))
       },
     )
+    // A sidecar `<track>` of a session with `subtitleDelivery: 'track'` (§10.4): the plain WebVTT,
+    // cues on the source's own timeline, no X-TIMESTAMP-MAP. Safari's `currentTime` over a VOD
+    // media playlist follows the playlist from 0, whatever the 10 s output offset of the segments'
+    // timestamps (`outputTimestampOffsetS`), and a session plays one part, whose timeline is its
+    // source's: the cues need no shift. The subtitle delay moves the cues in the player.
+    .get('/stream/:sessionId/:secret/tracks/:file{.+\\.vtt}', async (c) => {
+      const session = authorizeStream({
+        sessionId: c.req.param('sessionId'),
+        secret: c.req.param('secret'),
+      })
+      if (!session.ok) return respondError(c, session.error)
+      const vtt = await getSubtitleVtt({
+        sourceId: session.value.sourceId,
+        trackId: c.req.param('file').slice(0, -'.vtt'.length),
+        profileId: session.value.profileId,
+      })
+      if (!vtt.ok) return respondError(c, vtt.error)
+      const stats = mediaFiles.stat(vtt.value)
+      if (!stats.ok) return respondError(c, stats.error)
+      return new Response(mediaFiles.slice(vtt.value), {
+        status: 200,
+        headers: vttHeaders(stats.value.size),
+      })
+    })
 
 export type SubtitlesRoutes = ReturnType<typeof subtitlesRoutes>

@@ -2,6 +2,7 @@ import type {
   MediaSegmentDto,
   PlaybackPartDto,
   PlaybackSessionDto,
+  SessionSubtitleDelivery,
   TrackPreferencesBody,
 } from '@projo/shared/api/playback'
 import type { ProfileDto } from '@projo/shared/api/profiles'
@@ -34,7 +35,7 @@ export type Interruption =
   | { kind: 'network'; failure: PlayerFailure }
   | { kind: 'terminated'; reason: 'admin' | 'timeout' | 'ended' }
 
-export type SubtitleDelivery = 'overlay' | 'hls' | 'engine'
+export type SubtitleDelivery = SessionSubtitleDelivery
 
 // What the controller holds; `undefined` values are explicit (they are reset).
 export type PlayerState = {
@@ -43,7 +44,8 @@ export type PlayerState = {
   creation: 'pending' | 'error' | 'ready'
   createFailure: PlayerFailure | undefined
   session: PlaybackSessionDto | undefined
-  // Who draws the session's subtitles (from the capabilities it was created with).
+  // Who draws the session's subtitles: the server's choice (§10.4), else what the capabilities it
+  // was created with asked for.
   subtitles: SubtitleDelivery
   interruption: Interruption | undefined
   reconnectAttempt: number

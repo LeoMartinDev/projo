@@ -39,6 +39,7 @@ export const attachStream = ({
   startSeconds,
   autoplay,
   onFatal,
+  onOpened = () => {},
   withCredentials = true,
 }: {
   video: HTMLVideoElement
@@ -47,6 +48,9 @@ export const attachStream = ({
   startSeconds: number
   autoplay: boolean
   onFatal: (failure: StreamFailure) => void
+  // The media element (or hls.js) has the stream: a direct URL set, a native HLS playlist ready
+  // after the keyframe wait, hls.js's manifest parsed. Never after detach.
+  onOpened?: () => void
   // hls.js sends the session cookie: only on the server's own page (CORS never allows credentials).
   withCredentials?: boolean
 }): AttachedStream => {
@@ -73,8 +77,10 @@ export const attachStream = ({
       })
     video.addEventListener('error', failed)
     video.addEventListener('loadedmetadata', play, { once: true })
-    if (stream.type === 'direct') video.src = stream.url
-    else
+    if (stream.type === 'direct') {
+      video.src = stream.url
+      onOpened()
+    } else
       void waitForPlaylist({
         status: () =>
           fetch(mediaPlaylistUrl(stream.url, window.location.href), {
@@ -89,7 +95,9 @@ export const attachStream = ({
         delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
         cancelled: () => disposed,
       }).then((wait) => {
-        if (wait === 'ready') video.src = stream.url
+        if (wait !== 'ready' || disposed) return
+        video.src = stream.url
+        onOpened()
       })
     return {
       detach: () => {
@@ -135,7 +143,11 @@ export const attachStream = ({
       }
       report({ message: data.details, kind: hlsFailureKind(data.type) })
     })
-    hls.on(Hls.Events.MANIFEST_PARSED, play)
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      if (disposed) return
+      onOpened()
+      play()
+    })
     hls.loadSource(stream.url)
     hls.attachMedia(video)
     destroy = () => hls.destroy()

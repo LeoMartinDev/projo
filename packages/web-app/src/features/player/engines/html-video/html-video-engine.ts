@@ -20,6 +20,7 @@ import {
 } from './document-pip.ts'
 import { resolveServerUrl } from '../../../../shared/api/media-url.ts'
 import { playerVideo } from './player-element.ts'
+import { attachSidecarTracks, type SidecarTracks } from './sidecar-tracks.ts'
 import { type AttachedStream, attachStream, createStreamReloader, loadHls } from './stream.ts'
 
 // Kept equal to the class player.css styles the native cues with.
@@ -157,11 +158,14 @@ export const createHtmlVideoEngine = (
       })
     return detected
   }
-  const hlsSubtitles = () => resolved?.subtitleDelivery === 'hls'
+  // Who draws a session's subtitles (§10.4): the server's choice, else what was asked for.
+  const deliveryOf = (load: EngineLoad | undefined) =>
+    load?.session.subtitleDelivery ?? resolved?.subtitleDelivery ?? 'overlay'
 
   const reloader = createStreamReloader(video)
   let current: EngineLoad | undefined
   let attached: AttachedStream | undefined
+  let sidecar: SidecarTracks | undefined
   let stopTrackSelection = () => {}
   let reloadTimer: ReturnType<typeof setTimeout> | undefined
   const cancelReloadTimer = () => clearTimeout(reloadTimer)
@@ -226,16 +230,30 @@ export const createHtmlVideoEngine = (
       video.defaultPlaybackRate = rate
       video.playbackRate = rate
     },
-    load: (load, onFailure) => {
+    load: (load, onFailure, onOpened) => {
       const { session } = load
-      const subtitlesInStream = hlsSubtitles()
-      video.classList.toggle(nativeCuesClass, subtitlesInStream)
+      const delivery = deliveryOf(load)
+      const subtitlesInStream = delivery === 'hls'
+      // The browser draws the cues itself: inside HLS, or from the sidecar `<track>`s.
+      video.classList.toggle(nativeCuesClass, subtitlesInStream || delivery === 'track')
       const resolvedStream = { ...session.stream, url: resolveStream(session.stream.url) }
       const stream =
         subtitlesInStream && resolvedStream.type === 'hls'
           ? { ...resolvedStream, url: withSubtitleOffset(resolvedStream.url, load.subtitleDelayMs) }
           : resolvedStream
       current = load
+      const sessionTracks =
+        delivery === 'track'
+          ? attachSidecarTracks({
+              video,
+              tracks: session.subtitleTracks,
+              selectedId: session.selectedSubtitleTrackId,
+              delayMs: load.subtitleDelayMs,
+              resolveUrl: resolveStream,
+              createTrack: () => document.createElement('track'),
+            })
+          : undefined
+      sidecar = sessionTracks
       const attachedStream = attachStream({
         video,
         stream,
@@ -243,25 +261,32 @@ export const createHtmlVideoEngine = (
         startSeconds: load.startSeconds,
         autoplay: load.autoplay,
         onFatal: onFailure,
+        ...(onOpened === undefined ? {} : { onOpened }),
         withCredentials: serverOrigin === '',
       })
       attached = attachedStream
       return () => {
         if (current === load) current = undefined
         if (attached === attachedStream) attached = undefined
+        if (sidecar === sessionTracks) sidecar = undefined
         stopTrackSelection()
         stopTrackSelection = () => {}
         cancelReloadTimer()
         reloader.cancel()
         attachedStream.detach()
+        sessionTracks?.detach()
       }
     },
     selectAudio: () => {},
-    // Native HLS renditions only (§10.4): the overlay draws WebVTT tracks itself.
+    // Sidecar `<track>`s and native HLS renditions (§10.4): the overlay draws WebVTT tracks itself.
     selectSubtitle: (track) => {
       stopTrackSelection()
       stopTrackSelection = () => {}
-      if (current === undefined || !hlsSubtitles()) return
+      if (sidecar !== undefined) {
+        sidecar.select(track?.id)
+        return
+      }
+      if (current === undefined || deliveryOf(current) !== 'hls') return
       const label = renditionLabel(current.session.subtitleTracks, track?.id)
       const apply = () => {
         for (const textTrack of Array.from(video.textTracks)) {
@@ -273,11 +298,16 @@ export const createHtmlVideoEngine = (
       video.textTracks.addEventListener('addtrack', apply)
       stopTrackSelection = () => video.textTracks.removeEventListener('addtrack', apply)
     },
-    // Native HLS renditions carry the offset in their URL: reload the stream with it.
+    // Sidecar `<track>`s move their cues in place; native HLS renditions carry the offset in
+    // their URL: reload the stream with it.
     setSubtitleDelay: (delayMs) => {
       cancelReloadTimer()
+      if (sidecar !== undefined) {
+        sidecar.setDelay(delayMs)
+        return
+      }
       const stream = current?.session.stream
-      if (stream?.type !== 'hls' || !hlsSubtitles()) return
+      if (stream?.type !== 'hls' || deliveryOf(current) !== 'hls') return
       const url = withSubtitleOffset(resolveStream(stream.url), delayMs)
       if (video.src.endsWith(url)) return
       reloadTimer = setTimeout(() => reloader.reload(url), subtitleReloadDelayMs)
