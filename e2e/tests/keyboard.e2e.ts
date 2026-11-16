@@ -94,7 +94,23 @@ test('keyboard only: profile, series, episode, skip the intro, subtitles, back t
   await test.step('a home card opens its page; back, focus is on that card, ringed on its preview', async () => {
     const isCard = (element: Focused) =>
       element.card && (element.href ?? '').startsWith(`/items/${series.id}`)
-    await pressUntil(page, 'Tab', isCard, 'the card of the series')
+    // One Tab stop per row (§19): Tab reaches the row holding the series, → its card.
+    const inSeriesRow = () =>
+      page.evaluate(
+        (id) =>
+          document.activeElement
+            ?.closest('section.row')
+            ?.querySelector(`a.card[href^="/items/${id}"]`) instanceof HTMLElement,
+        series.id,
+      )
+    let found = false
+    for (let press = 0; press < 40 && !found; press += 1) {
+      await page.keyboard.press('Tab')
+      found = await inSeriesRow()
+    }
+    if (!found) throw new Error('Tab never reached the row holding the series')
+    if (!isCard(await focused(page)))
+      await pressUntil(page, 'ArrowRight', isCard, 'the card of the series')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(new RegExp(`/items/${series.id}`))
     await expect(page.locator('.episode__still').first()).toBeVisible()
