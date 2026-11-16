@@ -172,7 +172,9 @@ const SelectControl = <T extends string>({
         popoverTarget={listId}
         disabled={disabled}
         onKeyDown={(event) => {
-          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+          // Alt+↓ opens the list, like a native select; plain ↑/↓ move on in
+          // the page (§19), Enter and Space open it.
+          if ((event.key !== 'ArrowDown' && event.key !== 'ArrowUp') || !event.altKey) return
           event.preventDefault()
           list?.showPopover()
         }}

@@ -39,6 +39,10 @@ export const WhoIsWatching = ({
   const [pinFor, setPinFor] = useState<{ profile: ProfileDto; purpose: 'select' | 'edit' }>()
   const [editor, setEditor] = useState<EditorTarget>()
   const items = profiles.data.items
+  // What the first arrow focuses (§19): the profile in use, else the first.
+  const primaryId = items.some((profile) => profile.id === me.activeProfileId)
+    ? me.activeProfileId
+    : items[0]?.id
 
   const choose = (profile: ProfileDto, pin?: string) =>
     select.mutate(
@@ -97,12 +101,13 @@ export const WhoIsWatching = ({
         </h1>
         {profiles.isError ? <ErrorState error={profiles.error} /> : undefined}
         {select.isError && pinFor === undefined ? <ErrorAlert error={select.error} /> : undefined}
-        <ul className="who__profiles" aria-label={t('profiles.list')}>
+        <ul className="who__profiles" aria-label={t('profiles.list')} data-nav-row>
           {items.map((profile, index) => (
             <li key={profile.id} className={`rise r${Math.min(index + 1, 5)}`}>
               <button
                 type="button"
                 className="who__profile"
+                data-nav-primary={profile.id === primaryId ? '' : undefined}
                 aria-label={
                   manage
                     ? t('profiles.editProfile', { name: profile.name })

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { ItemSummaryDto } from '@projo/shared/api/catalog'
 
 import { Artwork } from '../../shared/ui/Artwork.tsx'
+import { currentModality } from '../../shared/ui/input-modality.ts'
 import { PlayIcon } from '../../shared/ui/icons.tsx'
 import { AddedIcon, AddIcon, InfoIcon, RemoveIcon, SeenIcon } from '../../shared/ui/media-icons.tsx'
 import { ErrorAlert } from '../../shared/ui/states.tsx'
@@ -101,6 +102,18 @@ const CardMenu = ({
     return () => window.removeEventListener('resize', onClose)
   }, [onClose])
 
+  // Opened with the keyboard (the context-menu key, §19): focus goes back to
+  // the card when the menu goes away, unless it left the page.
+  const [fromKeyboard] = useState(() => currentModality() === 'keyboard')
+  useEffect(
+    () => () => {
+      const active = document.activeElement ?? undefined
+      if (fromKeyboard && anchor.isConnected && (active === undefined || active === document.body))
+        anchor.focus({ preventScroll: true })
+    },
+    [anchor, fromKeyboard],
+  )
+
   return (
     <dialog
       ref={open}
@@ -182,6 +195,7 @@ const CardSheetBody = ({
       <button
         type="button"
         className="button button--primary button--large card-sheet__play"
+        data-nav-primary
         disabled={actions.playing}
         onClick={actions.play}
       >

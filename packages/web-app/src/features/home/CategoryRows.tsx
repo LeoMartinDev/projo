@@ -61,7 +61,13 @@ export const CategoryRows = ({
               seeAll={categorySeeAll(category)}
             >
               {items.map((item) => (
-                <MediaCard key={item.id} item={item} place="category" onLongPress={onLongPress} />
+                <MediaCard
+                  key={item.id}
+                  item={item}
+                  place="category"
+                  row={key}
+                  onLongPress={onLongPress}
+                />
               ))}
             </Row>
           )

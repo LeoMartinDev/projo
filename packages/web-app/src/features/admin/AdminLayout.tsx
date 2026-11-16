@@ -281,7 +281,7 @@ export const AdminLayout = () => {
           <span className="admin__nav-label">{t('admin.backToCatalog')}</span>
         </Link>
       </aside>
-      <main id="main" className="admin__main">
+      <main id="main" className="admin__main" tabIndex={-1}>
         <TmdbKeyBanner />
         <Outlet />
       </main>

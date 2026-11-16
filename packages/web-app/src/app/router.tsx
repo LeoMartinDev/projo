@@ -29,6 +29,10 @@ import { isKeptTab } from '../features/shell/KeptTabs.tsx'
 import { canAdminister, canManageAccount } from '../shared/session/active-profile.ts'
 import { applyMe, sessionQuery, setupStatusQuery } from '../shared/session/session.ts'
 import { EmptyState, ErrorState, FullPageSpinner } from '../shared/ui/states.tsx'
+import { useGamepad } from '../shared/ui/gamepad/use-gamepad.ts'
+import { useInputModality } from '../shared/ui/input-modality.ts'
+import { useSpatialNavigation } from '../shared/ui/spatial-nav/use-spatial-navigation.ts'
+import { useFocusOnNavigation } from '../shared/ui/use-focus-on-navigation.ts'
 import { useHost } from '../host.ts'
 import { AuthedLayout } from './AuthedLayout.tsx'
 
@@ -167,12 +171,23 @@ const RouteError = ({ error }: ErrorComponentProps) => {
 // The host's window chrome (the desktop app's buttons) over every page.
 const HostChrome = () => useHost().chrome
 
+// Keyboard or pointer, focus moved to the page on navigation, restored on back,
+// arrows, Enter and back keys, a gamepad (§19).
+const KeyboardFocus = () => {
+  useInputModality()
+  useFocusOnNavigation()
+  useSpatialNavigation()
+  useGamepad()
+  return undefined
+}
+
 const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => (
     <>
       <Outlet />
       <UpdateBanner />
       <HostChrome />
+      <KeyboardFocus />
     </>
   ),
   pendingComponent: FullPageSpinner,

@@ -588,7 +588,8 @@
 }
 
 .timeline:focus-visible {
-  outline: none;
+  border-radius: var(--radius-pill);
+  outline-offset: 2px;
 }
 
 .timeline__track {
@@ -603,6 +604,7 @@
 }
 
 .timeline:hover .timeline__track,
+.timeline:focus-visible .timeline__track,
 .timeline[data-active='true'] .timeline__track {
   height: 6px;
 }
@@ -659,11 +661,6 @@
 
 .timeline[aria-disabled='true'] .timeline__knob {
   opacity: 0;
-}
-
-.timeline:focus-visible .timeline__knob {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
 }
 
 .timeline__preview {
@@ -811,8 +808,10 @@
   outline: none;
 }
 
-.volume__input:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid var(--color-accent);
+/* The slider clips its input (it slides open): the ring goes around it. */
+.volume__slider:has(.volume__input:focus-visible) {
+  border-radius: var(--radius-pill);
+  outline: var(--focus-ring-width) solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -1240,8 +1239,9 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin: 0;
-  padding: 2px 8px 8px;
+  /* Room for an option's focus ring inside the scrolling list. */
+  margin: -4px 0 0;
+  padding: 6px 8px 8px;
   list-style: none;
 }
 
@@ -1271,7 +1271,8 @@
 }
 
 .menu-section--column .menu-section__options {
-  padding: 0 6px 8px;
+  margin-top: -6px;
+  padding: 6px 6px 8px;
 }
 
 .menu-section:not(.menu-section--column) + .menu-section {
@@ -1600,7 +1601,7 @@
 }
 
 .speed-slider__control:focus-visible .speed-slider__thumb {
-  outline: 2px solid var(--color-accent);
+  outline: var(--focus-ring-width) solid var(--color-accent);
   outline-offset: 3px;
 }
 

@@ -102,6 +102,12 @@
   outline: none;
 }
 
+/* A text field is always :focus-visible: its strong ring is for the keyboard only (§19). */
+:root[data-modality='keyboard'] .search__bar:has(.search__input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 .search__spinner {
   color: var(--color-text-muted);
 }

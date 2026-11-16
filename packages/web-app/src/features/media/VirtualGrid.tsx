@@ -151,7 +151,12 @@ export const VirtualGrid = <T extends { id: string }>({
       style={{ ...gridStyle, paddingTop: `${before}px`, paddingBottom: `${after}px` }}
     >
       {visible.map((item) => (
-        <li key={item.id} className="poster-grid__cell">
+        <li
+          key={item.id}
+          className="poster-grid__cell"
+          // The first arrow on the page lands on the first title (§19).
+          data-nav-primary={item.id === items[0]?.id ? '' : undefined}
+        >
           {renderItem(item, sizes)}
         </li>
       ))}

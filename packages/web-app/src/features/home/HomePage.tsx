@@ -112,6 +112,7 @@ export const HomePage = () => {
                   key={item.id}
                   item={item}
                   place={row.kind}
+                  row={row.kind}
                   isNew={isNew}
                   {...(resumeFrame === undefined ? {} : { resumeFrame })}
                   onLongPress={(pressed, anchor) =>

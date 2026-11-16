@@ -128,14 +128,16 @@ export const Row = ({
     wheel.current = { delta: 0, until: now + 650 }
   }
 
+  // A row for the arrows (§19): ←/→ along its cards, one Tab stop for them;
+  // "See all" is reached by ← from the first card.
   return (
-    <section className="row" aria-labelledby={id}>
+    <section className="row" aria-labelledby={id} data-nav-row data-nav-roving>
       <div className="row__head">
         <h2 id={id} className="row__title">
           {title}
         </h2>
         {seeAll === undefined ? undefined : seeAll.to === '/watchlist' ? (
-          <Link to="/watchlist" className="row__see">
+          <Link to="/watchlist" className="row__see" data-nav-aside>
             {t('home.seeAll')}
           </Link>
         ) : seeAll.to === '/categories/$category' ? (
@@ -143,20 +145,23 @@ export const Row = ({
             to="/categories/$category"
             params={{ category: seeAll.category }}
             className="row__see"
+            data-nav-aside
           >
             {t('home.seeAll')}
           </Link>
         ) : (
-          <Link to={seeAll.to} search={{ sort: seeAll.sort }} className="row__see">
+          <Link to={seeAll.to} search={{ sort: seeAll.sort }} className="row__see" data-nav-aside>
             {t('home.seeAll')}
           </Link>
         )}
         <span className="row__spacer" />
         {paged && maxOffset > 0 ? (
-          <span className="row__pager">
+          // For the pointer: a card focused with the keyboard pages its row itself.
+          <span className="row__pager" data-nav-skip>
             <button
               type="button"
               className="row__arrow"
+              tabIndex={-1}
               aria-label={t('home.previous')}
               disabled={!canPrev}
               onClick={() => goTo(page - 1)}
@@ -166,6 +171,7 @@ export const Row = ({
             <button
               type="button"
               className="row__arrow"
+              tabIndex={-1}
               aria-label={t('home.next')}
               disabled={!canNext}
               onClick={() => goTo(page + 1)}

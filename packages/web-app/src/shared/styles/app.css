@@ -9,6 +9,11 @@ html:has(.player) {
   min-height: 100dvh;
 }
 
+/* The page's main region takes focus after a navigation (§19), without a ring. */
+main[tabindex='-1']:focus {
+  outline: none;
+}
+
 /* A player engine drawing under the page (the desktop app's libmpv, §10.7):
    the document lets its picture through while it plays. */
 html.picture-behind-page,

@@ -25,6 +25,7 @@ import { media } from '@projo/design/media'
 import { Switch } from '../../../shared/ui/controls.tsx'
 import { CheckIcon, CloseIcon } from '../../../shared/ui/icons.tsx'
 import { audioCodecLabel, languageName } from '../../item/media-labels.ts'
+import { tabStops } from './menu-focus.ts'
 import { MinusIcon, PlusSmallIcon } from './player-icons.tsx'
 import {
   playbackRates,
@@ -92,6 +93,7 @@ const MenuHeader = ({ title, onClose }: { title: string; onClose: () => void }) 
 
 const Option = ({
   checked,
+  tabStop = checked,
   disabled = false,
   label,
   tags = [],
@@ -99,6 +101,8 @@ const Option = ({
   onSelect,
 }: {
   checked: boolean
+  // The group's one tab stop (menu-focus.ts): the checked option, else the first.
+  tabStop?: boolean | undefined
   disabled?: boolean
   label: string
   tags?: readonly string[]
@@ -111,6 +115,7 @@ const Option = ({
     className="menu-option"
     aria-checked={checked}
     aria-disabled={disabled}
+    tabIndex={tabStop ? 0 : -1}
     onClick={() => {
       if (!disabled && !checked) onSelect()
     }}
@@ -139,11 +144,14 @@ const Section = ({
   className,
   children,
   footer,
+  initialFocus = false,
 }: {
   title: string
   className?: string
   children: ReactNode
   footer?: ReactNode
+  // Where focus goes when the menu opens (menu-focus.ts).
+  initialFocus?: boolean
 }) => {
   const id = useId()
   return (
@@ -154,7 +162,12 @@ const Section = ({
       <h3 id={id} className="menu-section__title">
         {title}
       </h3>
-      <div role="radiogroup" aria-labelledby={id} className="menu-section__options">
+      <div
+        role="radiogroup"
+        aria-labelledby={id}
+        className="menu-section__options"
+        data-initial-focus={initialFocus ? '' : undefined}
+      >
         {children}
       </div>
       {footer}
@@ -265,10 +278,16 @@ export const LanguagesMenu = ({
       delayMs: stepMs === 0 ? 0 : clampDelay(settings.delayMs + stepMs),
     }))
 
+  const audioStops = tabStops(session.audioTracks.map((track) => track.index === audioIndex))
+  const subtitleStops = tabStops([
+    subtitlesOff,
+    ...session.subtitleTracks.map((track) => track.id === subtitleId),
+  ])
   const audioOptions = session.audioTracks.map((track, position) => (
     <Option
       key={track.index}
       checked={track.index === audioIndex}
+      tabStop={audioStops[position]}
       label={audioLabel(track, position)}
       detail={audioDetail(track, position)}
       onSelect={() => onAudio(track)}
@@ -279,6 +298,7 @@ export const LanguagesMenu = ({
     <>
       <Option
         checked={subtitlesOff}
+        tabStop={subtitleStops[0]}
         label={t('player.menu.off')}
         onSelect={() => onSubtitle({ kind: 'off' })}
       />
@@ -286,6 +306,7 @@ export const LanguagesMenu = ({
         <Option
           key={track.id}
           checked={track.id === subtitleId}
+          tabStop={subtitleStops[position + 1]}
           disabled={!canChoose(track)}
           label={subtitleLabel(track, position)}
           tags={subtitleTags(track)}
@@ -311,6 +332,7 @@ export const LanguagesMenu = ({
                 role="radio"
                 className={`menu-segments__item menu-size--${size}`}
                 aria-checked={subtitleSettings.size === size}
+                tabIndex={subtitleSettings.size === size ? 0 : -1}
                 aria-label={t(`player.menu.sizes.${size}`)}
                 title={t(`player.menu.sizes.${size}`)}
                 disabled={subtitlesOff}
@@ -361,13 +383,18 @@ export const LanguagesMenu = ({
     return (
       <div className="tracks-menu tracks-menu--wide">
         <div className="tracks-menu__columns">
-          <Section title={t('player.menu.audio')} className="menu-section--column">
+          <Section
+            title={t('player.menu.audio')}
+            className="menu-section--column"
+            initialFocus={tab === 'audio'}
+          >
             {audioOptions}
           </Section>
           <Section
             title={t('player.menu.subtitles')}
             className="menu-section--column"
             footer={subtitleStyle}
+            initialFocus={tab === 'subtitles'}
           >
             {subtitleOptions}
           </Section>
@@ -455,11 +482,12 @@ const SpeedSlider = ({
     onRate(next)
   }
 
+  // ↑/↓ leave the slider for the menu's other settings (menu-focus.ts).
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const next =
-      event.key === 'ArrowRight' || event.key === 'ArrowUp' || event.key === 'PageUp'
+      event.key === 'ArrowRight' || event.key === 'PageUp'
         ? rateStepFrom(rate, 1)
-        : event.key === 'ArrowLeft' || event.key === 'ArrowDown' || event.key === 'PageDown'
+        : event.key === 'ArrowLeft' || event.key === 'PageDown'
           ? rateStepFrom(rate, -1)
           : event.key === 'Home'
             ? playbackRates[0]
@@ -561,6 +589,17 @@ export const SettingsMenu = ({
   )
   const qualities =
     session.availableQualities.length > 0 ? session.availableQualities : (['original'] as const)
+  const qualityStops = tabStops(qualities.map((quality) => quality === session.quality))
+  const versionStops = tabStops(session.versions.map((version) => version.selected))
+  const qualityOptions = qualities.map((quality, position) => (
+    <Option
+      key={quality}
+      checked={quality === session.quality}
+      tabStop={qualityStops[position]}
+      label={quality === 'original' ? t('player.menu.original') : quality}
+      onSelect={() => onQuality(quality)}
+    />
+  ))
   return (
     <>
       <MenuHeader title={t('player.menu.settings')} onClose={onClose} />
@@ -587,6 +626,7 @@ export const SettingsMenu = ({
               <Option
                 key={version.sourceId}
                 checked={version.selected}
+                tabStop={versionStops[position]}
                 label={versionNames[position] ?? ''}
                 onSelect={() => onVersion(version.sourceId)}
               />
@@ -594,16 +634,7 @@ export const SettingsMenu = ({
           </Section>
         ) : undefined}
         {hasQualityChoice(session) ? (
-          <Section title={t('player.menu.quality')}>
-            {qualities.map((quality) => (
-              <Option
-                key={quality}
-                checked={quality === session.quality}
-                label={quality === 'original' ? t('player.menu.original') : quality}
-                onSelect={() => onQuality(quality)}
-              />
-            ))}
-          </Section>
+          <Section title={t('player.menu.quality')}>{qualityOptions}</Section>
         ) : undefined}
       </div>
       <div className="menu-info">
@@ -640,6 +671,7 @@ export const ChaptersMenu = ({
           listRef.current = node ?? undefined
         }}
         className="menu-list menu-chapters"
+        data-arrow-list
       >
         {chapters.map((chapter, position) => (
           <li key={chapter.startMs}>

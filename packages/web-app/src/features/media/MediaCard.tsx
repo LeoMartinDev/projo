@@ -114,9 +114,12 @@ const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: Card
   const text = useCardText()(item)
   const { listed, seen } = actions
   const target = detailTargetOf(item)
+  // Out of the keyboard's path (§19): the item page has the same actions, and
+  // the context-menu key opens them on the card.
   return (
     <div className="preview__actions">
       <button
+        tabIndex={-1}
         type="button"
         className="round-button round-button--solid"
         aria-label={t('card.playTitle', { title: text.title })}
@@ -127,6 +130,7 @@ const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: Card
       </button>
       {actions.canList ? (
         <button
+          tabIndex={-1}
           type="button"
           className="round-button"
           aria-pressed={listed}
@@ -138,6 +142,7 @@ const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: Card
         </button>
       ) : undefined}
       <button
+        tabIndex={-1}
         type="button"
         className="round-button"
         aria-pressed={seen}
@@ -149,6 +154,7 @@ const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: Card
       </button>
       {actions.removable ? (
         <button
+          tabIndex={-1}
           type="button"
           className="round-button"
           aria-label={t('card.removeContinue')}
@@ -161,6 +167,7 @@ const PreviewActions = ({ item, actions }: { item: ItemSummaryDto; actions: Card
       ) : undefined}
       <span className="preview__spacer" />
       <Link
+        tabIndex={-1}
         to="/items/$itemId"
         params={{ itemId: target.itemId }}
         search={target.season === undefined ? {} : { season: target.season }}
@@ -212,6 +219,7 @@ const Preview = ({
       role="group"
       aria-label={t('card.previewOf', { title: text.title })}
       style={style}
+      data-nav-skip
     >
       <div className="preview__art" aria-hidden="true">
         <Artwork
@@ -268,12 +276,15 @@ const Preview = ({
 export const MediaCard = ({
   item,
   place,
+  row,
   isNew = false,
   resumeFrame,
   onLongPress,
 }: {
   item: ItemSummaryDto
   place: CardPlace
+  // The row it sits in: the same item in two rows is two cards (focus restore, §19).
+  row: string
   isNew?: boolean
   resumeFrame?: ResumeFrameDto
   onLongPress: (item: ItemSummaryDto, anchor: HTMLElement) => void
@@ -347,6 +358,7 @@ export const MediaCard = ({
     <div
       ref={wrapperRef}
       className={poster ? 'cw cw--poster' : 'cw'}
+      data-focus-key={`card:${row}:${item.id}`}
       onPointerEnter={onPointerEnter}
       onPointerLeave={() => setHovered(false)}
       onFocus={onFocus}

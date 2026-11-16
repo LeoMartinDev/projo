@@ -53,6 +53,15 @@ import {
   Rewind10Icon,
   VolumeIcon,
 } from '../../../shared/ui/icons.tsx'
+import { isTextEntry, isUsable } from '../../../shared/ui/focusable.ts'
+import { type Direction, isHorizontal } from '../../../shared/ui/spatial-nav/geometry.ts'
+import { claimIntents } from '../../../shared/ui/spatial-nav/intents.ts'
+import {
+  browserBackKeys,
+  keyOfDirection,
+  type NavIntent,
+} from '../../../shared/ui/spatial-nav/keys.ts'
+import { activateFocus, moveFocus } from '../../../shared/ui/spatial-nav/spatial-nav.ts'
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { itemQuery } from '../../catalog/queries.ts'
 import { useUpdateProfile } from '../../profiles/queries.ts'
@@ -74,6 +83,7 @@ import {
 } from '../playback-api.ts'
 import type { WebPlayerEngine } from '../web-engine.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
+import { onMenuKeyDown, useMenuFocus } from './menu-focus.ts'
 import { nowPlayingOf } from './media-session.ts'
 import { NextUpBubble, NextUpCard, type NextUpCountdownView } from './NextUpCard.tsx'
 import {
@@ -112,7 +122,15 @@ import {
   pinchMoved,
   pinchStarted,
 } from './pinch-gesture.ts'
-import { commandFor, isVerticalDrag, tapZone, volumeAfterDrag } from './shortcuts.ts'
+import {
+  commandFor,
+  focusedControlOf,
+  type KeyInput,
+  type PlayerCommand,
+  isVerticalDrag,
+  tapZone,
+  volumeAfterDrag,
+} from './shortcuts.ts'
 import { SkippedToast, SkipSegmentButton } from './SkipSegment.tsx'
 import { SubtitleOverlay } from './SubtitleOverlay.tsx'
 import { idleGesture, type SeekSide, settled, type TapGesture, tapped } from './tap-gestures.ts'
@@ -122,6 +140,7 @@ import { useControlsInset } from './use-controls-inset.ts'
 import { useEngineSubtitles, usePictureBehindPage } from './use-picture-behind-page.ts'
 import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
+import { usePlayerFocus } from './use-player-focus.ts'
 import { useStore } from './use-store.ts'
 import { useWallClock } from './use-wall-clock.ts'
 import './player.css'
@@ -137,6 +156,13 @@ const pinchCloseMs = 180
 
 type Overlay = PlayerMenu | 'episodes'
 
+const focusDirections = {
+  focus_up: 'up',
+  focus_down: 'down',
+  focus_left: 'left',
+  focus_right: 'right',
+} as const satisfies Record<string, Direction>
+
 const useTitle = (item: ItemDetailDto | undefined) => {
   const { t } = useTranslation()
   if (item === undefined) return { title: '', subtitle: undefined }
@@ -145,17 +171,18 @@ const useTitle = (item: ItemDetailDto | undefined) => {
   return { title: item.series?.title ?? title, subtitle: episodeLine(t, item) }
 }
 
-const isEditable = (target: EventTarget | undefined) => {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable || target.tagName === 'TEXTAREA') return true
-  return (
-    target.tagName === 'INPUT' &&
-    !['range', 'checkbox', 'radio', 'button'].includes((target as HTMLInputElement).type)
-  )
-}
-
 const inOverlay = (target: EventTarget | undefined) =>
   target instanceof Element && (target.closest('[data-player-overlay]') ?? undefined) !== undefined
+
+const focusedControl = (target: EventTarget | undefined, keyboardFocused: boolean) =>
+  target instanceof HTMLElement && target !== document.body
+    ? focusedControlOf({
+        tagName: target.tagName,
+        type: target instanceof HTMLInputElement ? target.type : undefined,
+        role: target.getAttribute('role') ?? undefined,
+        keyboardFocused,
+      })
+    : undefined
 
 /**
  * The player's page (§10.7): reads the controller of @projo/player and the
@@ -245,6 +272,7 @@ export const PlayerPage = ({
   )
   const [container, containerRef] = useElement<HTMLDivElement>()
   const [controls, controlsRef] = useElement<HTMLDivElement>()
+  const [menu, menuRef] = useElement<HTMLDivElement>()
   useControlsInset(container, controls)
   usePlayerFullscreenScope()
   useWindowFullscreenScope(engine.windowFullscreen)
@@ -379,6 +407,10 @@ export const PlayerPage = ({
     return () => clearTimeout(idleTimer.current)
   }, [])
 
+  // A control reached with the keyboard wakes the chrome, which fades again
+  // after the idle delay like after any key (§10.7).
+  const playerFocus = usePlayerFocus(container, wake)
+
   const closeOverlay = () => {
     const opener =
       overlay === undefined
@@ -432,56 +464,147 @@ export const PlayerPage = ({
     enabled: nextEpisode !== undefined,
   })
 
-  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
-    const command = commandFor(event, {
-      editing: isEditable(event.target ?? undefined),
-      inOverlay: inOverlay(event.target ?? undefined),
+  const promptOnScreen = () =>
+    [...(container?.querySelectorAll<HTMLElement>('[data-player-prompt]') ?? [])].find(isUsable)
+
+  // Runs a key, from the keyboard or from an intent (a gamepad); true when the player took it.
+  const runKey = (input: KeyInput, target: EventTarget | undefined, prevent: () => void) => {
+    const command = commandFor(input, {
+      editing: isTextEntry(target),
+      inOverlay: inOverlay(target),
       overlayOpen: overlay !== undefined,
       fullscreen,
       ownFullscreen: engine.windowFullscreen !== undefined,
+      focusedControl: focusedControl(target, playerFocus.isKeyboardFocused(target)),
+      promptShown: promptOnScreen() !== undefined,
     })
     wake()
-    if (command === undefined) return
-    if (command !== 'exit' && command !== 'close_overlay') event.preventDefault()
+    // Taken even when nothing is left to do: the browser would go back itself (§10.7).
+    if (browserBackKeys.includes(input.key)) prevent()
+    if (command === undefined) return false
+    if (input.key !== 'Escape' || (command !== 'exit' && command !== 'close_overlay')) prevent()
+    runCommand(command)
+    return true
+  }
+
+  const runCommand = (command: PlayerCommand) => {
     switch (command) {
       case 'toggle_play':
-        return togglePlay()
+        togglePlay()
+        break
       case 'seek_back':
-        return seekBy(-seekStepMs)
+        seekBy(-seekStepMs)
+        break
       case 'seek_forward':
-        return seekBy(seekStepMs)
+        seekBy(seekStepMs)
+        break
       case 'volume_up':
-        return setVolume(engine.read().volume + volumeStep)
+        setVolume(engine.read().volume + volumeStep)
+        break
       case 'volume_down':
-        return setVolume(engine.read().volume - volumeStep)
+        setVolume(engine.read().volume - volumeStep)
+        break
       case 'toggle_mute':
-        return toggleMute()
+        toggleMute()
+        break
       case 'toggle_fullscreen':
-        return toggleFull()
+        toggleFull()
+        break
       case 'skip_segment':
-        return controller.skipSegment()
+        controller.skipSegment()
+        break
       case 'next_episode':
         if (nextEpisode !== undefined) playEpisode(nextEpisode)
-        return
+        break
       case 'toggle_subtitles':
-        return controller.toggleSubtitles()
+        controller.toggleSubtitles()
+        break
       case 'toggle_info':
-        return toggleInfo()
+        toggleInfo()
+        break
       case 'speed_down':
-        return controller.setRate(rateStepFrom(controller.get().rate, -1))
+        controller.setRate(rateStepFrom(controller.get().rate, -1))
+        break
       case 'speed_up':
-        return controller.setRate(rateStepFrom(controller.get().rate, 1))
+        controller.setRate(rateStepFrom(controller.get().rate, 1))
+        break
+      case 'focus_up':
+      case 'focus_down':
+      case 'focus_left':
+      case 'focus_right':
+        if (container !== undefined) moveFocus(focusDirections[command], container)
+        break
+      case 'focus_controls':
+        playerFocus.focusControls()
+        break
+      case 'activate_prompt':
+        promptOnScreen()?.click()
+        break
+      case 'release_focus':
+        playerFocus.release()
+        clearTimeout(idleTimer.current)
+        setIdle(true)
+        break
       case 'close_overlay':
-        return closeOverlay()
+        closeOverlay()
+        break
       case 'exit':
-        return exit()
+        exit()
+        break
     }
+  }
+
+  const onKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    runKey(event, event.target ?? undefined, () => event.preventDefault())
+  })
+
+  // The intents of the app (§19) are the player's while it is open: the same
+  // as the arrows, Enter and Escape; a gamepad's playback buttons act whatever
+  // has focus, its card-menu button only wakes the chrome.
+  const onIntent = useEffectEvent((intent: NavIntent): boolean => {
+    if (intent.kind === 'media' || intent.kind === 'menu') {
+      wake()
+      if (intent.kind === 'media') runCommand(intent.action)
+      return intent.kind === 'media'
+    }
+    const target = document.activeElement ?? undefined
+    const key =
+      intent.kind === 'move'
+        ? keyOfDirection[intent.direction]
+        : intent.kind === 'activate'
+          ? 'Enter'
+          : // A back key: it also leaves the browser's full screen, which Esc does natively.
+            'GoBack'
+    if (runKey({ key, altKey: false, ctrlKey: false, metaKey: false }, target, () => {}))
+      return true
+    // A menu's slider (the speed) steps with ←/→ as with its keys; ↑/↓ leave it.
+    if (
+      intent.kind === 'move' &&
+      isHorizontal(intent.direction) &&
+      target instanceof Element &&
+      target.matches('[data-player-overlay] [role="slider"]')
+    ) {
+      controller.setRate(rateStepFrom(state.rate, intent.direction === 'right' ? 1 : -1))
+      return true
+    }
+    if (intent.kind === 'move')
+      return moveFocus(
+        intent.direction,
+        target instanceof Element
+          ? (target.closest('[data-player-overlay]') ?? container)
+          : container,
+      )
+    return intent.kind === 'activate' && container !== undefined && activateFocus(container)
   })
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => onKeyDown(event)
     window.addEventListener('keydown', listener)
-    return () => window.removeEventListener('keydown', listener)
+    const release = claimIntents((intent) => onIntent(intent))
+    return () => {
+      window.removeEventListener('keydown', listener)
+      release()
+    }
   }, [])
 
   // A single tap toggles the controls once no second tap can follow; a seek
@@ -692,6 +815,10 @@ export const PlayerPage = ({
   const showEnd = itemEnded && !blocked && !nextUpShown
   const chromeVisible =
     !idle || media.paused || blocked || overlay !== undefined || showEnd || nextUpShown
+  // Once the chrome fades, a control focused with the keyboard rests (§10.7).
+  useEffect(() => {
+    if (!chromeVisible) playerFocus.rest()
+  }, [chromeVisible, playerFocus])
   const behindPage = usePictureBehindPage({ engine, thumbnail: nextUpShown })
   const captionsAboveToast =
     (toast !== undefined || skipped !== undefined || nextUpView === 'bubble') && !blocked
@@ -724,6 +851,8 @@ export const PlayerPage = ({
     endsAt === undefined
       ? ''
       : t('player.endsAt', { time: formatTimeOfDay(endsAt, currentLocale()) })
+  const openMenu = overlay !== 'episodes' && session !== undefined ? overlay : undefined
+  useMenuFocus(menu, openMenu)
 
   const menuTitles: Record<PlayerMenu, string> = {
     languages: t('player.menu.title'),
@@ -855,6 +984,7 @@ export const PlayerPage = ({
         <button
           type="button"
           className="player__big-play"
+          data-nav-skip
           aria-label={t('player.play')}
           onClick={togglePlay}
         >
@@ -1010,10 +1140,13 @@ export const PlayerPage = ({
 
       {overlay !== undefined && overlay !== 'episodes' && session !== undefined ? (
         <div
+          ref={menuRef}
           className={`player-menu player-menu--${overlay}`}
           data-player-overlay
+          data-overlay={overlay}
           role="dialog"
           aria-label={menuTitles[overlay]}
+          onKeyDown={onMenuKeyDown}
         >
           {overlay === 'languages' ? (
             <LanguagesMenu
@@ -1105,7 +1238,7 @@ export const PlayerPage = ({
           </span>
         </div>
 
-        <div className="player__controls">
+        <div className="player__controls" data-nav-row>
           <button
             type="button"
             className="player__control player__control--play player__control--pointer"
@@ -1151,6 +1284,7 @@ export const PlayerPage = ({
               />
               <input
                 className="volume__input"
+                data-nav-skip
                 type="range"
                 min={0}
                 max={1}
@@ -1187,6 +1321,7 @@ export const PlayerPage = ({
           )}
           {item.data?.kind === 'episode' && item.data.series !== undefined ? (
             <button
+              data-menu="episodes"
               type="button"
               className="player__control"
               aria-label={t('player.episodes')}

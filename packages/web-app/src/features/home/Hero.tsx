@@ -65,6 +65,7 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
         to="/items/$itemId"
         params={{ itemId: item.id }}
         className="hero__open"
+        data-nav-skip
         aria-label={t('card.infoOn', { title })}
       />
       <div className="hero__content">
@@ -90,12 +91,14 @@ export const Hero = ({ hero }: { hero: HomeHeroDto }) => {
         {item.overview === undefined ? undefined : (
           <p className="hero__overview rise r3">{item.overview}</p>
         )}
-        <div className="hero__actions rise r4">
+        <div className="hero__actions rise r4" data-nav-row>
           {playTarget === undefined ? undefined : (
             <Link
               to="/watch/$itemId"
               params={{ itemId: playTarget }}
               className="button button--primary button--large hero__play"
+              data-focus-key="hero:play"
+              data-nav-primary
             >
               <PlayIcon />
               {playLabel}

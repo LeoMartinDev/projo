@@ -72,12 +72,14 @@ export const PlayableDetail = ({ item, admin }: { item: ItemDetailDto; admin?: A
           <CreditsLine item={item} />
         </div>
         <div className="detail-hero__cta rise r4">
-          <div className="detail-hero__actions">
+          <div className="detail-hero__actions" data-nav-row>
             {playable ? (
               <Link
                 to="/watch/$itemId"
                 params={{ itemId: item.id }}
                 className="button button--primary button--large detail-hero__play"
+                data-focus-key="detail:play"
+                data-nav-primary
               >
                 <PlayIcon />
                 {resume === undefined

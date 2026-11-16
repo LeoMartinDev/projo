@@ -56,7 +56,8 @@ const EpisodeRow = ({
   const inline = listedNumber(episode, number)
   const score = formatScore(episode.voteAverage, locale)
   return (
-    <li className="episode" data-in-progress={ratio !== undefined}>
+    // A row (§19): ↓/↑ land on the still, ←/→ reach its actions.
+    <li className="episode" data-in-progress={ratio !== undefined} data-nav-row>
       <span
         className="episode__number"
         data-range={episode.episodeNumberEnd === undefined ? undefined : 'true'}
@@ -68,6 +69,8 @@ const EpisodeRow = ({
         to="/watch/$itemId"
         params={{ itemId: episode.id }}
         className={`episode__still tone-${toneOf(episode.id)}`}
+        data-focus-key={`episode:${episode.id}`}
+        data-nav-primary
         aria-label={playEpisodeLabel(t, episode, number)}
       >
         <Artwork src={episode.images.still ?? fallbackArt} className="cover-img" />
@@ -172,7 +175,11 @@ const BulkMenu = ({
     watched.set(id, value)
   }
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') setOpen(false)
+    if ((event.key !== 'Escape' && event.key !== 'Backspace') || !open) return
+    // Closes the menu, not the page (§19).
+    event.preventDefault()
+    setOpen(false)
+    event.currentTarget.querySelector<HTMLElement>('.bulk__button')?.focus()
   }
   return (
     <div
@@ -317,7 +324,7 @@ export const SeriesDetail = ({
           <CreditsLine item={series} />
         </div>
         <div className="detail-hero__cta rise r4">
-          <div className="detail-hero__actions">
+          <div className="detail-hero__actions" data-nav-row>
             {play === undefined ? (
               <button
                 type="button"
@@ -331,6 +338,8 @@ export const SeriesDetail = ({
                 to="/watch/$itemId"
                 params={{ itemId: play.itemId }}
                 className="button button--primary button--large detail-hero__play"
+                data-focus-key="detail:play"
+                data-nav-primary
               >
                 <PlayIcon />
                 {playLabelOf(t, series, play)}

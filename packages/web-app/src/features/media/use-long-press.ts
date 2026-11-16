@@ -35,6 +35,8 @@ export const useLongPress = (onLongPress: (element: HTMLElement) => void) => {
     onPointerUp: cancel,
     onPointerCancel: cancel,
     onPointerLeave: cancel,
+    // Also the keyboard's way to a card's actions (§19): the context-menu key
+    // and Shift+F10 fire `contextmenu` on the focused card.
     onContextMenu: (event: MouseEvent<HTMLElement>) => {
       event.preventDefault()
       if (origin.current !== undefined || fired.current) return

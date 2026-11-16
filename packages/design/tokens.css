@@ -51,6 +51,8 @@
   --color-border-focus: rgba(255, 255, 255, 0.6);
   --color-border-strong: rgba(255, 255, 255, 0.28);
   --ring-focus: 0 0 0 5px rgba(255, 255, 255, 0.07);
+  /* The keyboard focus ring (§19), read from a couch: an accent outline this wide. */
+  --focus-ring-width: 3px;
 
   --color-text: #f4f4f5;
   --color-text-strong: #ffffff;

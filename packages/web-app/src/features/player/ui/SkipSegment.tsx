@@ -34,6 +34,7 @@ export const SkipSegmentButton = ({
   return (
     <button
       type="button"
+      data-player-prompt
       className={`skip-segment${phase === 'icon' ? ' skip-segment--icon' : ''}`}
       onClick={onSkip}
     >

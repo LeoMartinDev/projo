@@ -386,6 +386,12 @@
   transition: none;
 }
 
+/* The preview is the focused card (it covers the card): it carries the ring. */
+.cw:has(:focus-visible) .preview {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 .cw:hover .card {
   transform: translateY(-3px) scale(1.02);
 }

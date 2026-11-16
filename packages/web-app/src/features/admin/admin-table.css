@@ -243,8 +243,8 @@
 }
 
 .adm-tr:has(.adm-open:focus-visible) {
-  outline: 2px solid rgba(255, 255, 255, 0.6);
-  outline-offset: -2px;
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
 }
 
 .adm-toolbar {

@@ -265,7 +265,8 @@ const TitleMenuButton = ({
       </Link>
     )
   return (
-    <div className="title-menu">
+    // Back from the player started by "From the beginning", focus returns to the "⋮" (§19).
+    <div className="title-menu" data-focus-key="detail:more">
       <button
         type="button"
         className="button button--glass button--large detail-action title-menu__button"

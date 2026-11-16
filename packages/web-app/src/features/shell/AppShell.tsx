@@ -191,10 +191,17 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
 
   return (
     <div className="shell">
-      <a className="skip-link" href="#main">
+      <a className="skip-link" href="#main" data-nav-skip>
         {t('shell.skipToContent')}
       </a>
-      <header className="shell__header" data-scrolled={scrolled} data-window-drag ref={headerRef}>
+      <header
+        className="shell__header"
+        data-scrolled={scrolled}
+        data-window-drag
+        data-nav-row
+        data-nav-sticky
+        ref={headerRef}
+      >
         <span className="pill-merge__glass" aria-hidden="true" />
         <svg className="pill-merge__paint" aria-hidden="true">
           <defs>
@@ -312,7 +319,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
           <AccountMenu me={me} />
         </div>
       </header>
-      <main id="main" className="shell__main">
+      <main id="main" className="shell__main" tabIndex={-1}>
         <KeptTabs />
         <Outlet />
       </main>

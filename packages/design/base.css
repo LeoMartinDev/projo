@@ -111,7 +111,7 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: var(--focus-ring-width) solid var(--color-accent);
   outline-offset: 3px;
 }
 
@@ -651,6 +651,11 @@ select.field__input {
   cursor: default;
 }
 
+.chip:has(.chip__trigger:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: 3px;
+}
+
 .chip__icon ~ .chip__trigger {
   padding-left: 38px;
 }
@@ -731,6 +736,12 @@ select.field__input {
 
 .listbox__option:focus {
   background: var(--color-hover);
+}
+
+/* Inside a scrolling list: the ring is drawn within the option. */
+.listbox__option:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
 }
 
 .listbox__group {
@@ -933,7 +944,8 @@ select.field__input {
 }
 
 .switch:focus-visible .switch__track {
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: 3px;
 }
 
 .setting {

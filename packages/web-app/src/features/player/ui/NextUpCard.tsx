@@ -104,7 +104,12 @@ export const NextUpCard = ({
         <Credits detail={detail} />
       </div>
       <div className="next-up__actions">
-        <button type="button" className="button button--primary next-up__play" onClick={onPlay}>
+        <button
+          type="button"
+          className="button button--primary next-up__play"
+          data-player-prompt
+          onClick={onPlay}
+        >
           <CountdownRing countdown={countdown} />
           {countdown === undefined
             ? t('player.nextEpisode')
@@ -133,7 +138,7 @@ export const NextUpBubble = ({
   const { t } = useTranslation()
   return (
     <div className="next-bubble">
-      <button type="button" className="next-bubble__play" onClick={onPlay}>
+      <button type="button" className="next-bubble__play" data-player-prompt onClick={onPlay}>
         <CountdownRing countdown={countdown} />
         <span className="next-bubble__label">
           {countdown === undefined

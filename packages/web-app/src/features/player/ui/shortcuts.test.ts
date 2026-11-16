@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 
 import {
   commandFor,
+  focusedControlOf,
   isVerticalDrag,
   type KeyContext,
   tapZone,
@@ -58,11 +59,85 @@ describe('commandFor', () => {
     )
   })
 
+  test('with no control focused, Enter shows the chrome, or takes the prompt on screen', () => {
+    expect(commandFor(key('Enter'), idle)).toBe('focus_controls')
+    expect(commandFor(key('Enter'), { ...idle, promptShown: true })).toBe('activate_prompt')
+    const onButton = { ...idle, focusedControl: 'activatable' as const, promptShown: true }
+    expect(commandFor(key('Enter'), onButton)).toBeUndefined()
+  })
+
+  test('Backspace and the back keys act as Escape, and also leave the browser’s full screen', () => {
+    for (const name of ['Backspace', 'BrowserBack', 'GoBack']) {
+      expect(commandFor(key(name), idle)).toBe('exit')
+      expect(commandFor(key(name), { ...idle, overlayOpen: true })).toBe('close_overlay')
+      expect(commandFor(key(name), { ...idle, fullscreen: true })).toBe('toggle_fullscreen')
+    }
+    expect(commandFor(key('Backspace'), { ...idle, editing: true })).toBeUndefined()
+  })
+
   test('inside the menu only Escape is the player’s', () => {
     const inMenu = { ...idle, inOverlay: true, overlayOpen: true }
     expect(commandFor(key(' '), inMenu)).toBeUndefined()
     expect(commandFor(key('ArrowDown'), inMenu)).toBeUndefined()
     expect(commandFor(key('Escape'), inMenu)).toBe('close_overlay')
+  })
+})
+
+describe('a control with keyboard focus', () => {
+  test('Space and Enter activate it instead of play/pause; arrows move focus', () => {
+    const onButton = { ...idle, focusedControl: 'activatable' as const }
+    expect(commandFor(key(' '), onButton)).toBeUndefined()
+    expect(commandFor(key('Enter'), onButton)).toBeUndefined()
+    expect(commandFor(key('ArrowRight'), onButton)).toBe('focus_right')
+    expect(commandFor(key('ArrowUp'), onButton)).toBe('focus_up')
+    expect(commandFor(key('m'), onButton)).toBe('toggle_mute')
+  })
+
+  test('the timeline keeps ←/→ to seek, ↑/↓ leave it', () => {
+    const onTimeline = { ...idle, focusedControl: 'slider' as const }
+    expect(commandFor(key('ArrowLeft'), onTimeline)).toBe('seek_back')
+    expect(commandFor(key('ArrowRight'), onTimeline)).toBe('seek_forward')
+    expect(commandFor(key('ArrowDown'), onTimeline)).toBe('focus_down')
+    expect(commandFor(key('ArrowUp'), onTimeline)).toBe('focus_up')
+    expect(commandFor(key(' '), onTimeline)).toBe('toggle_play')
+  })
+
+  test('Escape: the menu, then keyboard focus, then the full screen, then the player', () => {
+    const onButton = { ...idle, focusedControl: 'activatable' as const }
+    expect(commandFor(key('Escape'), { ...onButton, overlayOpen: true })).toBe('close_overlay')
+    expect(commandFor(key('Escape'), onButton)).toBe('release_focus')
+    expect(commandFor(key('Escape'), { ...idle, fullscreen: true, ownFullscreen: true })).toBe(
+      'toggle_fullscreen',
+    )
+    expect(commandFor(key('Escape'), idle)).toBe('exit')
+  })
+
+  test('the volume slider keeps its arrow keys, Space still plays', () => {
+    const onRange = { ...idle, focusedControl: 'range' as const }
+    expect(commandFor(key('ArrowLeft'), onRange)).toBeUndefined()
+    expect(commandFor(key('ArrowUp'), onRange)).toBeUndefined()
+    expect(commandFor(key('End'), onRange)).toBeUndefined()
+    expect(commandFor(key(' '), onRange)).toBe('toggle_play')
+  })
+
+  test('what the focused element is', () => {
+    const keyboard = { keyboardFocused: true }
+    expect(focusedControlOf({ ...keyboard, tagName: 'BUTTON' })).toBe('activatable')
+    expect(focusedControlOf({ ...keyboard, tagName: 'BUTTON', role: 'radio' })).toBe('activatable')
+    expect(focusedControlOf({ ...keyboard, tagName: 'A' })).toBe('activatable')
+    expect(focusedControlOf({ ...keyboard, tagName: 'INPUT', type: 'range' })).toBe('range')
+    expect(focusedControlOf({ ...keyboard, tagName: 'INPUT', type: 'checkbox' })).toBe(
+      'activatable',
+    )
+    // The page itself is no control.
+    expect(focusedControlOf({ ...keyboard, tagName: 'DIV', role: 'slider' })).toBe('slider')
+    expect(focusedControlOf({ ...keyboard, tagName: 'BODY' })).toBeUndefined()
+  })
+
+  test('a button clicked with the mouse is not keyboard focused: Space plays and pauses', () => {
+    const control = focusedControlOf({ tagName: 'BUTTON', keyboardFocused: false })
+    expect(control).toBeUndefined()
+    expect(commandFor(key(' '), { ...idle, focusedControl: control })).toBe('toggle_play')
   })
 })
 
