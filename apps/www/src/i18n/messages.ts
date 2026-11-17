@@ -12,6 +12,9 @@ export const fr = {
     changelogDescription:
       'Toutes les versions publiées de projo avec leur date de publication et leurs notes de version.',
     docsTitle: 'Installation — projo',
+    downloadTitle: 'Télécharger — projo',
+    downloadDescription:
+      "L'application de bureau projo pour Windows et macOS : elle lit vos fichiers tels quels depuis votre serveur.",
     docsDescription:
       'Installer projo avec Docker Compose : prérequis, docker-compose.yml, permissions, transcodage matériel, reverse proxy, mises à jour et sauvegarde.',
   },
@@ -28,6 +31,7 @@ export const fr = {
     close: 'Fermer',
     home: 'Accueil',
     versions: 'Versions',
+    download: 'Télécharger',
     language: 'Langue',
   },
   home: {
@@ -138,6 +142,21 @@ export const fr = {
     },
     footer: 'Open source et auto-hébergé. Les contributions sont bienvenues.',
     links: 'Liens',
+  },
+  download: {
+    title: 'Télécharger',
+    lead: "L'application de bureau se connecte à votre serveur projo et lit chaque fichier tel quel, sans transcodage.",
+    button: 'Télécharger',
+    unavailable: 'Bientôt',
+    windows: { requirement: 'Windows 10 ou 11, x64' },
+    macos: {
+      requirement: 'Mac Apple silicon, macOS 11 ou plus récent',
+      firstLaunch:
+        "Au premier lancement, macOS bloque l'app : ouvrez Réglages Système → Confidentialité et sécurité, puis « Ouvrir quand même ».",
+    },
+    version: 'Version',
+    notes: 'Notes de version',
+    empty: 'Voir les téléchargements sur GitHub',
   },
   changelog: {
     title: 'Versions',
@@ -300,6 +319,9 @@ export const en: Messages = {
     changelogDescription:
       'Every published version of projo with its publication date and release notes.',
     docsTitle: 'Installation — projo',
+    downloadTitle: 'Download — projo',
+    downloadDescription:
+      'The projo desktop app for Windows and macOS: it plays your files as they are from your server.',
     docsDescription:
       'Install projo with Docker Compose: requirements, docker-compose.yml, permissions, hardware transcoding, reverse proxy, updates and backups.',
   },
@@ -316,6 +338,7 @@ export const en: Messages = {
     close: 'Close',
     home: 'Home',
     versions: 'Releases',
+    download: 'Download',
     language: 'Language',
   },
   home: {
@@ -426,6 +449,21 @@ export const en: Messages = {
     },
     footer: 'Open source and self-hosted. Contributions are welcome.',
     links: 'Links',
+  },
+  download: {
+    title: 'Download',
+    lead: 'The desktop app connects to your projo server and plays every file as it is, without transcoding.',
+    button: 'Download',
+    unavailable: 'Soon',
+    windows: { requirement: 'Windows 10 or 11, x64' },
+    macos: {
+      requirement: 'Apple silicon Mac, macOS 11 or later',
+      firstLaunch:
+        'On first launch, macOS blocks the app: open System Settings → Privacy & Security, then “Open Anyway”.',
+    },
+    version: 'Version',
+    notes: 'Release notes',
+    empty: 'See the downloads on GitHub',
   },
   changelog: {
     title: 'Releases',

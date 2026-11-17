@@ -49,7 +49,7 @@ export const pagesPlugin = (): Plugin => {
         version: string
       }
       site = {
-        releases: await loadReleases({ strict: command === 'build' }),
+        ...(await loadReleases({ strict: command === 'build' })),
         fallbackVersion: rootPackage.version,
       }
       return {

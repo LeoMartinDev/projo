@@ -1,6 +1,8 @@
 // The site is rendered at build time, once per language: real static pages (no client-side
 // translation), English at the root and French under /fr/. Templates live in src/pages/ and
 // use {{ dotted.path }} placeholders, filled from the page context below.
+import { type DesktopDownloads } from '../downloads/desktop.ts'
+import { renderDownloads } from '../downloads/render.ts'
 import { type PhotoName, photoSources, photos } from '../photos.ts'
 import { type Release } from '../releases/releases.ts'
 import { releaseAnchor, renderChangelog } from '../releases/render.ts'
@@ -19,6 +21,7 @@ export const pages = [
   { template: 'home.html', path: '' },
   { template: 'installation.html', path: 'installation/' },
   { template: 'changelog.html', path: 'changelog/' },
+  { template: 'download.html', path: 'download/' },
 ] as const
 export type Page = (typeof pages)[number]
 
@@ -28,6 +31,8 @@ export type Site = {
   releases: readonly Release[]
   /** Shown when the releases could not be read (dev without network): the root package.json's. */
   fallbackVersion: string
+  /** The newest desktop release's downloads (GitHub), if any. */
+  desktop?: DesktopDownloads
 }
 
 /** URL path of a page in a language: '/', '/installation/', '/fr/', '/fr/installation/'. */
@@ -82,6 +87,7 @@ export const pageContext = (locale: Locale, page: Page, site: Site) => {
     home: base[locale],
     installation: `${base[locale]}installation/`,
     changelog,
+    download: `${base[locale]}download/`,
     version: {
       number: version,
       short: version.split('.').slice(0, 2).join('.'),
@@ -90,6 +96,7 @@ export const pageContext = (locale: Locale, page: Page, site: Site) => {
     photo: Object.fromEntries(
       Object.keys(photos).map((name) => [name, photoSources(name as PhotoName)]),
     ),
+    downloads: renderDownloads(site.desktop, t.download),
     releases: renderChangelog(site.releases, {
       locale,
       labels: { latest: t.changelog.latest, github: t.changelog.github, empty: t.changelog.empty },

@@ -1,9 +1,15 @@
+import { type DesktopDownloads, toDesktopDownloads } from '../src/downloads/desktop.ts'
 import { REPOSITORY, toReleases, type Release } from '../src/releases/releases.ts'
 
-// Reads the published releases from the GitHub API, once per build or dev server start.
+// Reads the published releases from the GitHub API, once per build or dev server start: the
+// server's for the changelog, the desktop app's newest for the download page.
 // GITHUB_TOKEN (optional) lifts the anonymous rate limit. A build fails when GitHub cannot be
 // reached (a site without its changelog must not ship); the dev server warns and goes on.
-export const loadReleases = async ({ strict }: { strict: boolean }): Promise<Release[]> => {
+export const loadReleases = async ({
+  strict,
+}: {
+  strict: boolean
+}): Promise<{ releases: Release[]; desktop?: DesktopDownloads }> => {
   const token = process.env['GITHUB_TOKEN']
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
@@ -23,11 +29,12 @@ export const loadReleases = async ({ strict }: { strict: boolean }): Promise<Rel
       all.push(...batch)
       if (batch.length < 100) break
     }
-    return toReleases(all)
+    const desktop = toDesktopDownloads(all)
+    return { releases: toReleases(all), ...(desktop === undefined ? {} : { desktop }) }
   } catch (error) {
     const message = `www: cannot read the releases of ${REPOSITORY} (${String(error)})`
     if (strict) throw new Error(message, { cause: error })
-    console.warn(`${message}; the changelog page will be empty`)
-    return []
+    console.warn(`${message}; the changelog and download pages will be empty`)
+    return { releases: [] }
   }
 }

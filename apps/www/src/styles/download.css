@@ -1,0 +1,68 @@
+/* Download page: one panel per platform of the desktop app, side by side, then the version and
+   its release notes. Imported by site.css. */
+
+.docs-hero--download .docs-hero__image {
+  --photo-position: 50% 45%;
+}
+
+.downloads {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 120px;
+}
+
+.downloads__platforms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.download {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 32px;
+}
+
+.download h2 {
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-display);
+  color: var(--color-text-strong);
+}
+
+.download__requirement {
+  color: var(--color-text-secondary);
+}
+
+.download .button {
+  margin-top: 12px;
+}
+
+.download__note {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.downloads__meta {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+}
+
+.downloads__empty {
+  padding: 40px 0;
+}
+
+@media (--compact) {
+  .downloads__platforms {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .download {
+    padding: 24px;
+  }
+}

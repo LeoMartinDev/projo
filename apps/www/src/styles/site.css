@@ -10,6 +10,7 @@
 @import './media.css';
 @import './docs.css';
 @import './changelog.css';
+@import './download.css';
 
 :root {
   --page: 1240px;
