@@ -5,7 +5,6 @@ import {
   chaptersOnItem,
   currentPart,
   currentPartDurationMs,
-  endsAtMs,
   itemPositionMs,
   nextPart,
   ratioAtPointer,
@@ -108,25 +107,6 @@ describe('bar', () => {
     expect(ratioAtPointer(150, { left: 100, width: 200 })).toBe(0.25)
     expect(ratioAtPointer(20, { left: 100, width: 200 })).toBe(0)
     expect(ratioAtPointer(20, { left: 0, width: 0 })).toBe(0)
-  })
-
-  test('the item ends at now plus the time left, at the playback rate', () => {
-    const now = 1_000_000
-    expect(endsAtMs({ nowMs: now, positionMs: 600_000, totalMs: 3_000_000, rate: 1 })).toBe(
-      now + 2_400_000,
-    )
-    expect(endsAtMs({ nowMs: now, positionMs: 600_000, totalMs: 3_000_000, rate: 2 })).toBe(
-      now + 1_200_000,
-    )
-    expect(endsAtMs({ nowMs: now, positionMs: 600_000, totalMs: 3_000_000, rate: 0.5 })).toBe(
-      now + 4_800_000,
-    )
-    expect(endsAtMs({ nowMs: now, positionMs: 3_100_000, totalMs: 3_000_000, rate: 1 })).toBe(now)
-  })
-
-  test('no end time without a duration or a rate', () => {
-    expect(endsAtMs({ nowMs: 1000, positionMs: 0, totalMs: 0, rate: 1 })).toBeUndefined()
-    expect(endsAtMs({ nowMs: 1000, positionMs: 0, totalMs: 60_000, rate: 0 })).toBeUndefined()
   })
 
   test('segments become zones, empty or reversed ones are dropped', () => {

@@ -65,9 +65,6 @@ export const formatDate = (iso: string, locale: string): string =>
 export const formatDateTime = (iso: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
 
-export const formatTimeOfDay = (ms: number, locale: string): string =>
-  new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(ms))
-
 export const formatSoon = (iso: string, locale: string, now: Date = new Date()): string => {
   const date = new Date(iso)
   return date.toDateString() === now.toDateString()

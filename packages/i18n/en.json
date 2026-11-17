@@ -475,7 +475,6 @@
     "nextEpisode": "Next episode",
     "episodes": "Episode list",
     "remaining": "{{time}} left",
-    "endsAt": "Ends at {{time}}",
     "burnIn": "Burnt-in subtitles, reduced quality",
     "reconnecting": "Connection lost, resuming…",
     "skip": {

@@ -26,7 +26,6 @@ import {
   chapterIndexAt,
   chaptersOnItem,
   currentPartDurationMs,
-  endsAtMs,
   ratioOf,
   remainingMs,
   segmentZones,
@@ -40,9 +39,8 @@ import type { PlaybackQuality } from '@projo/shared/api/playback'
 import { mediaUrl } from '../../../shared/api/media.ts'
 import { useSessionFileUrl } from '../../../shared/api/use-session-file-url.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
-import { formatClock, formatTimeOfDay } from '../../../shared/format/format.ts'
+import { formatClock } from '../../../shared/format/format.ts'
 import { useErrorMessage } from '../../../shared/i18n/errors.ts'
-import { currentLocale } from '../../../shared/i18n/index.ts'
 import { pickActiveProfile } from '../../../shared/session/active-profile.ts'
 import { sessionQuery } from '../../../shared/session/session.ts'
 import {
@@ -142,7 +140,6 @@ import { useMediaSession } from './use-media-session.ts'
 import { useNextEpisode } from './use-next-episode.ts'
 import { usePlayerFocus } from './use-player-focus.ts'
 import { useStore } from './use-store.ts'
-import { useWallClock } from './use-wall-clock.ts'
 import './player.css'
 
 const seekStepMs = 10_000
@@ -278,7 +275,6 @@ export const PlayerPage = ({
   useWindowFullscreenScope(engine.windowFullscreen)
   const [trackElement, trackRef] = useElement<HTMLTrackElement>()
   const state = useStore(controller)
-  const wallClockMs = useWallClock()
   const media = useStore(engine.state)
   const documentFullscreen = useIsFullscreen()
   const windowFullscreen = useStore(engine.windowFullscreen?.active ?? notInWindowFullscreen)
@@ -846,11 +842,6 @@ export const PlayerPage = ({
     profileDefaultsFor(toast.kind, toast.current, profile) !== undefined
   const limitReached = failure?.code === 'playback/transcode_limit_reached'
   const remaining = formatClock(remainingMs(positionMs, totalMs))
-  const endsAt = endsAtMs({ nowMs: wallClockMs, positionMs, totalMs, rate: state.rate })
-  const endsAtText =
-    endsAt === undefined
-      ? ''
-      : t('player.endsAt', { time: formatTimeOfDay(endsAt, currentLocale()) })
   const openMenu = overlay !== 'episodes' && session !== undefined ? overlay : undefined
   useMenuFocus(menu, openMenu)
 
@@ -1226,15 +1217,7 @@ export const PlayerPage = ({
           />
           <span className="player__remaining">
             <span aria-hidden="true">−{remaining}</span>
-            {endsAt === undefined ? undefined : (
-              <span className="player__ends-at player__ends-at--bar" aria-hidden="true">
-                {` · ${endsAtText}`}
-              </span>
-            )}
-            <span className="visually-hidden">
-              {t('player.remaining', { time: remaining })}
-              {endsAt === undefined ? '' : `, ${endsAtText}`}
-            </span>
+            <span className="visually-hidden">{t('player.remaining', { time: remaining })}</span>
           </span>
         </div>
 
@@ -1301,11 +1284,6 @@ export const PlayerPage = ({
             <span className="player__title">{title}</span>
             {subtitle === undefined ? undefined : (
               <span className="player__subtitle">{subtitle}</span>
-            )}
-            {endsAt === undefined ? undefined : (
-              <span className="player__ends-at player__ends-at--heading" aria-hidden="true">
-                {endsAtText}
-              </span>
             )}
           </div>
 
