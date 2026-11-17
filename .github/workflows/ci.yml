@@ -9,8 +9,9 @@
 #                     same commit (a v* tag push starts no run at all).
 #   tag runtime-X.Y.Z runtime image only (X.Y.Z = runtime/VERSION), seeded with the released app.
 #   desktop app       on the same push to main, when apps/desktop/package.json's version has no
-#                     desktop-vX.Y.Z release yet: Windows installer signed for the app's updater
-#                     and latest.json, on a release never marked latest (§28.10). Server first:
+#                     desktop-vX.Y.Z release yet: the Windows installer and the macOS disk image
+#                     and app archive, each signed for the app's updater, and latest.json, on a
+#                     release never marked latest (§28.10, §28.11). Server first:
 #                     refused until server v<projo.minimumServerVersion of that package.json> is
 #                     released.
 # Image: ghcr.io/leomartindev/projo:<runtime/VERSION> and :latest (RUNTIME_IMAGE, §24).
@@ -405,28 +406,23 @@ jobs:
             --notes-file dist/release-notes.md \
             "dist/release/projo-app-$VERSION.tar.gz" dist/release/manifest.json dist/release/SHA256SUMS
 
-  # Desktop app (§28.10): on Windows, apart from the server app's release. The installer is signed
-  # for the app's updater with the minisign key of the secrets TAURI_SIGNING_PRIVATE_KEY and
+  # Desktop app (§28.10): Windows and macOS, apart from the server app's release. Each update is
+  # signed for the app's updater with the minisign key of the secrets TAURI_SIGNING_PRIVATE_KEY and
   # TAURI_SIGNING_PRIVATE_KEY_PASSWORD (public half: plugins.updater.pubkey of tauri.conf.json).
   # The release is never marked "latest": /releases/latest is the server's updater (§16.4).
-  desktop-release:
-    name: desktop release (Windows)
+  # Each platform builds, tests and packs its part on its own runner (package-release.ts: the
+  # files and updater-<platform>.json); desktop-release then publishes them together.
+  desktop-build-windows:
+    name: desktop build (Windows)
     needs: [release-plan, checks, test]
     if: needs.release-plan.outputs.desktop == 'true'
     runs-on: windows-2025
     timeout-minutes: 60
-    permissions:
-      contents: write
     defaults:
       run:
         shell: bash
-    env:
-      TAG: desktop-v${{ needs.release-plan.outputs.desktop-version }}
-      VERSION: ${{ needs.release-plan.outputs.desktop-version }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # commits since the previous desktop tag, for the notes
       # Before the 15 minutes of build: a release the app could not verify is worthless.
       - name: Check the updater key
         env:
@@ -436,9 +432,6 @@ jobs:
             { echo "::error::the secret TAURI_SIGNING_PRIVATE_KEY is not set"; exit 1; }
           [ -n "$(node -p 'require("./apps/desktop/src-tauri/tauri.conf.json").plugins.updater.pubkey')" ] ||
             { echo "::error::plugins.updater.pubkey of apps/desktop/src-tauri/tauri.conf.json is empty"; exit 1; }
-      # Local only, for release-notes.ts: `gh release create` publishes the tag at the end.
-      - name: Tag the commit locally
-        run: git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag "$TAG" "$GITHUB_SHA"
       - name: Install Bun (packageManager)
         run: npm install --global "$(node -p 'require("./package.json").packageManager')"
       - uses: actions/cache@v6
@@ -460,11 +453,98 @@ jobs:
           bun run --cwd apps/desktop test:rust
       - name: Build the installer
         run: bun run --cwd apps/desktop build
-      - name: Sign the installer, write latest.json (dist/desktop-release)
+      - name: Sign the installer for the updater (dist/desktop-release)
         run: bun apps/desktop/scripts/package-release.ts
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-windows
+          path: dist/desktop-release/
+          if-no-files-found: error
+          retention-days: 1
+
+  # Apple silicon (§28.11). Signed ad hoc (no Developer ID): Gatekeeper asks once at first launch.
+  desktop-build-macos:
+    name: desktop build (macOS)
+    needs: [release-plan, checks, test]
+    if: needs.release-plan.outputs.desktop == 'true'
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check the updater key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          [ -n "$TAURI_SIGNING_PRIVATE_KEY" ] ||
+            { echo "::error::the secret TAURI_SIGNING_PRIVATE_KEY is not set"; exit 1; }
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Fetch libmpv (pinned, SHA-256 checked)
+        run: bun run --cwd apps/desktop fetch-libmpv
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+      - name: Rust tests
+        run: |
+          bun run --cwd apps/desktop build:web
+          bun run --cwd apps/desktop test:rust
+      - name: Build the app and its disk image
+        run: bun run --cwd apps/desktop build
+      - name: Check the bundle's signature
+        run: codesign --verify --deep --strict apps/desktop/src-tauri/target/release/bundle/macos/projo.app
+      - name: Pack the app for the updater (dist/desktop-release)
+        run: bun apps/desktop/scripts/package-release.ts
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-macos
+          path: dist/desktop-release/
+          if-no-files-found: error
+          retention-days: 1
+
+  desktop-release:
+    name: desktop release
+    needs: [release-plan, desktop-build-windows, desktop-build-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      TAG: desktop-v${{ needs.release-plan.outputs.desktop-version }}
+      VERSION: ${{ needs.release-plan.outputs.desktop-version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # commits since the previous desktop tag, for the notes
+      # Local only, for release-notes.ts: `gh release create` publishes the tag at the end.
+      - name: Tag the commit locally
+        run: git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || git tag "$TAG" "$GITHUB_SHA"
+      - name: Install Bun (packageManager)
+        run: npm install --global "$(node -p 'require("./package.json").packageManager')"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: desktop-*
+          path: dist/desktop-release
+          merge-multiple: true
+      - name: Write latest.json (every platform)
+        run: bun apps/desktop/scripts/write-updater-manifest.ts
       # The app and the UI it bundles (§28.10): commits touching either.
       - name: Write the release notes (commits touching the desktop app or its UI)
         env:
@@ -481,18 +561,22 @@ jobs:
         run: |
           gh release create "$TAG" --target "$GITHUB_SHA" --title "projo desktop $VERSION" \
             --latest=false --notes-file dist/desktop-release-notes.md \
-            "dist/desktop-release/projo-desktop-$VERSION-setup.exe" dist/desktop-release/latest.json
+            "dist/desktop-release/projo-desktop-$VERSION-setup.exe" \
+            "dist/desktop-release/projo-desktop-$VERSION-macos-arm64.dmg" \
+            "dist/desktop-release/projo-desktop-$VERSION-macos-arm64.app.tar.gz" \
+            dist/desktop-release/latest.json
 
   # ── Public website (apps/www) ───────────────────────────────────────────────────────────────
 
   # Static assets of the Cloudflare Worker projo-www, on a push to main once all of the above
   # passed, when the push changes what the website is built from or publishes a release (the
-  # changelog page lists the GitHub releases), after that release.
+  # changelog page lists the GitHub releases, the download page the desktop ones), after that
+  # release.
   # Not Workers Builds: its installer reads packageManager and cannot download the dated canary.
   # Secrets: CLOUDFLARE_API_TOKEN (template "Edit Cloudflare Workers"), CLOUDFLARE_ACCOUNT_ID.
   www:
     name: deploy website (Cloudflare Workers)
-    needs: [release-plan, checks, test, e2e, docker, release]
+    needs: [release-plan, checks, test, e2e, docker, release, desktop-release]
     if: ${{ !cancelled() && !failure() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -510,12 +594,15 @@ jobs:
         env:
           BEFORE: ${{ github.event.before }}
           RELEASE: ${{ needs.release.result }}
+          DESKTOP_RELEASE: ${{ needs.desktop-release.result }}
         run: |
           set -euo pipefail
           paths=(apps/www packages/design design
             package.json bun.lock tsconfig.base.json .github/workflows/ci.yml)
           if [ "$RELEASE" = success ]; then
             deploy=true reason="a release was published"
+          elif [ "$DESKTOP_RELEASE" = success ]; then
+            deploy=true reason="a desktop release was published (download links)"
           elif ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             deploy=true reason="previous head $BEFORE unknown"
           elif git diff --quiet "$BEFORE" HEAD -- "${paths[@]}"; then
