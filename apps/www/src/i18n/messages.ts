@@ -178,6 +178,7 @@ export const fr = {
       firstRun: 'Premier lancement',
       tmdb: 'Clé TMDB',
       naming: 'Nommer vos fichiers',
+      sources: "D'où viennent vos fichiers",
       updates: 'Mises à jour',
       backup: 'Sauvegarde et restauration',
       troubleshooting: "Un fichier n'apparaît pas",
@@ -260,6 +261,23 @@ export const fr = {
       id: '<strong>Un identifiant</strong> évite la recherche : <code>Inception (2010) {tmdb-27205}.mkv</code> ou <code>Breaking Bad (2008) [tmdbid-1396]</code>.',
       editions:
         "<strong>Éditions</strong> : <code>{edition-Extended Cut}</code>, ou <code>Director's Cut</code>, <code>IMAX</code>… après un tiret. Deux fichiers d'un même film en sont deux versions.",
+    },
+    sources: {
+      downloads: 'Téléchargements',
+      downloadsText:
+        "Un fichier en cours d'écriture reste <strong>En attente</strong> jusqu'à ce qu'il soit complet et lisible. Dans qBittorrent, activez « Ajouter l'extension .!qB aux fichiers incomplets » ; avec Radarr ou Sonarr, laissez-les importer les fichiers terminés. Le fichier apparaît alors en quelques secondes.",
+      network: 'Partages réseau',
+      networkText:
+        "Sur un partage SMB ou NFS monté sur l'hôte, les changements ne sont pas signalés : projo les voit au scan périodique (toutes les 15 minutes, réglable par bibliothèque) ou avec le bouton <strong>Scanner</strong>.",
+      watches: 'Grandes bibliothèques',
+      watchesText:
+        "Sous Linux, le suivi des dossiers consomme une ressource limitée de l'hôte. Si les journaux disent que le suivi est indisponible, relevez la limite (les scans périodiques continuent dans tous les cas) :",
+      disks: 'Plusieurs disques',
+      disksText:
+        'Si un disque ne répond plus (mergerfs, Unraid, un montage par disque), ses fichiers passent en <strong>Manquants</strong> et les notifications le signalent. Ils reviennent tels quels avec le disque. Après 30 jours ils sont purgés, mais ce que vos profils ont vu, commencé ou ajouté à Ma liste est conservé et retrouvé au retour des fichiers.',
+      paths: 'Changer un chemin',
+      pathsText:
+        "Si vos vidéos changent de place sur l'hôte, ne changez que la partie gauche du volume et gardez le même chemin sous <code>/media</code>. Sinon, remplacez le dossier dans <strong>Administration → Bibliothèques</strong> : les titres identifiés gardent leur progression, et les corrections suivent les fichiers dont le chemin sous le dossier ne change pas.",
     },
     updates: {
       app: "L'application",
@@ -485,6 +503,7 @@ export const en: Messages = {
       firstRun: 'First launch',
       tmdb: 'TMDB key',
       naming: 'Naming your files',
+      sources: 'Where your files come from',
       updates: 'Updates',
       backup: 'Backup and restore',
       troubleshooting: 'A file does not show up',
@@ -566,6 +585,23 @@ export const en: Messages = {
       id: '<strong>An id</strong> skips the search: <code>Inception (2010) {tmdb-27205}.mkv</code> or <code>Breaking Bad (2008) [tmdbid-1396]</code>.',
       editions:
         "<strong>Editions</strong>: <code>{edition-Extended Cut}</code>, or <code>Director's Cut</code>, <code>IMAX</code>… after a dash. Two files of the same movie are two versions of it.",
+    },
+    sources: {
+      downloads: 'Downloads',
+      downloadsText:
+        'A file being written stays <strong>Pending</strong> until it is complete and readable. In qBittorrent, turn on “Append .!qB extension to incomplete files”; with Radarr or Sonarr, let them import finished files. The file then shows up within seconds.',
+      network: 'Network shares',
+      networkText:
+        'On an SMB or NFS share mounted on the host, changes are not reported: projo sees them at the periodic scan (every 15 minutes, set per library) or with the <strong>Scan</strong> button.',
+      watches: 'Large libraries',
+      watchesText:
+        'On Linux, watching folders uses a limited resource of the host. If the logs say watching is unavailable, raise the limit (periodic scans go on either way):',
+      disks: 'Several disks',
+      disksText:
+        'If a disk stops answering (mergerfs, Unraid, one mount per disk), its files move to <strong>Missing</strong> and the notifications say so. They come back as they were with the disk. After 30 days they are purged, but what your profiles watched, started or added to My list is kept and found again when the files return.',
+      paths: 'Changing a path',
+      pathsText:
+        'If your videos move on the host, change only the left side of the volume and keep the same path under <code>/media</code>. Otherwise, replace the folder in <strong>Administration → Libraries</strong>: identified titles keep their progress, and corrections follow the files whose path under the folder does not change.',
     },
     updates: {
       app: 'The application',

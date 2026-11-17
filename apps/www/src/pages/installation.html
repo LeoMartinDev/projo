@@ -121,6 +121,7 @@
             <li><a href="#first-launch">{{ t.docs.sections.firstRun }}</a></li>
             <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
             <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
+            <li><a href="#sources">{{ t.docs.sections.sources }}</a></li>
             <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
             <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
             <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
@@ -135,6 +136,7 @@
           <li><a href="#first-launch">{{ t.docs.sections.firstRun }}</a></li>
           <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
           <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
+          <li><a href="#sources">{{ t.docs.sections.sources }}</a></li>
           <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
           <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
           <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
@@ -404,6 +406,22 @@ docker compose logs -f projo   <span class="c"># {{ t.docs.install.logs }}</span
             <li>{{ t.docs.naming.id }}</li>
             <li>{{ t.docs.naming.editions }}</li>
           </ul>
+        </section>
+
+        <section id="sources">
+          <h2>{{ t.docs.sections.sources }}</h2>
+          <h3>{{ t.docs.sources.downloads }}</h3>
+          <p>{{ t.docs.sources.downloadsText }}</p>
+          <h3>{{ t.docs.sources.network }}</h3>
+          <p>{{ t.docs.sources.networkText }}</p>
+          <h3>{{ t.docs.sources.watches }}</h3>
+          <p>{{ t.docs.sources.watchesText }}</p>
+          <pre><code>echo fs.inotify.max_user_watches=524288 | sudo tee /etc/sysctl.d/90-projo.conf
+sudo sysctl --system</code></pre>
+          <h3>{{ t.docs.sources.disks }}</h3>
+          <p>{{ t.docs.sources.disksText }}</p>
+          <h3>{{ t.docs.sources.paths }}</h3>
+          <p>{{ t.docs.sources.pathsText }}</p>
         </section>
 
         <section id="updates">
