@@ -14,6 +14,7 @@ export const dragStripHeight = 32
 
 /** What takes the pointer for itself: never part of the title bar (window-controls.css). */
 const interactive = [
+  '[data-window-no-drag]',
   'a',
   'button',
   'input',

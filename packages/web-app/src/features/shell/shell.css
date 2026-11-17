@@ -138,7 +138,18 @@ html:has(dialog:modal) .shell__header {
     position: relative;
   }
 
+  /* As tall as the pill (36px links, 4px padding, 1px border): the logo, the
+     pill and the actions are the desktop title bar's three holes
+     (`data-window-no-drag`), and holes of one height cut it into the fewest
+     native windows (window-controls.css). */
+  .shell__logo,
+  .shell__actions {
+    height: 46px;
+  }
+
   .shell__logo {
+    display: flex;
+    align-items: center;
     transform: translateX(var(--logo-x, 0px));
   }
 
@@ -292,21 +303,45 @@ html:has(dialog:modal) .shell__header {
   font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
-  transition:
-    color 0.25s ease,
-    background-color 0.25s ease;
+  position: relative;
+  isolation: isolate;
+  transition: color 0.25s ease;
+}
+
+/* The hover and current fills fade by opacity, never by background-color:
+   Chromium runs a background-color transition on the compositor, and when the
+   main thread is still busy at its end (the new page rendering after a click),
+   one frame shows its start again: the previous link selected for a blink. */
+.pill-nav__link::before,
+.pill-nav__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.pill-nav__link::before {
+  background: var(--color-hover);
+}
+
+.pill-nav__link::after {
+  background: var(--color-glass-strong);
 }
 
 .pill-nav__link:hover {
   color: var(--color-text-strong);
 }
 
-.pill-nav__link:not([aria-current]):hover {
-  background: var(--color-hover);
+.pill-nav__link:not([aria-current]):hover::before,
+.pill-nav__link[aria-current='page']::after {
+  opacity: 1;
 }
 
 .pill-nav__link[aria-current='page'] {
-  background: var(--color-glass-strong);
   color: var(--color-text-strong);
   font-weight: 600;
 }
@@ -487,18 +522,20 @@ html:has(dialog:modal) .shell__header {
     letter-spacing: 0.01em;
     transition:
       color 0.2s ease,
-      background-color 0.2s ease,
       transform 0.2s ease;
+  }
+
+  .pill-nav__link::before,
+  .pill-nav__link::after {
+    transition-duration: 0.2s;
+  }
+
+  .pill-nav__link::after {
+    background: var(--fill-3);
   }
 
   .pill-nav__link:active {
     transform: scale(0.94);
-  }
-
-  .pill-nav__link[aria-current='page'] {
-    background: var(--fill-3);
-    color: var(--color-text-strong);
-    font-weight: 600;
   }
 
   .pill-nav__icon {

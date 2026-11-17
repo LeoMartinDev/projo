@@ -77,7 +77,14 @@ export const usePillMerge = (merged: boolean) => {
       blur(actions, actionsBlur, merge.actions.blur)
     }
 
+    /* The header is the desktop window's title bar (`data-window-drag`): WebView2 rebuilds its regions, one native window each, on every frame the pill moves, and their backlog held the window's input (hover, scroll) for up to a second. While the pill moves the page says so, the host drops the regions (window-controls.css), and they come back once it rests. */
+    const root = document.documentElement
+    const settle = () => root.removeAttribute('data-window-drag-moving')
     const target = merged ? 1 : 0
+    const atTarget = () =>
+      springs.current.logo.progress === target && springs.current.actions.progress === target
+    if (!atTarget() && !window.matchMedia(instant).matches)
+      root.setAttribute('data-window-drag-moving', '')
     const start = performance.now()
     let last = start
     let frame = 0
@@ -95,9 +102,8 @@ export const usePillMerge = (merged: boolean) => {
             actions: advance(springs.current.actions, actionsTarget.current, dt),
           }
       paint()
-      const { logo: logoSpring, actions: actionsSpring } = springs.current
-      if (logoSpring.progress !== target || actionsSpring.progress !== target)
-        frame = requestAnimationFrame(step)
+      if (atTarget()) settle()
+      else frame = requestAnimationFrame(step)
     }
 
     paint()
@@ -107,6 +113,7 @@ export const usePillMerge = (merged: boolean) => {
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
+      settle()
     }
   }, [header, merged])
 

@@ -39,10 +39,16 @@
   app-region: initial;
 }
 
-/* What takes the pointer for itself is never part of the title bar. */
+/* What takes the pointer for itself is never part of the title bar. A group of
+   controls marked `data-window-no-drag` is one region, gaps included: WebView2
+   cuts the title bar into one native window per rectangle, in bands at every
+   top and bottom edge, so a few groups of one height (the header's logo, pill
+   and actions) make 10 windows where each control on its own made 38, and
+   every change of the regions costs that many window moves. */
 :root[data-window-controls]
   :is([data-window-drag], [data-window-top], .window-controls)
   :is(
+    [data-window-no-drag],
     a,
     button,
     input,
@@ -60,9 +66,11 @@
   app-region: no-drag;
 }
 
-/* No region while the window is being resized (WindowControls.tsx): WebView2
-   would recompute them on every frame. */
-:root[data-window-resizing]
+/* No region while the window is being resized (WindowControls.tsx) or while
+   the title bar moves (`data-window-drag-moving`, the header's pill,
+   use-pill-merge.ts): WebView2 would rebuild them on every frame, a native
+   window each, and their backlog holds the window's input. */
+:root:is([data-window-resizing], [data-window-drag-moving])
   :is(
     .window-drag-strip,
     [data-window-drag],

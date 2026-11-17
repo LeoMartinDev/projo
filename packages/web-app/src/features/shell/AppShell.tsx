@@ -242,10 +242,10 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
           <use href="#pill-merge-shape" className="pill-merge__edge" />
           <use href="#pill-merge-shape" className="pill-merge__highlight" />
         </svg>
-        <Link to="/" className="shell__logo" aria-label={t('shell.home')}>
+        <Link to="/" className="shell__logo" aria-label={t('shell.home')} data-window-no-drag>
           <Logo />
         </Link>
-        <nav className="pill-nav" aria-label={t('shell.mainNavigation')}>
+        <nav className="pill-nav" aria-label={t('shell.mainNavigation')} data-window-no-drag>
           <div className="pill-nav__tabs">
             <Link
               to="/"
@@ -305,7 +305,7 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
             <span className="pill-nav__label">{t('nav.search')}</span>
           </button>
         </nav>
-        <div className="shell__actions">
+        <div className="shell__actions" data-window-no-drag>
           <button
             type="button"
             className="shell__icon-button shell__search"

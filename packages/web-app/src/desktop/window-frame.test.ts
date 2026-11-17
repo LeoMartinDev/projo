@@ -35,7 +35,14 @@ describe('startsWindowDrag', () => {
   })
 
   test('controls keep the pointer, in the strip too', () => {
-    for (const control of ['button', 'a', 'input', '[role="slider"]', 'dialog']) {
+    for (const control of [
+      'button',
+      'a',
+      'input',
+      '[role="slider"]',
+      'dialog',
+      '[data-window-no-drag]',
+    ]) {
       expect(startsWindowDrag(element(control), 10)).toBe(false)
       expect(startsWindowDrag(element(control, '[data-window-drag]'), 60)).toBe(false)
     }
