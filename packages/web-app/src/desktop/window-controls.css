@@ -126,3 +126,9 @@
   -webkit-app-region: drag;
   app-region: drag;
 }
+
+/* macOS (WindowControls.tsx): the system's buttons at the top left, over the
+   page; pages keep clear of them through this inset. */
+:root[data-window-frame='system'] {
+  --chrome-inset-start: 84px;
+}

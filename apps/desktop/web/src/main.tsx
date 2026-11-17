@@ -14,10 +14,12 @@ import { createRoot } from 'react-dom/client'
 import { I18nextProvider } from 'react-i18next'
 
 import { listenTauri, tauriInternals } from '@projo/web-app/desktop/tauri.ts'
+import { windowFrameOf } from '@projo/web-app/desktop/window-frame.ts'
 import { WindowControls } from '@projo/web-app/desktop/WindowControls.tsx'
 import { mountApp } from '@projo/web-app/mount'
 
 import { connectServerFactory, fetchSetupStatus } from './connect-server.ts'
+import { refuseBrowserMenu } from './context-menu.ts'
 import { tauriCommands } from './desktop-commands.ts'
 import { desktopHost } from './desktop-host.ts'
 import { Entry } from './Entry.tsx'
@@ -38,6 +40,7 @@ const splash = splashFactory({
   warn: (message, cause) => console.warn(message, cause),
 })
 splash.showWindow()
+if (windowFrameOf(navigator.userAgent) === 'system') refuseBrowserMenu(document)
 
 const container = document.getElementById('root')
 const entryContainer = document.getElementById('entry')

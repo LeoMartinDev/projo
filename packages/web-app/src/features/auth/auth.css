@@ -28,6 +28,8 @@ html:has(.auth) {
   left: 0;
   z-index: 5;
   padding: calc(24px + env(safe-area-inset-top)) var(--gutter) 24px;
+  /* Clear of the host's chrome (macOS' window buttons at the top left, §28.4). */
+  padding-left: max(var(--gutter), var(--chrome-inset-start, 0px));
 }
 
 .auth__main {

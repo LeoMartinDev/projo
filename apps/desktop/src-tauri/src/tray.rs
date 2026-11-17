@@ -82,7 +82,13 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                 bring_forward(tray.app_handle());
             }
         });
-    if let Some(icon) = app.default_window_icon() {
+    // macOS' menu bar takes a template image (the symbol's shape, tinted by the system), never the
+    // app's colour icon.
+    if cfg!(target_os = "macos") {
+        builder = builder
+            .icon(tauri::include_image!("icons/tray-template.png"))
+            .icon_as_template(true);
+    } else if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());
     }
     builder.build(app)?;

@@ -5,6 +5,8 @@
 //!
 //! Tauri does not pass wry's `default_context_menus` and `browser_accelerator_keys` on, so this
 //! goes to WebView2 itself through the window's controller (`with_webview`).
+// The menu's rules are tested everywhere but only applied on Windows.
+#![cfg_attr(not(windows), allow(dead_code))]
 
 /// The debug-build switch that applies the release behaviour, to check it by hand.
 const NATIVE_IN_DEBUG: &str = "PROJO_DESKTOP_NATIVE_WEBVIEW";

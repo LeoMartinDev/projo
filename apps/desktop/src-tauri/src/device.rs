@@ -1,9 +1,12 @@
 //! The name the app gives its sessions (PRODUCT.md §28.3, `deviceName` of sign-in and of the
 //! pairing claim), shown in the account's devices. Like the mobile app's (its model name, else
-//! "iPhone"): the computer's name as its owner set it, else "Windows".
+//! "iPhone"): the computer's name as its owner set it, else the system's name.
 
 /// When the computer has no readable name.
+#[cfg(not(target_os = "macos"))]
 pub const FALLBACK: &str = "Windows";
+#[cfg(target_os = "macos")]
+pub const FALLBACK: &str = "Mac";
 /// The server takes up to 64 characters (`deviceNameSchema`).
 const MAX_CHARS: usize = 64;
 
@@ -54,7 +57,20 @@ fn computer_name() -> Option<String> {
     read().or_else(|| std::env::var("COMPUTERNAME").ok())
 }
 
-#[cfg(not(windows))]
+/// The name set in System Settings → General → Sharing ("MacBook Pro de Léo").
+#[cfg(target_os = "macos")]
+fn computer_name() -> Option<String> {
+    let output = std::process::Command::new("/usr/sbin/scutil")
+        .args(["--get", "ComputerName"])
+        .output()
+        .ok()?;
+    output
+        .status
+        .success()
+        .then(|| String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 fn computer_name() -> Option<String> {
     std::env::var("HOSTNAME").ok()
 }

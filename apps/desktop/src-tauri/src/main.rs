@@ -23,9 +23,9 @@ mod window_size;
 use std::sync::Arc;
 
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use tauri::webview::{NewWindowResponse, PageLoadEvent, ScrollBarStyle};
+use tauri::webview::{NewWindowResponse, PageLoadEvent};
 use tauri::{
-    Emitter, EventTarget, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder, WindowEvent,
+    Emitter, EventTarget, Manager, RunEvent, Runtime, WebviewUrl, WebviewWindowBuilder, WindowEvent,
 };
 use url::Url;
 
@@ -59,6 +59,63 @@ fn test_window_position() -> Option<(f64, f64)> {
     let value = std::env::var("PROJO_DESKTOP_TEST_WINDOW").ok()?;
     let (x, y) = value.split_once(',')?;
     Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
+}
+
+/// No native frame on Windows: the page fills the window and draws its own buttons and drag strip
+/// (§28.4); the edges still resize it. Overlay scroll bars (shown while scrolling), like Windows
+/// 11's own apps, instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
+#[cfg(windows)]
+fn window_frame<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    builder
+        .scroll_bar_style(tauri::webview::ScrollBarStyle::FluentOverlay)
+        .decorations(false)
+}
+
+/// macOS keeps its own window buttons over the page (the page fills the window, title bar
+/// included, and leaves them room): the system's close, minimize and zoom, its full screen, its
+/// rounded corners and shadow.
+#[cfg(target_os = "macos")]
+fn window_frame<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    builder
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .traffic_light_position(tauri::LogicalPosition::new(16.0, 20.0))
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+fn window_frame<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    builder.decorations(false)
+}
+
+/// Where libmpv draws, under the page: a child of the window on Windows (`wid`), the app's own
+/// layer on macOS. Without it, libmpv opens a window of its own.
+#[cfg(not(target_os = "macos"))]
+fn attach_video_output<R: Runtime>(window: &tauri::WebviewWindow<R>, player: &Player) {
+    match window.window_handle().map(|handle| handle.as_raw()) {
+        Ok(RawWindowHandle::Win32(win32)) => {
+            player.set_output(Arc::new(mpv::ChildWindow(win32.hwnd.get() as i64)));
+        }
+        Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),
+        Err(error) => log::warn!("no window handle ({error}): mpv opens its own window"),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn attach_video_output<R: Runtime>(window: &tauri::WebviewWindow<R>, player: &Player) {
+    let installed = window
+        .ns_window()
+        .map_err(|error| error.to_string())
+        .and_then(mpv::gl_layer::install);
+    match installed {
+        Ok(layer) => player.set_output(Arc::new(layer)),
+        Err(error) => log::warn!("no picture layer ({error}): mpv opens its own window"),
+    }
 }
 
 fn main() {
@@ -160,13 +217,8 @@ fn main() {
                     // Shown once the page painted its first screen (`desktop_window_ready`): the
                     // transparent window never shows empty while WebView2 starts.
                     .visible(false)
-                    // Overlay scroll bars (shown while scrolling), like Windows 11's own apps,
-                    // instead of the classic bar the web app's `overflow-y: scroll` keeps visible.
-                    .scroll_bar_style(ScrollBarStyle::FluentOverlay)
-                    // No native frame: the page fills the window and draws its own buttons and
-                    // drag strip (§28.4); the edges still resize it.
-                    .decorations(false)
                     .transparent(true);
+            builder = window_frame(builder);
             if cfg!(debug_assertions) {
                 // Dev builds only: Chrome DevTools Protocol on 127.0.0.1:9229 to inspect the page
                 // (wry's default flags kept).
@@ -218,21 +270,29 @@ fn main() {
                 main_window::place(&window, placement);
             }
             main_window::show_later(&handle);
-            match window.window_handle().map(|handle| handle.as_raw()) {
-                Ok(RawWindowHandle::Win32(win32)) => {
-                    player.set_wid(win32.hwnd.get() as i64);
-                    if let Some(media) = handle.try_state::<MediaSession>() {
-                        media.set_hwnd(win32.hwnd.get());
-                    }
+            attach_video_output(&window, &player);
+            if let Ok(RawWindowHandle::Win32(win32)) =
+                window.window_handle().map(|handle| handle.as_raw())
+            {
+                if let Some(media) = handle.try_state::<MediaSession>() {
+                    media.set_hwnd(win32.hwnd.get());
                 }
-                Ok(_) => log::warn!("no Win32 window handle: mpv opens its own window"),
-                Err(error) => log::warn!("no window handle ({error}): mpv opens its own window"),
             }
             Ok(())
         })
         .on_window_event(|window, event| match event {
             WindowEvent::Moved(_) | WindowEvent::Resized(_) if window.label() == MAIN => {
                 main_window::observe(window);
+                #[cfg(target_os = "macos")]
+                if let (WindowEvent::Moved(_), Ok(ns_window)) = (event, window.ns_window()) {
+                    mpv::gl_layer::screen_changed(ns_window);
+                }
+            }
+            #[cfg(target_os = "macos")]
+            WindowEvent::ScaleFactorChanged { .. } if window.label() == MAIN => {
+                if let Ok(ns_window) = window.ns_window() {
+                    mpv::gl_layer::screen_changed(ns_window);
+                }
             }
             // mpv's video window is a child of this one: destroy mpv first (off the UI thread), then
             // the window.

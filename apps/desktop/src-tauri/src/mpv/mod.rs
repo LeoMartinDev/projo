@@ -1,4 +1,5 @@
-//! One libmpv instance drawn into the main window (`wid`), driven by the bundled page through IPC.
+//! One libmpv instance drawn into the main window, under the page (a child window on Windows, a
+//! layer of the app's on macOS: `VideoOutput`), driven by the bundled page through IPC.
 //!
 //! Threads and lifetimes (the reason for this shape):
 //! - Creating and destroying the instance runs on one `lifecycle` worker thread, in the order it was
@@ -12,13 +13,15 @@
 //! - The DLL is loaded once and never unloaded.
 
 pub mod ffi;
+#[cfg(target_os = "macos")]
+pub mod gl_layer;
 pub mod guard;
 pub mod node;
 
 use std::collections::{BTreeMap, HashSet};
 use std::ffi::{c_void, CString};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex, OnceLock, RwLock};
 use std::thread::JoinHandle;
@@ -100,11 +103,52 @@ struct Instance {
 
 type Job = Box<dyn FnOnce() + Send>;
 
+/// Where an instance draws (PRODUCT.md §28.5), known once the window exists.
+pub trait VideoOutput: Send + Sync {
+    /// Options set after the page's, before `mpv_initialize`.
+    fn options(&self) -> Vec<(&'static str, String)>;
+    /// Once the instance is initialised: whatever draws it from the app's side.
+    fn attach(&self, api: &'static MpvApi, handle: *mut MpvHandle) -> Result<(), String>;
+    /// Before the instance is destroyed: nothing may draw it any more.
+    fn detach(&self, api: &'static MpvApi);
+    /// Properties the output follows itself (`property_changed`), never reported to the page.
+    fn observed(&self) -> &'static [&'static str] {
+        &[]
+    }
+    /// One of `observed` changed (the instance's event thread; the handle is alive).
+    fn property_changed(
+        &self,
+        _api: &'static MpvApi,
+        _handle: *mut MpvHandle,
+        _name: &str,
+        _value: Option<&Value>,
+    ) {
+    }
+}
+
+/// `reply_userdata` of the output's own observations (the page's are 0).
+const OUTPUT_OBSERVATION: u64 = 1;
+
+/// libmpv makes its own window, a child of the app's (`wid`: its HWND on Windows), and draws there.
+#[cfg(not(target_os = "macos"))]
+pub struct ChildWindow(pub i64);
+
+#[cfg(not(target_os = "macos"))]
+impl VideoOutput for ChildWindow {
+    fn options(&self) -> Vec<(&'static str, String)> {
+        vec![("wid", self.0.to_string())]
+    }
+    fn attach(&self, _api: &'static MpvApi, _handle: *mut MpvHandle) -> Result<(), String> {
+        Ok(())
+    }
+    fn detach(&self, _api: &'static MpvApi) {}
+}
+
 pub struct Player {
     library_candidates: Vec<PathBuf>,
     instance: RwLock<Option<Instance>>,
     lifecycle: Mutex<Sender<Job>>,
-    wid: AtomicI64,
+    output: OnceLock<Arc<dyn VideoOutput>>,
     sink: Sink,
     version: OnceLock<String>,
     subtitle_fonts: OnceLock<PathBuf>,
@@ -134,16 +178,16 @@ impl Player {
             library_candidates,
             instance: RwLock::new(None),
             lifecycle: Mutex::new(sender),
-            wid: AtomicI64::new(0),
+            output: OnceLock::new(),
             sink,
             version: OnceLock::new(),
             subtitle_fonts: OnceLock::new(),
         })
     }
 
-    /// The native window mpv draws into (HWND on Windows).
-    pub fn set_wid(&self, wid: i64) {
-        self.wid.store(wid, Ordering::SeqCst);
+    /// Where instances draw. Without one, libmpv opens a window of its own.
+    pub fn set_output(&self, output: Arc<dyn VideoOutput>) {
+        let _ = self.output.set(output);
     }
 
     /// The directory holding Geist for subtitles (`fonts::install`): text subtitles, ASS ones
@@ -249,9 +293,10 @@ impl Player {
         let events = {
             let stop = Arc::clone(&stop);
             let sink = Arc::clone(&self.sink);
+            let output = self.output.get().cloned();
             std::thread::Builder::new()
                 .name("mpv-events".into())
-                .spawn(move || event_loop(api, handle, &stop, &sink))
+                .spawn(move || event_loop(api, handle, &stop, &sink, output.as_deref()))
         };
         let events = match events {
             Ok(events) => events,
@@ -279,33 +324,22 @@ impl Player {
 
     fn configure(
         &self,
-        api: &MpvApi,
+        api: &'static MpvApi,
         handle: Handle,
         options: &BTreeMap<String, String>,
     ) -> Result<(), MpvError> {
-        let set = |name: &str, value: &str| -> Result<(), MpvError> {
-            let (c_name, c_value) = (cstring(name)?, cstring(value)?);
-            // SAFETY: valid handle (before mpv_initialize), NUL-terminated strings.
-            let code =
-                unsafe { (api.set_option_string)(handle.0, c_name.as_ptr(), c_value.as_ptr()) };
-            if code < 0 {
-                return Err(MpvError::Failed(format!(
-                    "option {name}={value}: {}",
-                    api.error_message(code)
-                )));
-            }
-            Ok(())
-        };
+        let set = |name: &str, value: &str| set_option(api, handle, name, value).map(|_known| ());
         for (name, value) in guard::DEFAULT_OPTIONS {
             set(name, value)?;
         }
         if let Some(dir) = self.subtitle_fonts.get() {
             set("sub-fonts-dir", &dir.to_string_lossy())?;
             set("sub-font", crate::fonts::FAMILY)?;
-            set(
-                "sub-ass-style-overrides",
-                &crate::fonts::ass_style_overrides(),
-            )?;
+            // `sub-ass-force-style` before mpv 0.37.
+            let overrides = crate::fonts::ass_style_overrides();
+            if !set_option(api, handle, "sub-ass-style-overrides", &overrides)? {
+                set("sub-ass-force-style", &overrides)?;
+            }
         }
         for (name, value) in options {
             set(name, value)?;
@@ -313,9 +347,9 @@ impl Player {
         for (name, value) in guard::FORCED_OPTIONS {
             set(name, value)?;
         }
-        let wid = self.wid.load(Ordering::SeqCst);
-        if wid != 0 {
-            set("wid", &wid.to_string())?;
+        let output = self.output.get();
+        for (name, value) in output.map(|output| output.options()).unwrap_or_default() {
+            set(name, &value)?;
         }
         // SAFETY: valid, configured handle.
         let code = unsafe { (api.initialize)(handle.0) };
@@ -324,6 +358,24 @@ impl Player {
                 "mpv_initialize: {}",
                 api.error_message(code)
             )));
+        }
+        if let Some(output) = output {
+            output.attach(api, handle.0).map_err(MpvError::Failed)?;
+            for name in output.observed() {
+                let c_name = cstring(name)?;
+                // SAFETY: live handle, NUL-terminated name.
+                let code = unsafe {
+                    (api.observe_property)(
+                        handle.0,
+                        OUTPUT_OBSERVATION,
+                        c_name.as_ptr(),
+                        MPV_FORMAT_NODE,
+                    )
+                };
+                if code < 0 {
+                    log::warn!("cannot observe {name}: {}", api.error_message(code));
+                }
+            }
         }
         Ok(())
     }
@@ -347,7 +399,10 @@ impl Player {
                 log::error!("the mpv event thread panicked");
             }
         }
-        // SAFETY: no reader left (write lock taken above, event thread joined).
+        if let Some(output) = self.output.get() {
+            output.detach(api);
+        }
+        // SAFETY: no reader left (write lock taken above, event thread joined, output detached).
         unsafe { (api.terminate_destroy)(instance.handle.0) };
         log::info!("mpv instance destroyed");
     }
@@ -484,6 +539,26 @@ impl Player {
     }
 }
 
+/// Sets an option before `mpv_initialize`; `Ok(false)` when this libmpv does not know it: the
+/// feature it sets was not built (no scripting: `osc`, `load-scripts`, `ytdl`) or is newer than
+/// this mpv (`target-colorspace-hint`), so there is nothing to set.
+fn set_option(api: &MpvApi, handle: Handle, name: &str, value: &str) -> Result<bool, MpvError> {
+    let (c_name, c_value) = (cstring(name)?, cstring(value)?);
+    // SAFETY: valid handle (before mpv_initialize), NUL-terminated strings.
+    let code = unsafe { (api.set_option_string)(handle.0, c_name.as_ptr(), c_value.as_ptr()) };
+    if code == ffi::MPV_ERROR_OPTION_NOT_FOUND {
+        log::info!("libmpv has no option {name}: skipped");
+        return Ok(false);
+    }
+    if code < 0 {
+        return Err(MpvError::Failed(format!(
+            "option {name}={value}: {}",
+            api.error_message(code)
+        )));
+    }
+    Ok(true)
+}
+
 fn initialize_headless(api: &MpvApi, handle: Handle) -> Result<(), MpvError> {
     for (name, value) in [
         ("config", "no"),
@@ -492,15 +567,7 @@ fn initialize_headless(api: &MpvApi, handle: Handle) -> Result<(), MpvError> {
         ("ao", "null"),
         ("idle", "yes"),
     ] {
-        let (c_name, c_value) = (cstring(name)?, cstring(value)?);
-        // SAFETY: valid handle (before mpv_initialize), NUL-terminated strings.
-        let code = unsafe { (api.set_option_string)(handle.0, c_name.as_ptr(), c_value.as_ptr()) };
-        if code < 0 {
-            return Err(MpvError::Failed(format!(
-                "option {name}={value}: {}",
-                api.error_message(code)
-            )));
-        }
+        set_option(api, handle, name, value)?;
     }
     // SAFETY: valid, configured handle.
     let code = unsafe { (api.initialize)(handle.0) };
@@ -566,7 +633,13 @@ fn event(name: &'static str) -> Emitted {
     })
 }
 
-fn event_loop(api: &'static MpvApi, handle: Handle, stop: &AtomicBool, sink: &Sink) {
+fn event_loop(
+    api: &'static MpvApi,
+    handle: Handle,
+    stop: &AtomicBool,
+    sink: &Sink,
+    output: Option<&dyn VideoOutput>,
+) {
     loop {
         if stop.load(Ordering::SeqCst) {
             return;
@@ -611,7 +684,12 @@ fn event_loop(api: &'static MpvApi, handle: Handle, stop: &AtomicBool, sink: &Si
                 } else {
                     None
                 };
-                sink(Emitted::Property(PropertyPayload { name, value }));
+                match output {
+                    Some(output) if current.reply_userdata == OUTPUT_OBSERVATION => {
+                        output.property_changed(api, handle.0, &name, value.as_ref());
+                    }
+                    _ => sink(Emitted::Property(PropertyPayload { name, value })),
+                }
             }
             _ => {}
         }

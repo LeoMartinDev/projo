@@ -388,6 +388,8 @@
   align-items: center;
   gap: 16px;
   padding: max(24px, env(safe-area-inset-top)) var(--player-gutter) 48px;
+  /* Clear of the host's chrome (macOS' window buttons at the top left, §28.4). */
+  padding-left: max(var(--player-gutter), var(--chrome-inset-start, 0px));
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 100%);
   pointer-events: none;
 }

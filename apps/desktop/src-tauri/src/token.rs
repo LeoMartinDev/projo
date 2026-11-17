@@ -1,12 +1,12 @@
-//! The session's bearer token (PRODUCT.md §28.3) in the Windows Credential Manager, through the
-//! `keyring` crate's native backend: one generic credential per server origin (service: the app's
-//! identifier, user: the origin), so a token is only ever read back for the server that issued
+//! The session's bearer token (PRODUCT.md §28.3) in the system's credential store, through the
+//! `keyring` crate's native backend (the Windows Credential Manager, the macOS login keychain): one
+//! generic credential per server origin (service: the app's identifier, user: the origin), so a token is only ever read back for the server that issued
 //! it. Never in the page's storage. A missing or failing store is an error, never a panic.
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenError(pub String);
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 mod store {
     use keyring::{Entry, Error};
 
@@ -45,7 +45,7 @@ mod store {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 mod store {
     use super::TokenError;
 
@@ -93,7 +93,7 @@ mod tests {
         assert!(write("http://nas.local:8080", "  ").is_err());
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     #[test]
     fn a_missing_credential_is_no_token() {
         use keyring::Error;

@@ -75,6 +75,8 @@ html:has(dialog:modal) .shell__header {
   justify-self: start;
   text-decoration: none;
   border-radius: 8px;
+  /* Clear of the host's chrome (macOS' window buttons at the top left, §28.4). */
+  margin-left: max(0px, var(--chrome-inset-start, 0px) - var(--gutter));
 }
 
 .shell__logo .logo__word {

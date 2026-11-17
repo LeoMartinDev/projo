@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import './window-controls.css'
 
 import { type TauriInternals, tauriInternals } from './tauri.ts'
+import { startsWindowDrag, windowFrameOf } from './window-frame.ts'
 
 // Whether any window buttons show (the screens before the app and the app overlap while one hands
 // over to the other): pages keep clear of them through `--chrome-inset` while one does.
@@ -127,10 +128,57 @@ const Controls = ({ invoke }: { invoke: TauriInternals['invoke'] }) => {
   )
 }
 
+const useFullscreen = (invoke: TauriInternals['invoke']) => {
+  const [fullscreen, setFullscreen] = useState(false)
+  useEffect(() => {
+    const read = () => {
+      void invoke('plugin:window|is_fullscreen')
+        .then((isFullscreen) => setFullscreen(isFullscreen === true))
+        .catch(() => undefined)
+    }
+    read()
+    window.addEventListener('resize', read)
+    return () => window.removeEventListener('resize', read)
+  }, [invoke])
+  return fullscreen
+}
+
+// macOS: the system's buttons stay at the top left, over the page (pages keep clear of them through
+// `--chrome-inset-start` while they show), and WebKit has no `app-region`: pressing the title bar
+// (window-frame.ts) moves the window, a double click zooms it, like a native title bar.
+const SystemFrame = ({ invoke }: { invoke: TauriInternals['invoke'] }) => {
+  const fullscreen = useFullscreen(invoke)
+
+  useEffect(() => {
+    if (fullscreen) return undefined
+    const root = document.documentElement
+    root.setAttribute('data-window-frame', 'system')
+    const pressed = (event: MouseEvent) => {
+      if (event.button !== 0 || !(event.target instanceof Element)) return
+      if (!startsWindowDrag(event.target, event.clientY)) return
+      event.preventDefault()
+      const command = event.detail === 2 ? 'internal_toggle_maximize' : 'start_dragging'
+      void invoke(`plugin:window|${command}`).catch(() => undefined)
+    }
+    document.addEventListener('mousedown', pressed)
+    return () => {
+      document.removeEventListener('mousedown', pressed)
+      root.removeAttribute('data-window-frame')
+    }
+  }, [fullscreen, invoke])
+
+  return undefined
+}
+
 /** The desktop app's window buttons and title bar (§28.4); nothing in a browser. */
 export const WindowControls = () => {
   const internals = tauriInternals()
-  return internals === undefined ? undefined : <Controls invoke={internals.invoke} />
+  if (internals === undefined) return undefined
+  return windowFrameOf(navigator.userAgent) === 'system' ? (
+    <SystemFrame invoke={internals.invoke} />
+  ) : (
+    <Controls invoke={internals.invoke} />
+  )
 }
 
 /** `AppHost.chrome` of a desktop host: the window buttons. */

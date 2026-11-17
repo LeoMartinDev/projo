@@ -10,7 +10,7 @@ publish = false
 tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
-tauri = { version = "2.12.5", features = ["tray-icon"] }
+tauri = { version = "2.12.5", features = ["tray-icon", "macos-private-api"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1.0.154"
 libloading = "0.8.9"
@@ -45,6 +45,53 @@ windows = { version = "0.62.2", features = [
 # The webview's context menu and accelerator keys (webview_settings.rs): the version wry and Tauri
 # use, so that the controller Tauri hands over has this crate's types.
 webview2-com = "=0.39.1"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# The session token in the login keychain (token.rs).
+keyring = { version = "=3.6.3", default-features = false, features = ["apple-native"] }
+# The picture's layer under the webview (mpv/gl_layer.rs): libmpv cannot embed into another app's
+# view on macOS, so the app draws it through libmpv's OpenGL render API. The versions wry and Tauri
+# use.
+objc2 = "=0.6.5"
+objc2-foundation = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "NSGeometry",
+] }
+objc2-app-kit = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "NSGraphics",
+  "NSOpenGLView",
+  "NSResponder",
+  "NSScreen",
+  "NSView",
+  "NSWindow",
+  "objc2-core-foundation",
+  "objc2-quartz-core",
+] }
+objc2-quartz-core = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "CALayer",
+  "CAOpenGLLayer",
+  "objc2-core-foundation",
+  "objc2-core-graphics",
+  "objc2-core-video",
+  "objc2-open-gl",
+] }
+objc2-open-gl = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "CGLCurrent",
+  "CGLTypes",
+] }
+objc2-core-video = { version = "=0.3.2", default-features = false, features = ["std", "CVBase"] }
+objc2-core-foundation = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "CFString",
+] }
+objc2-core-graphics = { version = "=0.3.2", default-features = false, features = [
+  "std",
+  "CGColorSpace",
+] }
+dispatch2 = "=0.3.1"
 
 [profile.release]
 codegen-units = 1

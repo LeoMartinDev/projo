@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "projo": {
-    "minimumServerVersion": "1.25.0"
+    "minimumServerVersion": "1.28.0"
   },
   "scripts": {
     "dev": "bunx @tauri-apps/cli@2.12.4 dev --no-dev-server",

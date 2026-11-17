@@ -22,6 +22,8 @@
 
 .who__header {
   position: relative;
+  /* Clear of the host's chrome (macOS' window buttons at the top left, §28.4). */
+  margin-left: max(0px, var(--chrome-inset-start, 0px) - var(--gutter));
 }
 
 .who__header .logo__word {

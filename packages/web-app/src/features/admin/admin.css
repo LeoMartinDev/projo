@@ -20,6 +20,8 @@
   flex-direction: column;
   gap: 28px;
   padding: calc(24px + env(safe-area-inset-top)) 16px 24px;
+  /* Clear of the host's chrome (macOS' window buttons at the top left, §28.4). */
+  padding-left: max(16px, var(--chrome-inset-start, 0px));
   border-right: 1px solid var(--color-border-subtle);
 }
 

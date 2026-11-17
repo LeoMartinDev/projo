@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": ["app", "dmg"],
+    "macOS": {
+      "frameworks": [
+        "lib/macos/libass.dylib",
+        "lib/macos/libavcodec.dylib",
+        "lib/macos/libavfilter.dylib",
+        "lib/macos/libavformat.dylib",
+        "lib/macos/libavutil.dylib",
+        "lib/macos/libdav1d.dylib",
+        "lib/macos/libfreetype.dylib",
+        "lib/macos/libfribidi.dylib",
+        "lib/macos/libharfbuzz.dylib",
+        "lib/macos/libmbedcrypto.dylib",
+        "lib/macos/libmbedtls.dylib",
+        "lib/macos/libmbedx509.dylib",
+        "lib/macos/libmpv.dylib",
+        "lib/macos/libpng16.dylib",
+        "lib/macos/libswresample.dylib",
+        "lib/macos/libswscale.dylib",
+        "lib/macos/libuchardet.dylib",
+        "lib/macos/libxml2.dylib"
+      ],
+      "minimumSystemVersion": "11.0",
+      "signingIdentity": "-",
+      "hardenedRuntime": false
+    }
+  }
+}

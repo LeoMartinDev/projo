@@ -26,6 +26,7 @@ Pack de production du logo « Ouverture », choisi parmi les propositions de log
 | Windows | `native/windows-{dark,light}.ico` — 16, 24, 32, 48, 64, 128 et 256 px dans chaque fichier |
 | Application desktop (Windows) | `native/windows-desktop.ico` — carré sombre aux coins arrondis, symbole réduit ; produit par `build-desktop-icon.mjs`, copié vers `apps/desktop/src-tauri/icons/icon.ico` |
 | macOS | `native/macos.icns` — 16, 32, 64, 128, 256, 512 et 1024 px |
+| Application desktop (macOS) | `native/macos-desktop.icns` — grille Apple (carré arrondi de 824 px et ombre sur 1024 px), même carré sombre que Windows ; produit par `build-desktop-icon.mjs`, copié vers `apps/desktop/src-tauri/icons/icon.icns`, avec `icon.png` (fenêtre hors bundle) et `tray-template.png` (barre des menus) |
 | Vue d’ensemble | `preview.png` et `preview.html` |
 | Inventaire | `inventory.json` |
 

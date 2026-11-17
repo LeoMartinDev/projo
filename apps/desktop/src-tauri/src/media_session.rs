@@ -441,6 +441,7 @@ pub fn ms_from_ticks(ticks: i64) -> u64 {
 }
 
 /// Milliseconds as a `TimeSpan` (100 ns ticks), rounded, never negative, saturating.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn ticks_from_ms(ms: f64) -> i64 {
     // `as` saturates (and NaN gives 0).
     (ms * TICKS_PER_MS as f64).round().max(0.0) as i64
