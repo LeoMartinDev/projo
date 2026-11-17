@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { type CSSProperties, useEffect, useState } from 'react'
 
 import {
   type CueLine,
@@ -6,6 +6,8 @@ import {
   shiftCue,
   type SubtitleSize,
 } from '@projo/player/core/subtitles'
+
+import { pictureBottomInset } from './caption-placement.ts'
 
 const originals = new WeakMap<TextTrackCue, { start: number; end: number }>()
 
@@ -43,6 +45,37 @@ const showTrack = (element: HTMLTrackElement, native: boolean): void => {
   element.parentElement?.classList.toggle('player__video--native-cues', native)
 }
 
+// Bottom of the picture in an upright player (caption-placement.ts), kept up
+// to date as the player turns or the video's size changes.
+const usePictureInset = (video: HTMLVideoElement | undefined): number | undefined => {
+  const [inset, setInset] = useState<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (video === undefined) return
+    const update = () =>
+      setInset(
+        pictureBottomInset({
+          boxWidth: video.clientWidth,
+          boxHeight: video.clientHeight,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+        }),
+      )
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(video)
+    video.addEventListener('loadedmetadata', update)
+    video.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      video.removeEventListener('loadedmetadata', update)
+      video.removeEventListener('resize', update)
+    }
+  }, [video])
+
+  return inset
+}
+
 export const SubtitleOverlay = ({
   element,
   delayMs,
@@ -59,6 +92,8 @@ export const SubtitleOverlay = ({
   native: boolean
 }) => {
   const [cues, setCues] = useState<CueLine[][]>([])
+  const media = element?.parentElement
+  const pictureInset = usePictureInset(media instanceof HTMLVideoElement ? media : undefined)
 
   useEffect(() => {
     if (element === undefined) return
@@ -88,7 +123,12 @@ export const SubtitleOverlay = ({
   if (element === undefined || native || cues.length === 0) return undefined
   return (
     <div
-      className={`captions captions--${size}${aboveToast ? ' captions--above-toast' : raised ? ' captions--raised' : ''}`}
+      className={`captions captions--${size}${aboveToast ? ' captions--above-toast' : raised ? ' captions--raised' : ''}${pictureInset === undefined ? '' : ' captions--on-picture'}`}
+      style={
+        pictureInset === undefined
+          ? undefined
+          : ({ '--captions-picture-bottom': `${pictureInset}px` } as CSSProperties)
+      }
       aria-hidden="true"
     >
       {cues.map((lines, cueIndex) => (

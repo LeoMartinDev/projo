@@ -301,6 +301,26 @@
   bottom: calc(var(--player-chrome-bottom) + 60px);
 }
 
+/* Upright player (caption-placement.ts): just inside the bottom of the
+   picture, still above the controls or the countdown when they reach it. */
+.captions--on-picture {
+  bottom: calc(var(--captions-picture-bottom) + 12px);
+}
+
+.captions--on-picture.captions--raised {
+  bottom: max(
+    calc(var(--captions-picture-bottom) + 12px),
+    calc(var(--player-controls-inset, 106px) + 12px)
+  );
+}
+
+.captions--on-picture.captions--above-toast {
+  bottom: max(
+    calc(var(--captions-picture-bottom) + 12px),
+    calc(var(--player-chrome-bottom) + 60px)
+  );
+}
+
 .captions--small {
   --captions-scale: 0.78;
 }
