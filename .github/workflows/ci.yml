@@ -57,9 +57,12 @@ jobs:
       # (GHSA-gcqx-w48m-w2h4) and glob 13 (GHSA-3g3m-2fjr-6pw4), through expo > @expo/metro-config,
       # and minimatch 10 (GHSA-g3hv-75wg-m249), through expo > @expo/fingerprint: the mobile app's
       # build tooling, absent from the app bundle; no fixed version within Expo's ranges yet. Drop
-      # them once Expo ships one.
+      # them once Expo ships one. picomatch (GHSA-fc5q-39xc-vjpf, ReDoS on a crafted glob), through
+      # vite (the desktop UI's build) and metro (the mobile's), matches only the tools' own globs
+      # and ships in no bundle; no fixed version exists yet (4.0.7 is the latest). Drop it once
+      # one does.
       - name: bun audit (production dependencies)
-        run: bun audit --production --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249
+        run: bun audit --production --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249 --ignore=GHSA-fc5q-39xc-vjpf
       - name: bun audit (all dependencies, high and above)
         run: bun audit --audit-level=high --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249
 
