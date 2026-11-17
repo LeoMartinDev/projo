@@ -73,6 +73,14 @@ describe('CORS for the desktop origins (§20)', () => {
     }
   })
 
+  test('every platform of the desktop app: Windows and macOS', async () => {
+    const t = createAuthTestApp()
+    for (const origin of ['http://tauri.localhost', 'tauri://localhost']) {
+      const response = await t.request('/health', { headers: { origin } })
+      expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+    }
+  })
+
   test('nothing for another origin', async () => {
     const t = createAuthTestApp()
     const foreign = await t.request('/api/v1/auth/me', {
