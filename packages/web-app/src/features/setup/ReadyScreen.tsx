@@ -98,7 +98,7 @@ export const ReadyScreen = ({ name, library }: { name: string; library?: Created
   return (
     <div className="onb onb--ready">
       <Wall />
-      <header className="onb__header">
+      <header className="onb__header" data-window-top>
         <Logo />
       </header>
       <main className="onb__main onb__main--center">

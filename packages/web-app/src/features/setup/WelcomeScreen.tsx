@@ -10,7 +10,7 @@ export const WelcomeScreen = ({ onStart }: { onStart: () => void }) => {
   return (
     <div className="onb">
       <Backdrop image="dunes" shade="hero" />
-      <header className="onb__header">
+      <header className="onb__header" data-window-top>
         <span className="rise">
           <Logo />
         </span>

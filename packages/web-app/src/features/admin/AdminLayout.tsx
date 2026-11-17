@@ -128,7 +128,7 @@ export const AdminLayout = () => {
   }, [nav, pathname])
   return (
     <div className="admin">
-      <aside className="admin__side">
+      <aside className="admin__side" data-window-top>
         <Link to="/" className="admin__logo">
           <Logo
             subtitle={

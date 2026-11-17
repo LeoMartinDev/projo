@@ -16,7 +16,8 @@ const markShown = (id: symbol, visible: boolean) => {
 }
 
 // The drag strip is the document's first element: WebView2 adds the `app-region: drag` areas and
-// takes the `no-drag` ones away in document order, so every control after it stays clickable.
+// takes the `no-drag` ones away in document order, so the controls after it that lie under it (in
+// the title bar, the window buttons and the screens' top bars, `data-window-top`) stay clickable.
 const dragLayer = (): HTMLElement => {
   const existing = document.getElementById('window-drag-layer') ?? undefined
   if (existing !== undefined) return existing
@@ -25,6 +26,9 @@ const dragLayer = (): HTMLElement => {
   document.body.prepend(layer)
   return layer
 }
+
+// How long after the last resize event the title bar's regions come back.
+const resizeSettleMs = 200
 
 const Controls = ({ invoke }: { invoke: TauriInternals['invoke'] }) => {
   const { t } = useTranslation()
@@ -48,6 +52,25 @@ const Controls = ({ invoke }: { invoke: TauriInternals['invoke'] }) => {
     window.addEventListener('resize', read)
     return () => window.removeEventListener('resize', read)
   }, [invoke])
+
+  // WebView2 recomputes the title bar's regions on every frame of a resize, and a drag region with
+  // its controls cut out of it is slow to recompute (a resize frame took 30 ms instead of 10): the
+  // page has none while the window is being resized (window-controls.css), back once it settles.
+  useEffect(() => {
+    const root = document.documentElement
+    let settle: ReturnType<typeof setTimeout> | undefined
+    const resized = () => {
+      root.setAttribute('data-window-resizing', '')
+      clearTimeout(settle)
+      settle = setTimeout(() => root.removeAttribute('data-window-resizing'), resizeSettleMs)
+    }
+    window.addEventListener('resize', resized)
+    return () => {
+      window.removeEventListener('resize', resized)
+      clearTimeout(settle)
+      root.removeAttribute('data-window-resizing')
+    }
+  }, [])
 
   useEffect(() => {
     const id = Symbol('window-controls')

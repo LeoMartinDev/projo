@@ -10,7 +10,7 @@ export const PairPage = () => {
   return (
     <div className="onb">
       <Backdrop image="forest" shade="split" />
-      <header className="onb__header">
+      <header className="onb__header" data-window-top>
         <span className="rise">
           <Logo />
         </span>

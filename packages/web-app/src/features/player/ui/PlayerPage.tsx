@@ -1024,7 +1024,7 @@ export const PlayerPage = ({
         </div>
       ) : undefined}
 
-      <div className="player__top">
+      <div className="player__top" data-window-top>
         <button
           type="button"
           className="player__control"

@@ -27,7 +27,7 @@ export const StepScreen = ({
   return (
     <div className="onb">
       <Backdrop image={image} shade="split" />
-      <header className="onb__header">
+      <header className="onb__header" data-window-top>
         <Logo />
         <div className="onb__progress">
           <div className="steps" aria-hidden="true">

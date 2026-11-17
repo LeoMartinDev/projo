@@ -92,7 +92,7 @@ export const WhoIsWatching = ({
   return (
     <div className="who">
       <div className="who__ambient" aria-hidden="true" />
-      <header className="who__header">
+      <header className="who__header" data-window-top>
         <Logo />
       </header>
       <main className="who__main">

@@ -182,7 +182,7 @@ export const InvitePage = ({ token }: { token: string }) => {
   return (
     <div className="onb">
       <Backdrop image="forest" shade="split" />
-      <header className="onb__header">
+      <header className="onb__header" data-window-top>
         <span className="rise">
           <Logo />
         </span>

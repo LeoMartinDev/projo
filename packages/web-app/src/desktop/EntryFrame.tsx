@@ -30,7 +30,7 @@ export const EntryFrame = ({
   return (
     <div className="auth">
       <Backdrop image="ocean" shade="split" />
-      <header className="auth__header rise">
+      <header className="auth__header rise" data-window-top>
         <Logo />
       </header>
       <main className="auth__main">

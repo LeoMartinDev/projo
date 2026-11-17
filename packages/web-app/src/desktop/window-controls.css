@@ -26,8 +26,22 @@
   app-region: drag;
 }
 
+/* As few regions as possible: WebView2 recomputes the caption on every layout
+   (each frame of a resize), and each `no-drag` region costs (2,000 of them made
+   a resize take 70 ms instead of 12). So `no-drag` only where a drag region can
+   lie: in the title bar, the window buttons, and the screens' top bars that sit
+   under the strip (`data-window-top`); never the rest of the page. And never
+   inherited: the property passes to every descendant, each one a region, while
+   the ancestor's region already covers them. `initial`, not `none`: Blink
+   applies any keyword but `drag` as `no-drag`. */
+:root[data-window-controls] :is([data-window-drag], [data-window-top], .window-controls, dialog) * {
+  -webkit-app-region: initial;
+  app-region: initial;
+}
+
 /* What takes the pointer for itself is never part of the title bar. */
 :root[data-window-controls]
+  :is([data-window-drag], [data-window-top], .window-controls)
   :is(
     a,
     button,
@@ -36,14 +50,29 @@
     textarea,
     label,
     summary,
-    dialog,
     [contenteditable],
     [role='button'],
     [role='slider'],
     [tabindex]:not([tabindex='-1'])
-  ) {
+  ),
+:root[data-window-controls] dialog {
   -webkit-app-region: no-drag;
   app-region: no-drag;
+}
+
+/* No region while the window is being resized (WindowControls.tsx): WebView2
+   would recompute them on every frame. */
+:root[data-window-resizing]
+  :is(
+    .window-drag-strip,
+    [data-window-drag],
+    [data-window-drag] *,
+    [data-window-top] *,
+    .window-controls *,
+    dialog
+  ) {
+  -webkit-app-region: initial !important;
+  app-region: initial !important;
 }
 
 .window-controls {
