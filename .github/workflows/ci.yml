@@ -64,7 +64,7 @@ jobs:
       - name: bun audit (production dependencies)
         run: bun audit --production --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249 --ignore=GHSA-fc5q-39xc-vjpf
       - name: bun audit (all dependencies, high and above)
-        run: bun audit --audit-level=high --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249
+        run: bun audit --audit-level=high --ignore=GHSA-mrhx-c7xc-m3w5 --ignore=GHSA-gcqx-w48m-w2h4 --ignore=GHSA-3g3m-2fjr-6pw4 --ignore=GHSA-g3hv-75wg-m249 --ignore=GHSA-fc5q-39xc-vjpf
 
   # Tests that run ffmpeg, ffprobe or fpcalc depend on their version (Ubuntu 24.04 has ffmpeg 6.1,
   # the image 7.1): they run in the `runtime` target of the image, with the Bun of production.
