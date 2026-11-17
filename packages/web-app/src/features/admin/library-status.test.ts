@@ -304,4 +304,14 @@ describe('unreachable root reason (§7.5)', () => {
       ),
     ).toBe('/mnt/nas')
   })
+  test('many missing files read their count and their folder', async () => {
+    const fr = await translator('fr')
+    expect(
+      notificationDetail(
+        { kind: 'scan/many_missing', context: { count: 42, path: '/media/disk2' } },
+        fr,
+        'fr',
+      ),
+    ).toBe('42 fichiers · /media/disk2')
+  })
 })

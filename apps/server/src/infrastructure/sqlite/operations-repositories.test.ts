@@ -25,7 +25,12 @@ import {
 import { itemOverrides, items, manualMatches } from './schema/items.ts'
 import { scanRuns, sources } from './schema/libraries.ts'
 import { jobs, notifications, settings } from './schema/ops.ts'
-import { playbackSessions } from './schema/playback.ts'
+import {
+  playbackProgress,
+  playbackSessions,
+  trackPreferences,
+  watchlist,
+} from './schema/playback.ts'
 import {
   createSqliteNeedsReviewReminderStore,
   createSqliteServerNameStore,
@@ -452,6 +457,41 @@ describe('missing source repository (§7.5 purge)', () => {
         .map((row) => row.id)
         .sort(),
     ).toEqual(['e2-file', 'ready-file', 'v2'])
+  })
+  test('keeps an item a profile has history on, and its parents, so a returning file finds it', () => {
+    const { profileId } = seedViewer(db, 'leo')
+    insertItem(db, { id: 'series', kind: 'series', tmdbId: 1 })
+    insertItem(db, { id: 'season', kind: 'season', parentId: 'series', seasonNumber: 1 })
+    insertItem(db, { id: 'watched', kind: 'episode', parentId: 'season', episodeNumber: 1 })
+    insertItem(db, { id: 'unseen', kind: 'episode', parentId: 'season', episodeNumber: 2 })
+    insertSource(db, { id: 'watched-file', itemId: 'watched', state: 'missing' })
+    insertSource(db, { id: 'unseen-file', itemId: 'unseen', state: 'missing' })
+    db.insert(playbackProgress)
+      .values({ profileId, itemId: 'watched', positionMs: 1000, lastPlayedAt: iso() })
+      .run()
+    insertItem(db, { id: 'listed', kind: 'movie', tmdbId: 2 })
+    insertSource(db, { id: 'listed-file', itemId: 'listed', state: 'missing' })
+    db.insert(watchlist).values({ profileId, itemId: 'listed', addedAt: iso() }).run()
+    insertItem(db, { id: 'tracks', kind: 'movie', tmdbId: 3 })
+    insertSource(db, { id: 'tracks-file', itemId: 'tracks', state: 'missing' })
+    db.insert(trackPreferences)
+      .values({ profileId, itemId: 'tracks', audioLanguage: 'fr', updatedAt: iso() })
+      .run()
+    insertItem(db, { id: 'forgotten', kind: 'movie', tmdbId: 4 })
+    insertSource(db, { id: 'forgotten-file', itemId: 'forgotten', state: 'missing' })
+
+    const result = createSqliteMissingSourceRepository({ db }).purge([
+      'watched-file',
+      'unseen-file',
+      'listed-file',
+      'tracks-file',
+      'forgotten-file',
+    ])
+    expect(result).toEqual({ purged: 5, deletedItems: 2 })
+    expect(['series', 'season', 'watched', 'listed', 'tracks'].every(exists)).toBe(true)
+    expect(exists('unseen')).toBe(false)
+    expect(exists('forgotten')).toBe(false)
+    expect(db.select().from(playbackProgress).all()).toHaveLength(1)
   })
 })
 

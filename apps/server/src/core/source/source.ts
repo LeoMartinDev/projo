@@ -164,5 +164,10 @@ export type SourceRepository = {
 export type MissingSourceRepository = {
   stateOf: (id: string) => SourceState | undefined
   listMissingIds: (input: { libraryId?: string; missingBefore?: Date }) => string[]
+  /**
+   * Deletes the missing sources, then the items left without a source, a child, an override, a
+   * manual identification or any profile's history (progress, My list, track preferences), §7.5:
+   * a file back after the purge is matched to the same item and finds its history again.
+   */
   purge: (sourceIds: readonly string[]) => { purged: number; deletedItems: number }
 }

@@ -1044,6 +1044,7 @@
       "metadata/tmdb_key_missing": "TMDB key missing: files are not identified",
       "tmdb/unauthorized": "TMDB refuses the API key",
       "scan/needs_review_count": "Files are waiting for review",
+      "scan/many_missing": "Many files went missing at once",
       "update/available": "Update available",
       "update/runtime_too_old": "Update needs a newer Docker image",
       "update/failed": "Update failed",
@@ -1096,7 +1097,7 @@
       "purgeTitle": "Purge “{{name}}”?",
       "purgeAllTitle_one": "Purge {{formatted}} missing file?",
       "purgeAllTitle_other": "Purge the {{formatted}} missing files?",
-      "purgeText": "Files on the disk are not touched. Titles left without any file go away, except those corrected by hand."
+      "purgeText": "Files on the disk are not touched. Titles left without any file go away, except those corrected by hand and those a profile has watched, started or added to My list."
     },
     "hidden": {
       "title": "Hidden",
@@ -1240,6 +1241,8 @@
       },
       "runtimeNeeded": "{{version}} needs image {{runtime}}",
       "freeSpace": "{{size}} free",
+      "manyMissing_one": "{{count}} file",
+      "manyMissing_other": "{{count}} files",
       "hwAccelRenderNode": "{{renderNode}} is missing or not accessible",
       "hwAccelFfmpeg": "ffmpeg refused VAAPI ({{codec}})",
       "state": {

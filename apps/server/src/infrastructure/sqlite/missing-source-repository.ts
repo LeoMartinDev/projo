@@ -5,6 +5,7 @@ import type { Db } from './database.ts'
 import { chunks, toIso } from './rows.ts'
 import { itemOverrides, items, manualMatches } from './schema/items.ts'
 import { sourceItems, sources } from './schema/libraries.ts'
+import { playbackProgress, trackPreferences, watchlist } from './schema/playback.ts'
 
 export const createSqliteMissingSourceRepository = ({
   db,
@@ -69,6 +70,9 @@ export const createSqliteMissingSourceRepository = ({
                 sql`NOT EXISTS (SELECT 1 FROM ${sourceItems} WHERE ${sourceItems.itemId} = ${items.id})`,
                 sql`NOT EXISTS (SELECT 1 FROM items AS child WHERE child.parent_id = ${items.id})`,
                 sql`NOT EXISTS (SELECT 1 FROM ${itemOverrides} WHERE ${itemOverrides.itemId} = ${items.id})`,
+                sql`NOT EXISTS (SELECT 1 FROM ${playbackProgress} WHERE ${playbackProgress.itemId} = ${items.id})`,
+                sql`NOT EXISTS (SELECT 1 FROM ${watchlist} WHERE ${watchlist.itemId} = ${items.id})`,
+                sql`NOT EXISTS (SELECT 1 FROM ${trackPreferences} WHERE ${trackPreferences.itemId} = ${items.id})`,
               ),
             )
             .all()

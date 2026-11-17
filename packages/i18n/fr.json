@@ -1044,6 +1044,7 @@
       "metadata/tmdb_key_missing": "Clé TMDB manquante : les fichiers ne sont pas identifiés",
       "tmdb/unauthorized": "TMDB refuse la clé API",
       "scan/needs_review_count": "Des fichiers attendent une vérification",
+      "scan/many_missing": "Beaucoup de fichiers ont disparu d’un coup",
       "update/available": "Mise à jour disponible",
       "update/runtime_too_old": "Mise à jour : image Docker trop ancienne",
       "update/failed": "La mise à jour a échoué",
@@ -1096,7 +1097,7 @@
       "purgeTitle": "Purger « {{name}} » ?",
       "purgeAllTitle_one": "Purger {{formatted}} fichier manquant ?",
       "purgeAllTitle_other": "Purger les {{formatted}} fichiers manquants ?",
-      "purgeText": "Les fichiers sur le disque ne sont pas touchés. Les titres qui n’ont plus aucun fichier disparaissent, sauf ceux corrigés à la main."
+      "purgeText": "Les fichiers sur le disque ne sont pas touchés. Les titres qui n’ont plus aucun fichier disparaissent, sauf ceux corrigés à la main et ceux qu’un profil a vus, commencés ou ajoutés à Ma liste."
     },
     "hidden": {
       "title": "Masqués",
@@ -1240,6 +1241,8 @@
       },
       "runtimeNeeded": "{{version}} demande l’image {{runtime}}",
       "freeSpace": "{{size}} libres",
+      "manyMissing_one": "{{count}} fichier",
+      "manyMissing_other": "{{count}} fichiers",
       "hwAccelRenderNode": "{{renderNode}} absent ou inaccessible",
       "hwAccelFfmpeg": "ffmpeg a refusé VAAPI ({{codec}})",
       "state": {

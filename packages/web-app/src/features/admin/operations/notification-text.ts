@@ -40,6 +40,15 @@ export const notificationDetail = (
       const count = number(context, 'count')
       return count === undefined ? undefined : t('admin.review.count', { count })
     }
+    case 'scan/many_missing': {
+      const count = number(context, 'count')
+      return [
+        count === undefined ? undefined : t('admin.notificationCenter.manyMissing', { count }),
+        text(context, 'path'),
+      ]
+        .filter((part) => part !== undefined)
+        .join(' · ')
+    }
     case 'job/failed': {
       const type = text(context, 'jobType')
       const code = text(context, 'code')
@@ -96,6 +105,7 @@ export const notificationTarget = (
   | '/admin/libraries'
   | '/admin/pending'
   | '/admin/review'
+  | '/admin/missing'
   | '/admin/jobs'
   | '/admin/updates'
   | '/admin/settings/metadata'
@@ -109,6 +119,8 @@ export const notificationTarget = (
       return '/admin/pending'
     case 'scan/needs_review_count':
       return '/admin/review'
+    case 'scan/many_missing':
+      return '/admin/missing'
     case 'job/failed':
       return '/admin/jobs'
     case 'update/available':

@@ -12,6 +12,7 @@ import type {
 } from '@projo/shared/api/metadata'
 import type { AdminSettingsDto } from '@projo/shared/api/settings'
 
+import { createSqliteMissingSourceRepository } from '../../src/infrastructure/sqlite/missing-source-repository.ts'
 import { seedViewer } from '../support/catalog-fixtures.ts'
 import { createTempDir } from '../support/database.ts'
 import { hasFfmpegEncoder } from '../support/media.ts'
@@ -747,6 +748,43 @@ describe('"À vérifier" and corrections (§7.8, parcours 5)', () => {
     const linked = items().find((row) => row.id === linksOf(again?.id ?? '')[0])
     expect(linked?.tmdb_id).toBe(841)
     expect(world.query('SELECT source_id FROM manual_matches')).toEqual([{ source_id: again?.id }])
+  })
+
+  test('a watched movie survives the purge of its file: the file coming back finds its progress', async () => {
+    await world.setKey()
+    const path = place('Inception (2010).mkv')
+    place('Dune.mkv')
+    const library = await createLibrary('movies')
+    await settle()
+    const first = sourceRow('Inception (2010).mkv')
+    const itemId = linksOf(first?.id ?? '')[0] ?? ''
+    expect(items().find((row) => row.id === itemId)?.tmdb_id).toBeDefined()
+    const { profileId } = seedViewer(world.db, 'viewer-1')
+    world.db.$client.run(
+      'INSERT INTO playback_progress (profile_id, item_id, position_ms, duration_ms, last_played_at) VALUES (?, ?, 600000, 8880000, ?)',
+      [profileId, itemId, new Date().toISOString()],
+    )
+    const bytes = await Bun.file(path).arrayBuffer()
+    rmSync(path)
+    await fullScan(library.id)
+    expect(sourceRow('Inception (2010).mkv')?.state).toBe('missing')
+    expect(createSqliteMissingSourceRepository({ db: world.db }).purge([first?.id ?? ''])).toEqual({
+      purged: 1,
+      deletedItems: 0,
+    })
+
+    await Bun.write(path, new Uint8Array(bytes))
+    await fullScan(library.id)
+    await settle()
+    const again = sourceRow('Inception (2010).mkv')
+    expect(again?.id).not.toBe(first?.id)
+    expect(linksOf(again?.id ?? '')).toEqual([itemId])
+    expect(
+      world.query(
+        'SELECT item_id, position_ms FROM playback_progress WHERE profile_id = ?',
+        profileId,
+      ),
+    ).toEqual([{ item_id: itemId, position_ms: 600000 }])
   })
 
   test('a correction is found again by signature when the file comes back as a new source', async () => {

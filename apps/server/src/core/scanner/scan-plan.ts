@@ -39,6 +39,8 @@ export type ScanPlan = {
   retest: string[]
   verify: string[]
   moved: string[]
+  /** Sources this scan turns missing. */
+  missing: string[]
   stats: PlanStats
 }
 
@@ -166,6 +168,7 @@ export const planScan = ({
     retest: [],
     verify: [],
     moved: [],
+    missing: [],
     stats: { seen: found.length, discovered: 0, pending: 0, ready: 0, missing: 0, moved: 0 },
   }
   const knownByKey = new Map(known.map((s) => [fileKey(s.rootId, s.relativePath), s]))
@@ -195,9 +198,11 @@ export const planScan = ({
           plan.patches.push({ id: source.id, patch: quarantine(source, file, now) })
           plan.stats.pending += 1
         } else if (
-          source.pendingReason === 'probe_failed' ||
-          source.pendingReason === 'decode_failed'
+          full &&
+          (source.pendingReason === 'probe_failed' || source.pendingReason === 'decode_failed')
         ) {
+          // An unchanged file that failed its probe fails it again: retested by a full scan only
+          // (or the admin's "Recheck"), never at each periodic scan. A change quarantines it anew.
           plan.retest.push(source.id)
         }
         break
@@ -299,6 +304,7 @@ export const planScan = ({
     if (consumed.has(source.id)) continue
     if (source.state === 'missing' || source.state === 'rejected') continue
     plan.patches.push({ id: source.id, patch: { state: 'missing', missingSince: now } })
+    plan.missing.push(source.id)
     plan.stats.missing += 1
   }
 

@@ -539,6 +539,38 @@ describe('scanner on a messy folder (§7, §8)', () => {
     ).toBeDefined()
   })
 
+  test('many files missing at once warn the admin with their folder, resolved once back (§7.5)', async () => {
+    const root = join(tmp.path, 'media')
+    const unplugged = join(tmp.path, 'unplugged')
+    for (let index = 0; index < 5; index += 1) placeVideo(root, `disk1/Film ${index} (2001).mkv`)
+    for (let index = 0; index < 20; index += 1) placeVideo(root, `disk2/Show/S01E${index + 1}.mkv`)
+    const library = await createLibrary([root])
+    await world.runJobs(['scan_library'])
+    renameSync(join(root, 'disk2'), unplugged)
+    await scan(library.id)
+    expect(sources().filter((s) => s.state === 'missing')).toHaveLength(20)
+    expect(world.query('SELECT kind, context, resolved_at FROM notifications')).toEqual([
+      {
+        kind: 'scan/many_missing',
+        context: JSON.stringify({
+          libraryId: library.id,
+          rootId: library.roots[0]?.id,
+          count: 20,
+          path: join(root, 'disk2/Show'),
+          key: library.id,
+        }),
+      },
+    ])
+
+    renameSync(unplugged, join(root, 'disk2'))
+    await scan(library.id)
+    expect(sources().filter((s) => s.state === 'missing')).toEqual([])
+    expect(
+      world.query<{ resolved_at?: string }>('SELECT resolved_at FROM notifications')[0]
+        ?.resolved_at,
+    ).toBeDefined()
+  })
+
   test('a full scan re-checks ready sources and keeps unchanged ones (§7.4)', async () => {
     const root = tmp.path
     placeVideo(root, 'Solaris (1972).mkv')

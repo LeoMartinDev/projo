@@ -7,6 +7,7 @@ export const notificationKinds = [
   'scan/source_stuck_pending',
   'scan/unsupported_layout',
   'scan/needs_review_count',
+  'scan/many_missing',
   'metadata/tmdb_key_missing',
   'tmdb/unauthorized',
   'job/failed',

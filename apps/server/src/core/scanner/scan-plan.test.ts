@@ -120,7 +120,7 @@ describe('planScan: states (§7.3–7.5)', () => {
     expect(patchOf(shrunk, 'a')).toMatchObject({ state: 'pending', pendingReason: 'too_small' })
   })
 
-  test('a pending source keeps its pending_since when it changes again; failed ones are re-tested', () => {
+  test('a pending source keeps its pending_since when it changes again; failed ones are re-tested by a full scan', () => {
     const pending = snapshot({
       id: 'p',
       relativePath: 'P.mkv',
@@ -140,9 +140,9 @@ describe('planScan: states (§7.3–7.5)', () => {
       pendingReason: 'decode_failed',
       readyAt: undefined,
     })
-    expect(
-      plan({ known: [failed], found: [file({ relativePath: 'F.mkv', inode: '1:f' })] }).retest,
-    ).toEqual(['f'])
+    const found = [file({ relativePath: 'F.mkv', inode: '1:f' })]
+    expect(plan({ known: [failed], found }).retest).toEqual([])
+    expect(plan({ known: [failed], found, full: true }).retest).toEqual(['f'])
   })
 
   test('disappeared sources are missing; they come back ready only if unchanged and ready before', () => {

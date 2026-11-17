@@ -20,6 +20,7 @@ import {
   type ScanRunRepository,
 } from '../../core/scanner/ports.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
+import { assessManyMissing, isManyMissing } from '../../core/scanner/many-missing.ts'
 import {
   assessRootContent,
   assessRootStat,
@@ -124,6 +125,54 @@ export const scanLibraryFactory = (deps: Deps) => {
       path: root.path,
       reason: assessment.reason,
       detail: assessment.message,
+    })
+  }
+
+  const notifyManyMissing = ({
+    libraryId,
+    known,
+    newlyMissing,
+    librarySnapshots,
+    rootPaths,
+    log,
+  }: {
+    libraryId: string
+    known: readonly SourceSnapshot[]
+    newlyMissing: readonly string[]
+    librarySnapshots: readonly SourceSnapshot[]
+    rootPaths: ReadonlyMap<string, string>
+    log: Logger
+  }) => {
+    const tracked = librarySnapshots.filter((source) => source.state !== 'rejected').length
+    const missingNow = librarySnapshots.filter((source) => source.state === 'missing').length
+    const missingIds = new Set(newlyMissing)
+    const many = assessManyMissing({
+      newlyMissing: known.filter((source) => missingIds.has(source.id)),
+      tracked,
+    })
+    if (many === undefined) {
+      if (!isManyMissing({ missing: missingNow, tracked }))
+        notifier.resolve({ kind: 'scan/many_missing', key: libraryId })
+      return
+    }
+    const rootPath = rootPaths.get(many.rootId)
+    const path = rootPath === undefined ? undefined : joinAbsolute(rootPath, many.folder)
+    notifier.notify({
+      kind: 'scan/many_missing',
+      severity: 'warning',
+      key: libraryId,
+      context: {
+        libraryId,
+        rootId: many.rootId,
+        count: many.count,
+        ...(path === undefined ? {} : { path }),
+      },
+    })
+    log.warn('many files missing at once', {
+      code: 'scan/many_missing',
+      count: many.count,
+      tracked,
+      ...(path === undefined ? {} : { path }),
     })
   }
 
@@ -315,9 +364,16 @@ export const scanLibraryFactory = (deps: Deps) => {
       }
     }
 
-    const snapshots = sourceRepository
-      .listSnapshots(libraryId)
-      .filter((source) => reachable.has(source.rootId))
+    const librarySnapshots = sourceRepository.listSnapshots(libraryId)
+    notifyManyMissing({
+      libraryId,
+      known,
+      newlyMissing: plan.missing,
+      librarySnapshots,
+      rootPaths,
+      log,
+    })
+    const snapshots = librarySnapshots.filter((source) => reachable.has(source.rootId))
     const stackPatches = planStacks(snapshots)
     sourceRepository.applyChanges({ inserts: [], patches: stackPatches })
     const currentSubtitles = sourceRepository.externalSubtitlesByLibrary(libraryId)
