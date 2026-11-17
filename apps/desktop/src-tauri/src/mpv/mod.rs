@@ -146,8 +146,9 @@ impl Player {
         self.wid.store(wid, Ordering::SeqCst);
     }
 
-    /// The directory holding Geist for subtitles (`fonts::install`): text subtitles are drawn in
-    /// it, like the web's captions. Without it libmpv keeps its own default font.
+    /// The directory holding Geist for subtitles (`fonts::install`): text subtitles, ASS ones
+    /// included, are drawn in it, like the web's captions. Without it libmpv keeps its own
+    /// default font and the ASS styles theirs.
     pub fn set_subtitle_fonts(&self, dir: PathBuf) {
         let _ = self.subtitle_fonts.set(dir);
     }
@@ -301,6 +302,10 @@ impl Player {
         if let Some(dir) = self.subtitle_fonts.get() {
             set("sub-fonts-dir", &dir.to_string_lossy())?;
             set("sub-font", crate::fonts::FAMILY)?;
+            set(
+                "sub-ass-style-overrides",
+                &crate::fonts::ass_style_overrides(),
+            )?;
         }
         for (name, value) in options {
             set(name, value)?;

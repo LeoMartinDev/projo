@@ -1,12 +1,20 @@
 //! Geist for libmpv's subtitles (PRODUCT.md §28.7): libass draws them and reads TrueType, not the
 //! web's woff2, so the app writes the bundled SemiBold and its italic — the weight of the web's
 //! captions (`.captions` of player.css) — into its config directory, and the player points
-//! libmpv's `sub-fonts-dir` at it with `sub-font` = [`FAMILY`] (mpv/mod.rs).
+//! libmpv's `sub-fonts-dir` at it with `sub-font` = [`FAMILY`] (mpv/mod.rs) for plain text
+//! subtitles and `sub-ass-style-overrides` = [`ass_style_overrides`] for ASS ones.
 
 use std::path::{Path, PathBuf};
 
 /// The family name both files declare (name ID 1), the one libass matches.
 pub const FAMILY: &str = "Geist SemiBold";
+
+/// `sub-font` only styles plain text subtitles: an ASS track keeps the fonts of its own styles.
+/// This replaces the font of every style (no `Style.` prefix: all of them) and nothing else, so
+/// sizes, colours, positions and the `\fn` of typeset signs stay the file's.
+pub fn ass_style_overrides() -> String {
+    format!("Fontname={FAMILY}")
+}
 
 /// `apps/desktop/src-tauri/assets/`, copied from the installed geist by
 /// packages/design/scripts/fonts.ts (checked by packages/design/fonts.test.ts).
@@ -38,6 +46,11 @@ pub fn install(config_dir: &Path) -> std::io::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overrides_only_the_font_of_every_ass_style() {
+        assert_eq!(ass_style_overrides(), "Fontname=Geist SemiBold");
+    }
 
     #[test]
     fn writes_the_fonts_once_and_repairs_them_when_altered() {
