@@ -227,6 +227,55 @@
   font-weight: 400;
 }
 
+/* Timeshift (§29.5): the bar of the replay window, a restart's gap hatched, the programmes'
+   starts as ticks; the live badge at its right. */
+.live-timeline__gap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  background: repeating-linear-gradient(135deg, var(--fill-5) 0 2px, transparent 2px 5px);
+}
+
+.live-timeline__tick {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 12px;
+  margin: -6px 0 0 -1px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text-secondary);
+  pointer-events: none;
+}
+
+.live-badge {
+  flex: 0 0 auto;
+  min-width: 64px;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--fill-3);
+  color: var(--color-text-muted-strong);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.live-badge[data-live='true'] {
+  background: var(--color-error);
+  color: var(--color-text-strong);
+  cursor: default;
+}
+
+.live-badge:not([data-live='true']):hover {
+  background: var(--fill-5);
+}
+
 @media (--compact) {
   .live-channels {
     top: auto;

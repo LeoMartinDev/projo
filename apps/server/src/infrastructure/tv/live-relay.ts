@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 
 import type { Logger } from '../../core/logger.ts'
 import type { AdminNotifier } from '../../core/notifications/notifier.ts'
@@ -205,6 +205,19 @@ export const createLiveRelay = ({
       } catch {
         return []
       }
+    },
+
+    sizeOf: ({ name, ...key }) => {
+      if (!isLiveFileName(name)) return 0
+      try {
+        return statSync(`${dirOf(key)}/${name}`).size
+      } catch {
+        return 0
+      }
+    },
+
+    removeSegment: ({ name, ...key }) => {
+      if (isLiveFileName(name)) remove(`${dirOf(key)}/${name}`)
     },
 
     removeRun: ({ run, ...key }) => {

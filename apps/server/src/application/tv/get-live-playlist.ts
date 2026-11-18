@@ -21,11 +21,21 @@ export const getLivePlaylistFactory =
     streams: Pick<LiveStreams, 'playlist' | 'isAvailable'>
     endLiveSession: EndLiveSession
   }) =>
-  (access: LiveStreamAccess): Result<string, GetLivePlaylistError> => {
+  ({
+    from,
+    ...access
+  }: LiveStreamAccess & {
+    /** The window from this segment on (§29.4: a player that cannot seek in a live playlist). */
+    from?: number
+  }): Result<string, GetLivePlaylistError> => {
     const session = authorize(access)
     if (!session.ok) return session
     const { channelId, rendition } = session.value
-    const playlist = streams.playlist({ channelId, rendition })
+    const playlist = streams.playlist({
+      channelId,
+      rendition,
+      ...(from === undefined ? {} : { from }),
+    })
     if (!playlist.ok && !streams.isAvailable({ channelId, rendition })) {
       endLiveSession({ session: session.value, reason: 'ended' })
     }

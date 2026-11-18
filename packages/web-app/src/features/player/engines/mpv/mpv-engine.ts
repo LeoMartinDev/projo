@@ -5,7 +5,12 @@ import type {
   VideoCodecId,
 } from '@projo/shared/api/playback'
 
-import type { EngineCapabilities, EngineLoad, StreamFailure } from '@projo/player/core/engine'
+import type {
+  EngineCapabilities,
+  EngineLoad,
+  LivePoint,
+  StreamFailure,
+} from '@projo/player/core/engine'
 import {
   initialMediaState,
   type MediaEvent,
@@ -63,6 +68,8 @@ export const mpvCapabilities: EngineCapabilities = {
   rendersBehindPage: true,
   backdropBlur: false,
   volume: true,
+  // Every seek in a live playlist reloads it from a segment (§29.5): never a seek in libmpv.
+  liveSeek: true,
 }
 
 export const mpvClientCapabilities = (screenHeight: number | undefined): ClientCapabilities => ({
@@ -110,6 +117,10 @@ export const pictureMargins = (
 
 const seconds = (ms: number) => String(Math.round(ms) / 1000)
 
+/** A live playlist from a segment on (`?from=<sequence>`, §29.4), or as it is. */
+export const liveUrlFrom = (url: string, from: LivePoint | undefined): string =>
+  from === undefined ? url : `${url}${url.includes('?') ? '&' : '?'}from=${from.sequence}`
+
 type Entry = {
   // Undefined for a live playlist (§29.5): no tracks to apply.
   load: EngineLoad | undefined
@@ -117,6 +128,11 @@ type Entry = {
   onFailure: (failure: StreamFailure) => void
   active: boolean
   wanted: { audioIndex: number | undefined; subtitle: SubtitleTrackDto | undefined }
+  // A live playlist: its URL, and the wall-clock start of the segment it was loaded from (its
+  // position is that plus `time-pos`, libmpv rebasing each file to 0; §29.5).
+  live?: { streamUrl: string; anchorMs: number | undefined }
+  // Times it was opened: a seek in a live playlist opens it again, only the latest loads.
+  openings?: number
 }
 
 type Instance = {
@@ -168,6 +184,8 @@ export const createMpvEngine = ({
   const desired = new Map<string, string>()
   let instance: Instance | undefined
   let current: Entry | undefined
+  // `demuxer-lavf-o` holds a live start (`live_start_index=0`) to reset before the next file.
+  let liveStartSet = false
 
   // The window's full screen (§28.4), whoever changed it.
   const fullscreen = createStore(false)
@@ -341,27 +359,44 @@ export const createMpvEngine = ({
       subtitleDelayMs: number | undefined
       // A live playlist: libmpv picks the audio, shows no subtitles.
       live: boolean
+      // Timeshift (§29.5): the playlist from that segment on, started at its first.
+      liveFrom?: LivePoint | undefined
     },
   ) => {
-    if (current !== undefined) current.active = false
+    // A seek in a live playlist reloads the same entry (§29.5): it stays active, and only its
+    // latest opening loads.
+    if (current !== undefined && current !== entry) current.active = false
     current = entry
+    entry.openings = (entry.openings ?? 0) + 1
+    const opening = entry.openings
     playback = loadingPlayback(playback.media, stream.startSeconds ?? 0)
     emit('emptied')
     if (stream.subtitleDelayMs !== undefined)
       setDesired('sub-delay', seconds(stream.subtitleDelayMs))
+    // ffmpeg's HLS demuxer starts a live playlist three segments from its end; from a segment,
+    // at its first (`live_start_index=0`). Reset for the next file once set.
+    const liveStart = stream.liveFrom === undefined ? '' : 'live_start_index=0'
     void run(async () => {
       await ensureInstance()
-      if (!entry.active || current !== entry) return
+      if (!entry.active || current !== entry || entry.openings !== opening) return
       await bridge.setProperty('pause', 'yes')
       if (stream.live) {
         await bridge.setProperty('aid', 'auto')
         await bridge.setProperty('sid', 'no')
       }
+      if (liveStart !== '' || liveStartSet) {
+        await bridge.setProperty('demuxer-lavf-o', liveStart)
+        liveStartSet = liveStart !== ''
+      }
       await bridge.setProperty(
         'start',
         stream.startSeconds === undefined ? 'none' : String(Math.max(0, stream.startSeconds)),
       )
-      await bridge.command(['loadfile', resolveUrl(stream.url), 'replace'])
+      await bridge.command([
+        'loadfile',
+        resolveUrl(liveUrlFrom(stream.url, stream.liveFrom)),
+        'replace',
+      ])
     }).catch((error: unknown) => fail(entry, error))
     return () => unload(entry)
   }
@@ -429,6 +464,7 @@ export const createMpvEngine = ({
     // A live playlist (§29.5): ffmpeg's HLS demuxer starts it near its live edge (`start=none`).
     // Nothing a title set carries over: normal speed, no subtitle delay, libmpv's own audio
     // track and no subtitles (`aid`/`sid` set at runtime outlive their file).
+    // With timeshift (§29.5), from the segment of `from`: its position is anchored there.
     loadLive: (load, onFailure) => {
       setDesired('speed', '1')
       setDesired('sub-delay', '0')
@@ -439,9 +475,38 @@ export const createMpvEngine = ({
           onFailure,
           active: true,
           wanted: { audioIndex: undefined, subtitle: undefined },
+          live: { streamUrl: load.streamUrl, anchorMs: load.from?.segmentStartMs },
         },
-        { url: load.streamUrl, startSeconds: undefined, subtitleDelayMs: undefined, live: true },
+        {
+          url: load.streamUrl,
+          startSeconds: undefined,
+          subtitleDelayMs: undefined,
+          live: true,
+          liveFrom: load.from,
+        },
       )
+    },
+    // Wall clock of the frame shown: the segment the playlist was loaded from, plus `time-pos`.
+    livePosition: () => {
+      const anchor = current?.live?.anchorMs
+      return anchor === undefined || playback.phase !== 'loaded' || !playback.media.ready
+        ? undefined
+        : anchor + Math.round(playback.media.currentTime * 1000)
+    },
+    // libmpv never seeks in a live playlist (§29.5): the same entry loads it again from the
+    // point's segment, paused or playing as it was.
+    seekLive: (point) => {
+      const entry = current
+      if (entry?.live === undefined || !entry.active) return
+      entry.autoplay = !playback.media.paused
+      entry.live = { ...entry.live, anchorMs: point.segmentStartMs }
+      open(entry, {
+        url: entry.live.streamUrl,
+        startSeconds: undefined,
+        subtitleDelayMs: undefined,
+        live: true,
+        liveFrom: point,
+      })
     },
     selectAudio: (track) => {
       if (current === undefined) return

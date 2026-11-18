@@ -397,8 +397,23 @@ export const tvSessionDtoSchema = z.object({
   sessionId: z.string(),
   streamUrl: z.string(),
   rendition: tvRenditionSchema,
+  // The replay window it may rewind in, in seconds (§29.4); absent from older servers.
+  windowS: z.number().int().positive().optional(),
 })
 export type TvSessionDto = z.infer<typeof tvSessionDtoSchema>
+
+/** A live heartbeat's optional body (§29.4): whether its viewer is paused. */
+export const tvHeartbeatBodySchema = z.object({ paused: z.boolean().optional() })
+export type TvHeartbeatBody = z.infer<typeof tvHeartbeatBodySchema>
+
+/** `index.m3u8?from=<sequence>`: the replay window from that segment on (§29.4). */
+export const tvLivePlaylistQuerySchema = z.object({
+  from: z
+    .string()
+    .regex(/^\d{1,12}$/u)
+    .transform(Number)
+    .optional(),
+})
 
 /** A live session in the admin's active sessions (§29.4). */
 export const adminTvSessionDtoSchema = z.object({
@@ -410,6 +425,8 @@ export const adminTvSessionDtoSchema = z.object({
   device: z.string().optional(),
   startedAt: isoDateTimeSchema,
   lastHeartbeatAt: isoDateTimeSchema,
+  // Paused by its viewer since (§29.4): its stream, and a provider connection, are kept.
+  pausedSince: isoDateTimeSchema.optional(),
 })
 export type AdminTvSessionDto = z.infer<typeof adminTvSessionDtoSchema>
 

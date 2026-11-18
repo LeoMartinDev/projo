@@ -1,9 +1,10 @@
 import type { HlsConfig } from 'hls.js'
 
-import type { EngineStats, StreamFailure } from '@projo/player/core/engine'
+import type { EngineStats, LivePoint, StreamFailure } from '@projo/player/core/engine'
 import { waitForPlaylist } from '@projo/player/core/playlist-wait'
 
 import { hlsFailureKind, mediaErrorKind } from './failure-kind.ts'
+import { liveSyncS, livePointOf, mediaTimeAt, nativeMediaTimeAt } from './live-position.ts'
 import { keyframeWaitLoadPolicy, mediaPlaylistUrl } from './playlist.ts'
 import { watchSeekStalls } from './seek-stall.ts'
 
@@ -14,22 +15,59 @@ export type HlsLoader = typeof loadHls
 export type HlsMode = 'native' | 'mse'
 
 /**
- * hls.js on a live playlist (§29.5): segments of about 2 s, a stream ready at two. Playback
- * starts at the first and settles three behind the newest; a player more than 20 s behind
- * jumps forward before its segments leave the 30 s window. No catch-up speed-up.
+ * hls.js on a live playlist (§29.5): playback starts and settles 6 s behind the live edge, like
+ * the playlist's `EXT-X-START`. No maximum latency (it would pull any rewind in the replay
+ * window back to the edge), no catch-up speed-up; `seekable` is the window.
  */
 export const liveHlsConfig = {
-  liveSyncDuration: 6,
-  liveMaxLatencyDuration: 20,
+  liveSyncDuration: liveSyncS,
   maxLiveSyncPlaybackRate: 1,
-  backBufferLength: 10,
+  liveDurationInfinity: false,
+  backBufferLength: 60,
 } satisfies Partial<HlsConfig>
 
 // What hls.js knows of the stream (playback info): nothing for a direct file or native HLS.
+// Live, its position on the wall clock and a move in the replay window (timeshift, §29.5).
 export type AttachedStream = {
   detach: () => void
   stats: () => Pick<EngineStats, 'videoCodec' | 'audioCodec' | 'frameRate' | 'bandwidth'>
+  livePosition: () => number | undefined
+  seekLive: (point: LivePoint) => void
 }
+
+type StartDated = { getStartDate?: () => Date }
+
+const seekableOf = (video: HTMLVideoElement): { start: number; end: number } | undefined => {
+  const { seekable } = video
+  return seekable.length === 0
+    ? undefined
+    : { start: seekable.start(0), end: seekable.end(seekable.length - 1) }
+}
+
+/** Native HLS (Safari): the stream's start date, when its playlist has program dates. */
+const startDateOf = (video: HTMLVideoElement): number | undefined => {
+  const time = (video as unknown as StartDated).getStartDate?.().getTime()
+  return time === undefined || !Number.isFinite(time) ? undefined : time
+}
+
+/** Timeshift in native HLS (§29.5): through `getStartDate()` and `seekable`. */
+const nativeLive = (video: HTMLVideoElement) => ({
+  livePosition: () => {
+    const start = startDateOf(video)
+    return start === undefined || video.readyState < 1
+      ? undefined
+      : start + video.currentTime * 1000
+  },
+  seekLive: (point: LivePoint) => {
+    const seekable = seekableOf(video)
+    if (seekable === undefined) return
+    const start = startDateOf(video)
+    video.currentTime =
+      point.live === true || start === undefined
+        ? livePointOf(seekable.end)
+        : nativeMediaTimeAt(start, point.atMs, seekable)
+  },
+})
 
 const seekOnceLoaded = (video: HTMLVideoElement, seconds: number) => {
   if (seconds <= 0) return () => {}
@@ -56,6 +94,7 @@ export const attachStream = ({
   onOpened = () => {},
   withCredentials = true,
   live = false,
+  liveFrom,
   hls: hlsLoader = loadHls,
 }: {
   video: HTMLVideoElement
@@ -71,6 +110,9 @@ export const attachStream = ({
   withCredentials?: boolean
   // A live playlist (§29.5): played from its live edge, ready as soon as it is handed over.
   live?: boolean
+  // A live load from a point of its replay window (timeshift, §29.5); its live point is the
+  // live sync's own.
+  liveFrom?: LivePoint | undefined
   // Where hls.js comes from (tests hand a scripted one).
   hls?: HlsLoader
 }): AttachedStream => {
@@ -119,6 +161,12 @@ export const attachStream = ({
         video.src = stream.url
         onOpened()
       })
+    const timeshift = nativeLive(video)
+    // A live load from a point of the window (not its live point): there once loaded.
+    const startAt = () => {
+      if (liveFrom !== undefined && liveFrom.live !== true) timeshift.seekLive(liveFrom)
+    }
+    if (live) video.addEventListener('loadedmetadata', startAt, { once: true })
     return {
       detach: () => {
         if (disposed) return
@@ -127,15 +175,24 @@ export const attachStream = ({
         stopSeekWatch()
         video.removeEventListener('error', failed)
         video.removeEventListener('loadedmetadata', play)
+        video.removeEventListener('loadedmetadata', startAt)
         video.removeAttribute('src')
         video.load()
       },
       stats: () => ({}),
+      livePosition: () => (live && !disposed ? timeshift.livePosition() : undefined),
+      seekLive: (point) => {
+        if (live && !disposed) timeshift.seekLive(point)
+      },
     }
   }
 
   let destroy = () => {}
   let hlsStats: AttachedStream['stats'] = () => ({})
+  let hlsLive: Pick<AttachedStream, 'livePosition' | 'seekLive'> = {
+    livePosition: () => undefined,
+    seekLive: () => {},
+  }
   void hlsLoader().then((Hls) => {
     if (disposed) return
     const config: Partial<HlsConfig> = {
@@ -170,6 +227,35 @@ export const attachStream = ({
       onOpened()
       play()
     })
+    if (live) {
+      // Timeshift (§29.5): a point maps to its fragment by the fragments' program dates.
+      const fragments = () =>
+        (hls.levels[Math.max(0, hls.currentLevel)]?.details?.fragments ?? []).map((fragment) => ({
+          start: fragment.start,
+          duration: fragment.duration,
+          dateMs: fragment.programDateTime ?? undefined,
+        }))
+      const seekLive = (point: LivePoint) => {
+        const seekable = seekableOf(video)
+        const target =
+          point.live === true
+            ? (hls.liveSyncPosition ??
+              (seekable === undefined ? undefined : livePointOf(seekable.end)))
+            : mediaTimeAt(fragments(), point.atMs)
+        if (target !== undefined) video.currentTime = target
+      }
+      hlsLive = {
+        livePosition: () => hls.playingDate?.getTime() ?? undefined,
+        seekLive,
+      }
+      // A live load from a point of the window (not its live point): there once listed.
+      if (liveFrom !== undefined && liveFrom.live !== true) {
+        const from = liveFrom
+        hls.once(Hls.Events.LEVEL_LOADED, () => {
+          if (!disposed) seekLive(from)
+        })
+      }
+    }
     hls.loadSource(stream.url)
     hls.attachMedia(video)
     destroy = () => hls.destroy()
@@ -196,6 +282,10 @@ export const attachStream = ({
       video.load()
     },
     stats: () => hlsStats(),
+    livePosition: () => (disposed ? undefined : hlsLive.livePosition()),
+    seekLive: (point) => {
+      if (!disposed) hlsLive.seekLive(point)
+    },
   }
 }
 

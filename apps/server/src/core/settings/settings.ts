@@ -9,6 +9,8 @@ export const settingKeys = {
   burnInEnabled: 'playback.burn_in_enabled',
   trickplayEnabled: 'playback.trickplay_enabled',
   hwAccel: 'playback.hw_accel',
+  liveWindowMinutes: 'playback.live_window_minutes',
+  liveCacheMaxGb: 'playback.live_cache_max_gb',
   segmentProviders: 'segments.providers',
   theintrodbApiKey: 'segments.theintrodb_api_key',
   skipdbAnonymousKey: 'segments.skipdb_anonymous_key',
@@ -39,6 +41,10 @@ export type PlaybackSettings = {
   burnInEnabled: boolean
   trickplayEnabled: boolean
   hwAccel: 'off' | 'vaapi'
+  /** The live TV replay window (§29.4), in minutes. */
+  liveWindowMinutes: number
+  /** The cap of the live TV cache (§29.4), in GB. */
+  liveCacheMaxGb: number
 }
 
 export const defaultPlaybackSettings: PlaybackSettings = {
@@ -48,6 +54,8 @@ export const defaultPlaybackSettings: PlaybackSettings = {
   burnInEnabled: true,
   trickplayEnabled: true,
   hwAccel: 'off',
+  liveWindowMinutes: 30,
+  liveCacheMaxGb: 20,
 }
 
 export type PlaybackSettingsReader = { read: () => PlaybackSettings }

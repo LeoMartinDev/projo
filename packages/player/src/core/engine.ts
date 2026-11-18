@@ -30,6 +30,9 @@ export type EngineCapabilities = {
   backdropBlur: boolean
   // The volume can be set by the page (false on iOS Safari: hardware buttons only).
   volume: boolean
+  // A live stream can be paused and moved in its replay window (timeshift, §29.5):
+  // `livePosition` and `seekLive` work.
+  liveSeek: boolean
 }
 
 /**
@@ -60,8 +63,20 @@ export type EngineStats = {
   bandwidth?: number
 }
 
-/** A live playlist (§29.5), played from its live edge. */
-export type LiveLoad = { streamUrl: string; autoplay: boolean }
+/**
+ * A point of a live stream's replay window (§29.5): a wall-clock time (ms since the epoch), the
+ * segment holding it (its media sequence) and that segment's start. `live`: the live point,
+ * which the engine keeps following (its own live sync where it has one).
+ */
+export type LivePoint = {
+  atMs: number
+  sequence: number
+  segmentStartMs: number
+  live?: boolean
+}
+
+/** A live playlist (§29.5), played from its live edge, or from `from` (timeshift). */
+export type LiveLoad = { streamUrl: string; autoplay: boolean; from?: LivePoint }
 
 export type EngineLoad = {
   session: PlaybackSessionDto
@@ -107,6 +122,11 @@ export type PlayerEngine = {
     onFailure: (failure: StreamFailure) => void,
     onOpened?: () => void,
   ) => () => void
+  // Timeshift (§29.5, when `capabilities.liveSeek`): the wall-clock time (ms since the epoch) of
+  // the live frame shown, undefined while unknown; and a move to a point of the replay window,
+  // the play state kept.
+  livePosition: () => number | undefined
+  seekLive: (point: LivePoint) => void
   // In-engine track switches (when the engine draws or decodes them itself).
   selectAudio: (track: AudioTrackDto) => void
   selectSubtitle: (track: SubtitleTrackDto | undefined) => void

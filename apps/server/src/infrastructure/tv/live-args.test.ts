@@ -85,7 +85,7 @@ describe('ffmpeg arguments of the relay (§29.4)', () => {
       '-hls_list_size',
       '20',
       '-hls_flags',
-      'delete_segments+independent_segments',
+      'independent_segments',
       '-hls_fmp4_init_filename',
       'init-3.mp4',
       '-hls_segment_filename',

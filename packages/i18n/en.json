@@ -628,7 +628,13 @@
       "previous": "Previous channel",
       "next": "Next channel",
       "nowPlaying": "Live TV",
-      "sessionEnded": "Session ended"
+      "sessionEnded": "Session ended",
+      "live": "Live",
+      "goLive": "Back to live",
+      "behind": "{{time}} behind live",
+      "window": "Position in the live stream",
+      "resumedOldest": "Resumed at the earliest point kept",
+      "resumedLive": "Paused too long: back to live"
     }
   },
   "admin": {
@@ -970,7 +976,8 @@
       "positionOf": "{{position}} / {{duration}}",
       "stop": "Stop",
       "stopNamed": "Stop {{profile}} watching {{title}}",
-      "stopLive": "Stop {{channel}} for {{profile}}"
+      "stopLive": "Stop {{channel}} for {{profile}}",
+      "pausedSince": "Paused since {{time}}"
     },
     "tv": {
       "title": "TV",
@@ -1366,7 +1373,9 @@
       "downmix": "Downmix multichannel audio to stereo",
       "burnIn": "Burn in image subtitles",
       "trickplay": "Timeline thumbnails",
-      "hwAccel": "Hardware transcoding (VAAPI)"
+      "hwAccel": "Hardware transcoding (VAAPI)",
+      "liveWindow": "Live TV rewind (minutes)",
+      "liveCacheSize": "Live TV cache (GB)"
     },
     "server": {
       "title": "Server",

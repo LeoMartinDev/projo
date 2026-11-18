@@ -157,6 +157,19 @@ describe('liveCommandFor (§29.5)', () => {
     expect(liveCommandFor(key('<'), idle)).toBeUndefined()
   })
 
+  test('with timeshift, ←/→ seek 10 s; on a focused button they still move focus', () => {
+    const timeshift = { ...idle, timeshift: true }
+    expect(liveCommandFor(key('ArrowLeft'), timeshift)).toBe('seek_back')
+    expect(liveCommandFor(key('ArrowRight'), timeshift)).toBe('seek_forward')
+    expect(liveCommandFor(key('ArrowLeft'), { ...timeshift, focusedControl: 'slider' })).toBe(
+      'seek_back',
+    )
+    expect(liveCommandFor(key('ArrowLeft'), { ...timeshift, focusedControl: 'activatable' })).toBe(
+      'focus_left',
+    )
+    expect(liveCommandFor(key('PageDown'), timeshift)).toBe('next_channel')
+  })
+
   test('Escape closes the channel list first, and the list keeps its own keys', () => {
     expect(liveCommandFor(key('Escape'), { ...idle, overlayOpen: true })).toBe('close_overlay')
     expect(liveCommandFor(key('PageDown'), { ...idle, inOverlay: true })).toBeUndefined()

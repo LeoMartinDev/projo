@@ -9,6 +9,10 @@ export type LiveWindowSegment = {
   sequence: number
   /** Discontinuities before it since the stream started (one per run change). */
   discontinuity: number
+  /** Its start on the relay's clock (`#EXT-X-PROGRAM-DATE-TIME`), ms since the epoch. */
+  startMs: number
+  /** Its file's size, measured when first listed (the live cache's cap, §29.4). */
+  bytes: number
 }
 
 /** The segments of an ffmpeg HLS playlist (`#EXTINF` then the URI), in order. */
@@ -31,10 +35,10 @@ export const parseRunPlaylist = (text: string): LiveSegmentFile[] => {
 }
 
 /** The newest segments totalling at most `maxS` seconds (at least the newest one). */
-export const servedWindow = (
-  segments: readonly LiveWindowSegment[],
+export const servedWindow = <T extends { durationS: number }>(
+  segments: readonly T[],
   maxS: number,
-): LiveWindowSegment[] => {
+): T[] => {
   let total = 0
   let start = segments.length
   while (start > 0) {
@@ -48,7 +52,20 @@ export const servedWindow = (
 }
 
 /**
- * The stream's `#EXT-X-TARGETDURATION` (§29.4), pinned from its first segment: a playlist's
+ * The window from segment `from` on (§29.4, `index.m3u8?from=`): the whole window when that
+ * segment already left it, the newest segment alone when `from` is past it.
+ */
+export const windowFrom = <T extends { sequence: number }>(
+  window: readonly T[],
+  from: number | undefined,
+): T[] => {
+  if (from === undefined) return [...window]
+  const index = window.findIndex((segment) => segment.sequence >= from)
+  return index === -1 ? window.slice(-1) : window.slice(index)
+}
+
+/**
+ * The `#EXT-X-TARGETDURATION` of a stream (§29.4), pinned from its first segment: a playlist's
  * target never changes (RFC 8216 §4.3.3.1). ffmpeg cuts on the first keyframe past each 2 s, so
  * a segment lasts less than 2 s plus one keyframe interval; the first segment (2 s plus the wait
  * for a keyframe) bounds that interval, and 2 s of headroom covers a later, longer one. Durations
@@ -57,9 +74,13 @@ export const servedWindow = (
 export const liveTargetDurationOf = (firstSegmentS: number): number =>
   Math.max(2, Math.round(firstSegmentS)) + 2
 
+/** Where a player starts, before the live edge (`#EXT-X-START`, §29.4, §29.5). */
+export const liveStartOffsetS = 6
+
 /**
- * The live media playlist served to viewers (§29.4): no `ENDLIST`, an `#EXT-X-MAP` per run and
- * a discontinuity where a run follows another. Empty window: undefined (not ready).
+ * The live media playlist served to viewers (§29.4): no `ENDLIST`, an `#EXT-X-MAP` per run, a
+ * discontinuity where a run follows another and a program date on the first segment and on the
+ * first of each run. Empty window: undefined (not ready).
  */
 export const renderLivePlaylist = (
   served: readonly LiveWindowSegment[],
@@ -75,6 +96,7 @@ export const renderLivePlaylist = (
     `#EXT-X-MEDIA-SEQUENCE:${first.sequence}`,
     `#EXT-X-DISCONTINUITY-SEQUENCE:${first.discontinuity}`,
     '#EXT-X-INDEPENDENT-SEGMENTS',
+    `#EXT-X-START:TIME-OFFSET=-${liveStartOffsetS}`,
   ]
   let previous: LiveWindowSegment | undefined
   for (const segment of served) {
@@ -82,7 +104,10 @@ export const renderLivePlaylist = (
       lines.push('#EXT-X-DISCONTINUITY')
     }
     if (previous === undefined || previous.run !== segment.run) {
-      lines.push(`#EXT-X-MAP:URI="init-${segment.run}.mp4"`)
+      lines.push(
+        `#EXT-X-MAP:URI="init-${segment.run}.mp4"`,
+        `#EXT-X-PROGRAM-DATE-TIME:${new Date(segment.startMs).toISOString()}`,
+      )
     }
     lines.push(`#EXTINF:${segment.durationS.toFixed(3)},`, segment.name)
     previous = segment

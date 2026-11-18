@@ -20,6 +20,8 @@ const schemas = {
   burnInEnabled: z.boolean(),
   trickplayEnabled: z.boolean(),
   hwAccel: z.enum(['off', 'vaapi']),
+  liveWindowMinutes: z.number().int().min(1).max(240),
+  liveCacheMaxGb: z.number().int().min(1),
 } satisfies { [K in keyof PlaybackSettings]: z.ZodType<PlaybackSettings[K]> }
 
 export const createSqlitePlaybackSettings = ({ db }: { db: Db }): PlaybackSettingsReader => {
@@ -37,6 +39,8 @@ export const createSqlitePlaybackSettings = ({ db }: { db: Db }): PlaybackSettin
       burnInEnabled: value('burnInEnabled'),
       trickplayEnabled: value('trickplayEnabled'),
       hwAccel: value('hwAccel'),
+      liveWindowMinutes: value('liveWindowMinutes'),
+      liveCacheMaxGb: value('liveCacheMaxGb'),
     }),
   }
 }
@@ -48,6 +52,8 @@ const editableKeys = [
   'burnInEnabled',
   'trickplayEnabled',
   'hwAccel',
+  'liveWindowMinutes',
+  'liveCacheMaxGb',
 ] as const satisfies readonly (keyof PlaybackSettings)[]
 
 export const createSqlitePlaybackSettingsWriter = ({ db }: { db: Db }): PlaybackSettingsWriter => ({

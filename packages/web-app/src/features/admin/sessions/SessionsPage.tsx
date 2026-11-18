@@ -17,6 +17,7 @@ import {
   playbackSessionsQuery,
   playbackSessionsQueryKey,
 } from './queries.ts'
+import { clockTime } from '../../tv/guide-format.ts'
 import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
@@ -120,7 +121,7 @@ const SessionRow = ({
   )
 }
 
-/** A live TV session (§29.4): the channel instead of a title, no position. */
+/** A live TV session (§29.4): the channel instead of a title, no position; paused since when. */
 const LiveSessionRow = ({
   session,
   stopping,
@@ -162,7 +163,11 @@ const LiveSessionRow = ({
         </span>
       </div>
       <div className="ses-tr__cell ses-tr__position" role="cell">
-        <span className="ses-tr__muted">—</span>
+        <span className="ses-tr__muted">
+          {session.pausedSince === undefined
+            ? '—'
+            : t('admin.sessions.pausedSince', { time: clockTime(session.pausedSince) })}
+        </span>
       </div>
       <div className="ses-tr__cell ses-tr__device" role="cell">
         <span className="ses-tr__muted">{session.device ?? '—'}</span>

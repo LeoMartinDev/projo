@@ -95,6 +95,10 @@ export type LiveRelay = {
   startCompat: (spec: LiveCompatSpec) => LiveCompatRun
   /** The segments the run's playlist lists now (none before its first). */
   segmentsOf: (input: LiveStreamKey & { run: number }) => LiveSegmentFile[]
+  /** The size in bytes of a file of the stream's folder (0 when it is gone). */
+  sizeOf: (input: LiveStreamKey & { name: string }) => number
+  /** Deletes one segment of the stream's folder (out of the replay window, §29.4). */
+  removeSegment: (input: LiveStreamKey & { name: string }) => void
   /** Deletes a finished run's playlist, init and segments. */
   removeRun: (input: LiveStreamKey & { run: number }) => void
   /** Deletes the stream's folder. */
@@ -142,11 +146,18 @@ export const liveTimings = {
   readyTimeoutMs: 30_000,
   /** A stream is ready once its window holds this many segments (a player starts fed). */
   readySegments: 2,
-  /** Served sliding window. */
-  windowS: 30,
   /** A compat run further behind its input than this many segments starts again (§29.4). */
   compatBacklogSegments: 3,
 } as const
+
+/** The replay window and the live cache's cap (§29.4), read from the settings at each poll. */
+export type LiveLimits = { windowS: number; cacheMaxBytes: number }
+
+/** The settings' defaults: a 30-minute window, a 20 GB cache. */
+export const defaultLiveLimits: LiveLimits = {
+  windowS: 30 * 60,
+  cacheMaxBytes: 20 * 1024 ** 3,
+}
 
 /** File names a stream serves: a run's init and segments (`init-2.mp4`, `seg-2-00041.m4s`). */
 export const isLiveFileName = (name: string): boolean =>

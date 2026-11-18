@@ -8,9 +8,15 @@ export const createLiveSessionStore = (): LiveSessionRepository => {
       sessions.set(session.id, session)
     },
     findById: (id) => sessions.get(id),
-    heartbeat: ({ id, at }) => {
+    heartbeat: ({ id, at, paused }) => {
       const session = sessions.get(id)
-      if (session !== undefined) sessions.set(id, { ...session, lastHeartbeatAt: at })
+      if (session === undefined) return
+      const { pausedSince, ...playing } = session
+      sessions.set(id, {
+        ...playing,
+        lastHeartbeatAt: at,
+        ...(paused === true ? { pausedSince: pausedSince ?? at } : {}),
+      })
     },
     setRendition: ({ id, rendition }) => {
       const session = sessions.get(id)

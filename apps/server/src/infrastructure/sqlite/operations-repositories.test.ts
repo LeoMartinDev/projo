@@ -508,6 +508,8 @@ describe('settings writers', () => {
       burnInEnabled: true,
       trickplayEnabled: false,
       hwAccel: 'off',
+      liveWindowMinutes: 30,
+      liveCacheMaxGb: 20,
     })
   })
 

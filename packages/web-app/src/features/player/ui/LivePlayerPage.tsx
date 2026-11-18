@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 
 import { createLiveController } from '@projo/player/application/live-controller'
 import { liveView } from '@projo/player/application/live-view'
-import { adjacentChannel } from '@projo/player/core/live'
+import { adjacentChannel, liveSeekStepMs } from '@projo/player/core/live'
 import { createStore } from '@projo/player/core/store'
 import type { TvChannelDto, TvChannelsResponse } from '@projo/shared/api/tv'
 
@@ -23,7 +23,15 @@ import { mediaUrl } from '../../../shared/api/media.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
 import { useErrorMessage } from '../../../shared/i18n/errors.ts'
 import { useNow } from '../../../shared/ui/use-now.ts'
-import { CloseIcon, MutedIcon, PauseIcon, PlayIcon, VolumeIcon } from '../../../shared/ui/icons.tsx'
+import {
+  CloseIcon,
+  Forward10Icon,
+  MutedIcon,
+  PauseIcon,
+  PlayIcon,
+  Rewind10Icon,
+  VolumeIcon,
+} from '../../../shared/ui/icons.tsx'
 import { isTextEntry } from '../../../shared/ui/focusable.ts'
 import { type Direction } from '../../../shared/ui/spatial-nav/geometry.ts'
 import { claimIntents } from '../../../shared/ui/spatial-nav/intents.ts'
@@ -59,10 +67,12 @@ import {
   browserPage,
   browserStorage,
   browserTimers,
+  browserWallClock,
   liveSessionEnds,
   liveTvApi,
 } from '../playback-api.ts'
 import type { WebPlayerEngine } from '../web-engine.ts'
+import { LiveBadge, type LiveTick, LiveTimeline } from './LiveTimeline.tsx'
 import { onMenuKeyDown, useMenuFocus } from './menu-focus.ts'
 import {
   AirPlayIcon,
@@ -328,6 +338,7 @@ export const LivePlayerPage = ({
       api: liveTvApi,
       ends: liveSessionEnds,
       timers: browserTimers,
+      clock: browserWallClock,
       storage: browserStorage,
       page: browserPage,
     }),
@@ -354,6 +365,26 @@ export const LivePlayerPage = ({
   const interruption = state.interruption
   const channel = channels.data?.items.find((item) => item.id === state.channelId)
   const onAir = channel === undefined ? {} : onAirAt(channel, at)
+  // Timeshift (§29.5): the bar of the replay window, read at each render; paused, the delay
+  // still grows, so the page renders every second while it shows.
+  const timeline = controller.timeline()
+  const timeshift = timeline !== undefined
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (!timeshift) return
+    const timer = setInterval(() => setTick((tick) => tick + 1), 1000)
+    return () => clearInterval(timer)
+  }, [timeshift])
+  // The programmes' starts on the bar: the one on now and the next (§29.3).
+  const ticks = useMemo(
+    (): LiveTick[] =>
+      [onAir.now, onAir.next].flatMap((programme) =>
+        programme === undefined
+          ? []
+          : [{ atMs: Date.parse(programme.startAt), title: programme.title }],
+      ),
+    [onAir.now, onAir.next],
+  )
 
   // The URL names the channel (zapping replaces it): the controller follows it.
   useEffect(() => controller.zap(channelId), [controller, channelId])
@@ -446,12 +477,19 @@ export const LivePlayerPage = ({
     metadata: nowPlaying,
     seekBy: undefined,
     next: canStep ? () => stepChannel(1) : undefined,
+    play: controller.play,
   })
 
   const runCommand = (command: LiveCommand) => {
     switch (command) {
       case 'toggle_play':
         togglePlay()
+        break
+      case 'seek_back':
+        controller.seekBy(-liveSeekStepMs)
+        break
+      case 'seek_forward':
+        controller.seekBy(liveSeekStepMs)
         break
       case 'volume_up':
         setVolume(engine.read().volume + volumeStep)
@@ -507,6 +545,7 @@ export const LivePlayerPage = ({
       fullscreen,
       ownFullscreen: engine.windowFullscreen !== undefined,
       focusedControl: focusedControl(target, playerFocus.isKeyboardFocused(target)),
+      timeshift: controller.timeline() !== undefined,
     })
     wake()
     // Taken even when nothing is left to do: the browser would go back itself (§10.7).
@@ -720,7 +759,29 @@ export const LivePlayerPage = ({
         </div>
       ) : undefined}
 
+      {state.notice === undefined ? undefined : (
+        <div key={state.notice} className="player-toast" role="status">
+          <span className="player-toast__text">
+            {state.notice === 'resumedOldest'
+              ? t('player.live.resumedOldest')
+              : t('player.live.resumedLive')}
+          </span>
+        </div>
+      )}
+
       <div className="player__bottom">
+        {timeline === undefined ? undefined : (
+          <div className="player__bar">
+            <LiveTimeline
+              timeline={timeline}
+              ticks={ticks}
+              disabled={!playing}
+              onSeek={controller.seekTo}
+              onLive={controller.goLive}
+            />
+            <LiveBadge timeline={timeline} onLive={controller.goLive} />
+          </div>
+        )}
         <div className="player__controls" data-nav-row>
           <button
             type="button"
@@ -731,6 +792,28 @@ export const LivePlayerPage = ({
           >
             {paused ? <PlayIcon size={26} /> : <PauseIcon size={26} />}
           </button>
+          {timeline === undefined ? undefined : (
+            <>
+              <button
+                type="button"
+                className="player__control player__control--pointer"
+                aria-label={t('player.back10')}
+                disabled={!playing}
+                onClick={() => controller.seekBy(-liveSeekStepMs)}
+              >
+                <Rewind10Icon size={24} />
+              </button>
+              <button
+                type="button"
+                className="player__control player__control--pointer"
+                aria-label={t('player.forward10')}
+                disabled={!playing || timeline.atLive}
+                onClick={() => controller.seekBy(liveSeekStepMs)}
+              >
+                <Forward10Icon size={24} />
+              </button>
+            </>
+          )}
           <div className="volume">
             <button
               type="button"

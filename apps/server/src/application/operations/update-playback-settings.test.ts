@@ -15,6 +15,8 @@ describe('settings "Lecture" and "Serveur" (§15)', () => {
       burnInEnabled: true,
       trickplayEnabled: true,
       hwAccel: 'off',
+      liveWindowMinutes: 30,
+      liveCacheMaxGb: 20,
     }
     const writes: unknown[] = []
     const update = updatePlaybackSettingsFactory({
@@ -35,6 +37,8 @@ describe('settings "Lecture" and "Serveur" (§15)', () => {
       burnInEnabled: true,
       trickplayEnabled: true,
       hwAccel: 'off',
+      liveWindowMinutes: 30,
+      liveCacheMaxGb: 20,
     })
     update({})
     expect(writes).toEqual([{ maxConcurrentTranscodes: 4, audioDownmix: 'keep' }])

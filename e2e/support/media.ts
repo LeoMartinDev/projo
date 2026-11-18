@@ -3,6 +3,9 @@ import { expect, type Locator, type Page } from '@playwright/test'
 export const currentTime = (video: Locator) =>
   video.evaluate((element: HTMLVideoElement) => element.currentTime)
 
+export const paused = (video: Locator) =>
+  video.evaluate((element: HTMLVideoElement) => element.paused)
+
 export const playbackStart = (video: Locator) =>
   video.evaluate(({ played }: HTMLVideoElement) =>
     played.length === 0 ? 0 : played.start(played.length - 1),

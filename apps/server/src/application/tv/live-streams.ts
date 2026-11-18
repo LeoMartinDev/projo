@@ -11,10 +11,19 @@ import {
   type LiveWindowSegment,
   renderLivePlaylist,
   servedWindow,
+  windowFrom,
 } from '../../core/tv/live-playlist.ts'
 import {
+  cacheTrimOf,
+  expiredDeletionAt,
+  liveExpiredGraceS,
+  segmentStartsOf,
+} from '../../core/tv/live-window.ts'
+import {
+  defaultLiveLimits,
   isLiveFileName,
   liveAudioOf,
+  type LiveLimits,
   type LiveProbeCache,
   type LiveProber,
   type LiveRelay,
@@ -39,8 +48,9 @@ type Timings = {
   retryDelaysMs: readonly number[]
   readyTimeoutMs: number
   readySegments: number
-  windowS: number
   compatBacklogSegments: number
+  /** How long a segment out of the window stays on disk past its duration (§29.4). */
+  expiredGraceS: number
 }
 
 type Deps = {
@@ -51,8 +61,16 @@ type Deps = {
   timers: LiveTimers
   clock: Clock
   logger: Logger
+  /** The replay window and the cache's cap (§29.4), read at each poll. */
+  limits?: () => LiveLimits
   timings?: Partial<Timings>
 }
+
+/** A segment out of the window, kept on disk until `deleteAtMs` (§29.4). */
+type ExpiredSegment = LiveWindowSegment & { deleteAtMs: number }
+
+/** The live cache's cap is logged at most this often when it shortens windows. */
+const capLogEveryMs = 60_000
 
 type ActiveRun = {
   number: number
@@ -84,7 +102,12 @@ type Stream = {
   run?: ActiveRun
   /** A copy stream: the probe its runs were started from (what its compat stream decodes). */
   probe?: TvChannelProbe
+  /** The replay window (§29.4), oldest first. */
   window: LiveWindowSegment[]
+  /** Segments out of the window, on disk for their grace, oldest first. */
+  expired: ExpiredSegment[]
+  /** The end of the stream's newest segment on the relay's clock: the next run starts after. */
+  lastEndMs?: number
   nextSequence: number
   /** `#EXT-X-TARGETDURATION`, pinned by the stream's first segment: it never changes. */
   targetS?: number
@@ -150,10 +173,12 @@ export const liveStreamsFactory = ({
   timers,
   clock,
   logger,
+  limits = () => defaultLiveLimits,
   timings: overrides = {},
 }: Deps) => {
-  const timings: Timings = { ...liveTimings, ...overrides }
+  const timings: Timings = { ...liveTimings, expiredGraceS: liveExpiredGraceS, ...overrides }
   const streams = new Map<string, Stream>()
+  let capLoggedAt: number | undefined
   /** Stops under way; those of copy streams may still hold an upstream connection. */
   const stopping = new Set<{
     key: string
@@ -298,6 +323,7 @@ export const liveStreamsFactory = ({
     stream.failed = true
     cancelTimers(stream)
     stream.window = []
+    stream.expired = []
     stream.runsOnDisk.clear()
     void halt(stream)
     logger.warn('live stream unavailable', {
@@ -337,7 +363,13 @@ export const liveStreamsFactory = ({
     })
   }
 
-  const append = (stream: Stream, run: number, segment: LiveSegmentFile): void => {
+  const append = (
+    stream: Stream,
+    run: number,
+    segment: LiveSegmentFile,
+    startMs: number,
+    bytes: number,
+  ): void => {
     if (stream.lastRun !== undefined && stream.lastRun !== run) stream.discontinuity += 1
     stream.lastRun = run
     stream.targetS ??= liveTargetDurationOf(segment.durationS)
@@ -356,18 +388,73 @@ export const liveStreamsFactory = ({
       durationS: segment.durationS,
       sequence: stream.nextSequence,
       discontinuity: stream.discontinuity,
+      startMs,
+      bytes,
     })
+    stream.lastEndMs = startMs + Math.round(segment.durationS * 1000)
     stream.nextSequence += 1
   }
 
-  /** Slides the window; the files of an earlier run go once none of its segments is left. */
-  const slide = (stream: Stream): void => {
-    stream.window = servedWindow(stream.window, timings.windowS)
-    const kept = new Set(stream.window.map((segment) => segment.run))
+  /** Moves the `count` oldest segments of the window out of it: deleted after their grace. */
+  const expire = (stream: Stream, count: number, nowMs: number): void => {
+    for (const segment of stream.window.splice(0, count)) {
+      stream.expired.push({
+        ...segment,
+        deleteAtMs: expiredDeletionAt(segment, nowMs, timings.expiredGraceS),
+      })
+    }
+  }
+
+  /**
+   * Deletes the segments whose grace is over (§29.4); a finished run's init and playlist go once
+   * none of its segments is left, in the window or awaiting deletion.
+   */
+  const purge = (stream: Stream, nowMs: number): void => {
+    const key = { channelId: stream.channelId, rendition: stream.rendition }
+    while ((stream.expired[0]?.deleteAtMs ?? Number.POSITIVE_INFINITY) <= nowMs) {
+      const segment = stream.expired.shift()
+      if (segment !== undefined) relay.removeSegment({ ...key, name: segment.name })
+    }
+    const kept = new Set([...stream.window, ...stream.expired].map((segment) => segment.run))
     for (const run of [...stream.runsOnDisk]) {
       if (run === stream.run?.number || kept.has(run)) continue
       stream.runsOnDisk.delete(run)
-      relay.removeRun({ channelId: stream.channelId, rendition: stream.rendition, run })
+      relay.removeRun({ ...key, run })
+    }
+  }
+
+  /** Slides the window to the setting's length, then purges what is due. */
+  const slide = (stream: Stream): void => {
+    const nowMs = clock.now().getTime()
+    const kept = servedWindow(stream.window, limits().windowS)
+    expire(stream, stream.window.length - kept.length, nowMs)
+    purge(stream, nowMs)
+  }
+
+  /**
+   * Keeps the live cache under its cap (§29.4): the oldest segments of all streams leave their
+   * windows first, no window shortened below its newest 30 s.
+   */
+  const enforceCacheCap = (): void => {
+    const live = [...streams.values()].filter((stream) => !stream.closed && !stream.failed)
+    const trims = cacheTrimOf(
+      new Map(live.map((stream) => [stream.key, stream.window])),
+      limits().cacheMaxBytes,
+    )
+    if (trims.size === 0) return
+    const nowMs = clock.now().getTime()
+    for (const [key, count] of trims) {
+      const stream = streams.get(key)
+      if (stream === undefined) continue
+      expire(stream, count, nowMs)
+      purge(stream, nowMs)
+    }
+    if (capLoggedAt === undefined || nowMs - capLoggedAt >= capLogEveryMs) {
+      capLoggedAt = nowMs
+      logger.warn('live cache full: replay windows shortened', {
+        streams: [...trims.keys()].length,
+        segments: [...trims.values()].reduce((sum, count) => sum + count, 0),
+      })
     }
   }
 
@@ -471,12 +558,23 @@ export const liveStreamsFactory = ({
       )
     if (fresh.length > 0) {
       const wasReady = stream.window.length >= timings.readySegments
-      for (const segment of fresh) append(stream, run.number, segment)
+      const starts = segmentStartsOf({
+        durationsS: fresh.map((segment) => segment.durationS),
+        nowMs: clock.now().getTime(),
+        firstOfRun: !run.sawSegment,
+        previousEndMs: stream.lastEndMs,
+      })
+      const key = { channelId: stream.channelId, rendition: stream.rendition }
+      fresh.forEach((segment, index) => {
+        const startMs = starts[index] ?? stream.lastEndMs ?? clock.now().getTime()
+        append(stream, run.number, segment, startMs, relay.sizeOf({ ...key, name: segment.name }))
+      })
       run.lastIndex = segmentIndexOf(fresh.at(-1)?.name ?? '')
       run.quietPolls = 0
       run.sawSegment = true
       stream.failures = 0
       slide(stream)
+      enforceCacheCap()
       if (!wasReady && stream.window.length >= timings.readySegments) {
         logger.info('live stream ready', fields(stream))
       }
@@ -624,6 +722,7 @@ export const liveStreamsFactory = ({
       runs: 0,
       failures: 0,
       window: [],
+      expired: [],
       nextSequence: 0,
       overlongLogged: false,
       discontinuity: 0,
@@ -822,15 +921,25 @@ export const liveStreamsFactory = ({
       return stream !== undefined && !stream.failed && !stream.closed
     },
 
-    playlist: (key: LiveStreamKey): Result<string, LiveStreamError> => {
+    /**
+     * The stream's playlist: its replay window (§29.4), from segment `from` on when asked (a
+     * player that cannot seek in a live playlist loads one starting where it wants).
+     */
+    playlist: ({
+      from,
+      ...key
+    }: LiveStreamKey & { from?: number }): Result<string, LiveStreamError> => {
       const stream = streams.get(keyOf(key))
       if (stream === undefined || stream.failed) return unavailable(key.channelId, 'not_running')
       const playlist =
         stream.targetS === undefined
           ? undefined
-          : renderLivePlaylist(servedWindow(stream.window, timings.windowS), stream.targetS)
+          : renderLivePlaylist(windowFrom(stream.window, from), stream.targetS)
       return playlist === undefined ? unavailable(key.channelId, 'not_ready') : ok(playlist)
     },
+
+    /** The replay window's length now (§29.4), told to each new session. */
+    windowS: (): number => limits().windowS,
 
     file: ({ name, ...key }: LiveStreamKey & { name: string }): Result<string, LiveFileError> => {
       const stream = streams.get(keyOf(key))
@@ -855,6 +964,8 @@ export const liveStreamsFactory = ({
         failed: stream.failed,
         runs: stream.runs,
         segments: stream.window.length,
+        windowS: stream.window.reduce((sum, segment) => sum + segment.durationS, 0),
+        expired: stream.expired.length,
       })),
 
     /** Stops every stream (shutdown) and waits for their processes, ffprobe included. */

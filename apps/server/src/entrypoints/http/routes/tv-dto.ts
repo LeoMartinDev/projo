@@ -259,6 +259,7 @@ export const toTvSessionDto = (created: CreatedLiveSession): TvSessionDto => ({
   sessionId: created.session.id,
   streamUrl: liveStreamUrlOf(created),
   rendition: created.session.rendition,
+  windowS: created.windowS,
 })
 
 export const toAdminTvSessionDto = (view: ActiveLiveSessionView): AdminTvSessionDto => ({
@@ -270,4 +271,5 @@ export const toAdminTvSessionDto = (view: ActiveLiveSessionView): AdminTvSession
   ...(view.device === undefined ? {} : { device: view.device }),
   startedAt: view.startedAt.toISOString(),
   lastHeartbeatAt: view.lastHeartbeatAt.toISOString(),
+  ...(view.pausedSince === undefined ? {} : { pausedSince: view.pausedSince.toISOString() }),
 })

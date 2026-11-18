@@ -1,15 +1,41 @@
 import type { TvSessionDto } from '@projo/shared/api/tv'
 
-import type { PlayerEngine, StreamFailure } from '../core/engine.ts'
+import type { LivePoint, PlayerEngine, StreamFailure } from '../core/engine.ts'
 import { type PlayerFailure, playerFailure, toPlayerFailure } from '../core/failure.ts'
 import { type Heartbeat, type HeartbeatTransport, startHeartbeat } from '../core/heartbeat.ts'
-import { heartbeatFailureReaction, liveHeartbeatIntervalMs } from '../core/live.ts'
+import {
+  heartbeatFailureReaction,
+  isAtLive,
+  liveBoundsAt,
+  liveDelayMs,
+  liveEdgePoint,
+  liveGapsOf,
+  liveHeartbeatIntervalMs,
+  liveResumePoint,
+  liveSeekPoint,
+  liveSyncMs,
+  liveWindowRefreshMs,
+  parseLiveWindow,
+} from '../core/live.ts'
 import type { SessionEnds } from '../core/session-ends.ts'
 import { reconnectDelay } from '../core/session-request.ts'
 import { createStore, type ReadableStore } from '../core/store.ts'
 import { keyedEffect } from './keyed-effect.ts'
-import { type LiveState, type LiveView, liveView } from './live-view.ts'
-import type { KeyValueStorage, LiveTvApi, PageLifecycle, Timers } from './ports.ts'
+import {
+  type LiveNotice,
+  type LiveState,
+  type LiveTimeline,
+  type LiveView,
+  liveView,
+} from './live-view.ts'
+import type {
+  KeyValueStorage,
+  LiveTvApi,
+  PageLifecycle,
+  TimerHandle,
+  Timers,
+  WallClock,
+} from './ports.ts'
 import { loadVolume, saveVolume } from './volume.ts'
 
 export type LiveControllerDeps = {
@@ -20,6 +46,8 @@ export type LiveControllerDeps = {
   // previous ones are ended (a source with one connection can zap, §29.5).
   ends: SessionEnds
   timers: Timers
+  // The wall clock: the replay window's program dates are on it (§29.5).
+  clock: WallClock
   storage: KeyValueStorage
   page: PageLifecycle
 }
@@ -29,11 +57,19 @@ export type LiveController = ReadableStore<LiveState> & {
   start: () => void
   stop: () => void
   view: () => LiveView
+  // The bar of the replay window (§29.5), when the stream has timeshift: read live, at render.
+  timeline: () => LiveTimeline | undefined
   // Another channel: the old session ends, then the new one is created.
   zap: (channelId: string) => void
   togglePlay: () => void
+  // Play from elsewhere (the system's media controls): a released session starts anew.
+  play: () => void
   setVolume: (volume: number) => void
   toggleMute: () => void
+  // Timeshift (§29.5): ±10 s, a point of the bar (wall clock), back to the live point.
+  seekBy: (deltaMs: number) => void
+  seekTo: (atMs: number) => void
+  goLive: () => void
   // The "Retry" of a blocking error.
   restart: () => void
   // The network may be back (online, page visible): reconnect now if it was lost.
@@ -48,6 +84,12 @@ export type LiveController = ReadableStore<LiveState> & {
 // Live sessions record no position: the bodies `SessionEnds` passes along are ignored.
 const noPosition = { positionMs: 0, paused: true }
 
+// A notice stays this long over the picture.
+const noticeMs = 4_000
+
+// The window's first read waits this long at most before the stream loads.
+const firstReadTimeoutMs = 5_000
+
 const initialState = (channelId: string): LiveState => ({
   channelId,
   creation: 'pending',
@@ -55,6 +97,9 @@ const initialState = (channelId: string): LiveState => ({
   session: undefined,
   interruption: undefined,
   reconnectAttempt: 0,
+  window: undefined,
+  released: false,
+  notice: undefined,
 })
 
 type Attached = {
@@ -62,11 +107,13 @@ type Attached = {
   heartbeat: Heartbeat
   stopStream: () => void
   stopHide: () => void
+  stopRefresh: () => void
 }
 
 /**
  * The live mode of the player (§29.5), for every engine: the channel's live session and its
- * heartbeat, zapping, pause and the return to the live edge, reconnection and blocking errors.
+ * heartbeat, zapping, pause and timeshift in the replay window (or, without it, the return to
+ * the live edge), reconnection and blocking errors.
  */
 export const createLiveController = ({
   channelId: initialChannel,
@@ -74,12 +121,13 @@ export const createLiveController = ({
   api,
   ends,
   timers,
+  clock,
   storage,
   page,
 }: LiveControllerDeps): LiveController => {
   const store = createStore<LiveState>(initialState(initialChannel))
   const transport: HeartbeatTransport = {
-    send: (sessionId) => api.heartbeat(sessionId),
+    send: (sessionId, body) => api.heartbeat(sessionId, { paused: body.paused }),
     beacon: (sessionId) => {
       ends.forget(sessionId)
       api.endSession(sessionId).catch(() => undefined)
@@ -89,12 +137,16 @@ export const createLiveController = ({
   let started = false
   let generation = 0
   let attached: Attached | undefined
-  // A pause was seen since the stream was loaded: the next play rejoins the live edge.
+  // Without timeshift: a pause was seen since the stream was loaded, the next play rejoins the
+  // live edge.
   let pausedSinceLoad = false
   // The controller itself is stopping the stream (its events are not the viewer's).
   let reloading = false
   // A session ended by the server was replaced, and the new one has not played yet.
   let renewedOnEnd = false
+  // A paused session is released once paused for its window (§29.5).
+  let releaseTimer: TimerHandle | undefined
+  let noticeTimer: TimerHandle | undefined
   let unsubscribes: (() => void)[] = []
   const reconnectEffect = keyedEffect()
 
@@ -106,14 +158,54 @@ export const createLiveController = ({
     react()
   }
 
+  const timeshift = () => engine.capabilities.liveSeek && state().window !== undefined
+
+  const boundsNow = () => {
+    const known = state().window
+    return known === undefined
+      ? undefined
+      : { window: known.window, bounds: liveBoundsAt(known.window, known.readAtMs, clock.now()) }
+  }
+
+  const notify = (notice: LiveNotice | undefined) => {
+    if (noticeTimer !== undefined) timers.clearTimeout(noticeTimer)
+    noticeTimer =
+      notice === undefined
+        ? undefined
+        : timers.setTimeout(() => {
+            noticeTimer = undefined
+            update({ notice: undefined })
+          }, noticeMs)
+    update({ notice })
+  }
+
+  const cancelRelease = () => {
+    if (releaseTimer !== undefined) timers.clearTimeout(releaseTimer)
+    releaseTimer = undefined
+  }
+
   // ── Sessions ────────────────────────────────────────────────────────────
 
-  const loadStream = (session: TvSessionDto) => {
+  const loadStream = (session: TvSessionDto, from?: LivePoint) => {
     pausedSinceLoad = false
-    return engine.loadLive({ streamUrl: session.streamUrl, autoplay: true }, (failure) =>
-      onStreamFailure(session, failure),
+    return engine.loadLive(
+      { streamUrl: session.streamUrl, autoplay: true, ...(from === undefined ? {} : { from }) },
+      (failure) => onStreamFailure(session, failure),
     )
   }
+
+  // Reads the session's replay window (§29.5); a failed read keeps the last one.
+  const readWindow = (session: TvSessionDto): Promise<void> =>
+    api.playlist(session.streamUrl).then(
+      (text) => {
+        if (attached?.session !== session) return
+        const window = parseLiveWindow(text)
+        update({
+          window: window === undefined ? undefined : { window, readAtMs: clock.now() },
+        })
+      },
+      () => undefined,
+    )
 
   const attach = (session: TvSessionDto) => {
     ends.retain(session.sessionId)
@@ -133,12 +225,44 @@ export const createLiveController = ({
         if (reaction !== undefined) interrupt(failure, reaction === 'reconnect')
       },
     })
-    attached = {
+    const refresh = engine.capabilities.liveSeek
+      ? timers.setInterval(() => void readWindow(session), liveWindowRefreshMs)
+      : undefined
+    let stop = () => {}
+    let loading = true
+    const current: Attached = {
       session,
       heartbeat,
-      stopStream: loadStream(session),
+      stopStream: () => {
+        loading = false
+        stop()
+      },
       stopHide: page.onHide(() => heartbeat.close()),
+      stopRefresh: () => {
+        if (refresh !== undefined) timers.clearInterval(refresh)
+      },
     }
+    attached = current
+    // With timeshift, the stream starts at the live point the window names (an engine that
+    // cannot seek in a live playlist anchors its position there, §29.5); a read that does not
+    // answer in time lets it start at the live edge without one.
+    const first = engine.capabilities.liveSeek
+      ? new Promise<void>((resolve) => {
+          const late = timers.setTimeout(resolve, firstReadTimeoutMs)
+          void readWindow(session).then(() => {
+            timers.clearTimeout(late)
+            resolve()
+          })
+        })
+      : Promise.resolve()
+    void first.then(() => {
+      if (!loading || attached !== current) return
+      const known = boundsNow()
+      stop = loadStream(
+        session,
+        known === undefined ? undefined : liveEdgePoint(known.window, known.bounds),
+      )
+    })
   }
 
   // Stops the stream and the heartbeat; the session itself is left to the caller.
@@ -146,8 +270,10 @@ export const createLiveController = ({
     const current = attached
     if (current === undefined) return undefined
     attached = undefined
+    cancelRelease()
     current.heartbeat.halt()
     current.stopHide()
+    current.stopRefresh()
     reloading = true
     current.stopStream()
     reloading = false
@@ -218,6 +344,8 @@ export const createLiveController = ({
       creation: 'pending',
       createFailure: undefined,
       interruption: undefined,
+      window: undefined,
+      released: false,
       ...patch,
     })
     if (started) create()
@@ -243,6 +371,21 @@ export const createLiveController = ({
     renew({ reconnectAttempt: state().reconnectAttempt + 1 })
   }
 
+  // A pause as long as the window: the session ends (its stream may stop and give its provider
+  // connection back); play starts a new one at the live point (§29.5).
+  const release = () => {
+    releaseTimer = undefined
+    if (attached === undefined || !engine.read().paused) return
+    endNow(detach())
+    update({ session: undefined, window: undefined, released: true })
+  }
+
+  // Play after a release: a new session at the live point, told so.
+  const resumeReleased = () => {
+    renew({ reconnectAttempt: 0 })
+    notify('resumedLive')
+  }
+
   // ── Reactions ───────────────────────────────────────────────────────────
 
   const react = () => {
@@ -257,14 +400,37 @@ export const createLiveController = ({
   }
 
   const onPause = () => {
-    if (attached !== undefined && !reloading && engine.read().ready) pausedSinceLoad = true
+    if (attached !== undefined && !reloading && engine.read().ready) {
+      pausedSinceLoad = true
+      const windowS = attached.session.windowS
+      if (timeshift() && windowS !== undefined && releaseTimer === undefined) {
+        releaseTimer = timers.setTimeout(release, windowS * 1000)
+      }
+    }
     attached?.heartbeat.beat()
   }
 
-  // Any play after a pause reloads the stream: playback resumes at the live edge (§29.5).
+  // With timeshift, play goes on where it paused, unless that point left the window: then from
+  // its start (§29.5). Without, any play after a pause reloads at the live edge.
   const onPlay = () => {
+    cancelRelease()
     const current = attached
-    if (current === undefined || reloading || !pausedSinceLoad) return
+    if (current === undefined || reloading) return
+    if (timeshift()) {
+      const known = boundsNow()
+      const position = engine.livePosition()
+      const resume =
+        known === undefined || position === undefined
+          ? undefined
+          : liveResumePoint(known.window, known.bounds, position)
+      if (resume !== undefined) {
+        engine.seekLive(resume)
+        notify('resumedOldest')
+      }
+      current.heartbeat.beat()
+      return
+    }
+    if (!pausedSinceLoad) return
     reloading = true
     current.stopStream()
     reloading = false
@@ -276,10 +442,39 @@ export const createLiveController = ({
     if (state().reconnectAttempt !== 0) update({ reconnectAttempt: 0 })
   }
 
+  const seekToPoint = (point: (known: NonNullable<ReturnType<typeof boundsNow>>) => LivePoint) => {
+    if (attached === undefined || !timeshift()) return
+    const known = boundsNow()
+    if (known === undefined) return
+    if (state().notice !== undefined) notify(undefined)
+    engine.seekLive(point(known))
+  }
+
+  const positionOr = (edgeMs: number) => engine.livePosition() ?? edgeMs - liveSyncMs
+
   return {
     subscribe: store.subscribe,
     get: store.get,
     view,
+
+    timeline: () => {
+      if (!timeshift() || attached === undefined) return undefined
+      const known = boundsNow()
+      if (known === undefined) return undefined
+      const { window, bounds } = known
+      const positionMs = Math.min(
+        Math.max(positionOr(bounds.edgeMs), bounds.startMs),
+        bounds.edgeMs,
+      )
+      return {
+        startMs: bounds.startMs,
+        edgeMs: bounds.edgeMs,
+        positionMs,
+        gaps: liveGapsOf(window),
+        delayMs: liveDelayMs(bounds, positionMs),
+        atLive: isAtLive(window, bounds, positionMs),
+      }
+    },
 
     start: () => {
       if (started) return
@@ -308,6 +503,9 @@ export const createLiveController = ({
       for (const unsubscribe of unsubscribes) unsubscribe()
       unsubscribes = []
       reconnectEffect.reset()
+      if (noticeTimer !== undefined) timers.clearTimeout(noticeTimer)
+      noticeTimer = undefined
+      if (state().notice !== undefined) store.set({ ...state(), notice: undefined })
       const sessionId = detach()
       if (sessionId !== undefined)
         ends.release(sessionId, () => ends.endOnce(sessionId, noPosition))
@@ -316,14 +514,22 @@ export const createLiveController = ({
     zap: (channelId) => {
       if (channelId === state().channelId) return
       renewedOnEnd = false
-      renew({ channelId, reconnectAttempt: 0 })
+      renew({ channelId, reconnectAttempt: 0, notice: undefined })
     },
 
     togglePlay: () => {
+      if (state().released) {
+        resumeReleased()
+        return
+      }
       if (attached === undefined) return
       const media = engine.read()
       if (media.paused || media.ended) engine.play()
       else engine.pause()
+    },
+    play: () => {
+      if (state().released) resumeReleased()
+      else if (attached !== undefined) engine.play()
     },
     setVolume: (volume) => {
       const level = Math.min(1, Math.max(0, volume))
@@ -334,6 +540,13 @@ export const createLiveController = ({
       if (media.muted) engine.setVolume(media.volume === 0 ? 0.5 : media.volume, false)
       else engine.setVolume(media.volume, true)
     },
+
+    seekBy: (deltaMs) =>
+      seekToPoint(({ window, bounds }) =>
+        liveSeekPoint(window, bounds, positionOr(bounds.edgeMs) + deltaMs),
+      ),
+    seekTo: (atMs) => seekToPoint(({ window, bounds }) => liveSeekPoint(window, bounds, atMs)),
+    goLive: () => seekToPoint(({ window, bounds }) => liveEdgePoint(window, bounds)),
 
     restart: () => {
       renewedOnEnd = false

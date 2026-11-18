@@ -191,6 +191,64 @@ describe('mpv engine', () => {
     expect(mpv.calls).toEqual(['set pause=no'])
   })
 
+  test('timeshift: a live playlist from a segment, sought by loading it again (§29.5)', async () => {
+    const mpv = scriptedBridge(trackList)
+    const engine = engineOn(mpv.bridge)
+    const t0 = Date.parse('2026-11-18T20:00:00.000Z')
+    const unload = engine.loadLive(
+      {
+        streamUrl: '/api/v1/stream/l1/secret/live/index.m3u8',
+        autoplay: true,
+        from: { atMs: t0 + 1000, sequence: 297, segmentStartMs: t0, live: true },
+      },
+      () => {},
+    )
+    await mpv.settle()
+    expect(mpv.calls.slice(-5)).toEqual([
+      'set aid=auto',
+      'set sid=no',
+      'set demuxer-lavf-o=live_start_index=0',
+      'set start=none',
+      'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8?from=297 replace',
+    ])
+    expect(engine.livePosition()).toBeUndefined()
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    await mpv.emit({ kind: 'property', name: 'time-pos', value: 2.5 })
+    await mpv.emit({ kind: 'event', event: 'playback-restart' })
+    // The segment's start plus time-pos (libmpv rebases each file to 0).
+    expect(engine.livePosition()).toBe(t0 + 2500)
+
+    // Paused, then 10 s back: loaded again from that segment, still paused.
+    engine.pause()
+    await mpv.emit({ kind: 'property', name: 'pause', value: true })
+    await mpv.settle()
+    mpv.calls.splice(0)
+    engine.seekLive({ atMs: t0 - 7500, sequence: 293, segmentStartMs: t0 - 8000 })
+    await mpv.settle()
+    expect(mpv.calls).toEqual([
+      'set pause=yes',
+      'set aid=auto',
+      'set sid=no',
+      'set demuxer-lavf-o=live_start_index=0',
+      'set start=none',
+      'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8?from=293 replace',
+    ])
+    mpv.calls.splice(0)
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    expect(mpv.calls).toEqual([])
+    await mpv.emit({ kind: 'property', name: 'time-pos', value: 0 })
+    await mpv.emit({ kind: 'event', event: 'playback-restart' })
+    expect(engine.livePosition()).toBe(t0 - 8000)
+
+    // The next file (a title) gets ffmpeg's own live start back.
+    unload()
+    await mpv.settle()
+    mpv.calls.splice(0)
+    engine.load(contractLoad({ session }), () => {})
+    await mpv.settle()
+    expect(mpv.calls).toContain('set demuxer-lavf-o=')
+  })
+
   test('a live playlist after a title keeps none of its speed, delay, tracks or position', async () => {
     const mpv = scriptedBridge(trackList)
     const engine = engineOn(mpv.bridge)

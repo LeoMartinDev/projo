@@ -628,7 +628,13 @@
       "previous": "Chaîne précédente",
       "next": "Chaîne suivante",
       "nowPlaying": "TV en direct",
-      "sessionEnded": "Session terminée"
+      "sessionEnded": "Session terminée",
+      "live": "Direct",
+      "goLive": "Revenir au direct",
+      "behind": "{{time}} de retard sur le direct",
+      "window": "Position dans le direct",
+      "resumedOldest": "Reprise au plus ancien moment gardé",
+      "resumedLive": "Pause trop longue : retour au direct"
     }
   },
   "admin": {
@@ -970,7 +976,8 @@
       "positionOf": "{{position}} / {{duration}}",
       "stop": "Arrêter",
       "stopNamed": "Arrêter la lecture de {{title}} par {{profile}}",
-      "stopLive": "Arrêter {{channel}} pour {{profile}}"
+      "stopLive": "Arrêter {{channel}} pour {{profile}}",
+      "pausedSince": "En pause depuis {{time}}"
     },
     "tv": {
       "title": "TV",
@@ -1366,7 +1373,9 @@
       "downmix": "Réduire le son multicanal en stéréo",
       "burnIn": "Incruster les sous-titres image",
       "trickplay": "Aperçus de la barre de lecture",
-      "hwAccel": "Transcodage matériel (VAAPI)"
+      "hwAccel": "Transcodage matériel (VAAPI)",
+      "liveWindow": "Retour en arrière TV (minutes)",
+      "liveCacheSize": "Cache de la TV en direct (Go)"
     },
     "server": {
       "title": "Serveur",

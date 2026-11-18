@@ -1,10 +1,13 @@
 import type { TvSessionDto } from '@projo/shared/api/tv'
 
 import type { PlayerFailure } from '../core/failure.ts'
-import { creationFailureReaction } from '../core/live.ts'
+import { creationFailureReaction, type LiveGap, type LiveWindow } from '../core/live.ts'
 import type { MediaState } from '../core/media-state.ts'
 import { reconnectDelay } from '../core/session-request.ts'
 import type { Interruption } from './player-view.ts'
+
+// A short notice over the picture (§29.5): where a play after a long pause resumed.
+export type LiveNotice = 'resumedOldest' | 'resumedLive'
 
 // What the live controller holds (§29.5); `undefined` values are explicit (they are reset).
 export type LiveState = {
@@ -15,6 +18,11 @@ export type LiveState = {
   session: TvSessionDto | undefined
   interruption: Interruption | undefined
   reconnectAttempt: number
+  // The session's replay window as last read, and when (wall clock): timeshift when known.
+  window: { window: LiveWindow; readAtMs: number } | undefined
+  // A pause outlasted the window: the player ended its session; play starts a new one.
+  released: boolean
+  notice: LiveNotice | undefined
 }
 
 export type LiveView = {
@@ -24,6 +32,17 @@ export type LiveView = {
   loading: boolean
   // A session plays (or is paused): the controls act.
   playing: boolean
+}
+
+// The bar of the replay window (§29.5), on the wall clock.
+export type LiveTimeline = {
+  startMs: number
+  edgeMs: number
+  positionMs: number
+  gaps: readonly LiveGap[]
+  // How far behind the live point (0 at live).
+  delayMs: number
+  atLive: boolean
 }
 
 /**
@@ -49,6 +68,9 @@ export const liveView = (
       : interruption.kind === 'network') &&
     reconnectDelay(state.reconnectAttempt) !== undefined
   const blocked = (failure !== undefined && !networkLost) || interruption?.kind === 'terminated'
+  // Released after a long pause: shown as paused, play starts a new session.
+  if (state.released && !blocked && !networkLost)
+    return { failure, networkLost, blocked, loading: false, playing: true }
   const loading =
     !blocked &&
     (networkLost ||

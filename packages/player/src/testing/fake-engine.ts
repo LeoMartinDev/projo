@@ -5,6 +5,7 @@ import type {
   EngineLoad,
   EngineStats,
   LiveLoad,
+  LivePoint,
   PlayerEngine,
   StreamFailure,
 } from '../core/engine.ts'
@@ -26,6 +27,8 @@ export const browserLikeCapabilities: EngineCapabilities = {
   rendersBehindPage: false,
   backdropBlur: true,
   volume: true,
+  // A test turns timeshift on (§29.5); off, the live player behaves as without it.
+  liveSeek: false,
 }
 
 export const fakeClientCapabilities: ClientCapabilities = {
@@ -68,6 +71,10 @@ export type FakeEngine = {
   resume: () => void
 }
 
+// A live point in the commands: `edge@<sequence>` for the live point, else `<sequence>@<atMs>`.
+const pointName = (point: LivePoint): string =>
+  point.live === true ? `edge@${point.sequence}` : `${point.sequence}@${point.atMs}`
+
 const emptyMedia = (media: MediaSnapshot): MediaSnapshot => ({
   ...media,
   paused: true,
@@ -104,6 +111,9 @@ export const createFakeEngine = ({
   const currentLive = () => liveLoads.findLast((load) => load.active)
   // What `loaded` starts: the stream loaded last, of either kind.
   let playing: { active: () => boolean; startSeconds: number; autoplay: boolean } | undefined
+  // Timeshift: the wall-clock time of the point loaded or sought, and the media time then.
+  let liveAnchor: number | undefined
+  let liveBase = 0
   const unloaded = (id: string) => {
     commands.push(`unload ${id}`)
     emit('emptied', emptyMedia(media))
@@ -188,7 +198,11 @@ export const createFakeEngine = ({
       }
     },
     loadLive: (load, onFailure) => {
-      commands.push(`live ${load.streamUrl}${load.autoplay ? '' : ' paused'}`)
+      commands.push(
+        `live ${load.streamUrl}${load.from === undefined ? '' : ` from ${pointName(load.from)}`}${load.autoplay ? '' : ' paused'}`,
+      )
+      liveAnchor = load.from?.atMs
+      liveBase = media.currentTime
       const entry: FakeLiveLoad = {
         load,
         active: true,
@@ -203,6 +217,18 @@ export const createFakeEngine = ({
         entry.active = false
         unloaded(load.streamUrl)
       }
+    },
+    // The live position: the point loaded or sought, plus the time played since.
+    livePosition: () =>
+      liveAnchor === undefined || !media.ready
+        ? undefined
+        : liveAnchor + Math.round((media.currentTime - liveBase) * 1000),
+    seekLive: (point) => {
+      commands.push(`seek live ${pointName(point)}`)
+      liveAnchor = point.atMs
+      liveBase = media.currentTime
+      emit('seeking', { seeking: true })
+      emit('seeked', { seeking: false })
     },
     selectAudio: (track) => void commands.push(`audio ${track.index}`),
     selectSubtitle: (track) => void commands.push(`subtitle ${track?.id ?? 'off'}`),

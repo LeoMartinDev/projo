@@ -58,13 +58,35 @@ export const sessionEnds = createSessionEnds({
 export const liveTvApi: LiveTvApi = {
   createSession: (channelId, body) =>
     request(() => api.tv.channels[':id'].sessions.$post({ param: { id: channelId }, json: body })),
-  heartbeat: (sessionId) =>
-    request(() => api.tv.sessions[':id'].heartbeat.$post({ param: { id: sessionId } })),
+  // The body says whether the viewer is paused (§29.4); the route reads it leniently.
+  heartbeat: (sessionId, body) =>
+    request(() =>
+      api.tv.sessions[':id'].heartbeat.$post(
+        { param: { id: sessionId } },
+        {
+          init: {
+            body: JSON.stringify(body),
+            headers: { 'Content-Type': 'application/json' },
+          },
+        },
+      ),
+    ),
   endSession: (sessionId) =>
     request(() =>
       api.tv.sessions[':id'].$delete({ param: { id: sessionId } }, { init: { keepalive: true } }),
     ),
+  // The session's capability URL (§20): its replay window (§29.5).
+  playlist: async (streamUrl) => {
+    const response = await serverFetch(streamUrl).catch((cause: unknown): never => {
+      throw networkFailure(cause)
+    })
+    if (!response.ok) throw await failureFromResponse(response)
+    return response.text()
+  },
 }
+
+// The wall clock of the live streams' program dates (§29.5).
+export const browserWallClock = { now: () => Date.now() }
 
 // The tab's live sessions: one ended before the next is created, so a source with a single
 // connection can zap (§29.5).

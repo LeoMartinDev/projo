@@ -13,6 +13,9 @@ export const playbackSettingsDtoSchema = z.object({
   transcodeCacheMaxGb: z.number().int().min(1).max(10_000),
   trickplayEnabled: z.boolean(),
   hwAccel: z.enum(['off', 'vaapi']),
+  // Live TV (§29.4): the replay window in minutes, the live cache's cap in GB.
+  liveWindowMinutes: z.number().int().min(1).max(240),
+  liveCacheMaxGb: z.number().int().min(1).max(10_000),
 })
 export type PlaybackSettingsDto = z.infer<typeof playbackSettingsDtoSchema>
 

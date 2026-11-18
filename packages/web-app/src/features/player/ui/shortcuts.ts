@@ -30,10 +30,13 @@ export type PlayerCommand =
   | 'speed_down'
   | 'speed_up'
 
-// The live player's (§29.5): no seek, speed, tracks nor prompts; channels instead.
+// The live player's (§29.5): no speed, tracks nor prompts; channels instead, and ±10 s in the
+// replay window with timeshift.
 export type LiveCommand =
   | ChromeCommand
   | 'toggle_play'
+  | 'seek_back'
+  | 'seek_forward'
   | 'volume_up'
   | 'volume_down'
   | 'toggle_mute'
@@ -138,6 +141,12 @@ const liveBindings: Bindings<LiveCommand> = {
   letters: { k: 'toggle_play', m: 'toggle_mute', f: 'toggle_fullscreen', l: 'toggle_channels' },
 }
 
+// With timeshift (§29.5), ←/→ seek like a title's.
+const liveTimeshiftBindings: Bindings<LiveCommand> = {
+  ...liveBindings,
+  keys: { ...liveBindings.keys, ArrowLeft: 'seek_back', ArrowRight: 'seek_forward' },
+}
+
 const focusMoves: Record<string, ChromeCommand> = {
   ArrowUp: 'focus_up',
   ArrowDown: 'focus_down',
@@ -181,9 +190,15 @@ const resolveKey = <C extends string>(
 export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand | undefined =>
   resolveKey(input, context, playerBindings)
 
-/** The live player's keys (§29.5): `←`/`→` only move focus between controls. */
-export const liveCommandFor = (input: KeyInput, context: KeyContext): LiveCommand | undefined =>
-  resolveKey(input, context, liveBindings)
+/**
+ * The live player's keys (§29.5): with timeshift, `←`/`→` seek 10 s (focus moves on a focused
+ * control, as §10.7); without, they only move focus between controls.
+ */
+export const liveCommandFor = (
+  input: KeyInput,
+  context: KeyContext & { timeshift?: boolean },
+): LiveCommand | undefined =>
+  resolveKey(input, context, context.timeshift === true ? liveTimeshiftBindings : liveBindings)
 
 export type TapZone = 'left' | 'center' | 'right'
 
