@@ -2,11 +2,14 @@ import {
   type AdminTvSourceDto,
   type CreateTvSourceBody,
   DEFAULT_FREEBOX_ADDRESS,
+  DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR,
   freeboxAddressSchema,
   limitFromAccount,
   type TvSourceKind,
   tvHttpUrlSchema,
   tvMaxConnectionsSchema,
+  tvSnapshotGrabsPerHourSchema,
+  tvSnapshotsEnabledOf,
   tvUserAgentSchema,
   type UpdateTvSourceBody,
   xtreamCredentialSchema,
@@ -20,6 +23,8 @@ import {
  * starts with the stored one (the default on a new source). An Xtream source's server URL comes
  * back as its origin (it starts with it); its username and password never come back: their fields
  * start empty and, left empty, keep the stored ones. Its connection limit is its account's.
+ * The channel snapshots' switch and grabs per hour (§29.4) start with the source's, its default
+ * applied.
  */
 export type SourceForm = {
   kind: TvSourceKind
@@ -33,6 +38,8 @@ export type SourceForm = {
   username: string
   password: string
   maxConnections: string
+  snapshots: boolean
+  snapshotGrabsPerHour: string
 }
 
 export type SourceField =
@@ -45,6 +52,7 @@ export type SourceField =
   | 'username'
   | 'password'
   | 'maxConnections'
+  | 'snapshotGrabsPerHour'
 
 export const emptySourceForm: SourceForm = {
   kind: 'm3u',
@@ -58,6 +66,8 @@ export const emptySourceForm: SourceForm = {
   username: '',
   password: '',
   maxConnections: '',
+  snapshots: true,
+  snapshotGrabsPerHour: String(DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR),
 }
 
 const storedSettingsOf = (settings: AdminTvSourceDto['settings']): Partial<SourceForm> => {
@@ -78,12 +88,20 @@ export const sourceFormOf = (source: AdminTvSourceDto): SourceForm => ({
   name: source.name,
   ...storedSettingsOf(source.settings),
   maxConnections: source.maxConnections === undefined ? '' : String(source.maxConnections),
+  snapshots: source.snapshots ?? tvSnapshotsEnabledOf(source),
+  snapshotGrabsPerHour: String(source.snapshotGrabsPerHour ?? DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR),
 })
 
 const parseLimit = (text: string): number | undefined => {
   const trimmed = text.trim()
   if (!/^\d+$/u.test(trimmed)) return undefined
   return tvMaxConnectionsSchema.safeParse(Number(trimmed)).data
+}
+
+const parseGrabsPerHour = (text: string): number | undefined => {
+  const trimmed = text.trim()
+  if (!/^\d+$/u.test(trimmed)) return undefined
+  return tvSnapshotGrabsPerHourSchema.safeParse(Number(trimmed)).data
 }
 
 /** Fields of the form's kind whose value cannot be sent; `creating`: the playlist URL is required. */
@@ -121,6 +139,8 @@ export const invalidSourceFields = (
     parseLimit(form.maxConnections) === undefined
   )
     invalid.add('maxConnections')
+  if (parseGrabsPerHour(form.snapshotGrabsPerHour) === undefined)
+    invalid.add('snapshotGrabsPerHour')
   return invalid
 }
 
@@ -197,12 +217,19 @@ export const toPatchBody = (source: AdminTvSourceDto, form: SourceForm): UpdateT
   const name = form.name.trim()
   const settings = settingsPatchOf(source, form)
   const limit = form.maxConnections.trim() === '' ? undefined : parseLimit(form.maxConnections)
+  const snapshots = source.snapshots ?? tvSnapshotsEnabledOf(source)
+  const grabsPerHour = parseGrabsPerHour(form.snapshotGrabsPerHour)
   return {
     ...(name === source.name ? {} : { name }),
     ...(settings === undefined ? {} : { settings }),
     ...(limitFromAccount(source.kind) || limit === source.maxConnections
       ? {}
       : { maxConnections: limit ?? ('' as const) }),
+    ...(form.snapshots === snapshots ? {} : { snapshots: form.snapshots }),
+    ...(grabsPerHour === undefined ||
+    grabsPerHour === (source.snapshotGrabsPerHour ?? DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR)
+      ? {}
+      : { snapshotGrabsPerHour: grabsPerHour }),
   }
 }
 

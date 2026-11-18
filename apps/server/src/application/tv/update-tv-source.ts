@@ -39,6 +39,9 @@ export const updateTvSourceFactory =
     settings?: TvSourceSettingsPatch
     /** `'none'` removes the limit. */
     maxConnections?: number | 'none'
+    /** The channel snapshots switch (§29.4); `'default'` goes back to the default. */
+    snapshots?: boolean | 'default'
+    snapshotGrabsPerHour?: number
   }): Result<TvSourceView, UpdateTvSourceError> => {
     const source = tvSources.findById(input.id)
     if (source === undefined)
@@ -61,14 +64,19 @@ export const updateTvSourceFactory =
           context: { id: input.id, kind: source.settings.kind },
         }),
       )
-    const { maxConnections: _previous, ...rest } = source
+    const { maxConnections: _previous, snapshots: _snapshots, ...rest } = source
     const maxConnections =
       input.maxConnections === undefined ? source.maxConnections : input.maxConnections
+    const snapshots = input.snapshots === undefined ? source.snapshots : input.snapshots
     const updated: TvSource = {
       ...rest,
       name: input.name ?? source.name,
       settings,
       ...(maxConnections === undefined || maxConnections === 'none' ? {} : { maxConnections }),
+      ...(snapshots === undefined || snapshots === 'default' ? {} : { snapshots }),
+      ...(input.snapshotGrabsPerHour === undefined
+        ? {}
+        : { snapshotGrabsPerHour: input.snapshotGrabsPerHour }),
     }
     tvSources.save(updated)
     const refresh = listingSettingsChanged(source.settings, settings)

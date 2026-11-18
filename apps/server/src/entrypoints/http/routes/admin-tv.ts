@@ -80,11 +80,14 @@ export const adminTvRoutes = ({
       ),
     )
     .post('/tv/sources', validate('json', createTvSourceBodySchema), (c) => {
-      const { name, settings, maxConnections } = c.req.valid('json')
+      const { name, settings, maxConnections, snapshots, snapshotGrabsPerHour } =
+        c.req.valid('json')
       const created = createTvSource({
         name,
         settings: toTvSourceSettings(settings),
         ...(maxConnections === undefined ? {} : { maxConnections }),
+        ...(snapshots === undefined ? {} : { snapshots }),
+        ...(snapshotGrabsPerHour === undefined ? {} : { snapshotGrabsPerHour }),
       })
       return created.ok
         ? c.json(toAdminTvSourceDto(created.value), 201)
@@ -97,7 +100,8 @@ export const adminTvRoutes = ({
         : respondError(c, result.error)
     })
     .patch('/tv/sources/:id', validate('json', updateTvSourceBodySchema), (c) => {
-      const { name, settings, maxConnections } = c.req.valid('json')
+      const { name, settings, maxConnections, snapshots, snapshotGrabsPerHour } =
+        c.req.valid('json')
       const result = updateTvSource({
         id: c.req.param('id'),
         ...(name === undefined ? {} : { name }),
@@ -109,6 +113,8 @@ export const adminTvRoutes = ({
         ...(maxConnections === undefined
           ? {}
           : { maxConnections: maxConnections === '' ? 'none' : maxConnections }),
+        ...(snapshots === undefined ? {} : { snapshots: snapshots ?? 'default' }),
+        ...(snapshotGrabsPerHour === undefined ? {} : { snapshotGrabsPerHour }),
       })
       return result.ok
         ? c.json(toAdminTvSourceDto(result.value), 200)

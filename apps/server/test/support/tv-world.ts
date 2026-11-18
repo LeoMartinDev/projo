@@ -592,6 +592,8 @@ export const createTvWorld = () => {
     deleteTvSource: deleteTvSourceFactory({
       tvSources,
       tvChannels,
+      // The snapshots' paths of a source (§29.4): its channels' that hold one.
+      snapshots: { snapshotPathsOf: () => [] },
       logoFiles: logos.logoFiles,
       logger,
     }),

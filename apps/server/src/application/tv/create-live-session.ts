@@ -10,6 +10,7 @@ import type { LiveSession, LiveSessionRepository } from '../../core/tv/live-sess
 import type { TvSourceProvider } from '../../core/tv/provider.ts'
 import { isRelayableUpstream } from '../../core/tv/live.ts'
 import { liveRenditionOf } from '../../core/tv/rendition.ts'
+import type { TvSnapshotRepository } from '../../core/tv/snapshot.ts'
 import type { TvSourceRepository } from '../../core/tv/source.ts'
 import type { TvProfileAccess } from '../../core/tv/viewer.ts'
 import type { LiveStreams } from './live-streams.ts'
@@ -21,6 +22,8 @@ type Deps = {
   provider: Pick<TvSourceProvider, 'upstreamOf'>
   liveSessions: Pick<LiveSessionRepository, 'insert' | 'findById' | 'remove' | 'setRendition'>
   streams: Pick<LiveStreams, 'join' | 'ready' | 'leave' | 'probeOf' | 'windowS'>
+  /** When a channel was last watched: the snapshots' priority (§29.4). */
+  watched: Pick<TvSnapshotRepository, 'recordWatched'>
   streamSecrets: SessionTokens
   clock: Clock
   ids: IdGenerator
@@ -52,6 +55,7 @@ export const createLiveSessionFactory =
     provider,
     liveSessions,
     streams,
+    watched,
     streamSecrets,
     clock,
     ids,
@@ -162,6 +166,7 @@ export const createLiveSessionFactory =
           )
         : ready
     }
+    watched.recordWatched({ id: channelId, at: clock.now() })
     logger.info('live session started', {
       sessionId: session.id,
       channelId,

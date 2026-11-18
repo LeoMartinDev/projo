@@ -1018,6 +1018,8 @@
         "password": "Password",
         "maxConnections": "Simultaneous connections",
         "noLimit": "No limit",
+        "snapshots": "Channel snapshots",
+        "snapshotGrabsPerHour": "Snapshots per hour",
         "removeGuide": "Remove the guide",
         "create": "Add"
       },
@@ -1752,6 +1754,7 @@
     "update/in_progress": "An update is already in progress.",
     "tv/guide_unreachable": "The TV guide does not answer.",
     "tv/guide_invalid": "The TV guide cannot be read.",
-    "tv/programme_not_found": "This programme no longer exists."
+    "tv/programme_not_found": "This programme no longer exists.",
+    "tv/snapshot_unavailable": "The channel snapshot could not be taken."
   }
 }

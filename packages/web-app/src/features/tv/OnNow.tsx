@@ -1,64 +1,17 @@
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { TvChannelDto, TvProgrammeDto } from '@projo/shared/api/tv'
-
-import { mediaUrl } from '../../shared/api/media.ts'
 import { InfoIcon } from '../../shared/ui/media-icons.tsx'
 import { Row } from '../home/Row.tsx'
 import '../home/home.css'
 import { useLongPress } from '../media/use-long-press.ts'
-import { type CardImage, cardImageOf } from './card-image.ts'
-import { ChannelLogo } from './ChannelLogo.tsx'
+import { CardArt } from './CardArt.tsx'
 import { clockTime } from './guide-format.ts'
 import { elapsedOf, type OnNowCard, type OnNowRow } from './queries.ts'
 import './tv.css'
 
 /** Opens a programme's detail (§29.6). */
 export type OpenProgramme = (input: { programmeId: string; channelId: string }) => void
-
-/** The card's image, stepping down when one fails to load: programme, logo, name (§29.6). */
-const CardArt = ({
-  channel,
-  programme,
-}: {
-  channel: TvChannelDto
-  programme: TvProgrammeDto | undefined
-}) => {
-  const [failed, setFailed] = useState<readonly string[]>([])
-  const usable = (image: CardImage) => image.kind === 'name' || !failed.includes(image.url)
-  const first = cardImageOf(channel, programme)
-  const image: CardImage = usable(first)
-    ? first
-    : (() => {
-        const logo = cardImageOf(channel, undefined)
-        return usable(logo) ? logo : { kind: 'name' }
-      })()
-  const fail = (url: string) => setFailed((previous) => [...previous, url])
-  return (
-    <span className={`tv-now__art tv-now__art--${image.kind}`}>
-      {image.kind === 'name' ? (
-        <span className="tv-now__name">{channel.name}</span>
-      ) : (
-        <img
-          className={image.kind === 'programme' ? 'tv-now__image' : 'tv-now__logo'}
-          src={mediaUrl(image.url)}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          draggable={false}
-          onError={() => fail(image.url)}
-        />
-      )}
-      {image.kind === 'programme' && channel.logoUrl !== undefined ? (
-        <span className="tv-now__badge">
-          <ChannelLogo channel={channel} className="tv-now__badge-logo" />
-        </span>
-      ) : undefined}
-    </span>
-  )
-}
 
 const OnNowCardView = ({
   card: { channel, programme },
@@ -77,7 +30,7 @@ const OnNowCardView = ({
   const longPress = useLongPress(open)
   const title = programme?.title ?? channel.name
   return (
-    <div className="cw tv-now">
+    <div className="cw tv-now" data-channel-id={channel.id}>
       <Link
         to="/watch/tv/$channelId"
         params={{ channelId: channel.id }}
@@ -85,7 +38,7 @@ const OnNowCardView = ({
         aria-label={programme === undefined ? channel.name : `${programme.title}, ${channel.name}`}
         {...(programmeId === undefined ? {} : longPress)}
       >
-        <CardArt channel={channel} programme={programme} />
+        <CardArt channel={channel} programme={programme} at={at} frame="tv-now__art" />
         <span className="tv-now__text" aria-hidden="true">
           <span className="tv-now__title">{title}</span>
           <span className="tv-now__channel">

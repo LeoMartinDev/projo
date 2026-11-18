@@ -5,6 +5,7 @@ import {
   createTvSessionBodySchema,
   tvHeartbeatBodySchema,
   tvLivePlaylistQuerySchema,
+  tvVisibleChannelsBodySchema,
 } from '@projo/shared/api/tv'
 
 import type { LiveStreamAccess } from '../../../application/tv/authorize-live-stream.ts'
@@ -13,6 +14,9 @@ import type { CreateLiveSession } from '../../../application/tv/create-live-sess
 import type { GetLiveFile } from '../../../application/tv/get-live-file.ts'
 import type { GetLivePlaylist } from '../../../application/tv/get-live-playlist.ts'
 import type { GetTvChannelLogo } from '../../../application/tv/get-tv-channel-logo.ts'
+import type { GetTvChannelSnapshot } from '../../../application/tv/get-tv-channel-snapshot.ts'
+import type { ListTvSnapshots } from '../../../application/tv/list-tv-snapshots.ts'
+import type { RecordVisibleChannels } from '../../../application/tv/record-visible-channels.ts'
 import type { GetTvProgrammeImage } from '../../../application/tv/get-tv-programme-image.ts'
 import type { GetTvProgramme } from '../../../application/tv/get-tv-programme.ts'
 import type { ListTvChannels } from '../../../application/tv/list-tv-channels.ts'
@@ -68,7 +72,13 @@ export const tvRoutes = ({
   getLiveFile,
   getTvProgramme,
   getTvProgrammeImage,
+  getTvChannelSnapshot,
+  listTvSnapshots,
+  recordVisibleChannels,
 }: {
+  getTvChannelSnapshot: GetTvChannelSnapshot
+  listTvSnapshots: ListTvSnapshots
+  recordVisibleChannels: RecordVisibleChannels
   getTvProgramme: GetTvProgramme
   getTvProgrammeImage: GetTvProgrammeImage
   getTvChannelLogo: GetTvChannelLogo
@@ -87,12 +97,48 @@ export const tvRoutes = ({
     .get('/tv/channels', (c) => {
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
-      return c.json(toTvChannelsResponse(listTvChannels({ profileId: profileId.value })), 200)
+      const listed = listTvChannels({ profileId: profileId.value })
+      const snapshots = listTvSnapshots({ profileId: profileId.value })
+      return c.json(toTvChannelsResponse(listed, snapshots), 200)
     })
     .get('/tv/guide', (c) => {
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
-      return c.json(toTvGuideResponse(listTvGuide({ profileId: profileId.value })), 200)
+      const guide = listTvGuide({ profileId: profileId.value })
+      const snapshots = listTvSnapshots({ profileId: profileId.value })
+      return c.json(toTvGuideResponse(guide, snapshots), 200)
+    })
+    .post('/tv/visible-channels', validate('json', tvVisibleChannelsBodySchema), (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      recordVisibleChannels({
+        profileId: profileId.value,
+        channelIds: c.req.valid('json').channelIds,
+      })
+      return noContent(c)
+    })
+    .get('/tv/channels/:id/snapshot', async (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const id = c.req.param('id')
+      const found = getTvChannelSnapshot({
+        channelId: id,
+        profileId: profileId.value,
+        admin: currentPrincipal(c).account.role === 'admin',
+      })
+      if (!found.ok) return respondError(c, found.error)
+      const file = open(found.value.path)
+      if (!(await file.exists()))
+        return respondError(c, {
+          code: 'tv/channel_not_found',
+          message: 'tv channel snapshot not found',
+          context: { id },
+        })
+      // The URL changes with each new picture (`?v=`): it may be kept a day.
+      return new Response(file, {
+        status: 200,
+        headers: { 'Content-Type': 'image/webp', 'Cache-Control': 'private, max-age=86400' },
+      })
     })
     .put('/tv/channels/:id/favorite', (c) => {
       const profileId = currentProfileId(c)

@@ -119,6 +119,31 @@ describe('toPatchBody', () => {
   })
 })
 
+describe('channel snapshots (§29.4)', () => {
+  test("start with the source's, its default applied; only a change is sent", () => {
+    const form = sourceFormOf(source)
+    expect(form).toMatchObject({ snapshots: true, snapshotGrabsPerHour: '60' })
+    expect(sourceFormOf({ ...source, maxConnections: 1, snapshots: undefined }).snapshots).toBe(
+      false,
+    )
+    expect(toPatchBody(source, { ...form, snapshots: false })).toEqual({ snapshots: false })
+    expect(toPatchBody(source, { ...form, snapshotGrabsPerHour: '30' })).toEqual({
+      snapshotGrabsPerHour: 30,
+    })
+  })
+
+  test('the grabs per hour are a whole number from 1 to 600', () => {
+    const form = sourceFormOf(source)
+    for (const value of ['0', '601', '1.5', ''])
+      expect(
+        invalidSourceFields({ ...form, snapshotGrabsPerHour: value }, { creating: false }),
+      ).toContain('snapshotGrabsPerHour')
+    expect(
+      invalidSourceFields({ ...form, snapshotGrabsPerHour: '600' }, { creating: false }),
+    ).not.toContain('snapshotGrabsPerHour')
+  })
+})
+
 describe('a Freebox source', () => {
   const freebox: AdminTvSourceDto = {
     ...source,

@@ -391,7 +391,14 @@ export const observedTranscodeSlots = ({
  * clock, sources and channels in memory, transcode slots in memory (`transcodeLimit`).
  * `addChannel` adds an enabled channel of a source.
  */
-export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: number } = {}) => {
+export const createLiveWorld = ({
+  transcodeLimit = 2,
+  onSegments,
+}: {
+  transcodeLimit?: number
+  /** The streams' hook for the free snapshots (§29.4). */
+  onSegments?: Parameters<typeof liveStreamsFactory>[0]['onSegments']
+} = {}) => {
   /** The replay window and the cache cap (§29.4), settable by the test: the defaults at first. */
   const limits: LiveLimits = { ...defaultLiveLimits }
   const clock = createManualClock(new Date('2026-06-10T20:00:00.000Z'))
@@ -419,6 +426,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     clock,
     logger,
     limits: () => limits,
+    ...(onSegments === undefined ? {} : { onSegments }),
   })
   const endLiveSession = endLiveSessionFactory({ liveSessions, streams, eventBus, logger })
   const hashSecret = (secret: string) => `hash:${secret}`
@@ -426,6 +434,8 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
   const withoutLiveTv = new Set<string>()
   const tvAccess = { hasLiveTv: (profileId: string) => !withoutLiveTv.has(profileId) }
   let secrets = 0
+  /** When each channel was last watched (§29.4: the snapshots' priority). */
+  const watched = new Map<string, Date>()
   const authorize = authorizeLiveStreamFactory({ liveSessions, endLiveSession, hashSecret, clock })
 
   const addSource = (id: string, maxConnections?: number) => {
@@ -495,6 +505,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     streams,
     transcodes,
     withoutLiveTv,
+    watched,
     addSource,
     addChannel,
     createLiveSession: createLiveSessionFactory({
@@ -504,6 +515,11 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
       provider: { upstreamOf: ({ upstream }) => upstream },
       liveSessions,
       streams,
+      watched: {
+        recordWatched: ({ id, at }) => {
+          watched.set(id, at)
+        },
+      },
       streamSecrets: {
         generate: () => {
           secrets += 1

@@ -42,6 +42,8 @@ const toSource = (row: typeof tvSources.$inferSelect): TvSource => {
     lastRefreshAt,
     lastError,
     guideAttemptAt,
+    snapshots,
+    snapshotGrabsPerHour,
     ...rest
   } = stripNulls(row)
   return {
@@ -58,6 +60,8 @@ const toSource = (row: typeof tvSources.$inferSelect): TvSource => {
       : { lastError: parseJsonColumn(failureSchema, lastError, 'tv_sources.last_error') }),
     failureCount: rest.failureCount,
     ...(guideAttemptAt === undefined ? {} : { guideAttemptAt: fromIso(guideAttemptAt) }),
+    ...(snapshots === undefined ? {} : { snapshots }),
+    ...(snapshotGrabsPerHour === undefined ? {} : { snapshotGrabsPerHour }),
   }
 }
 
@@ -79,6 +83,8 @@ export const createSqliteTvSourceRepository = ({ db }: { db: Db }): TvSourceRepo
       name: source.name,
       settings: source.settings,
       maxConnections: toNullable(source.maxConnections),
+      snapshots: toNullable(source.snapshots),
+      snapshotGrabsPerHour: toNullable(source.snapshotGrabsPerHour),
     }
     db.insert(tvSources)
       .values({ id: source.id, createdAt: toIso(source.createdAt), ...own })

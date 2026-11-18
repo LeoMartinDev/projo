@@ -29,6 +29,9 @@ export const createTvSourceFactory =
     name: string
     settings: TvSourceSettings
     maxConnections?: number
+    /** The channel snapshots switch (§29.4); absent: the default. */
+    snapshots?: boolean
+    snapshotGrabsPerHour?: number
   }): Result<TvSourceView, CreateTvSourceError> => {
     if (input.maxConnections !== undefined && limitFromAccount(input.settings.kind))
       return err(
@@ -41,6 +44,10 @@ export const createTvSourceFactory =
       name: input.name,
       settings: input.settings,
       ...(input.maxConnections === undefined ? {} : { maxConnections: input.maxConnections }),
+      ...(input.snapshots === undefined ? {} : { snapshots: input.snapshots }),
+      ...(input.snapshotGrabsPerHour === undefined
+        ? {}
+        : { snapshotGrabsPerHour: input.snapshotGrabsPerHour }),
       createdAt: clock.now(),
       failureCount: 0,
     }

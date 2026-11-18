@@ -2,19 +2,39 @@ import { describe, expect, test } from 'bun:test'
 
 import type { TFunction } from 'i18next'
 
-import { cardImageOf } from './card-image.ts'
+import { cardImageOf, cardImagesOf } from './card-image.ts'
 import { episodeLabel, episodeLine } from './programme-format.ts'
 
-describe('"On now" card image (§29.6)', () => {
+describe("a card's image (§29.6)", () => {
+  const at = Date.parse('2026-11-18T20:00:00.000Z')
+  const logo = { logoUrl: '/api/v1/tv/channels/c/logo' }
+  const programme = { imageUrl: '/api/v1/tv/programmes/p/image' }
+  const snapshotAt = (minutesAgo: number) => ({
+    url: `/api/v1/tv/channels/c/snapshot?v=${at - minutesAgo * 60_000}`,
+    takenAt: new Date(at - minutesAgo * 60_000).toISOString(),
+  })
+
   test("the programme's image, else the channel's logo, else its name", () => {
-    const logo = { logoUrl: '/api/v1/tv/channels/c/logo' }
-    expect(cardImageOf(logo, { imageUrl: '/api/v1/tv/programmes/p/image' })).toEqual({
+    expect(cardImageOf(logo, programme, at)).toEqual({ kind: 'programme', url: programme.imageUrl })
+    expect(cardImageOf(logo, {}, at)).toEqual({ kind: 'logo', url: '/api/v1/tv/channels/c/logo' })
+    expect(cardImageOf(logo, undefined, at)).toEqual({ kind: 'logo', url: logo.logoUrl })
+    expect(cardImageOf({}, undefined, at)).toEqual({ kind: 'name' })
+  })
+
+  test('a snapshot under an hour old comes first; an older one gives way', () => {
+    const fresh = { ...logo, snapshot: snapshotAt(59) }
+    expect(cardImageOf(fresh, programme, at)).toEqual({ kind: 'snapshot', url: fresh.snapshot.url })
+    expect(cardImageOf({ ...logo, snapshot: snapshotAt(60) }, programme, at)).toEqual({
       kind: 'programme',
-      url: '/api/v1/tv/programmes/p/image',
+      url: programme.imageUrl,
     })
-    expect(cardImageOf(logo, {})).toEqual({ kind: 'logo', url: '/api/v1/tv/channels/c/logo' })
-    expect(cardImageOf(logo, undefined)).toEqual({ kind: 'logo', url: logo.logoUrl })
-    expect(cardImageOf({}, undefined)).toEqual({ kind: 'name' })
+    // Each picture that fails to load steps down to the next.
+    expect(cardImagesOf(fresh, programme, at).map((image) => image.kind)).toEqual([
+      'snapshot',
+      'programme',
+      'logo',
+      'name',
+    ])
   })
 })
 

@@ -9,6 +9,7 @@ import type { TvChannelRepository } from '../../core/tv/channel.ts'
 import type { TvLogoFiles } from '../../core/tv/logo.ts'
 import type { TvProviderError, TvSourceProvider } from '../../core/tv/provider.ts'
 import { planTvRefresh } from '../../core/tv/refresh-plan.ts'
+import { tvSnapshotPathOf } from '../../core/tv/snapshot.ts'
 import { TV_SOURCE_FAILURES_BEFORE_NOTICE, type TvSourceRepository } from '../../core/tv/source.ts'
 import { queueTvGuide, queueTvLogos } from './shared/tv-jobs.ts'
 
@@ -114,7 +115,9 @@ export const refreshTvSourceFactory =
     const logos = state.channels.flatMap((channel) =>
       deleted.has(channel.id) && channel.logoPath !== undefined ? [channel.logoPath] : [],
     )
-    await Promise.all(logos.map((path) => logoFiles.remove(path)))
+    // Their snapshots go with them (§29.4); a channel without one has no file to remove.
+    const stills = plan.channels.delete.map(tvSnapshotPathOf)
+    await Promise.all([...logos, ...stills].map((path) => logoFiles.remove(path)))
     queueTvLogos(jobQueue, sourceId)
     queueTvGuide(jobQueue, sourceId)
 

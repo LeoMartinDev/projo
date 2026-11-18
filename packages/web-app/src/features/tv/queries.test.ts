@@ -98,6 +98,23 @@ describe('guide on the page (§29.6)', () => {
     expect(withGuide(listed, undefined)).toBe(listed)
   })
 
+  test("the latest read's snapshots replace the list's (§29.6)", () => {
+    const snapshot = (v: number) => ({
+      url: `/api/v1/tv/channels/c1/snapshot?v=${v}`,
+      takenAt: new Date(v).toISOString(),
+    })
+    const listed = {
+      ...response,
+      items: response.items.map((c) => ({ ...c, snapshot: snapshot(1) })),
+    }
+    const merged = withGuide(listed, { items: [{ channelId: 'c1', snapshot: snapshot(2) }] })
+    expect(merged.items.map((c) => c.snapshot?.url)).toEqual([
+      '/api/v1/tv/channels/c1/snapshot?v=2',
+      undefined,
+      undefined,
+    ])
+  })
+
   test('between two reads, an ended programme gives way to the next one', () => {
     const channel = {
       now: programme('Now', '10:00', '11:00'),

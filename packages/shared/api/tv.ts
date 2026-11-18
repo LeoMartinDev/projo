@@ -70,6 +70,24 @@ export const xtreamCredentialSchema = z
 
 export const tvMaxConnectionsSchema = z.number().int().min(1).max(1000)
 
+/** Background snapshot grabs a source allows per hour (§29.4). */
+export const tvSnapshotGrabsPerHourSchema = z.number().int().min(1).max(600)
+
+/** The grabs per hour of a source that never set them (§29.4). */
+export const DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR = 60
+
+/**
+ * Whether a source's background snapshot grabs are on (§29.4): the admin's choice, else off when
+ * the source allows a single connection and on otherwise.
+ */
+export const tvSnapshotsEnabledOf = ({
+  snapshots,
+  maxConnections,
+}: {
+  snapshots?: boolean | undefined
+  maxConnections?: number | undefined
+}): boolean => snapshots ?? maxConnections !== 1
+
 const sourceNameSchema = z.string().trim().min(1).max(100)
 
 export const m3uSettingsInputSchema = z.object({
@@ -107,6 +125,8 @@ export const createTvSourceBodySchema = z.object({
   name: sourceNameSchema,
   settings: tvSourceSettingsInputSchema,
   maxConnections: tvMaxConnectionsSchema.optional(),
+  snapshots: z.boolean().optional(),
+  snapshotGrabsPerHour: tvSnapshotGrabsPerHourSchema.optional(),
 })
 export type CreateTvSourceBody = z.infer<typeof createTvSourceBodySchema>
 
@@ -140,6 +160,9 @@ export const updateTvSourceBodySchema = z
     name: sourceNameSchema,
     settings: tvSourceSettingsPatchSchema,
     maxConnections: z.union([tvMaxConnectionsSchema, z.literal('')]),
+    /** `null`: back to the default (§29.4). */
+    snapshots: z.boolean().nullable(),
+    snapshotGrabsPerHour: tvSnapshotGrabsPerHourSchema,
   })
   .partial()
 export type UpdateTvSourceBody = z.infer<typeof updateTvSourceBodySchema>
@@ -189,6 +212,9 @@ export const adminTvSourceDtoSchema = z.object({
   lastError: tvSourceErrorDtoSchema.optional(),
   failureCount: z.number().int(),
   createdAt: isoDateTimeSchema,
+  /** Background snapshot grabs on, the default applied (§29.4); absent from older servers. */
+  snapshots: z.boolean().optional(),
+  snapshotGrabsPerHour: z.number().int().optional(),
 })
 export type AdminTvSourceDto = z.infer<typeof adminTvSourceDtoSchema>
 
@@ -328,6 +354,22 @@ export const tvProgrammeDtoSchema = z.object({
 export type TvProgrammeDto = z.infer<typeof tvProgrammeDtoSchema>
 
 /**
+ * A channel's snapshot (§29.4), listed while under an hour old: `url` a server path (media key
+ * accepted) that changes with each new picture.
+ */
+export const tvSnapshotDtoSchema = z.object({ url: z.string(), takenAt: isoDateTimeSchema })
+export type TvSnapshotDto = z.infer<typeof tvSnapshotDtoSchema>
+
+/** A snapshot older than this is not shown (§29.6). */
+export const TV_SNAPSHOT_SHOWN_MS = 60 * 60_000
+
+/** `POST /tv/visible-channels` (§29.4): the channels a TV page shows in its viewport. */
+export const tvVisibleChannelsBodySchema = z.object({
+  channelIds: z.array(z.string().min(1).max(100)).max(200),
+})
+export type TvVisibleChannelsBody = z.infer<typeof tvVisibleChannelsBodySchema>
+
+/**
  * A channel as a viewer sees it (§29.7); `logoUrl` is a server path (media key accepted); `kind`
  * the channel's own kind (§29.3), absent from older servers.
  */
@@ -341,6 +383,7 @@ export const tvChannelDtoSchema = z.object({
   favorite: z.boolean().optional(),
   now: tvProgrammeDtoSchema.optional(),
   next: tvProgrammeDtoSchema.optional(),
+  snapshot: tvSnapshotDtoSchema.optional(),
 })
 export type TvChannelDto = z.infer<typeof tvChannelDtoSchema>
 
@@ -361,6 +404,7 @@ export const tvGuideEntryDtoSchema = z.object({
   channelId: z.string(),
   now: tvProgrammeDtoSchema.optional(),
   next: tvProgrammeDtoSchema.optional(),
+  snapshot: tvSnapshotDtoSchema.optional(),
 })
 export type TvGuideEntryDto = z.infer<typeof tvGuideEntryDtoSchema>
 
