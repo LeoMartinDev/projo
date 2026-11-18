@@ -219,14 +219,19 @@ fn main() {
                     .visible(false)
                     .transparent(true);
             builder = window_frame(builder);
-            if cfg!(debug_assertions) {
-                // Dev builds only: Chrome DevTools Protocol on 127.0.0.1:9229 to inspect the page
-                // (wry's default flags kept).
-                builder = builder.additional_browser_args(
-                    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection \
-                     --remote-debugging-port=9229",
-                );
-            }
+            // WebView2's flags (Windows), replacing wry's defaults, which are kept. Chromium runs
+            // a background-color transition on the compositor, and when the page is busy at its
+            // end (a new page rendering after a click), one frame shows its start again: a button
+            // or a nav link blinks back to its previous state. CompositeBGColorAnimation off runs
+            // them on the main thread, as before Chromium 115.
+            let flags = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,\
+                         CompositeBGColorAnimation";
+            builder = builder.additional_browser_args(&if cfg!(debug_assertions) {
+                // Dev builds also serve the Chrome DevTools Protocol on 127.0.0.1:9229.
+                format!("{flags} --remote-debugging-port=9229")
+            } else {
+                flags.to_owned()
+            });
             if let Some((x, y)) = test_position {
                 builder = builder.position(x, y).focused(false);
             }
