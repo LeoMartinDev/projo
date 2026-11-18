@@ -55,11 +55,15 @@
   align-items: center;
   gap: 6px;
   height: 36px;
-  padding: 0 12px 0 6px;
+  padding: 0 14px 0 8px;
   border-radius: var(--radius-pill);
-  color: var(--color-text-secondary);
+  background: var(--material-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+  box-shadow: var(--shadow-glass);
+  color: var(--color-text);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   transition:
     background-color 0.25s ease,
@@ -67,7 +71,7 @@
 }
 
 .detail-hero__back:hover {
-  background: var(--fill-2);
+  background: var(--material-glass-hover);
   color: var(--color-text-strong);
 }
 
@@ -783,11 +787,6 @@
     height: 40px;
     justify-content: center;
     padding: 0;
-    background: var(--material-glass);
-    -webkit-backdrop-filter: var(--blur-glass-dim);
-    backdrop-filter: var(--blur-glass-dim);
-    box-shadow: var(--shadow-glass);
-    color: var(--color-text);
   }
 
   .detail-hero__back-label {
