@@ -9,8 +9,10 @@ import type {
 import type { FreeboxSettings } from '../../../core/tv/source.ts'
 import {
   type Fetch,
+  FREEBOX_GUIDE_PACE_MS,
   FREEBOX_GUIDE_TIMEOUT_MS,
   FREEBOX_MAX_BYTES,
+  FREEBOX_RATE_LIMIT_WAITS_MS,
   FREEBOX_TIMEOUT_MS,
   type FreeboxAnswer,
   type FreeboxCallOptions,
@@ -70,6 +72,25 @@ const invalid = (reason: string): { ok: false; failure: FreeboxFailure } => ({
   failure: { kind: 'invalid', reason },
 })
 
+/** The box refused a call for its rate (`rate_limit`, or HTTP 429). */
+const rateLimited = (failure: FreeboxFailure): boolean =>
+  failure.kind === 'invalid' &&
+  failure.reason === 'api_error' &&
+  (failure.errorCode === 'rate_limit' || failure.status === 429)
+
+/** `ms` of waiting, over at once when `signal` aborts (the next call then fails as aborted). */
+const waitFor = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve) => {
+    if (signal?.aborted === true) return resolve()
+    const done = () => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', done)
+      resolve()
+    }
+    const timer = setTimeout(done, ms)
+    signal?.addEventListener('abort', done, { once: true })
+  })
+
 /**
  * The `freebox` connector (§29.2, §29.3): read-only `GET`s of the box's TV API, discovered
  * through `/api_version`; no credentials. `now` places the guide's hours.
@@ -80,12 +101,15 @@ export const createFreeboxProvider = ({
   maxBytes = FREEBOX_MAX_BYTES,
   guideTimeoutMs = FREEBOX_GUIDE_TIMEOUT_MS,
   now = () => new Date(),
+  wait = waitFor,
 }: {
   fetch?: Fetch
   timeoutMs?: number
   maxBytes?: number
   guideTimeoutMs?: number
   now?: () => Date
+  /** Waiting between calls once the box limited the rate (a test seam). */
+  wait?: (ms: number, signal?: AbortSignal) => Promise<void>
 } = {}): FreeboxProvider => {
   const options: FreeboxCallOptions = { fetch: doFetch, timeoutMs, maxBytes }
 
@@ -130,7 +154,8 @@ export const createFreeboxProvider = ({
       return ok({ channels: listed })
     },
     // The box's EPG, hour by hour from 6 hours ago to 72 hours ahead: 79 requests, one at a
-    // time, within one deadline for the whole read (§29.3).
+    // time, within one deadline for the whole read (§29.3). Refused for its rate, the read waits
+    // and asks that hour again, then goes on at a pace of one call a second.
     readGuide: async ({ settings, sink, signal }) => {
       const host = hostOf(settings.address)
       const deadline = AbortSignal.timeout(guideTimeoutMs)
@@ -138,8 +163,19 @@ export const createFreeboxProvider = ({
       const api = await tvApi(settings.address, guideSignal)
       if (!api.ok) return err(guideError(host, api.failure))
       const seen = new Set<string>()
+      let paceMs = 0
+      const hour = async (slot: number): Promise<FreeboxAnswer<unknown>> => {
+        for (let refused = 0; ; refused += 1) {
+          if (paceMs > 0) await wait(paceMs, guideSignal)
+          const answer = await tvResult(`${api.value}epg/by_time/${slot}`, guideSignal)
+          const delay = FREEBOX_RATE_LIMIT_WAITS_MS[refused]
+          if (answer.ok || !rateLimited(answer.failure) || delay === undefined) return answer
+          paceMs = FREEBOX_GUIDE_PACE_MS
+          await wait(delay, guideSignal)
+        }
+      }
       for (const slot of freeboxGuideSlots(now())) {
-        const answer = await tvResult(`${api.value}epg/by_time/${slot}`, guideSignal)
+        const answer = await hour(slot)
         if (!answer.ok) return err(guideError(host, answer.failure))
         if (!isGuideResult(answer.value))
           return err(guideError(host, { kind: 'invalid', reason: 'not_freebox' }))

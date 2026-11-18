@@ -56,9 +56,12 @@ test('live TV: the admin adds an M3U source and enables a group, a profile plays
       // cards once its job has run.
       await expect(async () => {
         await page.reload()
-        await expect(page.getByText('Le direct', { exact: true })).toBeVisible({ timeout: 2_000 })
+        // On the channel's card and in the "On now" rows above the groups (§29.6).
+        await expect(page.getByText('Le direct', { exact: true }).first()).toBeVisible({
+          timeout: 2_000,
+        })
       }).toPass({ timeout: 30_000 })
-      await expect(page.getByText(/La suite$/)).toBeVisible()
+      await expect(page.getByText(/La suite$/).first()).toBeVisible()
     })
 
     // The live session requests, in the order the page sends them.

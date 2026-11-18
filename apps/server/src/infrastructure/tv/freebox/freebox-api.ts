@@ -5,8 +5,15 @@ import { fetchFailureReason } from '../fetch-failure.ts'
 /** Each call to the box (§29.2): 30 s and 16 MB at most. */
 export const FREEBOX_TIMEOUT_MS = 30_000
 export const FREEBOX_MAX_BYTES = 16 * 1024 * 1024
-/** A whole guide read (§29.3): its 25 calls share this deadline, like an XMLTV fetch. */
-export const FREEBOX_GUIDE_TIMEOUT_MS = 5 * 60_000
+/** A whole guide read (§29.3): its calls share this deadline, waits for the box included. */
+export const FREEBOX_GUIDE_TIMEOUT_MS = 10 * 60_000
+/**
+ * The box caps its API's rate (`rate_limit`, HTTP 429). A guide read asks one hour after the
+ * other at once; refused, it waits these delays in turn before asking the same hour again, and
+ * keeps this pace between its next calls (§29.3).
+ */
+export const FREEBOX_RATE_LIMIT_WAITS_MS = [2_000, 5_000, 10_000, 20_000, 30_000] as const
+export const FREEBOX_GUIDE_PACE_MS = 1_000
 /** The TV API is read at this version, which later Freebox OS versions keep serving. */
 export const FREEBOX_TV_API_VERSION = 8
 

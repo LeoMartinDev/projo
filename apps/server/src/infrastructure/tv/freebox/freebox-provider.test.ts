@@ -231,6 +231,48 @@ describe('freebox provider: guide', () => {
     })
   })
 
+  test('refused for its rate, the read waits, asks that hour again, then keeps a pace', async () => {
+    const slots = freeboxGuideSlots(now)
+    let refusals = 2
+    const limited: Fetch = (input, init) => {
+      if (input.endsWith(`/epg/by_time/${slots[4]}`) && refusals > 0) {
+        refusals -= 1
+        return Promise.resolve(
+          new Response('{"success":false,"error_code":"rate_limit","msg":"Too many requests"}', {
+            status: 429,
+            headers: { 'content-type': 'application/json' },
+          }),
+        )
+      }
+      return fetch(input, init)
+    }
+    const waits: number[] = []
+    const paced = createFreeboxProvider({
+      now: () => now,
+      fetch: limited,
+      wait: (ms) => {
+        waits.push(ms)
+        return Promise.resolve()
+      },
+    })
+    const { result, programmes } = await readGuide(paced)
+    expect(result).toEqual({ ok: true, value: { available: true } })
+    expect(programmes.length).toBeGreaterThan(0)
+    // 2 s, then the pace before asking again, 5 s, the pace, then the pace before each later hour.
+    expect(waits.slice(0, 4)).toEqual([2_000, 1_000, 5_000, 1_000])
+    expect(waits.slice(4)).toEqual(Array.from({ length: slots.length - 5 }, () => 1_000))
+
+    // Still refused after every wait: the read fails, the stored guide stays (§29.3).
+    refusals = Number.POSITIVE_INFINITY
+    expect((await readGuide(paced)).result).toMatchObject({
+      ok: false,
+      error: {
+        code: 'tv/guide_invalid',
+        context: { reason: 'api_error', errorCode: 'rate_limit' },
+      },
+    })
+  })
+
   test('the whole read shares one deadline, and stops when aborted', async () => {
     const slots = freeboxGuideSlots(now)
     const calls: string[] = []
