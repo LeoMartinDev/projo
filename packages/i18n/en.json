@@ -339,7 +339,36 @@
     "next": "Next",
     "episode": "S{{season}} E{{episode}}",
     "seasonOnly": "Season {{season}}",
-    "episodeOnly": "Episode {{episode}}"
+    "episodeOnly": "Episode {{episode}}",
+    "guide": {
+      "views": "View",
+      "featured": "Featured",
+      "title": "Guide",
+      "label": "Programme guide",
+      "day": "Day",
+      "yesterday": "Yesterday",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "now": "Now",
+      "channels": "Channels",
+      "allChannels": "All channels",
+      "kind": "Programme type",
+      "allKinds": "All programmes",
+      "kinds": {
+        "news": "News",
+        "sport": "Sport",
+        "movie": "Movies",
+        "series": "Series",
+        "kids": "Kids",
+        "documentary": "Documentaries",
+        "entertainment": "Entertainment",
+        "music": "Music",
+        "other": "Other"
+      },
+      "noProgramme": "No programme",
+      "onAir": "on now",
+      "play": "Watch {{name}}"
+    }
   },
   "category": {
     "empty": "Nothing in this category"

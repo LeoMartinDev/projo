@@ -10,6 +10,7 @@ import {
   type TvChannelsResponse,
   tvChannelsResponseSchema,
   tvGuideResponseSchema,
+  tvScheduleResponseSchema,
 } from '@projo/shared/api/tv'
 
 import { dataPathsFor } from '../../src/core/data-paths.ts'
@@ -368,6 +369,75 @@ describe('the richer guide (§29.3, §29.7) on SQLite against a test provider', 
     expect(
       (await request('GET', `/tv/programmes/${journal?.id}/image`, undefined, 'admin')).status,
     ).toBe(200)
+  })
+})
+
+describe('the guide grid read, GET /tv/schedule (§29.7)', () => {
+  test('programmes overlapping the range, in the order asked, bounded, behind Live TV access', async () => {
+    await guidedSource()
+    await runJobs(['refresh_tv_guide'])
+    const listed = await channels()
+    const newsOne = byName(listed, 'News One HD').id
+    const newsTwo = byName(listed, 'News Two').id
+    const local = byName(listed, 'Local Channel').id
+    const now = t.clock.now().getTime()
+    const at = (minutes: number) => new Date(now + minutes * minute).toISOString()
+    const schedule = (query: Record<string, string>) =>
+      request('GET', `/tv/schedule?${new URLSearchParams(query).toString()}`)
+    const read = async (query: Record<string, string>) => {
+      const response = await schedule(query)
+      expect(response.status).toBe(200)
+      return tvScheduleResponseSchema.parse(await response.json())
+    }
+
+    const window = await read({
+      from: at(-60),
+      to: at(40),
+      channels: [newsTwo, 'unknown', newsOne, newsTwo, local].join(','),
+    })
+    expect(window.items.map((item) => item.channelId)).toEqual([newsTwo, newsOne, local])
+    expect(window.items[1]?.programmes.map((p) => [p.title, p.startAt, p.endAt])).toEqual([
+      ['Matinale', at(-120), at(-30)],
+      ['Le journal', at(-30), at(30)],
+      ['La météo', at(30), at(90)],
+    ])
+    // Compact: no subtitle, description nor image.
+    expect(window.items[0]?.programmes).toEqual([
+      {
+        id: expect.any(String),
+        title: 'Talk show',
+        startAt: at(-10),
+        endAt: at(50),
+        kind: 'entertainment',
+        episode: { season: 3, episode: 5 },
+      },
+    ])
+    // A programme ending at `from` or starting at `to` is not in it.
+    expect(
+      (await read({ from: at(30), to: at(90), channels: newsOne })).items[0]?.programmes.map(
+        (p) => p.title,
+      ),
+    ).toEqual(['La météo'])
+    expect((await read({ from: at(100), to: at(200), channels: newsOne })).items).toEqual([])
+
+    // Bounds: an empty, reversed or longer than 24 hours range, no channel, too many channels.
+    const tooMany = Array.from({ length: 101 }, (_, index) => `c${index}`).join(',')
+    for (const query of [
+      { from: at(0), to: at(0), channels: newsOne },
+      { from: at(60), to: at(0), channels: newsOne },
+      { from: at(0), to: at(24 * 60 + 1), channels: newsOne },
+      { from: at(0), to: at(60), channels: '' },
+      { from: at(0), to: at(60), channels: tooMany },
+      { from: 'yesterday', to: at(60), channels: newsOne },
+    ]) {
+      const refused = await schedule(query)
+      expect(refused.status).toBe(400)
+      expect(await refused.json()).toMatchObject({ error: { code: 'common/validation_failed' } })
+    }
+    expect((await schedule({ from: at(0), to: at(24 * 60), channels: newsOne })).status).toBe(200)
+
+    await request('PATCH', '/profiles/profile-zoe', { liveTv: false }, 'admin')
+    expect(await read({ from: at(-60), to: at(40), channels: newsOne })).toEqual({ items: [] })
   })
 })
 

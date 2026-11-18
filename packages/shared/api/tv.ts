@@ -367,6 +367,51 @@ export type TvGuideEntryDto = z.infer<typeof tvGuideEntryDtoSchema>
 export const tvGuideResponseSchema = z.object({ items: z.array(tvGuideEntryDtoSchema) })
 export type TvGuideResponse = z.infer<typeof tvGuideResponseSchema>
 
+/** At most this many channels per `GET /tv/schedule` (§29.7). */
+export const TV_SCHEDULE_MAX_CHANNELS = 100
+/** At most this long a range per `GET /tv/schedule` (§29.7). */
+export const TV_SCHEDULE_MAX_RANGE_MS = 24 * 60 * 60_000
+
+/**
+ * `GET /tv/schedule` (§29.7): the guide grid's read, the programmes overlapping `[from, to)` of
+ * the channels asked (comma-separated ids, each kept once), the range at most 24 hours.
+ */
+export const tvScheduleQuerySchema = z
+  .object({
+    from: isoDateTimeSchema,
+    to: isoDateTimeSchema,
+    channels: z
+      .string()
+      .transform((value) => [...new Set(value.split(',').filter((id) => id !== ''))])
+      .pipe(z.array(z.string().max(64)).min(1).max(TV_SCHEDULE_MAX_CHANNELS)),
+  })
+  .refine(
+    ({ from, to }) => {
+      const span = Date.parse(to) - Date.parse(from)
+      return span > 0 && span <= TV_SCHEDULE_MAX_RANGE_MS
+    },
+    { message: 'from must be before to, at most 24 hours apart', path: ['to'] },
+  )
+export type TvScheduleQuery = z.input<typeof tvScheduleQuerySchema>
+
+/** A programme of the guide grid (§29.7): no subtitle, description nor image (its detail has them). */
+export const tvScheduleProgrammeDtoSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  startAt: isoDateTimeSchema,
+  endAt: isoDateTimeSchema,
+  kind: tvProgrammeKindSchema,
+  episode: tvEpisodeDtoSchema.optional(),
+})
+export type TvScheduleProgrammeDto = z.infer<typeof tvScheduleProgrammeDtoSchema>
+
+export const tvScheduleResponseSchema = z.object({
+  items: z.array(
+    z.object({ channelId: z.string(), programmes: z.array(tvScheduleProgrammeDtoSchema) }),
+  ),
+})
+export type TvScheduleResponse = z.infer<typeof tvScheduleResponseSchema>
+
 /** `GET /tv/programmes/:id` (§29.7): a programme in full, with the one that follows it. */
 export const tvProgrammeDetailDtoSchema = z.object({
   id: z.string(),

@@ -1,7 +1,7 @@
 import { type Context, Hono } from 'hono'
 
 import { fromPromise } from '@projo/shared'
-import { createTvSessionBodySchema } from '@projo/shared/api/tv'
+import { createTvSessionBodySchema, tvScheduleQuerySchema } from '@projo/shared/api/tv'
 
 import type { LiveStreamAccess } from '../../../application/tv/authorize-live-stream.ts'
 import type { AddTvFavorite } from '../../../application/tv/add-tv-favorite.ts'
@@ -13,6 +13,7 @@ import type { GetTvProgrammeImage } from '../../../application/tv/get-tv-program
 import type { GetTvProgramme } from '../../../application/tv/get-tv-programme.ts'
 import type { ListTvChannels } from '../../../application/tv/list-tv-channels.ts'
 import type { ListTvGuide } from '../../../application/tv/list-tv-guide.ts'
+import type { ListTvSchedule } from '../../../application/tv/list-tv-schedule.ts'
 import type { RecordLiveHeartbeat } from '../../../application/tv/record-live-heartbeat.ts'
 import type { RemoveTvFavorite } from '../../../application/tv/remove-tv-favorite.ts'
 import type { StopLiveSession } from '../../../application/tv/stop-live-session.ts'
@@ -26,6 +27,7 @@ import {
   toTvChannelsResponse,
   toTvGuideResponse,
   toTvProgrammeDetailDto,
+  toTvScheduleResponse,
   toTvSessionDto,
 } from './tv-dto.ts'
 
@@ -44,6 +46,7 @@ export const tvRoutes = ({
   open,
   listTvChannels,
   listTvGuide,
+  listTvSchedule,
   addTvFavorite,
   removeTvFavorite,
   createLiveSession,
@@ -60,6 +63,7 @@ export const tvRoutes = ({
   open: ImageFileOpener
   listTvChannels: ListTvChannels
   listTvGuide: ListTvGuide
+  listTvSchedule: ListTvSchedule
   addTvFavorite: AddTvFavorite
   removeTvFavorite: RemoveTvFavorite
   createLiveSession: CreateLiveSession
@@ -78,6 +82,18 @@ export const tvRoutes = ({
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
       return c.json(toTvGuideResponse(listTvGuide({ profileId: profileId.value })), 200)
+    })
+    .get('/tv/schedule', validate('query', tvScheduleQuerySchema), (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const { from, to, channels } = c.req.valid('query')
+      const entries = listTvSchedule({
+        profileId: profileId.value,
+        channelIds: channels,
+        from: new Date(from),
+        to: new Date(to),
+      })
+      return c.json(toTvScheduleResponse(entries), 200)
     })
     .put('/tv/channels/:id/favorite', (c) => {
       const profileId = currentProfileId(c)

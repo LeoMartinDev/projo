@@ -1,0 +1,429 @@
+@import '@projo/design/media.css';
+
+/* The guide grid (§29.6): it fills the page's height and scrolls inside, both ways, under its
+   sticky time header and beside its sticky channel column (like the logs and jobs tables). Its
+   measures come from GuideView (`--guide-column`, `--guide-row`, `--guide-header`). */
+
+.tv-guide {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.tv-guide__toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.tv-guide__now-button {
+  flex: 0 0 auto;
+  height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-glass);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  color: var(--color-text-soft);
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.tv-guide__now-button:hover {
+  background: var(--color-glass-strong);
+  color: var(--color-text-strong);
+}
+
+.tv-guide__grid {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-card);
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+.tv-guide__canvas {
+  position: relative;
+}
+
+.tv-guide__head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  height: var(--guide-header);
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg);
+}
+
+.tv-guide__corner {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  flex: 0 0 auto;
+  width: var(--guide-column);
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg);
+}
+
+.tv-guide__marks {
+  position: relative;
+  flex: 0 0 auto;
+  height: 100%;
+}
+
+.tv-guide__mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+  border-left: 1px solid var(--color-border-subtle);
+  color: var(--color-text-faint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tv-guide__mark--hour {
+  border-left-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.tv-guide__mark--day {
+  border-left-color: var(--color-border-strong);
+  color: var(--color-text-strong);
+  font-weight: 600;
+}
+
+.tv-guide__now-time {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+.tv-guide__body {
+  position: relative;
+}
+
+.tv-guide__now-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--color-accent);
+  pointer-events: none;
+}
+
+.tv-guide__row {
+  position: absolute;
+  right: 0;
+  left: 0;
+  display: flex;
+  height: var(--guide-row);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tv-guide__channel {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  width: var(--guide-column);
+  height: 100%;
+  padding: 0 6px 0 4px;
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg);
+}
+
+.tv-guide__channel-link {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: calc(100% - 8px);
+  padding: 0 6px;
+  border-radius: var(--radius-thumb);
+  outline: none;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.tv-guide__channel-link:hover {
+  background: var(--fill-1);
+}
+
+.tv-guide__channel-link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.tv-guide__logo-box {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 36px;
+  padding: 4px;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.tv-guide__logo-box:not(.skeleton, :empty) {
+  background: var(--fill-1);
+}
+
+.tv-guide__logo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-guide__logo-name {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-guide__channel-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tv-guide__number {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-guide__name {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-guide__star {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.tv-guide__star:hover {
+  color: var(--color-text-strong);
+}
+
+.tv-guide__channel:hover .tv-guide__star,
+.tv-guide__star[data-favorite='true'] {
+  opacity: 1;
+}
+
+.tv-guide__star[data-favorite='true'] {
+  color: var(--color-text-strong);
+}
+
+@media (--touch) {
+  .tv-guide__star {
+    opacity: 1;
+  }
+}
+
+.tv-guide__track {
+  position: relative;
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.tv-guide__block {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  overflow: clip;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    opacity var(--duration-fast) ease;
+}
+
+.tv-guide__block--past,
+.tv-guide__block--future {
+  background: var(--fill-2);
+}
+
+.tv-guide__block--past:hover,
+.tv-guide__block--future:hover {
+  background: var(--fill-3);
+}
+
+.tv-guide__block:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.tv-guide__block--now {
+  background: var(--fill-3);
+  box-shadow: inset 0 0 0 1px var(--color-border-strong);
+}
+
+.tv-guide__block--now:hover {
+  background: var(--fill-4);
+}
+
+.tv-guide__block--past {
+  opacity: 0.5;
+}
+
+.tv-guide__block--dimmed {
+  opacity: 0.22;
+}
+
+.tv-guide__block--empty {
+  background: var(--fill-1);
+  cursor: default;
+}
+
+.tv-guide__block--loading {
+  border-radius: 8px;
+  cursor: default;
+}
+
+/* Stays in view while a long block is scrolled sideways (`overflow: clip` keeps the grid its
+   scroller). */
+.tv-guide__text {
+  position: sticky;
+  left: calc(var(--guide-column) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.tv-guide__title,
+.tv-guide__second {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-guide__title {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tv-guide__block--now .tv-guide__title {
+  color: var(--color-text-strong);
+}
+
+.tv-guide__block--empty .tv-guide__title {
+  color: var(--color-text-faint);
+  font-weight: 500;
+}
+
+.tv-guide__second {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-guide__elapsed {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--color-accent);
+}
+
+@media (--phone) {
+  .tv-guide__toolbar {
+    margin: 0 calc(-1 * max(16px, env(safe-area-inset-right))) 0
+      calc(-1 * max(16px, env(safe-area-inset-left)));
+    padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tv-guide__toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tv-guide__channel {
+    padding: 0 4px;
+  }
+
+  .tv-guide__channel-link {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .tv-guide__logo-box {
+    width: 52px;
+    height: 34px;
+  }
+
+  .tv-guide__block {
+    padding: 0 8px;
+  }
+
+  .tv-guide__title {
+    font-size: 13px;
+  }
+
+  .tv-guide__text {
+    left: calc(var(--guide-column) + 8px);
+  }
+}
