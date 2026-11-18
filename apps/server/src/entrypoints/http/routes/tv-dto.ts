@@ -1,20 +1,23 @@
-import type {
-  AdminTvChannelDto,
-  AdminTvGuideMatchDto,
-  AdminTvSessionDto,
-  AdminTvGroupDto,
-  AdminTvSourceDetailDto,
-  AdminTvSourceDto,
-  TvChannelsResponse,
-  TvEpisodeDto,
-  TvGuideResponse,
-  TvProgrammeDetailDto,
-  TvProgrammeDto,
-  TvScheduleResponse,
-  TvSessionDto,
-  TvSourceSettingsDto,
-  TvSourceSettingsInput,
-  TvSourceSettingsPatch as TvSourceSettingsPatchInput,
+import {
+  type AdminTvChannelDto,
+  type AdminTvGuideMatchDto,
+  type AdminTvSessionDto,
+  type AdminTvGroupDto,
+  type AdminTvSourceDetailDto,
+  type AdminTvSourceDto,
+  DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR,
+  type TvChannelsResponse,
+  type TvEpisodeDto,
+  type TvGuideResponse,
+  type TvProgrammeDetailDto,
+  type TvProgrammeDto,
+  type TvScheduleResponse,
+  type TvSessionDto,
+  type TvSnapshotDto,
+  tvSnapshotsEnabledOf,
+  type TvSourceSettingsDto,
+  type TvSourceSettingsInput,
+  type TvSourceSettingsPatch as TvSourceSettingsPatchInput,
 } from '@projo/shared/api/tv'
 
 import type {
@@ -119,6 +122,8 @@ export const toAdminTvSourceDto = (view: TvSourceView): AdminTvSourceDto => ({
   ...(view.lastError === undefined ? {} : { lastError: view.lastError }),
   failureCount: view.failureCount,
   createdAt: view.createdAt.toISOString(),
+  snapshots: tvSnapshotsEnabledOf(view),
+  snapshotGrabsPerHour: view.snapshotGrabsPerHour ?? DEFAULT_TV_SNAPSHOT_GRABS_PER_HOUR,
 })
 
 export const toAdminTvGroupDto = (group: TvGroupSummary): AdminTvGroupDto => ({
@@ -224,8 +229,30 @@ const nowNextFields = (entry: TvNowNext | undefined) => ({
   ...(entry?.next === undefined ? {} : { next: toTvProgrammeDto(entry.next) }),
 })
 
-/** The channels a viewer sees (§29.7), with favourites and the guide's now and next. */
-export const toTvChannelsResponse = (view: TvChannelsView): TvChannelsResponse => {
+/** A channel's snapshot (§29.7): its URL changes with each new picture. */
+const snapshotField = (
+  channelId: string,
+  snapshots: ReadonlyMap<string, Date>,
+): { snapshot?: TvSnapshotDto } => {
+  const takenAt = snapshots.get(channelId)
+  return takenAt === undefined
+    ? {}
+    : {
+        snapshot: {
+          url: `${apiPrefix}/tv/channels/${encodeURIComponent(channelId)}/snapshot?v=${takenAt.getTime()}`,
+          takenAt: takenAt.toISOString(),
+        },
+      }
+}
+
+/**
+ * The channels a viewer sees (§29.7), with favourites, the guide's now and next, and their
+ * snapshots of the last hour (§29.4).
+ */
+export const toTvChannelsResponse = (
+  view: TvChannelsView,
+  snapshots: ReadonlyMap<string, Date> = new Map(),
+): TvChannelsResponse => {
   const favorites = new Set(view.favorites)
   return {
     groups: view.groups.map((group) => ({ id: group.id, name: group.name })),
@@ -240,16 +267,21 @@ export const toTvChannelsResponse = (view: TvChannelsView): TvChannelsResponse =
       kind: view.kinds.get(channel.id) ?? 'other',
       favorite: favorites.has(channel.id),
       ...nowNextFields(view.guide.get(channel.id)),
+      ...snapshotField(channel.id, snapshots),
     })),
     favorites: view.favorites,
   }
 }
 
-/** Now and next of the listed channels (§29.7). */
-export const toTvGuideResponse = (guide: ReadonlyMap<string, TvNowNext>): TvGuideResponse => ({
-  items: [...guide.entries()].map(([channelId, entry]) => ({
+/** Now and next of the listed channels (§29.7), and their snapshots of the last hour (§29.4). */
+export const toTvGuideResponse = (
+  guide: ReadonlyMap<string, TvNowNext>,
+  snapshots: ReadonlyMap<string, Date> = new Map(),
+): TvGuideResponse => ({
+  items: [...new Set([...guide.keys(), ...snapshots.keys()])].map((channelId) => ({
     channelId,
-    ...nowNextFields(entry),
+    ...nowNextFields(guide.get(channelId)),
+    ...snapshotField(channelId, snapshots),
   })),
 })
 

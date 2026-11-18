@@ -8,9 +8,10 @@ import type { TvChannelDto } from '@projo/shared/api/tv'
 import { FavoriteIcon } from '../../shared/ui/media-icons.tsx'
 import { Segmented } from '../../shared/ui/Segmented.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
+import { useElement } from '../../shared/ui/use-element.ts'
 import { useNow } from '../../shared/ui/use-now.ts'
 import { useLongPress } from '../media/use-long-press.ts'
-import { ChannelLogo } from './ChannelLogo.tsx'
+import { CardArt } from './CardArt.tsx'
 import { clockTime } from './guide-format.ts'
 import { GuideView } from './GuideView.tsx'
 import { OnNow, type OpenProgramme } from './OnNow.tsx'
@@ -26,6 +27,7 @@ import {
   withGuide,
 } from './queries.ts'
 import { rememberedTvView, rememberTvView, type TvView } from './tv-view.ts'
+import { useVisibleChannelsHint } from './use-visible-channels.ts'
 import './tv.css'
 
 const skeletonCards = Array.from({ length: 12 }, (_, index) => index)
@@ -79,7 +81,7 @@ const ChannelCard = ({
     if (programmeId !== undefined) onInfo({ programmeId, channelId: channel.id })
   })
   return (
-    <li className="tv-card">
+    <li className="tv-card" data-channel-id={channel.id}>
       <Link
         to="/watch/tv/$channelId"
         params={{ channelId: channel.id }}
@@ -87,13 +89,7 @@ const ChannelCard = ({
         aria-label={now === undefined ? label : `${label}, ${now.title}`}
         {...(programmeId === undefined ? {} : longPress)}
       >
-        <span className="tv-card__tile">
-          <ChannelLogo
-            channel={channel}
-            className="tv-card__logo"
-            fallback={<span className="tv-card__fallback">{channel.name}</span>}
-          />
-        </span>
+        <CardArt channel={channel} programme={now} at={at} frame="tv-card__tile" />
         <span className="tv-card__label" aria-hidden="true">
           {channel.number === undefined ? undefined : (
             <span className="tv-card__number">{channel.number}</span>
@@ -140,6 +136,9 @@ export const TvPage = ({
     channelId: string
     watch?: boolean
   }>()
+  // The channels on screen go first for the background snapshots (§29.4).
+  const [page, pageRef] = useElement<HTMLDivElement>()
+  useVisibleChannelsHint(page)
   const listed = useMemo(
     () => (channels.data === undefined ? undefined : withGuide(channels.data, guide.data)),
     [channels.data, guide.data],
@@ -199,7 +198,7 @@ export const TvPage = ({
       </div>
     )
   return (
-    <div className="page tv-page">
+    <div className="page tv-page" ref={pageRef}>
       {head}
       {favorite.isError ? <ErrorAlert error={favorite.error} /> : undefined}
       {rows.length === 0 ? undefined : <OnNow rows={rows} at={at} onInfo={setDetail} />}

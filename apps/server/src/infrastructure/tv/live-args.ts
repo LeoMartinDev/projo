@@ -32,20 +32,23 @@ export const liveInputArgs = (
   upstream: TvUpstream,
   transport: LiveTransport | undefined,
   analyzeUs: number,
+  /** More input options, just before `-i` (a snapshot grab's `-skip_frame nokey`). */
+  inputOptions: readonly string[] = [],
 ): string[] => [
   '-protocol_whitelist',
   liveProtocols,
-  ...schemeInputArgs(upstream, transport, analyzeUs),
+  ...schemeInputArgs(upstream, transport, analyzeUs, inputOptions),
 ]
 
 const schemeInputArgs = (
   upstream: TvUpstream,
   transport: LiveTransport | undefined,
   analyzeUs: number,
+  inputOptions: readonly string[],
 ): string[] => {
   const scheme = schemeOf(upstream.url)
   const agent = upstream.userAgent === undefined ? [] : ['-user_agent', upstream.userAgent]
-  const analyze = ['-analyzeduration', String(analyzeUs)]
+  const analyze = ['-analyzeduration', String(analyzeUs), ...inputOptions]
   if (scheme === 'http' || scheme === 'https') {
     return [
       ...agent,
@@ -192,6 +195,62 @@ export const liveCompatArgs = ({
     ...liveHlsOutput(dir, spec.run),
   ]
 }
+
+/** A snapshot's picture (§29.4): one frame, deinterlaced when interlaced, 480 px wide, WebP. */
+const snapshotOutput = (interlaced: boolean): string[] => [
+  '-map',
+  '0:v:0',
+  '-frames:v',
+  '1',
+  '-vf',
+  [...(interlaced ? ['bwdif=mode=send_frame:deint=interlaced'] : []), 'scale=480:-2'].join(','),
+  '-an',
+  '-sn',
+  '-dn',
+  '-map_metadata',
+  '-1',
+  '-c:v',
+  'libwebp',
+  '-quality',
+  '70',
+  '-f',
+  'webp',
+  'pipe:1',
+]
+
+/**
+ * A snapshot from a running stream (§29.4): the copy run's fragmented MP4 (its init, then a
+ * segment) read on stdin, never a path nor the provider.
+ */
+export const liveSnapshotArgs = ({ interlaced }: { interlaced: boolean }): string[] => [
+  ...head,
+  '-f',
+  'mp4',
+  '-i',
+  'pipe:0',
+  ...snapshotOutput(interlaced),
+]
+
+/** How long a grab reads the upstream to find its streams (no probe is needed). */
+const grabAnalyzeUs = 2_000_000
+
+/**
+ * A background snapshot grab (§29.4): the relay's input options (whitelist, `User-Agent`,
+ * referrer, timeouts, the RTSP transport), only keyframes decoded, one picture.
+ */
+export const liveGrabArgs = ({
+  upstream,
+  transport,
+  interlaced,
+}: {
+  upstream: TvUpstream
+  transport: LiveTransport | undefined
+  interlaced: boolean
+}): string[] => [
+  ...head,
+  ...liveInputArgs(upstream, transport, grabAnalyzeUs, ['-skip_frame', 'nokey']),
+  ...snapshotOutput(interlaced),
+]
 
 export const liveProbeArgs = (upstream: TvUpstream, transport?: LiveTransport): string[] => [
   '-hide_banner',

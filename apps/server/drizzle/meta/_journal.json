@@ -176,6 +176,13 @@
       "when": 1795017906764,
       "tag": "0024_live_tv_guide_details",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1795021292117,
+      "tag": "0025_live_tv_snapshots",
+      "breakpoints": true
     }
   ]
 }

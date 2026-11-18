@@ -18,6 +18,10 @@ export const tvSources = sqliteTable('tv_sources', {
   failureCount: integer().notNull().default(0),
   /** Last `refresh_tv_guide` attempt: the hourly task reads guides 6 hours old (§29.3). */
   guideAttemptAt: text(),
+  /** Background snapshot grabs on or off (§29.4); null: the default (off at one connection). */
+  snapshots: integer({ mode: 'boolean' }),
+  /** Background snapshot grabs per hour (§29.4); null: the default. */
+  snapshotGrabsPerHour: integer(),
 })
 
 /** A group of a source's channels, matched by name; `name` is empty for the unnamed group. */
@@ -72,6 +76,13 @@ export const tvChannels = sqliteTable(
     /** Cached probe of the channel's stream (§29.4). */
     probe: text({ mode: 'json' }).$type<unknown>(),
     probedAt: text(),
+    /** When the stored snapshot (`tv/snapshots/<id>.webp`) was taken (§29.4). */
+    snapshotAt: text(),
+    /** The last background grab, and the consecutive failed ones (its back-off). */
+    snapshotAttemptAt: text(),
+    snapshotFailures: integer().notNull().default(0),
+    /** When a live session last opened the channel: the snapshots' priority (§29.4). */
+    watchedAt: text(),
     createdAt: text().notNull(),
   },
   (t) => [

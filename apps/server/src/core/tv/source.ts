@@ -58,6 +58,10 @@ export type TvSource = {
   failureCount: number
   /** Last `refresh_tv_guide` attempt (§29.3). */
   guideAttemptAt?: Date
+  /** The admin's channel snapshots switch (§29.4); absent: the default. */
+  snapshots?: boolean
+  /** Background snapshot grabs per hour (§29.4); absent: the default. */
+  snapshotGrabsPerHour?: number
 }
 
 export const kindOf = (source: Pick<TvSource, 'settings'>): TvSourceKind => source.settings.kind
@@ -116,7 +120,10 @@ export const listingSettingsChanged = (
 export type TvSourceRepository = {
   list: () => TvSource[]
   findById: (id: string) => TvSource | undefined
-  /** Inserts or replaces the source's own fields (name, settings, connection limit). */
+  /**
+   * Inserts or replaces the source's own fields (name, settings, connection limit, snapshot
+   * settings).
+   */
   save: (source: TvSource) => void
   delete: (id: string) => void
   /**

@@ -1047,6 +1047,8 @@
         "password": "Mot de passe",
         "maxConnections": "Connexions simultanées",
         "noLimit": "Sans limite",
+        "snapshots": "Aperçus des chaînes",
+        "snapshotGrabsPerHour": "Aperçus par heure",
         "removeGuide": "Retirer le guide",
         "create": "Ajouter"
       },
@@ -1781,6 +1783,7 @@
     "update/in_progress": "Une mise à jour est déjà en cours.",
     "tv/guide_unreachable": "Le guide des programmes ne répond pas.",
     "tv/guide_invalid": "Le guide des programmes est illisible.",
-    "tv/programme_not_found": "Ce programme n'existe plus."
+    "tv/programme_not_found": "Ce programme n'existe plus.",
+    "tv/snapshot_unavailable": "L'aperçu de la chaîne n'a pas pu être pris."
   }
 }

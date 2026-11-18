@@ -1,0 +1,7 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="snap.refused" tvg-chno="1" group-title="Snapshots",Snap Refused
+{{base}}/status/403?token=snap-secret-token
+#EXTINF:-1 tvg-id="snap.one" tvg-chno="2" group-title="Snapshots",Snap One
+{{base}}/live/progressive.ts?token=snap-secret-token
+#EXTINF:-1 tvg-id="snap.interlaced" tvg-chno="3" group-title="Snapshots",Snap Interlaced
+{{base}}/live/interlaced.ts?token=snap-secret-token

@@ -162,7 +162,10 @@ export const onNowRows = (response: TvChannelsResponse, at: number): readonly On
   })
 }
 
-/** The channels with the guide's latest now and next (the list keeps its own until then). */
+/**
+ * The channels with the guide's latest now, next and snapshot (§29.6; the list keeps its own
+ * until then).
+ */
 export const withGuide = (
   response: TvChannelsResponse,
   guide: TvGuideResponse | undefined,
@@ -171,12 +174,13 @@ export const withGuide = (
   const entries = new Map(guide.items.map((entry) => [entry.channelId, entry]))
   return {
     ...response,
-    items: response.items.map(({ now: _now, next: _next, ...channel }) => {
+    items: response.items.map(({ now: _now, next: _next, snapshot: _snapshot, ...channel }) => {
       const entry = entries.get(channel.id)
       return {
         ...channel,
         ...(entry?.now === undefined ? {} : { now: entry.now }),
         ...(entry?.next === undefined ? {} : { next: entry.next }),
+        ...(entry?.snapshot === undefined ? {} : { snapshot: entry.snapshot }),
       }
     }),
   }

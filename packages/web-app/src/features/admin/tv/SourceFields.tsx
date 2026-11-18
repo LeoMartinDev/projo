@@ -10,6 +10,7 @@ import {
 
 import { Field } from '../../../shared/ui/controls.tsx'
 import { CloseIcon } from '../../../shared/ui/icons.tsx'
+import { SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import type { SourceField, SourceForm } from './source-form.ts'
 
 type FieldsProps = {
@@ -276,6 +277,34 @@ export const SourceFields = ({
             onChange={(event) => onChange({ maxConnections: event.target.value })}
           />
         </Field>
+      )}
+      {stored === undefined ? undefined : (
+        <>
+          <SwitchSetting
+            label={t('admin.tv.form.snapshots')}
+            checked={form.snapshots}
+            onChange={(snapshots) => onChange({ snapshots })}
+          />
+          <Field
+            id={id('snapshotGrabsPerHour')}
+            label={t('admin.tv.form.snapshotGrabsPerHour')}
+            invalid={invalid.has('snapshotGrabsPerHour')}
+          >
+            <input
+              id={id('snapshotGrabsPerHour')}
+              className="field__input"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={600}
+              step={1}
+              value={form.snapshotGrabsPerHour}
+              disabled={!form.snapshots}
+              aria-invalid={invalid.has('snapshotGrabsPerHour')}
+              onChange={(event) => onChange({ snapshotGrabsPerHour: event.target.value })}
+            />
+          </Field>
+        </>
       )}
     </>
   )

@@ -12,6 +12,7 @@ describe('media paths (§20)', () => {
       '/trickplay/source-1/frames/12.webp',
       '/admin/tmdb/posters/abc.jpg',
       '/tv/channels/0190c0de-0000-7000-8000-000000000001/logo',
+      '/tv/channels/0190c0de-0000-7000-8000-000000000001/snapshot',
       '/tv/programmes/0190c0de-0000-7000-8000-000000000002/image',
     ]) {
       expect(isMediaApiPath(path)).toBe(true)
@@ -33,6 +34,8 @@ describe('media paths (§20)', () => {
       '/images/1%2F..%2F..%2Fauth%2Fme',
       '/tv/channels',
       '/tv/channels/1/logo/x',
+      '/tv/channels/1/snapshot/x',
+      '/tv/channels/1/snapshots',
       '/tv/channels/1/sessions',
       '/tv/programmes/1',
       '/tv/programmes/1/image/x',

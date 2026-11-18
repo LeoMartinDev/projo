@@ -5,7 +5,12 @@ import type { Clock } from '../../core/clock.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { TranscodeLimitReached, TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import type { TvUpstream } from '../../core/tv/channel.ts'
-import { type LiveConnectionError, planLiveConnection } from '../../core/tv/live-connections.ts'
+import {
+  canOpenGrab,
+  type LiveConnection,
+  type LiveConnectionError,
+  planLiveConnection,
+} from '../../core/tv/live-connections.ts'
 import {
   liveTargetDurationOf,
   type LiveWindowSegment,
@@ -64,6 +69,26 @@ type Deps = {
   /** The replay window and the cache's cap (§29.4), read at each poll. */
   limits?: () => LiveLimits
   timings?: Partial<Timings>
+  /**
+   * Told each poll of a `copy` stream that lists new segments (its newest one), never awaited:
+   * the free snapshots of §29.4 take a picture from it now and then.
+   */
+  onSegments?: (input: {
+    channelId: string
+    run: number
+    segment: string
+    probe: TvChannelProbe | undefined
+  }) => void
+}
+
+/** A background snapshot grab (§29.4): one of its source's connections while its ffmpeg runs. */
+type Grab = { sourceId: string; controller: AbortController; gone: Promise<void> }
+
+/** What a grab gets once opened: its signal (aborted when evicted) and what ends it. */
+export type OpenedGrab = {
+  signal: AbortSignal
+  /** Called once the grab's ffmpeg is gone: the connection is free again. */
+  finish: () => void
 }
 
 /** A segment out of the window, kept on disk until `deleteAtMs` (§29.4). */
@@ -175,6 +200,7 @@ export const liveStreamsFactory = ({
   logger,
   limits = () => defaultLiveLimits,
   timings: overrides = {},
+  onSegments,
 }: Deps) => {
   const timings: Timings = { ...liveTimings, expiredGraceS: liveExpiredGraceS, ...overrides }
   const streams = new Map<string, Stream>()
@@ -187,6 +213,36 @@ export const liveStreamsFactory = ({
     done: Promise<void>
   }>()
   let idleCounter = 0
+  /** Background snapshot grabs under way, by channel (§29.4). */
+  const grabs = new Map<string, Grab>()
+  /** When each source last had a connection opened (a stream's attempt or a grab), in ms. */
+  const lastConnections = new Map<string, number>()
+  /** Set by `stopAll`: no grab opens any more. */
+  let shutDown = false
+
+  const connectionOpened = (sourceId: string): void => {
+    lastConnections.set(sourceId, clock.now().getTime())
+  }
+
+  /**
+   * Stops a grab: aborts it and keeps it as a stop under way of its source until its ffmpeg is
+   * gone, so that the stream taking its place waits for it.
+   */
+  const evictGrab = (channelId: string, reason: string): void => {
+    const grab = grabs.get(channelId)
+    if (grab === undefined) return
+    grabs.delete(channelId)
+    grab.controller.abort()
+    const entry = {
+      key: `grab:${channelId}`,
+      sourceId: grab.sourceId,
+      connection: true,
+      done: grab.gone,
+    }
+    stopping.add(entry)
+    void grab.gone.then(() => stopping.delete(entry))
+    logger.info('tv snapshot grab stopped', { channelId, sourceId: grab.sourceId, reason })
+  }
 
   const notify = (stream: Stream): void => {
     for (const listener of [...stream.listeners]) listener()
@@ -578,7 +634,17 @@ export const liveStreamsFactory = ({
       if (!wasReady && stream.window.length >= timings.readySegments) {
         logger.info('live stream ready', fields(stream))
       }
-      if (stream.rendition === 'copy') feedCompat(stream, run.number, fresh)
+      if (stream.rendition === 'copy') {
+        feedCompat(stream, run.number, fresh)
+        const newest = fresh.at(-1)?.name
+        if (newest !== undefined)
+          onSegments?.({
+            channelId: stream.channelId,
+            run: run.number,
+            segment: newest,
+            probe: stream.probe,
+          })
+      }
       notify(stream)
     } else {
       run.quietPolls += 1
@@ -639,6 +705,7 @@ export const liveStreamsFactory = ({
     if (stream.closed || stream.failed) return
     let probe = probeCache.probeOf(stream.channelId)
     if (probe === undefined) {
+      connectionOpened(stream.sourceId)
       const controller = new AbortController()
       const probing = prober.probe({ upstream: stream.upstream, signal: controller.signal })
       stream.probing = { controller, settled: probing.then(undefined, () => undefined) }
@@ -659,6 +726,7 @@ export const liveStreamsFactory = ({
     }
     stream.probe = probe
     stream.runs += 1
+    connectionOpened(stream.sourceId)
     const audio = liveAudioOf(probe)
     const handle = relay.start({
       channelId: stream.channelId,
@@ -671,8 +739,9 @@ export const liveStreamsFactory = ({
     launch(stream, handle, { audio: audio === undefined ? 'none' : audio.copy ? 'copy' : 'aac' })
   }
 
-  const connectionsOf = (sourceId: string, channelId: string) =>
-    [...streams.values()]
+  /** The source's connections but `channelId`'s: its streams, then its grabs (§29.4). */
+  const connectionsOf = (sourceId: string, channelId?: string): LiveConnection[] => [
+    ...[...streams.values()]
       .filter(
         (s) =>
           s.rendition === 'copy' &&
@@ -684,7 +753,11 @@ export const liveStreamsFactory = ({
         channelId: s.channelId,
         viewers: s.viewers.size,
         ...(s.idleOrder === undefined ? {} : { idleOrder: s.idleOrder }),
-      }))
+      })),
+    ...[...grabs.entries()]
+      .filter(([id, grab]) => grab.sourceId === sourceId && id !== channelId)
+      .map(([id]) => ({ channelId: id, viewers: 0, grab: true })),
+  ]
 
   /** Removes a viewer; a stream left without any stops after the idle delay. */
   const leaveViewer = (stream: Stream, viewerId: string): void => {
@@ -758,6 +831,8 @@ export const liveStreamsFactory = ({
       keepWatched(existing, viewerId)
       return ok(existing)
     }
+    // A channel never holds two connections: its own grab gives way (the stream waits for it).
+    evictGrab(channel.id, 'viewer')
     const plan = planLiveConnection({
       connections: connectionsOf(channel.sourceId, channel.id),
       maxConnections,
@@ -772,6 +847,10 @@ export const liveStreamsFactory = ({
       return plan
     }
     for (const channelId of plan.value.evict) {
+      if (grabs.has(channelId)) {
+        evictGrab(channelId, 'connection_limit')
+        continue
+      }
       const evicted = streams.get(channelId)
       if (evicted !== undefined) void stopStream(evicted, 'connection_limit')
     }
@@ -968,8 +1047,60 @@ export const liveStreamsFactory = ({
         expired: stream.expired.length,
       })),
 
-    /** Stops every stream (shutdown) and waits for their processes, ffprobe included. */
+    /**
+     * Opens a background snapshot grab of a channel (§29.4), `undefined` when it may not: the
+     * channel has a stream or a grab already, or its source would be left with fewer than two
+     * free connections (its streams, grabs and stops under way counted). The grab is one of the
+     * source's connections until `finish`; a session needing it aborts its signal first.
+     */
+    openGrab: ({
+      channelId,
+      sourceId,
+      maxConnections,
+    }: {
+      channelId: string
+      sourceId: string
+      maxConnections: number | undefined
+    }): OpenedGrab | undefined => {
+      if (shutDown || grabs.has(channelId)) return undefined
+      const stream = streams.get(channelId)
+      if (stream !== undefined && !stream.failed && !stream.closed) return undefined
+      const used = connectionsOf(sourceId).length + stopsOf(sourceId).length
+      if (!canOpenGrab({ used, maxConnections })) return undefined
+      let release = () => {}
+      const gone = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const grab: Grab = { sourceId, controller: new AbortController(), gone }
+      grabs.set(channelId, grab)
+      connectionOpened(sourceId)
+      return {
+        signal: grab.controller.signal,
+        finish: () => {
+          if (grabs.get(channelId) === grab) grabs.delete(channelId)
+          release()
+        },
+      }
+    },
+
+    /** Stops the channel's grab, if any (its channel disabled, its source's snapshots off). */
+    stopGrab: (channelId: string, reason: string): void => {
+      evictGrab(channelId, reason)
+    },
+
+    /** Whether the channel has a `copy` stream up: it gives free snapshots, never a grab. */
+    isStreaming: (channelId: string): boolean => {
+      const stream = streams.get(keyOf({ channelId, rendition: 'copy' }))
+      return stream !== undefined && !stream.failed && !stream.closed
+    },
+
+    /** When the source last had a connection opened (ms), a stream's attempt or a grab. */
+    lastConnectionAt: (sourceId: string): number | undefined => lastConnections.get(sourceId),
+
+    /** Stops every stream and grab (shutdown) and waits for their processes, ffprobe included. */
     stopAll: async (): Promise<void> => {
+      shutDown = true
+      for (const channelId of [...grabs.keys()]) evictGrab(channelId, 'shutdown')
       for (const stream of [...streams.values()]) void stopStream(stream, 'shutdown')
       await Promise.all([...stopping].map((stop) => stop.done))
     },

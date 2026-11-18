@@ -27,6 +27,12 @@ import { deleteTvSourceFactory } from '../../application/tv/delete-tv-source.ts'
 import { fetchTvLogosFactory } from '../../application/tv/fetch-tv-logos.ts'
 import { fetchTvProgrammeImagesFactory } from '../../application/tv/fetch-tv-programme-images.ts'
 import { getTvChannelLogoFactory } from '../../application/tv/get-tv-channel-logo.ts'
+import { getTvChannelSnapshotFactory } from '../../application/tv/get-tv-channel-snapshot.ts'
+import { listTvSnapshotsFactory } from '../../application/tv/list-tv-snapshots.ts'
+import { recordVisibleChannelsFactory } from '../../application/tv/record-visible-channels.ts'
+import { snapshotGrabsFactory } from '../../application/tv/snapshot-grabs.ts'
+import { streamSnapshotsFactory } from '../../application/tv/stream-snapshots.ts'
+import { visibleChannelsFactory } from '../../application/tv/visible-channels.ts'
 import { getTvProgrammeImageFactory } from '../../application/tv/get-tv-programme-image.ts'
 import { getTvProgrammeFactory } from '../../application/tv/get-tv-programme.ts'
 import { listTvGuideChannelsFactory } from '../../application/tv/list-tv-guide-channels.ts'
@@ -46,6 +52,8 @@ import type { TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import type { LiveLimits, LiveProber, LiveRelay, LiveTimers } from '../../core/tv/live.ts'
 import { liveSessionTimings } from '../../core/tv/live-session.ts'
 import type { TvLogoDownloader } from '../../core/tv/logo.ts'
+import type { TvSnapshotter } from '../../core/tv/snapshot.ts'
+import { snapshotTimings } from '../../core/tv/snapshot-schedule.ts'
 import {
   TV_PROGRAMME_IMAGE_MAX_BYTES,
   TV_PROGRAMME_IMAGES_INTERVAL_MS,
@@ -65,10 +73,12 @@ import { createSqliteTvGuideChannelRepository } from '../../infrastructure/sqlit
 import { createSqliteTvGuideRepository } from '../../infrastructure/sqlite/tv-guide-repository.ts'
 import { createSqliteTvProgrammeImageRepository } from '../../infrastructure/sqlite/tv-programme-image-repository.ts'
 import { createSqliteTvProfileAccess } from '../../infrastructure/sqlite/tv-profile-access.ts'
+import { createSqliteTvSnapshotRepository } from '../../infrastructure/sqlite/tv-snapshot-repository.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
 import { createLiveRelay } from '../../infrastructure/tv/live-relay.ts'
 import { createLiveSessionStore } from '../../infrastructure/tv/live-session-store.ts'
+import { createLiveSnapshotter } from '../../infrastructure/tv/live-snapshotter.ts'
 import { createTvLogoDownloader } from '../../infrastructure/tv/logo-downloader.ts'
 import { createFreeboxProvider } from '../../infrastructure/tv/freebox/freebox-provider.ts'
 import { createM3uProvider } from '../../infrastructure/tv/m3u/m3u-provider.ts'
@@ -100,6 +110,10 @@ export type TvModuleOptions = {
     timings?: Parameters<typeof liveStreamsFactory>[0]['timings']
     /** The replay window and cache cap, in place of the Playback settings (§29.4). */
     limits?: () => LiveLimits
+    /** The snapshots' ffmpeg (§29.4). */
+    snapshotter?: TvSnapshotter
+    /** The spacing's random part of the background grabs (§29.4). */
+    random?: () => number
   }
 }
 
@@ -138,6 +152,7 @@ export const buildTvModule = (
   const guide = createSqliteTvGuideRepository({ db, ids })
   const guideChannels = createSqliteTvGuideChannelRepository({ db })
   const programmeImages = createSqliteTvProgrammeImageRepository({ db })
+  const snapshots = createSqliteTvSnapshotRepository({ db })
   const refreshTvGuide = refreshTvGuideFactory({
     tvSources,
     tvChannels,
@@ -214,6 +229,15 @@ export const buildTvModule = (
     }
     return readLimits.limits
   }
+  const snapshotter = live.snapshotter ?? createLiveSnapshotter({ liveDir: paths.cache.live })
+  // Free snapshots from the running streams (§29.4): no provider connection.
+  const streamSnapshots = streamSnapshotsFactory({
+    snapshotter,
+    snapshots,
+    files: logoFiles,
+    clock,
+    logger: moduleLogger,
+  })
   const streams = liveStreamsFactory({
     relay,
     prober: live.prober ?? createLiveProber(),
@@ -224,6 +248,21 @@ export const buildTvModule = (
     logger: moduleLogger,
     limits: live.limits ?? settingsLimits,
     ...(live.timings === undefined ? {} : { timings: live.timings }),
+    onSegments: streamSnapshots.segmentListed,
+  })
+  const visibleChannels = visibleChannelsFactory({ clock })
+  const snapshotGrabs = snapshotGrabsFactory({
+    snapshots,
+    tvChannels,
+    tvSources,
+    provider: sourceProvider,
+    streams,
+    snapshotter,
+    files: logoFiles,
+    visibleChannels,
+    clock,
+    logger: moduleLogger,
+    ...(live.random === undefined ? {} : { random: live.random }),
   })
   const liveSessions = createLiveSessionStore()
   const endLiveSession = endLiveSessionFactory({
@@ -253,6 +292,14 @@ export const buildTvModule = (
     exposes: {
       routes: tvRoutes({
         getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, tvAccess, logoFiles }),
+        getTvChannelSnapshot: getTvChannelSnapshotFactory({
+          tvChannels,
+          snapshots,
+          tvAccess,
+          files: logoFiles,
+        }),
+        listTvSnapshots: listTvSnapshotsFactory({ tvAccess, snapshots, clock }),
+        recordVisibleChannels: recordVisibleChannelsFactory({ tvAccess, visibleChannels }),
         getTvProgramme: getTvProgrammeFactory({ guide, tvChannels, tvAccess, clock }),
         getTvProgrammeImage: getTvProgrammeImageFactory({
           guide,
@@ -274,6 +321,7 @@ export const buildTvModule = (
           provider: sourceProvider,
           liveSessions,
           streams,
+          watched: snapshots,
           streamSecrets: sessionTokens,
           clock,
           ids,
@@ -319,6 +367,7 @@ export const buildTvModule = (
         deleteTvSource: deleteTvSourceFactory({
           tvSources,
           tvChannels,
+          snapshots,
           logoFiles,
           logger: moduleLogger,
         }),
@@ -349,6 +398,8 @@ export const buildTvModule = (
         }),
       }),
       liveStreams: streams,
+      snapshotGrabs,
+      streamSnapshots,
     },
     jobHandlers: defineJobHandlers({
       refresh_tv_source: {
@@ -415,6 +466,14 @@ export const buildTvModule = (
         },
       },
       {
+        name: 'tv-snapshots',
+        initialDelayMs: 60_000,
+        intervalMs: snapshotTimings.tickMs,
+        run: () => {
+          snapshotGrabs.tick()
+        },
+      },
+      {
         name: 'tv-live-sessions-sweep',
         intervalMs: liveSessionTimings.heartbeatIntervalMs,
         run: () => {
@@ -422,9 +481,10 @@ export const buildTvModule = (
         },
       },
     ],
-    stop: () => {
+    stop: async () => {
       unsubscribeAccess()
-      return streams.stopAll()
+      await Promise.all([snapshotGrabs.stop(), streamSnapshots.stop()])
+      await streams.stopAll()
     },
   })
 }
