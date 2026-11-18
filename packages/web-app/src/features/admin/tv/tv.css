@@ -36,12 +36,11 @@
   }
 }
 
+/* Never wider than its box: a form bleeding past a scroller is a horizontal scroll. */
 .tv-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 6px;
-  margin: -6px;
 }
 
 /* The form scrolls inside its tab: its rows keep their size instead of shrinking to fit. */
@@ -93,6 +92,13 @@
 
 .tv-dialog__panel[hidden] {
   display: none;
+}
+
+/* The settings scroll inside their tab: the scroller, not the form, bleeds into the dialog's
+   padding, so the fields' focus ring has room and the fields stay as wide as the tabs. */
+.tv-dialog__panel > .tv-pane__scroll {
+  margin: -6px;
+  padding: 6px;
 }
 
 .tv-dialog__delete {
