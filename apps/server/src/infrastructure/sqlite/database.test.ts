@@ -53,6 +53,8 @@ const expectedTables = [
   'tv_channels',
   'tv_favorites',
   'tv_groups',
+  'tv_guide_channels',
+  'tv_programme_images',
   'tv_programmes',
   'tv_sources',
   'update_runs',

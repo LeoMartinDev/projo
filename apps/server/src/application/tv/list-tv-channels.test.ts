@@ -37,6 +37,12 @@ describe('listTvChannels (§29.7)', () => {
     const listed = seeded().listTvChannels({ profileId: 'p' })
     expect(listed.groups.map((group) => group.id)).toEqual(['kids', 'news'])
     expect(listed.channels.map((c) => c.id)).toEqual(['k1', 'n1', 'n2'])
+    // Each channel's own kind, from its group's name (§29.3).
+    expect([...listed.kinds]).toEqual([
+      ['k1', 'kids'],
+      ['n1', 'news'],
+      ['n2', 'news'],
+    ])
   })
 
   test("the profile's favourites in the order added, those it no longer sees left out", () => {
@@ -55,6 +61,8 @@ describe('listTvChannels (§29.7)', () => {
       startAt: at(start),
       endAt: at(end),
       title,
+      categories: [],
+      kind: 'other' as const,
     })
     world.guide.repository.replaceForSource({
       sourceId: 's',

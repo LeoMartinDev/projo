@@ -25,6 +25,7 @@ export const jobTypes = [
   'refresh_tv_source',
   'fetch_tv_logos',
   'refresh_tv_guide',
+  'fetch_tv_programme_images',
 ] as const
 export const jobTypeSchema = z.enum(jobTypes)
 export type JobTypeDto = z.infer<typeof jobTypeSchema>

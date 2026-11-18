@@ -80,10 +80,10 @@ describe('refreshTvGuide (§29.3)', () => {
             { lang: 'en', text: 'The news' },
           ],
         },
-        programme('news', minutes(world, -90), minutes(world, -30), 'Ended'),
+        programme('news', minutes(world, -7 * 60), minutes(world, -6.5 * 60), 'Ended'),
         programme('news', minutes(world, 30), undefined, 'Open'),
         programme('news', minutes(world, 90), minutes(world, 120), 'Later'),
-        programme('news', minutes(world, 25 * 60), minutes(world, 26 * 60), 'Too far'),
+        programme('news', minutes(world, 73 * 60), minutes(world, 74 * 60), 'Too far'),
         programme('local.tv', minutes(world, -5), minutes(world, 55), 'Local'),
         programme('kids', minutes(world, -5), minutes(world, 55), 'Disabled channel'),
         programme('absent', minutes(world, -5), minutes(world, 55), 'Absent'),
@@ -91,7 +91,7 @@ describe('refreshTvGuide (§29.3)', () => {
     })
     expect(await world.refreshTvGuide({ sourceId })).toEqual({
       ok: true,
-      value: { channels: 3, programmes: 7, available: true },
+      value: { channels: 3, programmes: 7, available: true, matched: 3 },
     })
     expect(world.provider.guideReads).toEqual(['http://p/guide.xml'])
     expect(titles()).toEqual([
@@ -122,7 +122,7 @@ describe('refreshTvGuide (§29.3)', () => {
     world.provider.guide(undefined)
     expect(await world.refreshTvGuide({ sourceId })).toEqual({
       ok: true,
-      value: { channels: 0, programmes: 0, available: false },
+      value: { channels: 0, programmes: 0, available: false, matched: 0 },
     })
     expect(world.guide.programmes()).toEqual([])
   })
@@ -141,7 +141,75 @@ describe('refreshTvGuide (§29.3)', () => {
     expect(await world.refreshTvGuide({ sourceId: 'gone' })).toEqual({ ok: true, value: undefined })
   })
 
-  test('ended programmes are purged; the hourly task queues guides 6 hours old', async () => {
+  test('records what matched, stores the guide channels, kinds, and queues the images', async () => {
+    world.provider.guide({
+      channels: [
+        { id: 'News@SD', names: ['Infos'] },
+        { id: 'local.tv', names: ['Télé locale HD', 'TL'] },
+      ],
+      programmes: [
+        {
+          ...programme('news@sd', minutes(world, -5), minutes(world, 55), 'Le 13h'),
+          categories: [{ lang: 'fr', text: 'Information' }],
+          images: ['ftp://p/x.jpg', 'https://img.example/13h.jpg'],
+          episode: { season: 2, episode: 5 },
+        },
+        programme('local.tv', minutes(world, -5), minutes(world, 55), 'Local'),
+      ],
+    })
+    await world.refreshTvGuide({ sourceId })
+    const byName = (name: string) => world.channels.channels.get(channelId(name))
+    // `news` takes `News@SD` without its suffix; the local channel its normalised name.
+    expect(byName('News HD')?.guideMatched).toBe('News@SD')
+    expect(byName('Télé Locale')?.guideMatched).toBe('local.tv')
+    expect(world.guideChannels.bySource.get(sourceId)).toEqual([
+      { id: 'News@SD', names: ['Infos'] },
+      { id: 'local.tv', names: ['Télé locale HD', 'TL'] },
+    ])
+    const news = world.guide.programmes().find((p) => p.title === 'Le 13h')
+    expect(news).toMatchObject({
+      kind: 'news',
+      imageUrl: 'https://img.example/13h.jpg',
+      episode: { season: 2, episode: 5 },
+    })
+    // Without a category, the channel's kind: its group "News".
+    expect(world.guide.programmes().find((p) => p.title === 'Local')?.kind).toBe('news')
+    expect(world.enqueued.map((job) => job.type)).toContain('fetch_tv_programme_images')
+  })
+
+  test("the admin's guide channel wins over matching and survives a source refresh", async () => {
+    world.provider.guide({
+      channels: [
+        { id: 'news', names: ['News'] },
+        { id: 'other', names: ['Other'] },
+      ],
+      programmes: [
+        programme('news', minutes(world, -5), minutes(world, 55), 'Matched'),
+        programme('other', minutes(world, -5), minutes(world, 55), 'Chosen'),
+      ],
+    })
+    const hd = channelId('News HD')
+    expect(world.setTvChannelGuideChannel({ id: hd, guideChannel: 'other' })).toMatchObject({
+      ok: true,
+      value: { guideChannel: 'other' },
+    })
+    expect(world.enqueued.map((job) => job.type)).toEqual(['refresh_tv_guide'])
+    await world.refreshTvSource({ sourceId })
+    expect(world.channels.channels.get(hd)?.guideChannel).toBe('other')
+    await world.refreshTvGuide({ sourceId })
+    expect(titles()).toContain('News HD: Chosen')
+    expect(titles()).toContain('News FHD: Matched')
+    expect(titles()).not.toContain('News HD: Matched')
+    const page = world.listTvSourceChannels({ sourceId, limit: 50 })
+    expect(page.ok && page.value.guideChannels.get('other')?.names).toEqual(['Other'])
+    // "Automatic" clears it.
+    world.setTvChannelGuideChannel({ id: hd, guideChannel: '' })
+    expect(world.channels.channels.get(hd)?.guideChannel).toBeUndefined()
+    await world.refreshTvGuide({ sourceId })
+    expect(titles()).toContain('News HD: Matched')
+  })
+
+  test('programmes ended 6 hours ago are purged; the hourly task queues guides 6 hours old', async () => {
     world.provider.guide({
       programmes: [programme('news', minutes(world, -5), minutes(world, 55), 'Soon over')],
     })
@@ -155,7 +223,7 @@ describe('refreshTvGuide (§29.3)', () => {
     expect(world.enqueued.map((job) => [job.type, job.payload])).toEqual([
       ['refresh_tv_guide', { sourceId: other }],
     ])
-    world.clock.advance(6 * 60 * 60_000)
+    world.clock.advance(7 * 60 * 60_000)
     world.enqueued.length = 0
     expect(world.queueDueTvGuideRefreshes()).toBe(2)
     expect(world.purgeEndedTvProgrammes()).toBe(2)

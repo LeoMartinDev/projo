@@ -1,11 +1,14 @@
 import type {
   AdminTvChannelDto,
+  AdminTvGuideMatchDto,
   AdminTvSessionDto,
   AdminTvGroupDto,
   AdminTvSourceDetailDto,
   AdminTvSourceDto,
   TvChannelsResponse,
+  TvEpisodeDto,
   TvGuideResponse,
+  TvProgrammeDetailDto,
   TvProgrammeDto,
   TvSessionDto,
   TvSourceSettingsDto,
@@ -18,9 +21,10 @@ import type {
   TvSourceView,
 } from '../../../application/tv/shared/tv-source-view.ts'
 import type { CreatedLiveSession } from '../../../application/tv/create-live-session.ts'
+import type { TvProgrammeView } from '../../../application/tv/get-tv-programme.ts'
 import type { TvChannelsView } from '../../../application/tv/list-tv-channels.ts'
 import type { TvChannel, TvGroupSummary } from '../../../core/tv/channel.ts'
-import type { TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
+import type { TvEpisode, TvGuideChannel, TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
 import type { ActiveLiveSessionView } from '../../../core/tv/live-session.ts'
 import type { TvSourceSettings, TvSourceSettingsPatch } from '../../../core/tv/source.ts'
 
@@ -128,22 +132,90 @@ export const toAdminTvSourceDetailDto = (view: TvSourceDetailView): AdminTvSourc
   groups: view.groups.map(toAdminTvGroupDto),
 })
 
-export const toAdminTvChannelDto = (channel: TvChannel): AdminTvChannelDto => ({
-  id: channel.id,
-  name: channel.name,
-  ...(channel.number === undefined ? {} : { number: channel.number }),
-  groupId: channel.groupId,
-  enabled: channel.enabled,
-  hasLogo: channel.logoPath !== undefined,
-})
+/** The guide channel a channel's programmes come from (§29.7), named when the last read listed it. */
+const guideMatchOf = (
+  channel: TvChannel,
+  guideChannels: ReadonlyMap<string, TvGuideChannel>,
+): AdminTvGuideMatchDto | undefined => {
+  const manual = channel.guideChannel !== undefined
+  const id = channel.guideChannel ?? channel.guideMatched
+  if (id === undefined || id === '') return undefined
+  const name = guideChannels.get(id.toLowerCase())?.names[0]
+  return { id, ...(name === undefined ? {} : { name }), manual }
+}
+
+export const toAdminTvChannelDto = (
+  channel: TvChannel,
+  guideChannels: ReadonlyMap<string, TvGuideChannel> = new Map(),
+): AdminTvChannelDto => {
+  const guideChannel = guideMatchOf(channel, guideChannels)
+  return {
+    id: channel.id,
+    name: channel.name,
+    ...(channel.number === undefined ? {} : { number: channel.number }),
+    groupId: channel.groupId,
+    enabled: channel.enabled,
+    hasLogo: channel.logoPath !== undefined,
+    ...(guideChannel === undefined ? {} : { guideChannel }),
+    ...(channel.guideMatched === undefined ? {} : { guideMatched: channel.guideMatched !== '' }),
+  }
+}
 
 const apiPrefix = '/api/v1'
 
-const toTvProgrammeDto = (programme: TvProgramme): TvProgrammeDto => ({
-  title: programme.title,
-  startAt: programme.startAt.toISOString(),
-  endAt: programme.endAt.toISOString(),
-})
+const programmeImageUrlOf = (programme: TvProgramme): string | undefined =>
+  programme.imageStored
+    ? `${apiPrefix}/tv/programmes/${encodeURIComponent(programme.id)}/image`
+    : undefined
+
+const toTvEpisodeDto = (episode: TvEpisode | undefined): TvEpisodeDto | undefined => {
+  if (episode === undefined) return undefined
+  const { season, episode: number, label } = episode
+  if (season !== undefined || number !== undefined)
+    return {
+      ...(season === undefined ? {} : { season }),
+      ...(number === undefined ? {} : { episode: number }),
+    }
+  return label === undefined ? undefined : { label }
+}
+
+const toTvProgrammeDto = (programme: TvProgramme): TvProgrammeDto => {
+  const episode = toTvEpisodeDto(programme.episode)
+  const imageUrl = programmeImageUrlOf(programme)
+  return {
+    id: programme.id,
+    title: programme.title,
+    ...(programme.subtitle === undefined ? {} : { subtitle: programme.subtitle }),
+    ...(episode === undefined ? {} : { episode }),
+    kind: programme.kind,
+    ...(imageUrl === undefined ? {} : { imageUrl }),
+    startAt: programme.startAt.toISOString(),
+    endAt: programme.endAt.toISOString(),
+  }
+}
+
+/** `GET /tv/programmes/:id` (§29.7). */
+export const toTvProgrammeDetailDto = ({
+  programme,
+  next,
+}: TvProgrammeView): TvProgrammeDetailDto => {
+  const episode = toTvEpisodeDto(programme.episode)
+  const imageUrl = programmeImageUrlOf(programme)
+  return {
+    id: programme.id,
+    channelId: programme.channelId,
+    title: programme.title,
+    ...(programme.subtitle === undefined ? {} : { subtitle: programme.subtitle }),
+    ...(programme.description === undefined ? {} : { description: programme.description }),
+    ...(episode === undefined ? {} : { episode }),
+    kind: programme.kind,
+    categories: programme.categories.map((category) => category.text),
+    startAt: programme.startAt.toISOString(),
+    endAt: programme.endAt.toISOString(),
+    ...(imageUrl === undefined ? {} : { imageUrl }),
+    ...(next === undefined ? {} : { next: toTvProgrammeDto(next) }),
+  }
+}
 
 const nowNextFields = (entry: TvNowNext | undefined) => ({
   ...(entry?.now === undefined ? {} : { now: toTvProgrammeDto(entry.now) }),
@@ -163,6 +235,7 @@ export const toTvChannelsResponse = (view: TvChannelsView): TvChannelsResponse =
       ...(channel.logoPath === undefined
         ? {}
         : { logoUrl: `${apiPrefix}/tv/channels/${encodeURIComponent(channel.id)}/logo` }),
+      kind: view.kinds.get(channel.id) ?? 'other',
       favorite: favorites.has(channel.id),
       ...nowNextFields(view.guide.get(channel.id)),
     })),

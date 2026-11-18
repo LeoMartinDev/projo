@@ -55,6 +55,10 @@ export const tvChannels = sqliteTable(
     /** `{ url, userAgent?, referrer? }`: never leaves the server. */
     upstream: text({ mode: 'json' }).$type<unknown>().notNull(),
     guideKey: text(),
+    /** The admin's guide channel (§29.3): wins over matching, kept by every refresh. */
+    guideChannel: text(),
+    /** The guide channel the last guide read matched; `''` none, null before any read. */
+    guideMatched: text(),
     logoUrl: text(),
     /** Relative to the images directory (`tv/<id>.<ext>`). */
     logoPath: text(),
@@ -90,10 +94,56 @@ export const tvProgrammes = sqliteTable(
     title: text().notNull(),
     subtitle: text(),
     description: text(),
+    /** The first of `categories` (§29.3). */
     category: text(),
+    /** `[{ text, lang? }]`, at most 3 (§29.3). */
+    categories: text({ mode: 'json' }).$type<unknown>(),
+    /** A programme kind of `tvProgrammeKinds` (§29.3). */
+    kind: text().notNull().default('other'),
+    episodeSeason: integer(),
+    episodeNumber: integer(),
+    episodeLabel: text(),
+    /** Never leaves the server: the image is served by projo (§29.3). */
+    imageUrl: text(),
+    /** SHA-256 of `imageUrl`: the key of `tv_programme_images`. */
+    imageKey: text(),
   },
-  (t) => [index('tv_programmes_channel_end_idx').on(t.channelId, t.endAt)],
+  (t) => [
+    index('tv_programmes_channel_end_idx').on(t.channelId, t.endAt),
+    index('tv_programmes_image_key_idx').on(t.imageKey),
+  ],
 )
+
+/** A source's guide channels of its last read (§29.3): what the admin picks from. */
+export const tvGuideChannels = sqliteTable(
+  'tv_guide_channels',
+  {
+    sourceId: text()
+      .notNull()
+      .references(() => tvSources.id, { onDelete: 'cascade' }),
+    /** The XMLTV `<channel id>`, as read. */
+    key: text().notNull(),
+    /** Up to 5 display names. */
+    names: text({ mode: 'json' }).$type<unknown>().notNull(),
+    /** The id and names lowercased without accents, for the admin's search. */
+    searchText: text().notNull(),
+    position: integer().notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.sourceId, t.key] }),
+    index('tv_guide_channels_position_idx').on(t.sourceId, t.position),
+  ],
+)
+
+/** Programme images (§29.3), once per URL: `key` is the SHA-256 of the URL. */
+export const tvProgrammeImages = sqliteTable('tv_programme_images', {
+  key: text().primaryKey(),
+  /** Relative to the images directory (`tv/programmes/<key>.<ext>`). */
+  path: text(),
+  fetchedAt: text(),
+  /** Set while the last attempt failed: tried again 6 hours later. */
+  failedAt: text(),
+})
 
 export const tvFavorites = sqliteTable(
   'tv_favorites',

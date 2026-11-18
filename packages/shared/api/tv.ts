@@ -216,6 +216,17 @@ export const adminTvChannelsQuerySchema = paginationQuerySchema.extend({
 })
 export type AdminTvChannelsQuery = z.infer<typeof adminTvChannelsQuerySchema>
 
+/**
+ * The guide channel a channel's programmes come from (§29.3): the admin's choice (`manual`), else
+ * the one the last read matched; `name` its first display name when the last read listed it.
+ */
+export const adminTvGuideMatchDtoSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+  manual: z.boolean(),
+})
+export type AdminTvGuideMatchDto = z.infer<typeof adminTvGuideMatchDtoSchema>
+
 export const adminTvChannelDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -223,6 +234,9 @@ export const adminTvChannelDtoSchema = z.object({
   groupId: z.string(),
   enabled: z.boolean(),
   hasLogo: z.boolean(),
+  guideChannel: adminTvGuideMatchDtoSchema.optional(),
+  /** Whether the last guide read matched a guide channel to it; absent before any read. */
+  guideMatched: z.boolean().optional(),
 })
 export type AdminTvChannelDto = z.infer<typeof adminTvChannelDtoSchema>
 
@@ -236,21 +250,94 @@ export type AdminTvChannelsPage = z.infer<typeof adminTvChannelsPageSchema>
 export const setTvEnabledBodySchema = z.object({ enabled: z.boolean() })
 export type SetTvEnabledBody = z.infer<typeof setTvEnabledBodySchema>
 
-/** A programme of the guide (§29.3): now or next of a channel. */
+/** A guide channel id (XMLTV `<channel id>`), or `''` for "Automatic" (§29.7). */
+export const tvGuideChannelChoiceSchema = z.union([
+  z.literal(''),
+  z.string().trim().min(1).max(200),
+])
+
+/** `PATCH /admin/tv/channels/:id` (§29.7): at least one field. */
+export const updateTvChannelBodySchema = z
+  .object({ enabled: z.boolean(), guideChannel: tvGuideChannelChoiceSchema })
+  .partial()
+  .refine((body) => body.enabled !== undefined || body.guideChannel !== undefined, {
+    message: 'nothing to change',
+  })
+export type UpdateTvChannelBody = z.infer<typeof updateTvChannelBodySchema>
+
+export const adminTvGuideChannelsQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().max(100).optional(),
+})
+export type AdminTvGuideChannelsQuery = z.infer<typeof adminTvGuideChannelsQuerySchema>
+
+/** A channel of a source's guide, as its last read listed it (§29.3). */
+export const adminTvGuideChannelDtoSchema = z.object({
+  id: z.string(),
+  names: z.array(z.string()),
+})
+export type AdminTvGuideChannelDto = z.infer<typeof adminTvGuideChannelDtoSchema>
+
+export const adminTvGuideChannelsPageSchema = z.object({
+  items: z.array(adminTvGuideChannelDtoSchema),
+  nextCursor: z.string().optional(),
+  total: z.number().int(),
+})
+export type AdminTvGuideChannelsPage = z.infer<typeof adminTvGuideChannelsPageSchema>
+
+/**
+ * Kinds of programme (§29.3): projo's own ids, like genres; labels `programmeKinds.<id>` in the
+ * locales. A provider's category text never stands in for one.
+ */
+export const tvProgrammeKinds = [
+  'news',
+  'sport',
+  'movie',
+  'series',
+  'kids',
+  'documentary',
+  'entertainment',
+  'music',
+  'other',
+] as const
+export const tvProgrammeKindSchema = z.enum(tvProgrammeKinds)
+export type TvProgrammeKind = z.infer<typeof tvProgrammeKindSchema>
+
+/** A programme's episode (§29.3): numbers from 1; `label` the on-screen text, only without numbers. */
+export const tvEpisodeDtoSchema = z.object({
+  season: z.number().int().optional(),
+  episode: z.number().int().optional(),
+  label: z.string().optional(),
+})
+export type TvEpisodeDto = z.infer<typeof tvEpisodeDtoSchema>
+
+/**
+ * A programme of the guide (§29.3): now or next of a channel. `id`, `kind` and the details are
+ * absent from older servers; `imageUrl` is a server path (media key accepted) once its image is
+ * stored.
+ */
 export const tvProgrammeDtoSchema = z.object({
+  id: z.string().optional(),
   title: z.string(),
+  subtitle: z.string().optional(),
+  episode: tvEpisodeDtoSchema.optional(),
+  kind: tvProgrammeKindSchema.optional(),
+  imageUrl: z.string().optional(),
   startAt: isoDateTimeSchema,
   endAt: isoDateTimeSchema,
 })
 export type TvProgrammeDto = z.infer<typeof tvProgrammeDtoSchema>
 
-/** A channel as a viewer sees it (§29.7); `logoUrl` is a server path (media key accepted). */
+/**
+ * A channel as a viewer sees it (§29.7); `logoUrl` is a server path (media key accepted); `kind`
+ * the channel's own kind (§29.3), absent from older servers.
+ */
 export const tvChannelDtoSchema = z.object({
   id: z.string(),
   name: z.string(),
   number: z.number().int().optional(),
   groupId: z.string(),
   logoUrl: z.string().optional(),
+  kind: tvProgrammeKindSchema.optional(),
   favorite: z.boolean().optional(),
   now: tvProgrammeDtoSchema.optional(),
   next: tvProgrammeDtoSchema.optional(),
@@ -279,6 +366,23 @@ export type TvGuideEntryDto = z.infer<typeof tvGuideEntryDtoSchema>
 
 export const tvGuideResponseSchema = z.object({ items: z.array(tvGuideEntryDtoSchema) })
 export type TvGuideResponse = z.infer<typeof tvGuideResponseSchema>
+
+/** `GET /tv/programmes/:id` (§29.7): a programme in full, with the one that follows it. */
+export const tvProgrammeDetailDtoSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+  title: z.string(),
+  subtitle: z.string().optional(),
+  description: z.string().optional(),
+  episode: tvEpisodeDtoSchema.optional(),
+  kind: tvProgrammeKindSchema,
+  categories: z.array(z.string()),
+  startAt: isoDateTimeSchema,
+  endAt: isoDateTimeSchema,
+  imageUrl: z.string().optional(),
+  next: tvProgrammeDtoSchema.optional(),
+})
+export type TvProgrammeDetailDto = z.infer<typeof tvProgrammeDetailDtoSchema>
 
 /** What a live session plays (§29.4): the relayed stream, or its H.264 transcode (later). */
 export const tvRenditions = ['copy', 'compat'] as const

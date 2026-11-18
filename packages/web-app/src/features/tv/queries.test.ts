@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 
-import type { TvChannelsResponse } from '@projo/shared/api/tv'
+import type { TvChannelsResponse, TvProgrammeKind } from '@projo/shared/api/tv'
 
 import {
   channelOrder,
   channelSections,
   elapsedOf,
   onAirAt,
+  onNowRows,
   withFavorite,
   withFavoriteOf,
   withGuide,
@@ -118,5 +119,59 @@ describe('guide on the page (§29.6)', () => {
     expect(elapsedOf(show, at('10:15'))).toBe(0.25)
     expect(elapsedOf(show, at('09:00'))).toBe(0)
     expect(elapsedOf(show, at('12:00'))).toBe(1)
+  })
+})
+
+describe('"On now" rows (§29.6)', () => {
+  const on = (title: string, kind: TvProgrammeKind) => ({
+    ...programme(title, '10:00', '11:00'),
+    id: title,
+    kind,
+  })
+  const listed: TvChannelsResponse = {
+    groups: [
+      { id: 'g1', name: 'General' },
+      { id: 'g2', name: 'Sports' },
+    ],
+    items: [
+      { id: 'a', name: 'A', groupId: 'g1', kind: 'other', now: on('Film A', 'movie') },
+      { id: 'b', name: 'B', groupId: 'g1', kind: 'other', now: on('Journal', 'news') },
+      { id: 's1', name: 'Sport 1', groupId: 'g2', kind: 'sport' },
+      { id: 's2', name: 'Sport 2', groupId: 'g2', kind: 'sport', now: on('Match', 'sport') },
+      { id: 'c', name: 'C', groupId: 'g1', kind: 'other' },
+      { id: 'd', name: 'D', groupId: 'g1', kind: 'movie', now: on('Film D', 'movie') },
+      { id: 'e', name: 'E', groupId: 'g1', kind: 'other', now: on('Quiz', 'other') },
+    ],
+    favorites: ['d'],
+  }
+  const rowsAt = (value: TvChannelsResponse, time: string) =>
+    onNowRows(value, at(time)).map(({ kind, cards }) => [
+      kind,
+      cards.map((card) => `${card.channel.id}:${card.programme?.title ?? '-'}`),
+    ])
+
+  test('one row per kind in order, page order inside (favourites first), empty rows left out', () => {
+    expect(rowsAt(listed, '10:30')).toEqual([
+      ['movie', ['d:Film D', 'a:Film A']],
+      ['sport', ['s1:-', 's2:Match']],
+      ['news', ['b:Journal']],
+      ['other', ['e:Quiz']],
+    ])
+  })
+
+  test('a channel without a programme on now shows under its own kind, never under other', () => {
+    // At 11:30 nothing is on: only the channels whose own kind is not `other` stay.
+    expect(rowsAt(listed, '11:30')).toEqual([
+      ['movie', ['d:-']],
+      ['sport', ['s1:-', 's2:-']],
+    ])
+  })
+
+  test('a server without kinds gives no row', () => {
+    const old: TvChannelsResponse = {
+      groups: [{ id: 'g', name: '' }],
+      items: [{ id: 'x', name: 'X', groupId: 'g', now: programme('Old', '10:00', '11:00') }],
+    }
+    expect(onNowRows(old, at('10:30'))).toEqual([])
   })
 })

@@ -191,7 +191,7 @@ describe('freebox provider: channels', () => {
 })
 
 describe('freebox provider: guide', () => {
-  test('reads 25 hours from the current one, each programme once', async () => {
+  test('reads 79 hours from 6 hours ago, each programme once, with its picture', async () => {
     const { result, programmes } = await readGuide()
     expect(result).toEqual({ ok: true, value: { available: true } })
     const byTime = iptv.requests.filter((request) => request.path.includes('/epg/by_time/'))
@@ -203,13 +203,19 @@ describe('freebox provider: guide', () => {
       "Ça commence aujourd'hui",
       "Je t'aime, etc.",
       'Télématin',
+      'Past the window',
     ])
     expect(france2[0]).toMatchObject({
       start: new Date(now.getTime() - 8 * 60_000),
       stop: new Date(now.getTime() + 62 * 60_000),
       subtitles: [{ text: 'Syndrome de Diogène : ils vivent emprisonnés de leurs objets' }],
       categories: [{ text: 'Magazine' }],
+      // `picture_big`, resolved on the box's origin.
+      images: [
+        `${new URL(settings().address).origin}/api/latest/tv/img/epg/programs/168x130/COL_52831102_AG.jpg`,
+      ],
     })
+    expect(france2[1]?.images).toEqual([])
   })
 
   test('a failed hour fails the read', async () => {

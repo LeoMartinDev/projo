@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router'
 import {
   type PointerEvent,
+  type SyntheticEvent,
   type RefCallback,
   useCallback,
   useEffect,
@@ -36,6 +37,8 @@ import { activateFocus, moveFocus } from '../../../shared/ui/spatial-nav/spatial
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { ChannelLogo } from '../../tv/ChannelLogo.tsx'
 import { clockTime } from '../../tv/guide-format.ts'
+import { episodeLine } from '../../tv/programme-format.ts'
+import { ProgrammeDialog } from '../../tv/ProgrammeDialog.tsx'
 import {
   channelOrder,
   channelSections,
@@ -112,17 +115,64 @@ const focusedControl = (target: EventTarget | undefined, keyboardFocused: boolea
 const channelLabel = (channel: Pick<TvChannelDto, 'name' | 'number'>) =>
   channel.number === undefined ? channel.name : `${channel.number} ${channel.name}`
 
-/** The programme on now and the next one under the channel (§29.5); nothing without a guide. */
-const LiveGuide = ({ onAir, at }: { onAir: OnAir; at: number }) => {
+/** Keeps the player's own keys, taps and clicks out of the detail opened over it. */
+const stopPropagation = (event: SyntheticEvent) => event.stopPropagation()
+
+/** The programme on now's image, a 16:9 thumbnail of the block's height (§29.6); none without. */
+const LiveThumb = ({ onAir }: { onAir: OnAir }) => {
+  const [failed, setFailed] = useState<string>()
+  const url = onAir.now?.imageUrl
+  if (url === undefined || failed === url) return undefined
+  return (
+    <img
+      className="live-heading__thumb"
+      src={mediaUrl(url)}
+      alt=""
+      decoding="async"
+      draggable={false}
+      onError={() => setFailed(url)}
+    />
+  )
+}
+
+/**
+ * The programme on now and the next one under the channel (§29.5, §29.6): the title (opening its
+ * detail), its episode in place of its times when it has one, the elapsed bar, then the next one;
+ * nothing without a guide.
+ */
+const LiveGuide = ({
+  onAir,
+  at,
+  channel,
+}: {
+  onAir: OnAir
+  at: number
+  channel: TvChannelDto | undefined
+}) => {
+  const { t } = useTranslation()
+  const [detail, setDetail] = useState<string>()
   const { now, next } = onAir
   if (now === undefined && next === undefined) return undefined
+  const episode = now === undefined ? undefined : episodeLine(t, now)
+  const programmeId = now?.id
   return (
     <>
       {now === undefined ? undefined : (
         <span className="live-heading__now">
-          <span className="live-heading__now-title">{now.title}</span>
+          {programmeId === undefined ? (
+            <span className="live-heading__now-title">{now.title}</span>
+          ) : (
+            <button
+              type="button"
+              className="live-heading__now-title live-heading__now-open"
+              aria-label={t('tv.information', { title: now.title })}
+              onClick={() => setDetail(programmeId)}
+            >
+              {now.title}
+            </button>
+          )}
           <span className="live-heading__times">
-            {clockTime(now.startAt)} – {clockTime(now.endAt)}
+            {episode ?? `${clockTime(now.startAt)} – ${clockTime(now.endAt)}`}
           </span>
           <span className="live-heading__progress" aria-hidden="true">
             <span
@@ -135,6 +185,25 @@ const LiveGuide = ({ onAir, at }: { onAir: OnAir; at: number }) => {
       {next === undefined ? undefined : (
         <span className="live-heading__next">
           <span className="live-heading__times">{clockTime(next.startAt)}</span> {next.title}
+        </span>
+      )}
+      {detail === undefined ? undefined : (
+        // The player's keys, taps and clicks stay out of the dialog over it.
+        <span
+          className="live-heading__detail"
+          onKeyDown={stopPropagation}
+          onPointerDown={stopPropagation}
+          onPointerUp={stopPropagation}
+          onClick={stopPropagation}
+          onDoubleClick={stopPropagation}
+          onContextMenu={stopPropagation}
+        >
+          <ProgrammeDialog
+            programmeId={detail}
+            channel={channel}
+            watch={false}
+            onClose={() => setDetail(undefined)}
+          />
         </span>
       )}
     </>
@@ -697,6 +766,7 @@ export const LivePlayerPage = ({
             {channel === undefined ? undefined : (
               <ChannelLogo channel={channel} className="live-heading__logo" />
             )}
+            <LiveThumb onAir={onAir} />
             <span className="live-heading__text">
               <span className="live-heading__channel">
                 {channel?.number === undefined ? undefined : (
@@ -704,7 +774,7 @@ export const LivePlayerPage = ({
                 )}
                 <span className="player__title">{channel?.name ?? ''}</span>
               </span>
-              <LiveGuide onAir={onAir} at={at} />
+              <LiveGuide onAir={onAir} at={at} channel={channel} />
             </span>
           </div>
 

@@ -149,7 +149,45 @@ export const useSetTvChannelEnabled = (sourceId: string) => {
   })
 }
 
-const liveJobTypes: ReadonlySet<string> = new Set(['refresh_tv_source', 'fetch_tv_logos'])
+/** The guide channels of a source's last guide read (§29.3), 50 at a time, matching `q`. */
+export const tvGuideChannelsQuery = (sourceId: string, q: string) =>
+  infiniteQueryOptions({
+    queryKey: [...sourceQueryKey(sourceId), 'guide-channels', q],
+    initialPageParam: '',
+    queryFn: ({ pageParam }) =>
+      request(() =>
+        api.admin.tv.sources[':id']['guide-channels'].$get({
+          param: { id: sourceId },
+          query: {
+            ...(q === '' ? {} : { q }),
+            limit: String(pageSize),
+            ...(pageParam === '' ? {} : { cursor: pageParam }),
+          },
+        }),
+      ),
+    getNextPageParam: (page) => page.nextCursor,
+  })
+
+/**
+ * Sets a channel's guide channel, or `''` for "Automatic" (§29.3): the loaded lists are read
+ * again (the server queues the guide's read, which records what matched).
+ */
+export const useSetTvChannelGuideChannel = (sourceId: string) => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ channelId, guideChannel }: { channelId: string; guideChannel: string }) =>
+      request(() =>
+        api.admin.tv.channels[':id'].$patch({ param: { id: channelId }, json: { guideChannel } }),
+      ),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: channelsQueryKey(sourceId) }),
+  })
+}
+
+const liveJobTypes: ReadonlySet<string> = new Set([
+  'refresh_tv_source',
+  'fetch_tv_logos',
+  'refresh_tv_guide',
+])
 
 /** Follows the refresh and logo jobs (§29.6): the sources, groups and loaded lists. */
 export const useLiveTv = () => {

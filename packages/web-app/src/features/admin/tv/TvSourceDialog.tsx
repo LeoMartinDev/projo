@@ -10,18 +10,20 @@ import { currentLocale } from '../../../shared/i18n/index.ts'
 import { ConfirmDialog } from '../../../shared/ui/ConfirmDialog.tsx'
 import { Field, Switch } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
-import { BackIcon, ChevronRightIcon } from '../../../shared/ui/icons.tsx'
+import { BackIcon, CheckIcon, ChevronRightIcon } from '../../../shared/ui/icons.tsx'
 import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { SearchIcon } from '../admin-icons.tsx'
 import {
   tvChannelsQuery,
+  tvGuideChannelsQuery,
   tvLogoUrl,
   tvSourceQuery,
   useDeleteTvSource,
   useRefreshTvSource,
   useSetTvChannelEnabled,
+  useSetTvChannelGuideChannel,
   useSetTvGroupEnabled,
   useUpdateTvSource,
 } from './queries.ts'
@@ -116,6 +118,130 @@ const GroupRow = ({
   )
 }
 
+/** The guide channel a channel's programmes come from, as its row shows it (§29.6). */
+const guideLabel = (t: TFunction, channel: AdminTvChannelDto): string => {
+  const { guideChannel, guideMatched } = channel
+  if (guideChannel !== undefined) {
+    const name = guideChannel.name ?? guideChannel.id
+    return guideChannel.manual ? `${name} · ${t('admin.tv.guideManual')}` : name
+  }
+  return guideMatched === false ? t('admin.tv.guideNone') : t('admin.tv.guideAutomatic')
+}
+
+/**
+ * Picks a channel's guide channel (§29.6): "Automatic", then the guide channels of the source's
+ * last read, searched and paged as they scroll; a choice is saved at once.
+ */
+const GuideChannelPicker = ({
+  sourceId,
+  channel,
+  onClose,
+}: {
+  sourceId: string
+  channel: AdminTvChannelDto
+  onClose: () => void
+}) => {
+  const { t } = useTranslation()
+  const searchId = useId()
+  const [text, setText] = useState('')
+  const q = useDebounced(text.trim(), 300)
+  const [scroller, scrollerRef] = useElement<HTMLDivElement>()
+  const [sentinel, sentinelRef] = useElement<HTMLSpanElement>()
+  const list = useInfiniteQuery(tvGuideChannelsQuery(sourceId, q))
+  const choose = useSetTvChannelGuideChannel(sourceId)
+  const current = channel.guideChannel?.manual === true ? channel.guideChannel.id : ''
+  const { hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage } = list
+
+  useEffect(() => {
+    if (sentinel === undefined || !hasNextPage || isFetchingNextPage || isFetchNextPageError) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage()
+      },
+      {
+        ...(scroller === undefined ? {} : { root: scroller }),
+        rootMargin: `0px 0px ${aheadPx}px 0px`,
+      },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [sentinel, scroller, hasNextPage, isFetchingNextPage, isFetchNextPageError, fetchNextPage])
+
+  const pick = (guideChannel: string) => {
+    if (guideChannel === current) return onClose()
+    choose.mutate({ channelId: channel.id, guideChannel }, { onSuccess: onClose })
+  }
+  const items = list.data?.pages.flatMap((page) => page.items) ?? []
+  const option = (value: string, label: string, detail?: string) => (
+    <li key={value === '' ? '\u0000' : value} className="tv-row">
+      <button
+        type="button"
+        className="tv-row__open tv-guide__option"
+        aria-pressed={value === current}
+        disabled={choose.isPending}
+        onClick={() => pick(value)}
+      >
+        <span className="tv-row__name">{label}</span>
+        {detail === undefined ? undefined : <span className="tv-guide__id">{detail}</span>}
+      </button>
+      <span className="tv-guide__check" aria-hidden="true">
+        {value === current ? <CheckIcon /> : undefined}
+      </span>
+    </li>
+  )
+  return (
+    <Dialog
+      open
+      fill
+      title={t('admin.tv.guideChannelOf', { name: channel.name })}
+      onClose={onClose}
+      footer={
+        <button type="button" className="button" onClick={onClose}>
+          {t('common.close')}
+        </button>
+      }
+    >
+      <div className="tv-pane">
+        <Field
+          id={searchId}
+          label={t('admin.tv.guideSearch')}
+          compact
+          icon={<SearchIcon size={16} />}
+        >
+          <input
+            id={searchId}
+            className="field__input"
+            type="search"
+            value={text}
+            maxLength={100}
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t('admin.tv.guideSearch')}
+            onChange={(event) => setText(event.target.value)}
+          />
+        </Field>
+        {choose.isError ? <ErrorAlert error={choose.error} /> : undefined}
+        <div ref={scrollerRef} className="tv-pane__scroll">
+          <ul className="tv-list">
+            {q === '' ? option('', t('admin.tv.guideAutomatic')) : undefined}
+            {items.map((item) => option(item.id, item.names[0] ?? item.id, item.id))}
+          </ul>
+          {list.isPending ? (
+            <SkeletonList />
+          ) : list.isError && list.data === undefined ? (
+            <ErrorState error={list.error} onRetry={() => void list.refetch()} />
+          ) : items.length === 0 && q !== '' ? (
+            <EmptyState title={t('admin.tv.guideNoMatch')} />
+          ) : undefined}
+          <span ref={sentinelRef} className="tv-list__end">
+            {isFetchingNextPage ? <span className="spinner" aria-hidden="true" /> : undefined}
+          </span>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
+
 const ChannelRow = ({
   sourceId,
   channel,
@@ -125,8 +251,11 @@ const ChannelRow = ({
   channel: AdminTvChannelDto
   onError: (error: unknown) => void
 }) => {
+  const { t } = useTranslation()
   const labelId = useId()
   const toggle = useSetTvChannelEnabled(sourceId)
+  const [picking, setPicking] = useState(false)
+  const guide = guideLabel(t, channel)
   return (
     <li className="tv-row">
       <Switch
@@ -144,6 +273,22 @@ const ChannelRow = ({
       <span id={labelId} className="tv-row__name">
         {channel.name}
       </span>
+      <button
+        type="button"
+        className={`tv-row__guide${channel.guideMatched === false && channel.guideChannel === undefined ? ' tv-row__guide--none' : ''}`}
+        aria-label={`${t('admin.tv.guideChannel')} · ${channel.name} · ${guide}`}
+        title={guide}
+        onClick={() => setPicking(true)}
+      >
+        {guide}
+      </button>
+      {picking ? (
+        <GuideChannelPicker
+          sourceId={sourceId}
+          channel={channel}
+          onClose={() => setPicking(false)}
+        />
+      ) : undefined}
     </li>
   )
 }

@@ -6,6 +6,7 @@ import type {
   TvGroupDto,
   TvGuideResponse,
   TvProgrammeDto,
+  TvProgrammeKind,
 } from '@projo/shared/api/tv'
 
 import { api, request } from '../../shared/api/client.ts'
@@ -76,6 +77,58 @@ export const channelSections = (response: TvChannelsResponse): readonly ChannelS
 /** The zapping order (§29.5): the channels as the page shows them, section after section. */
 export const channelOrder = (response: TvChannelsResponse): readonly string[] =>
   channelSections(response).flatMap((section) => section.channels.map((channel) => channel.id))
+
+/** A programme in full with the next one (§29.7), for its detail dialog. */
+export const tvProgrammeQuery = (programmeId: string) =>
+  queryOptions({
+    queryKey: ['catalog', 'tv', 'programme', programmeId],
+    queryFn: () => request(() => api.tv.programmes[':id'].$get({ param: { id: programmeId } })),
+    staleTime: guideRefreshMs,
+  })
+
+/** The order of the "On now" rows (§29.6). */
+export const onNowKinds = [
+  'movie',
+  'series',
+  'sport',
+  'news',
+  'documentary',
+  'kids',
+  'entertainment',
+  'music',
+  'other',
+] as const satisfies readonly TvProgrammeKind[]
+
+/** A card of an "On now" row: a channel and its programme on now (none: its name stands in). */
+export type OnNowCard = { channel: TvChannelDto; programme?: TvProgrammeDto }
+
+export type OnNowRow = { kind: TvProgrammeKind; cards: readonly OnNowCard[] }
+
+/**
+ * The "On now" rows at `at` (§29.6): one per programme kind in `onNowKinds` order, each with the
+ * channels whose programme on now has that kind, and the channels without one whose own kind is
+ * not `other`, in the page's order; empty rows left out. A server without kinds gives none.
+ */
+export const onNowRows = (response: TvChannelsResponse, at: number): readonly OnNowRow[] => {
+  const byKind = new Map<TvProgrammeKind, OnNowCard[]>()
+  const push = (kind: TvProgrammeKind, card: OnNowCard) => {
+    const cards = byKind.get(kind)
+    if (cards === undefined) byKind.set(kind, [card])
+    else cards.push(card)
+  }
+  for (const section of channelSections(response))
+    for (const channel of section.channels) {
+      const { now } = onAirAt(channel, at)
+      if (now !== undefined) {
+        if (now.kind !== undefined) push(now.kind, { channel, programme: now })
+      } else if (channel.kind !== undefined && channel.kind !== 'other')
+        push(channel.kind, { channel })
+    }
+  return onNowKinds.flatMap((kind) => {
+    const cards = byKind.get(kind)
+    return cards === undefined ? [] : [{ kind, cards }]
+  })
+}
 
 /** The channels with the guide's latest now and next (the list keeps its own until then). */
 export const withGuide = (

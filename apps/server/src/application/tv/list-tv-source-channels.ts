@@ -1,16 +1,24 @@
 import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
 import { searchNameOf, type TvChannel, type TvChannelRepository } from '../../core/tv/channel.ts'
+import type { TvGuideChannel, TvGuideChannelRepository } from '../../core/tv/guide.ts'
 import type { TvSourceRepository } from '../../core/tv/source.ts'
 
 type Deps = {
   tvSources: Pick<TvSourceRepository, 'findById'>
   tvChannels: Pick<TvChannelRepository, 'listChannels'>
+  guideChannels: Pick<TvGuideChannelRepository, 'findMany'>
 }
 
 export type ListTvSourceChannelsError = AppError<'tv/source_not_found'>
 
-export type TvChannelsPage = { items: TvChannel[]; nextCursor?: string; total: number }
+/** `guideChannels`: the listed guide channels the items' guide channels name (§29.3), by lowercased id. */
+export type TvChannelsPage = {
+  items: TvChannel[]
+  nextCursor?: string
+  total: number
+  guideChannels: ReadonlyMap<string, TvGuideChannel>
+}
 
 const offsetOf = (cursor: string | undefined): number => {
   const offset = cursor === undefined ? 0 : Number(cursor)
@@ -19,7 +27,7 @@ const offsetOf = (cursor: string | undefined): number => {
 
 /** A source's present channels for its dialog, in playlist order, searched and paged (§29.7). */
 export const listTvSourceChannelsFactory =
-  ({ tvSources, tvChannels }: Deps) =>
+  ({ tvSources, tvChannels, guideChannels }: Deps) =>
   ({
     sourceId,
     q,
@@ -47,7 +55,17 @@ export const listTvSourceChannelsFactory =
       limit,
     })
     const next = offset + items.length
-    return ok({ items, total, ...(next < total ? { nextCursor: String(next) } : {}) })
+    const named = items.flatMap((channel) => {
+      const id = channel.guideChannel ?? channel.guideMatched
+      return id === undefined || id === '' ? [] : [id]
+    })
+    return ok({
+      items,
+      total,
+      ...(next < total ? { nextCursor: String(next) } : {}),
+      guideChannels:
+        named.length === 0 ? new Map() : guideChannels.findMany({ sourceId, ids: named }),
+    })
   }
 
 export type ListTvSourceChannels = ReturnType<typeof listTvSourceChannelsFactory>

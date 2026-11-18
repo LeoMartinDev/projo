@@ -33,6 +33,10 @@ export type TvChannel = {
   position: number
   upstream: TvUpstream
   guideKey?: string
+  /** The admin's guide channel (§29.3); kept by every refresh. */
+  guideChannel?: string
+  /** The guide channel the last guide read matched; `''` none; absent before any read. */
+  guideMatched?: string
   logoUrl?: string
   /** Relative to the images directory; kept (and served) while a newer URL fails. */
   logoPath?: string
@@ -120,6 +124,10 @@ export type TvChannelRepository = {
   listViewable: () => { groups: TvGroup[]; channels: TvChannel[] }
   /** The enabled, present channels of a source, which its guide fills (§29.3). */
   guideTargetsOf: (sourceId: string) => TvGuideTarget[]
+  /** Records the guide channel each channel took on the last read (`undefined`: none). */
+  recordGuideMatches: (matches: ReadonlyMap<string, string | undefined>) => void
+  /** Sets the admin's guide channel of a channel, or clears it ("Automatic"). */
+  setGuideChannel: (input: { id: string; guideChannel?: string }) => void
   /** The channel's cached probe (§29.4). */
   probeOf: (id: string) => TvChannelProbe | undefined
   /** Caches a probe, or drops the cached one without `probe`. */

@@ -215,9 +215,272 @@
   }
 }
 
+/* "On now" (§29.6): the home page's rows, a card per channel on now. */
+.tv-onnow {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tv-now {
+  position: relative;
+  flex: 0 0 var(--card-width);
+  min-width: 0;
+}
+
+.tv-now__link {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border-radius: var(--radius-card);
+  color: inherit;
+  text-decoration: none;
+  -webkit-touch-callout: none;
+}
+
+.tv-now__art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: var(--fill-1);
+  box-shadow: inset 0 0 0 1px var(--fill-2);
+  transition: transform 0.2s var(--ease);
+}
+
+.tv-now__link:active .tv-now__art {
+  transform: scale(0.98);
+}
+
+.tv-now__art--logo,
+.tv-now__art--name {
+  padding: 14% 22%;
+}
+
+.tv-now__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tv-now__logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tv-now__name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-strong);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+}
+
+/* The channel's logo, small, in the image's bottom-left corner. */
+.tv-now__badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 32px;
+  padding: 5px 8px;
+  border-radius: var(--radius-button-sm);
+  background: var(--material-glass);
+  box-shadow: var(--shadow-glass);
+  -webkit-backdrop-filter: var(--blur-glass-dim);
+  backdrop-filter: var(--blur-glass-dim);
+}
+
+.tv-now__badge-logo {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-now__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tv-now__title,
+.tv-now__channel {
+  min-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-now__title {
+  color: var(--color-text-strong);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.tv-now__channel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-now__info {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-strong);
+  background: var(--material-glass);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: var(--blur-glass);
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tv-now__info:hover {
+  background: var(--material-glass-hover);
+}
+
+/* With a mouse, the information button shows on the card's hover or focus, like a card's star. */
+@media (--fine-pointer) {
+  .tv-now__info {
+    opacity: 0;
+  }
+
+  .tv-now:hover .tv-now__info,
+  .tv-now:focus-within .tv-now__info {
+    opacity: 1;
+  }
+}
+
+/* A programme's detail (§29.6): a dialog of fixed size whose body scrolls. */
+.dialog:has(.programme-detail) {
+  height: min(620px, calc(100dvh - 32px));
+}
+
+.dialog:has(.programme-detail) .dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.programme-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.programme-detail > * {
+  flex-shrink: 0;
+}
+
+/* Wide and cropped: the texts and the next programme stay in view under it. */
+.programme-detail__image {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  margin-bottom: 6px;
+  border-radius: var(--radius-card);
+  background: var(--fill-1);
+  object-fit: cover;
+}
+
+.programme-detail__skeleton {
+  width: 60%;
+}
+
+.programme-detail__episode {
+  color: var(--color-text-soft);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.programme-detail__meta {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.programme-detail__description {
+  color: var(--color-text-bright);
+  font-size: 15px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.programme-detail__next {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: 14px;
+}
+
+.programme-detail__next-label {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.programme-detail__next-time {
+  flex: 0 0 auto;
+  color: var(--color-text-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.programme-detail__next-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.programme-detail__star {
+  margin-right: auto;
+}
+
+.programme-detail__star[aria-pressed='true'] {
+  color: var(--color-accent);
+}
+
+@media (--phone) {
+  .tv-now__title {
+    font-size: 14px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tv-card__tile,
-  .tv-card__star {
+  .tv-card__star,
+  .tv-now__art,
+  .tv-now__info {
     transition: none;
   }
 }

@@ -91,6 +91,8 @@ const toChannel = (row: typeof tvChannels.$inferSelect): TvChannel => {
   const {
     number,
     guideKey,
+    guideChannel,
+    guideMatched,
     logoUrl,
     logoPath,
     logoFetchedUrl,
@@ -109,6 +111,8 @@ const toChannel = (row: typeof tvChannels.$inferSelect): TvChannel => {
     position: rest.position,
     upstream: toUpstream(rest.upstream),
     ...(guideKey === undefined ? {} : { guideKey }),
+    ...(guideChannel === undefined ? {} : { guideChannel }),
+    ...(guideMatched === undefined ? {} : { guideMatched }),
     ...(logoUrl === undefined ? {} : { logoUrl }),
     ...(logoPath === undefined ? {} : { logoPath }),
     ...(logoFetchedUrl === undefined ? {} : { logoFetchedUrl }),
@@ -403,15 +407,42 @@ export const createSqliteTvChannelRepository = ({ db }: { db: Db }): TvChannelRe
 
     guideTargetsOf: (sourceId) =>
       db
-        .select({ id: tvChannels.id, name: tvChannels.name, guideKey: tvChannels.guideKey })
+        .select({
+          id: tvChannels.id,
+          name: tvChannels.name,
+          group: tvGroups.name,
+          guideKey: tvChannels.guideKey,
+          guideChannel: tvChannels.guideChannel,
+        })
         .from(tvChannels)
+        .innerJoin(tvGroups, eq(tvGroups.id, tvChannels.groupId))
         .where(and(eq(tvChannels.sourceId, sourceId), eq(tvChannels.enabled, true), present))
+        .orderBy(asc(tvChannels.position))
         .all()
-        .map(({ id, name, guideKey }) => ({
+        .map(({ id, name, group, guideKey, guideChannel }) => ({
           id,
           name,
+          group,
           ...(guideKey === null ? {} : { guideKey }),
+          ...(guideChannel === null ? {} : { guideChannel }),
         })),
+
+    recordGuideMatches: (matches) => {
+      db.transaction((tx) => {
+        for (const [id, matched] of matches)
+          tx.update(tvChannels)
+            .set({ guideMatched: matched ?? '' })
+            .where(eq(tvChannels.id, id))
+            .run()
+      })
+    },
+
+    setGuideChannel: ({ id, guideChannel }) => {
+      db.update(tvChannels)
+        .set({ guideChannel: toNullable(guideChannel) })
+        .where(eq(tvChannels.id, id))
+        .run()
+    },
 
     probeOf: (id) => {
       const row = db

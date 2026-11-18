@@ -42,8 +42,10 @@ describe('reading an XMLTV guide (§29.3)', () => {
       'sport.one',
       'local.tv',
       'absent.tv',
+      'kids.one',
+      'sport.two.example',
     ])
-    expect(plain.programmes).toHaveLength(11)
+    expect(plain.programmes).toHaveLength(13)
     // `{{at:-30:+0200}}`: half an hour ago, written in +02:00.
     expect(plain.programmes[1]?.start).toEqual(new Date(now.getTime() - 30 * 60_000))
     for (const path of ['/xmltv/guide.xml.gz', '/xmltv/guide.xml?encoding=gzip']) {
@@ -244,7 +246,7 @@ describe('the m3u connector reads its guide (§29.3)', () => {
     })
     expect(both.programmes).toHaveLength(4)
     const discovered = await guideOf({ discoveredGuideUrl: iptv.at('/xmltv/guide.xml.gz') })
-    expect(discovered.programmes).toHaveLength(11)
+    expect(discovered.programmes).toHaveLength(13)
     expect(await guideOf({})).toEqual({
       result: { ok: true, value: { available: false } },
       programmes: [],

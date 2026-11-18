@@ -11,7 +11,7 @@
 {{base}}/live/sport-one.ts
 #EXTINF:-1 tvg-id="" tvg-logo="{{base}}/logos/missing.png" group-title="Sports, Live",Sport Two
 rtsp://127.0.0.1:8554/sport-two
-#EXTINF:-1 tvg-id="kids.one" tvg-chno="20" group-title="Kids",Kids One
+#EXTINF:-1 tvg-id="kids.one@SD" tvg-chno="20" group-title="Kids",Kids One
 udp://@239.0.0.1:1234
 #EXTINF:-1,Local Channel
 #EXTGRP:Local

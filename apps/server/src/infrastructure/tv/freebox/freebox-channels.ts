@@ -38,10 +38,10 @@ export const bestRtspOf = (streams: readonly unknown[]): string | undefined => {
 const cleanName = (name: string): string => name.trim().replaceAll(/\s+/gu, ' ')
 
 /**
- * A logo path of the box resolved against its address; kept only on the box's own origin, so a
+ * A path of the box (a logo, a programme picture) resolved against its address; kept only on the box's own origin, so a
  * listing never makes the server fetch another host's URL (§29.2).
  */
-const logoUrlOf = (address: string, logoUrl: string | undefined): string | undefined => {
+export const boxUrlOf = (address: string, logoUrl: string | undefined): string | undefined => {
   if (logoUrl === undefined || logoUrl.trim() === '' || !URL.canParse(logoUrl, address))
     return undefined
   const url = new URL(logoUrl, address)
@@ -101,7 +101,7 @@ export const freeboxChannelsOf = ({
     const name = channel === undefined ? '' : cleanName(channel.name)
     if (channel === undefined || upstream === undefined || name === '') return []
     seen.add(entry.uuid)
-    const logoUrl = logoUrlOf(address, channel.logo_url)
+    const logoUrl = boxUrlOf(address, channel.logo_url)
     return [
       {
         key: entry.uuid,

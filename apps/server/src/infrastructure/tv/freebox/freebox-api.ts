@@ -215,6 +215,11 @@ export const freeboxProgrammeSchema = z.object({
   sub_title: z.string().optional(),
   desc: z.string().optional(),
   category_name: z.string().optional(),
+  // Details: an unreadable one counts as absent, never the programme (§29.3).
+  picture: z.string().max(2048).optional().catch(undefined),
+  picture_big: z.string().max(2048).optional().catch(undefined),
+  season_number: z.number().int().optional().catch(undefined),
+  episode_number: z.number().int().optional().catch(undefined),
 })
 export type FreeboxProgramme = z.infer<typeof freeboxProgrammeSchema>
 

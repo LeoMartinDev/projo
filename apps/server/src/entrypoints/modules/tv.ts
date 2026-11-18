@@ -24,7 +24,14 @@ import { sweepLiveSessionsFactory } from '../../application/tv/sweep-live-sessio
 import { createTvSourceFactory } from '../../application/tv/create-tv-source.ts'
 import { deleteTvSourceFactory } from '../../application/tv/delete-tv-source.ts'
 import { fetchTvLogosFactory } from '../../application/tv/fetch-tv-logos.ts'
+import { fetchTvProgrammeImagesFactory } from '../../application/tv/fetch-tv-programme-images.ts'
 import { getTvChannelLogoFactory } from '../../application/tv/get-tv-channel-logo.ts'
+import { getTvProgrammeImageFactory } from '../../application/tv/get-tv-programme-image.ts'
+import { getTvProgrammeFactory } from '../../application/tv/get-tv-programme.ts'
+import { listTvGuideChannelsFactory } from '../../application/tv/list-tv-guide-channels.ts'
+import { purgeTvProgrammeImagesFactory } from '../../application/tv/purge-tv-programme-images.ts'
+import { setTvChannelGuideChannelFactory } from '../../application/tv/set-tv-channel-guide-channel.ts'
+import { queueTvProgrammeImages } from '../../application/tv/shared/tv-jobs.ts'
 import { getTvSourceFactory } from '../../application/tv/get-tv-source.ts'
 import { listTvSourceChannelsFactory } from '../../application/tv/list-tv-source-channels.ts'
 import { listTvSourcesFactory } from '../../application/tv/list-tv-sources.ts'
@@ -38,6 +45,10 @@ import type { TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import type { LiveProber, LiveRelay, LiveTimers } from '../../core/tv/live.ts'
 import { liveSessionTimings } from '../../core/tv/live-session.ts'
 import type { TvLogoDownloader } from '../../core/tv/logo.ts'
+import {
+  TV_PROGRAMME_IMAGE_MAX_BYTES,
+  TV_PROGRAMME_IMAGES_INTERVAL_MS,
+} from '../../core/tv/programme-image.ts'
 import type { TvSourceProvider } from '../../core/tv/provider.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
 import { systemTimers } from '../../infrastructure/clock/system-timers.ts'
@@ -49,7 +60,9 @@ import {
 } from '../../infrastructure/sqlite/tv-source-repository.ts'
 import { createSqliteLiveSessionDirectory } from '../../infrastructure/sqlite/live-session-directory.ts'
 import { createSqliteTvFavoriteRepository } from '../../infrastructure/sqlite/tv-favorite-repository.ts'
+import { createSqliteTvGuideChannelRepository } from '../../infrastructure/sqlite/tv-guide-channel-repository.ts'
 import { createSqliteTvGuideRepository } from '../../infrastructure/sqlite/tv-guide-repository.ts'
+import { createSqliteTvProgrammeImageRepository } from '../../infrastructure/sqlite/tv-programme-image-repository.ts'
 import { createSqliteTvProfileAccess } from '../../infrastructure/sqlite/tv-profile-access.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
@@ -71,9 +84,13 @@ const sourcePayload = z.object({ sourceId: z.string().min(1) })
 const hour = 60 * 60_000
 
 export type TvModuleOptions = {
-  /** Test seams: the connectors and the logo downloader (the test provider is on loopback). */
+  /**
+   * Test seams: the connectors and the logo and programme image downloaders (the test provider
+   * is on loopback).
+   */
   provider?: TvSourceProvider
   logoDownloader?: TvLogoDownloader
+  programmeImageDownloader?: TvLogoDownloader
   /** Test seams of the relay (§29.4): ffmpeg, ffprobe, timers and the relay timings. */
   live?: {
     relay?: LiveRelay
@@ -95,7 +112,7 @@ export const buildTvModule = (
     /** The metadata module's server language (§9): the guide's texts are picked in it (§29.3). */
     metadataLanguage: () => string
   },
-  { provider, logoDownloader, live = {} }: TvModuleOptions = {},
+  { provider, logoDownloader, programmeImageDownloader, live = {} }: TvModuleOptions = {},
 ) => {
   const { db, ids, clock, logger, notifier, jobQueue, paths, eventBus } = platform
   const moduleLogger = logger.child({ module: 'tv' })
@@ -113,17 +130,35 @@ export const buildTvModule = (
   const tvAccess = createSqliteTvProfileAccess({ db })
   const favorites = createSqliteTvFavoriteRepository({ db })
   const guide = createSqliteTvGuideRepository({ db, ids })
+  const guideChannels = createSqliteTvGuideChannelRepository({ db })
+  const programmeImages = createSqliteTvProgrammeImageRepository({ db })
   const refreshTvGuide = refreshTvGuideFactory({
     tvSources,
     tvChannels,
     guide,
+    guideChannels,
     provider: sourceProvider,
     guideLanguage: metadataLanguage,
+    jobQueue,
     clock,
     logger: moduleLogger,
   })
   const queueDueGuideRefreshes = queueDueTvGuideRefreshesFactory({ tvSources, jobQueue, clock })
   const purgeEndedProgrammes = purgeEndedTvProgrammesFactory({ guide, clock })
+  const purgeProgrammeImages = purgeTvProgrammeImagesFactory({
+    images: programmeImages,
+    files: logoFiles,
+  })
+  const fetchTvProgrammeImages = fetchTvProgrammeImagesFactory({
+    tvSources,
+    images: programmeImages,
+    downloader:
+      programmeImageDownloader ??
+      createTvLogoDownloader({ maxBytes: TV_PROGRAMME_IMAGE_MAX_BYTES }),
+    files: logoFiles,
+    clock,
+    logger: moduleLogger,
+  })
 
   const refreshTvSource = refreshTvSourceFactory({
     tvSources,
@@ -195,6 +230,14 @@ export const buildTvModule = (
     exposes: {
       routes: tvRoutes({
         getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, tvAccess, logoFiles }),
+        getTvProgramme: getTvProgrammeFactory({ guide, tvChannels, tvAccess, clock }),
+        getTvProgrammeImage: getTvProgrammeImageFactory({
+          guide,
+          tvChannels,
+          tvAccess,
+          images: programmeImages,
+          files: logoFiles,
+        }),
         open: (path) => Bun.file(path),
         listTvChannels: listTvChannelsFactory({ tvChannels, tvAccess, favorites, guide, clock }),
         listTvGuide: listTvGuideFactory({ tvAccess, guide, clock }),
@@ -256,7 +299,13 @@ export const buildTvModule = (
           logger: moduleLogger,
         }),
         requestTvSourceRefresh: requestTvSourceRefreshFactory({ tvSources, jobQueue }),
-        listTvSourceChannels: listTvSourceChannelsFactory({ tvSources, tvChannels }),
+        listTvSourceChannels: listTvSourceChannelsFactory({
+          tvSources,
+          tvChannels,
+          guideChannels,
+        }),
+        listTvGuideChannels: listTvGuideChannelsFactory({ tvSources, guideChannels }),
+        setTvChannelGuideChannel: setTvChannelGuideChannelFactory({ tvChannels, jobQueue }),
         setTvGroupEnabled: setTvGroupEnabledFactory({
           tvSources,
           tvChannels,
@@ -302,6 +351,14 @@ export const buildTvModule = (
           return result.ok ? ok() : result
         },
       },
+      fetch_tv_programme_images: {
+        payload: z.object({}),
+        concurrency: 1,
+        run: async (_payload, { signal }) => {
+          const result = await fetchTvProgrammeImages({ signal })
+          return result.ok ? ok() : result
+        },
+      },
     }),
     scheduledTasks: [
       {
@@ -317,11 +374,20 @@ export const buildTvModule = (
         name: 'tv-guide-refresh',
         initialDelayMs: 3 * 60_000,
         intervalMs: hour,
-        run: () => {
+        run: async () => {
           const purged = purgeEndedProgrammes()
+          const images = await purgeProgrammeImages()
           const queued = queueDueGuideRefreshes()
-          if (queued > 0 || purged > 0)
-            moduleLogger.info('tv guide refreshes queued', { queued, purged })
+          if (queued > 0 || purged > 0 || images > 0)
+            moduleLogger.info('tv guide refreshes queued', { queued, purged, images })
+        },
+      },
+      {
+        name: 'tv-programme-images',
+        initialDelayMs: 4 * 60_000,
+        intervalMs: TV_PROGRAMME_IMAGES_INTERVAL_MS,
+        run: () => {
+          queueTvProgrammeImages(jobQueue)
         },
       },
       {

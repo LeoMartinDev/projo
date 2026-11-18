@@ -2,8 +2,11 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 
 import { ok } from '@projo/shared'
 import {
+  adminTvChannelsPageSchema,
+  adminTvGuideChannelsPageSchema,
   type AdminTvSourceDetailDto,
   adminTvSourceDetailDtoSchema,
+  tvProgrammeDetailDtoSchema,
   type TvChannelsResponse,
   tvChannelsResponseSchema,
   tvGuideResponseSchema,
@@ -50,7 +53,10 @@ beforeEach(async () => {
           transcodeSlots: { acquire: () => ok(), release: () => {} },
           metadataLanguage: () => DEFAULT_METADATA_LANGUAGE,
         },
-        { logoDownloader: createTvLogoDownloader({ allowLoopback: true }) },
+        {
+          logoDownloader: createTvLogoDownloader({ allowLoopback: true }),
+          programmeImageDownloader: createTvLogoDownloader({ allowLoopback: true }),
+        },
       )
       return { tv: module.routes, adminTv: module.adminRoutes }
     },
@@ -146,8 +152,13 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
         next: { title: 'La météo', startAt: at(30), endAt: at(90) },
       })
     }
-    expect(byName(listed, 'News Two').now).toEqual({
+    const talkShow = byName(listed, 'News Two').now
+    expect(talkShow).toEqual({
+      id: expect.any(String),
       title: 'Talk show',
+      // `xmltv_ns` 2.4: season 3, episode 5; an `ftp` icon is no image.
+      episode: { season: 3, episode: 5 },
+      kind: 'entertainment',
       startAt: at(-10),
       endAt: at(50),
     })
@@ -157,12 +168,15 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
     })
     expect(byName(listed, 'Local Channel').next).toBeUndefined()
     expect(byName(listed, 'Bare Name').now).toBeUndefined()
+    // Kept from 6 hours ago (Matinale ended 30 minutes ago), never 3 days ahead.
     expect(programmeRows().map((row) => row.title)).toEqual([
       'La météo',
       'La météo',
       'Le 12/13 <local>',
       'Le journal',
       'Le journal',
+      'Matinale',
+      'Matinale',
       'Talk show',
     ])
 
@@ -170,7 +184,7 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
     expect(guide.items).toHaveLength(4)
     expect(guide.items.find((item) => item.channelId === byName(listed, 'News Two').id)).toEqual({
       channelId: byName(listed, 'News Two').id,
-      now: { title: 'Talk show', startAt: at(-10), endAt: at(50) },
+      now: talkShow,
     })
 
     // An hour later: what ended is gone, what follows is now.
@@ -185,7 +199,7 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
     const id = await guidedSource({ guideUrl: iptv.at('/xmltv/guide.xml?encoding=gzip') })
     await runJobs(['refresh_tv_guide'])
     expect(iptv.requests.some((r) => r.path === '/xmltv/guide.xml?encoding=gzip')).toBe(true)
-    expect(programmeRows()).toHaveLength(6)
+    expect(programmeRows()).toHaveLength(8)
 
     await request(
       'PATCH',
@@ -194,7 +208,7 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
       'admin',
     )
     expect(await runJobs(['refresh_tv_guide'])).toEqual(['refresh_tv_guide tv/guide_invalid'])
-    expect(programmeRows()).toHaveLength(6)
+    expect(programmeRows()).toHaveLength(8)
     const notifications = platform.db.$client
       .query("SELECT kind FROM notifications WHERE kind = 'job/failed'")
       .all()
@@ -207,7 +221,7 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
       'admin',
     )
     expect(await runJobs(['refresh_tv_guide'])).toEqual(['refresh_tv_guide tv/guide_unreachable'])
-    expect(programmeRows()).toHaveLength(6)
+    expect(programmeRows()).toHaveLength(8)
 
     // Disabling every channel: the next read deletes the programmes without fetching.
     const detail = adminTvSourceDetailDtoSchema.parse(
@@ -228,6 +242,132 @@ describe('the guide (§29.3) on SQLite against a test provider', () => {
     expect(await runJobs(['refresh_tv_guide'])).toEqual(['refresh_tv_guide done'])
     expect(iptv.requests.filter((r) => r.path.startsWith('/xmltv/'))).toEqual([])
     expect(programmeRows()).toEqual([])
+  })
+})
+
+describe('the richer guide (§29.3, §29.7) on SQLite against a test provider', () => {
+  const enableGroups = async (sourceId: string, names: readonly string[]) => {
+    const detail = adminTvSourceDetailDtoSchema.parse(
+      await (await request('GET', `/admin/tv/sources/${sourceId}`, undefined, 'admin')).json(),
+    )
+    for (const group of detail.groups.filter((g) => names.includes(g.name)))
+      await request(
+        'PATCH',
+        `/admin/tv/sources/${sourceId}/groups/${group.id}`,
+        { enabled: true },
+        'admin',
+      )
+  }
+  const adminChannels = async (sourceId: string) =>
+    adminTvChannelsPageSchema.parse(
+      await (
+        await request('GET', `/admin/tv/sources/${sourceId}/channels?limit=100`, undefined, 'admin')
+      ).json(),
+    ).items
+
+  test('kinds, episodes, images, the detail; matching by suffix and name; the admin choice', async () => {
+    const id = await guidedSource()
+    await enableGroups(id, ['Kids', 'Sports, Live'])
+    expect(await runJobs(['refresh_tv_guide'])).toEqual(['refresh_tv_guide done'])
+    expect(await runJobs(['fetch_tv_programme_images'])).toEqual(['fetch_tv_programme_images done'])
+    // Downloaded once per URL (two channels share the journal's), the failed one tried once.
+    expect(iptv.requests.filter((r) => r.path === '/logos/journal.jpg')).toHaveLength(1)
+    expect(iptv.requests.filter((r) => r.path === '/logos/missing-cartoons.png')).toHaveLength(1)
+
+    const listed = await channels()
+    const journal = byName(listed, 'News One HD').now
+    expect(journal).toMatchObject({ title: 'Le journal', kind: 'news' })
+    expect(journal?.imageUrl).toBe(`/api/v1/tv/programmes/${journal?.id}/image`)
+    expect(byName(listed, 'News One FHD').now?.imageUrl).toBeDefined()
+    const image = await request('GET', `/tv/programmes/${journal?.id}/image`)
+    expect(image.status).toBe(200)
+    expect(image.headers.get('content-type')).toBe('image/jpeg')
+    expect(image.headers.get('cache-control')).toBe('private, max-age=3600')
+
+    // `kids.one@SD` takes `kids.one`; Sport Two its normalised name.
+    expect(byName(listed, 'Kids One')).toMatchObject({
+      kind: 'kids',
+      now: { title: 'Dessins animés du matin', kind: 'kids', episode: { label: 'S01E03' } },
+    })
+    expect(byName(listed, 'Kids One').now?.imageUrl).toBeUndefined()
+    expect(byName(listed, 'Sport Two')).toMatchObject({
+      kind: 'sport',
+      now: { title: 'Grand prix', kind: 'sport' },
+    })
+    expect(byName(listed, 'Local Channel').kind).toBe('other')
+
+    const detail = await request('GET', `/tv/programmes/${journal?.id}`)
+    expect(detail.status).toBe(200)
+    expect(tvProgrammeDetailDtoSchema.parse(await detail.json())).toEqual({
+      id: journal?.id ?? '',
+      channelId: byName(listed, 'News One HD').id,
+      title: 'Le journal',
+      subtitle: 'Édition de la mi-journée',
+      description: 'Les titres du jour & la météo.',
+      kind: 'news',
+      categories: ['Information', 'News'],
+      startAt: journal?.startAt ?? '',
+      endAt: journal?.endAt ?? '',
+      imageUrl: journal?.imageUrl,
+      next: expect.objectContaining({ title: 'La météo' }),
+    })
+    const missing = await request('GET', '/tv/programmes/nope')
+    expect(missing.status).toBe(404)
+    expect(await missing.json()).toMatchObject({ error: { code: 'tv/programme_not_found' } })
+
+    // What matched, for the admin; the guide's channels to pick from.
+    const before = await adminChannels(id)
+    const row = (name: string) => before.find((channel) => channel.name === name)
+    expect(row('Kids One')).toMatchObject({
+      guideChannel: { id: 'kids.one', name: 'Les enfants', manual: false },
+      guideMatched: true,
+    })
+    expect(row('Bare Name')).toMatchObject({ guideMatched: false })
+    expect(row('Bare Name')?.guideChannel).toBeUndefined()
+    const picker = adminTvGuideChannelsPageSchema.parse(
+      await (
+        await request('GET', `/admin/tv/sources/${id}/guide-channels?q=ENFANTS`, undefined, 'admin')
+      ).json(),
+    )
+    expect(picker).toEqual({ items: [{ id: 'kids.one', names: ['Les enfants'] }], total: 1 })
+
+    // The admin's choice wins, survives a source refresh, and "Automatic" clears it.
+    const bare = row('Bare Name')?.id ?? ''
+    const chosen = await request(
+      'PATCH',
+      `/admin/tv/channels/${bare}`,
+      { guideChannel: 'sport.two.example' },
+      'admin',
+    )
+    expect(chosen.status).toBe(200)
+    expect(await chosen.json()).toMatchObject({
+      guideChannel: { id: 'sport.two.example', manual: true },
+    })
+    await request('POST', `/admin/tv/sources/${id}/refresh`, undefined, 'admin')
+    expect(await runJobs(['refresh_tv_source', 'refresh_tv_guide'])).toEqual([
+      'refresh_tv_source done',
+      'refresh_tv_guide done',
+    ])
+    const after = await channels()
+    expect(byName(after, 'Bare Name').now?.title).toBe('Grand prix')
+    // A programme read again keeps its id.
+    expect(byName(after, 'News One HD').now?.id).toBe(journal?.id)
+    await request('PATCH', `/admin/tv/channels/${bare}`, { guideChannel: '' }, 'admin')
+    await runJobs(['refresh_tv_guide'])
+    expect(byName(await channels(), 'Bare Name').now).toBeUndefined()
+    const empty = await request('PATCH', `/admin/tv/channels/${bare}`, {}, 'admin')
+    expect(empty.status).toBe(400)
+
+    // Without Live TV access, no programme exists for the profile; the admin still sees images.
+    await request('PATCH', '/profiles/profile-zoe', { liveTv: false }, 'admin')
+    for (const path of [`/tv/programmes/${journal?.id}`, `/tv/programmes/${journal?.id}/image`]) {
+      const refused = await request('GET', path)
+      expect(refused.status).toBe(404)
+      expect(await refused.json()).toMatchObject({ error: { code: 'tv/programme_not_found' } })
+    }
+    expect(
+      (await request('GET', `/tv/programmes/${journal?.id}/image`, undefined, 'admin')).status,
+    ).toBe(200)
   })
 })
 
@@ -335,7 +475,7 @@ describe('a Freebox source (§29.2, §29.3) on SQLite against a replayed box', (
       'refresh_tv_guide done',
     ])
 
-    expect(iptv.requests.filter((r) => r.path.includes('/epg/by_time/'))).toHaveLength(25)
+    expect(iptv.requests.filter((r) => r.path.includes('/epg/by_time/'))).toHaveLength(79)
     expect(iptv.requests.filter((r) => r.path.startsWith('/api/latest/tv/img/'))).toHaveLength(6)
 
     const listed = await channels()
@@ -360,8 +500,8 @@ describe('a Freebox source (§29.2, §29.3) on SQLite against a replayed box', (
       next: { title: 'Elementary', startAt: at(42) },
     })
     expect(byName(listed, 'TV78').now).toBeUndefined()
-    // France 2's four programmes but the one past 24 hours, Arte's two, Paris Première's two.
-    expect(programmeRows()).toHaveLength(7)
+    // France 2's four programmes (3 days are kept), and the others' within 6 hours ago.
+    expect(programmeRows()).toHaveLength(9)
   })
 
   test('a patch keeps its kind; a new address queues a refresh', async () => {

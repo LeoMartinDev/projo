@@ -4,6 +4,11 @@ import { addTvFavoriteFactory } from '../../src/application/tv/add-tv-favorite.t
 import { createTvSourceFactory } from '../../src/application/tv/create-tv-source.ts'
 import { deleteTvSourceFactory } from '../../src/application/tv/delete-tv-source.ts'
 import { fetchTvLogosFactory } from '../../src/application/tv/fetch-tv-logos.ts'
+import { fetchTvProgrammeImagesFactory } from '../../src/application/tv/fetch-tv-programme-images.ts'
+import { getTvProgrammeFactory } from '../../src/application/tv/get-tv-programme.ts'
+import { listTvGuideChannelsFactory } from '../../src/application/tv/list-tv-guide-channels.ts'
+import { purgeTvProgrammeImagesFactory } from '../../src/application/tv/purge-tv-programme-images.ts'
+import { setTvChannelGuideChannelFactory } from '../../src/application/tv/set-tv-channel-guide-channel.ts'
 import { getTvChannelLogoFactory } from '../../src/application/tv/get-tv-channel-logo.ts'
 import { getTvSourceFactory } from '../../src/application/tv/get-tv-source.ts'
 import { listTvChannelsFactory } from '../../src/application/tv/list-tv-channels.ts'
@@ -28,7 +33,9 @@ import {
 } from '../../src/core/tv/channel.ts'
 import {
   nowAndNextOf,
+  TV_GUIDE_PAST_MS,
   type TvGuideChannel,
+  type TvGuideChannelRepository,
   type TvGuideError,
   type TvGuideProgramme,
   type TvGuideRepository,
@@ -37,6 +44,10 @@ import {
 } from '../../src/core/tv/guide.ts'
 import type { TvChannelProbe } from '../../src/core/tv/live.ts'
 import type { TvLogo, TvLogoDownloader, TvLogoFiles } from '../../src/core/tv/logo.ts'
+import type {
+  TvProgrammeImageRepository,
+  TvProgrammeImageWork,
+} from '../../src/core/tv/programme-image.ts'
 import type {
   TvChannelListing,
   TvProviderError,
@@ -254,11 +265,26 @@ export const inMemoryTvChannels = () => {
     guideTargetsOf: (sourceId) =>
       [...channels.values()]
         .filter((c) => c.sourceId === sourceId && c.enabled && present(c))
-        .map(({ id, name, guideKey }) => ({
+        .sort((a, b) => a.position - b.position)
+        .map(({ id, name, groupId, guideKey, guideChannel }) => ({
           id,
           name,
+          group: groups.get(groupId)?.name ?? '',
           ...(guideKey === undefined ? {} : { guideKey }),
+          ...(guideChannel === undefined ? {} : { guideChannel }),
         })),
+    recordGuideMatches: (matches) => {
+      for (const [id, matched] of matches) {
+        const channel = channels.get(id)
+        if (channel !== undefined) channels.set(id, { ...channel, guideMatched: matched ?? '' })
+      }
+    },
+    setGuideChannel: ({ id, guideChannel }) => {
+      const channel = channels.get(id)
+      if (channel === undefined) return
+      const { guideChannel: _previous, ...rest } = channel
+      channels.set(id, guideChannel === undefined ? rest : { ...rest, guideChannel })
+    },
     probeOf: (id) => probes.get(id),
     recordProbe: ({ id, probe }) => {
       if (probe === undefined) probes.delete(id)
@@ -271,21 +297,42 @@ export const inMemoryTvChannels = () => {
 /** The guide's programmes in memory, like `createSqliteTvGuideRepository`. */
 export const inMemoryTvGuide = (channels: ReturnType<typeof inMemoryTvChannels>['channels']) => {
   let programmes: TvProgramme[] = []
+  let nextId = 0
+  const keptAfter = (now: Date) => now.getTime() - TV_GUIDE_PAST_MS
   const repository: TvGuideRepository = {
     replaceForSource: ({ sourceId, programmes: replacement, now }) => {
       const own = new Set(
         [...channels.values()].filter((c) => c.sourceId === sourceId).map((c) => c.id),
       )
+      const known = new Map(
+        programmes.map((p) => [`${p.channelId}|${p.startAt.toISOString()}`, p.id]),
+      )
       programmes = [
         ...programmes.filter((p) => !own.has(p.channelId)),
-        ...replacement.filter((p) => own.has(p.channelId)),
-      ].filter((p) => p.endAt.getTime() > now.getTime())
+        ...replacement
+          .filter((p) => own.has(p.channelId))
+          .map((p) => {
+            nextId += 1
+            return {
+              ...p,
+              id: known.get(`${p.channelId}|${p.startAt.toISOString()}`) ?? `programme-${nextId}`,
+              ...(p.imageUrl === undefined ? {} : { imageKey: `key:${p.imageUrl}` }),
+              imageStored: false,
+            }
+          }),
+      ].filter((p) => p.endAt.getTime() > keptAfter(now))
     },
     deleteEnded: (now) => {
       const before = programmes.length
-      programmes = programmes.filter((p) => p.endAt.getTime() > now.getTime())
+      programmes = programmes.filter((p) => p.endAt.getTime() > keptAfter(now))
       return before - programmes.length
     },
+    findProgramme: (id) =>
+      programmes.find((p) => p.id === id && channels.get(p.channelId)?.missingSince === undefined),
+    programmeAfter: ({ channelId, at }) =>
+      programmes
+        .filter((p) => p.channelId === channelId && p.startAt.getTime() >= at.getTime())
+        .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())[0],
     nowAndNext: (at) => {
       const guide = new Map<string, TvNowNext>()
       for (const channel of channels.values()) {
@@ -315,6 +362,85 @@ export const inMemoryTvFavorites = () => {
     remove: ({ profileId, channelId }) => {
       const index = rows.findIndex((r) => r.profileId === profileId && r.channelId === channelId)
       if (index !== -1) rows.splice(index, 1)
+    },
+  }
+  return { repository, rows }
+}
+
+/** Guide channels in memory, like `createSqliteTvGuideChannelRepository`. */
+export const inMemoryTvGuideChannels = () => {
+  const bySource = new Map<string, TvGuideChannel[]>()
+  const repository: TvGuideChannelRepository = {
+    replaceForSource: ({ sourceId, channels }) => {
+      bySource.set(sourceId, [...channels])
+    },
+    list: ({ sourceId, search, offset, limit }) => {
+      const all = (bySource.get(sourceId) ?? []).filter(
+        (channel) =>
+          search === undefined ||
+          searchNameOf([channel.id, ...channel.names].join('\n')).includes(search),
+      )
+      return { items: all.slice(offset, offset + limit), total: all.length }
+    },
+    findMany: ({ sourceId, ids }) => {
+      const wanted = new Set(ids)
+      return new Map(
+        (bySource.get(sourceId) ?? [])
+          .filter((channel) => wanted.has(channel.id))
+          .map((channel) => [channel.id.toLowerCase(), channel]),
+      )
+    },
+  }
+  return { repository, bySource }
+}
+
+/**
+ * Programme images in memory, like `createSqliteTvProgrammeImageRepository`: the work is the
+ * in-memory guide's now and next.
+ */
+export const inMemoryTvProgrammeImages = (
+  guide: ReturnType<typeof inMemoryTvGuide>,
+  channels: ReturnType<typeof inMemoryTvChannels>['channels'],
+) => {
+  const rows = new Map<string, { path?: string; fetchedAt?: Date; failedAt?: Date }>()
+  const repository: TvProgrammeImageRepository = {
+    work: ({ at, retryFailedBefore, refetchBefore }) => {
+      const found = new Map<string, TvProgrammeImageWork>()
+      for (const [channelId, entry] of guide.repository.nowAndNext(at)) {
+        for (const programme of [entry.now, entry.next]) {
+          if (programme?.imageKey === undefined || programme.imageUrl === undefined) continue
+          const row = rows.get(programme.imageKey)
+          const due =
+            row === undefined ||
+            (row.failedAt !== undefined && row.failedAt < retryFailedBefore) ||
+            (row.failedAt === undefined &&
+              row.fetchedAt !== undefined &&
+              row.fetchedAt < refetchBefore)
+          const sourceId = channels.get(channelId)?.sourceId
+          if (due && sourceId !== undefined && !found.has(programme.imageKey))
+            found.set(programme.imageKey, {
+              key: programme.imageKey,
+              url: programme.imageUrl,
+              sourceId,
+            })
+        }
+      }
+      return [...found.values()]
+    },
+    record: ({ key, at, path }) => {
+      const row = rows.get(key) ?? {}
+      rows.set(key, path === undefined ? { ...row, failedAt: at } : { path, fetchedAt: at })
+    },
+    pathOf: (key) => rows.get(key)?.path,
+    purgeUnreferenced: () => {
+      const referenced = new Set(guide.programmes().flatMap((p) => p.imageKey ?? []))
+      const paths: string[] = []
+      for (const [key, row] of rows)
+        if (!referenced.has(key)) {
+          rows.delete(key)
+          if (row.path !== undefined) paths.push(row.path)
+        }
+      return paths
     },
   }
   return { repository, rows }
@@ -422,6 +548,8 @@ export const createTvWorld = () => {
   const refreshActivity = { refreshingSourceIds: () => refreshing }
   const logger = silentLogger
   const guide = inMemoryTvGuide(channels.channels)
+  const guideChannels = inMemoryTvGuideChannels()
+  const programmeImages = inMemoryTvProgrammeImages(guide, channels.channels)
   const favorites = inMemoryTvFavorites()
   // Profiles whose Live TV access is off (§29.6).
   const withoutLiveTv = new Set<string>()
@@ -440,6 +568,8 @@ export const createTvWorld = () => {
     enqueued,
     refreshing,
     guide,
+    guideChannels,
+    programmeImages,
     favorites,
     withoutLiveTv,
     setGuideLanguage: (language: string) => {
@@ -482,7 +612,34 @@ export const createTvWorld = () => {
     }),
     setTvGroupEnabled: setTvGroupEnabledFactory({ tvSources, tvChannels, jobQueue, logger }),
     setTvChannelEnabled: setTvChannelEnabledFactory({ tvChannels, jobQueue }),
-    listTvSourceChannels: listTvSourceChannelsFactory({ tvSources, tvChannels }),
+    listTvSourceChannels: listTvSourceChannelsFactory({
+      tvSources,
+      tvChannels,
+      guideChannels: guideChannels.repository,
+    }),
+    listTvGuideChannels: listTvGuideChannelsFactory({
+      tvSources,
+      guideChannels: guideChannels.repository,
+    }),
+    setTvChannelGuideChannel: setTvChannelGuideChannelFactory({ tvChannels, jobQueue }),
+    getTvProgramme: getTvProgrammeFactory({
+      guide: guide.repository,
+      tvChannels,
+      tvAccess,
+      clock,
+    }),
+    fetchTvProgrammeImages: fetchTvProgrammeImagesFactory({
+      tvSources,
+      images: programmeImages.repository,
+      downloader: logos.downloader,
+      files: logos.logoFiles,
+      clock,
+      logger,
+    }),
+    purgeTvProgrammeImages: purgeTvProgrammeImagesFactory({
+      images: programmeImages.repository,
+      files: logos.logoFiles,
+    }),
     fetchTvLogos: fetchTvLogosFactory({
       tvSources,
       tvChannels,
@@ -500,8 +657,10 @@ export const createTvWorld = () => {
       tvSources,
       tvChannels,
       guide: guide.repository,
+      guideChannels: guideChannels.repository,
       provider: provider.provider,
       guideLanguage: () => guideLanguage,
+      jobQueue,
       clock,
       logger,
     }),

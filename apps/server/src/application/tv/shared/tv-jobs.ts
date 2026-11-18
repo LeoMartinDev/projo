@@ -1,5 +1,6 @@
 import type { JobQueue } from '../../../core/jobs/ports.ts'
 import { tvGuideDedupeKey } from '../../../core/tv/guide.ts'
+import { TV_PROGRAMME_IMAGES_DEDUPE_KEY } from '../../../core/tv/programme-image.ts'
 import { tvLogosDedupeKey, tvRefreshDedupeKey } from '../../../core/tv/source.ts'
 
 /** Queues the source's `refresh_tv_source` (one per source, §18); returns the job id. */
@@ -25,5 +26,14 @@ export const queueTvGuide = (jobQueue: JobQueue, sourceId: string): void => {
     type: 'refresh_tv_guide',
     payload: { sourceId },
     dedupeKey: tvGuideDedupeKey(sourceId),
+  })
+}
+
+/** Queues the download of the images of what is on now and next (§29.3), one at a time. */
+export const queueTvProgrammeImages = (jobQueue: JobQueue): void => {
+  jobQueue.enqueue({
+    type: 'fetch_tv_programme_images',
+    payload: {},
+    dedupeKey: TV_PROGRAMME_IMAGES_DEDUPE_KEY,
   })
 }

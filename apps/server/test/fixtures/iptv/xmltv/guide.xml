@@ -18,6 +18,14 @@
   <channel id="absent.tv">
     <display-name>Absent From The Playlist</display-name>
   </channel>
+  <!-- Kids One's tvg-id is `kids.one@SD`: matched without its suffix, not by its name. -->
+  <channel id="kids.one">
+    <display-name>Les enfants</display-name>
+  </channel>
+  <!-- Sport Two has no tvg-id: matched by its normalised name. -->
+  <channel id="sport.two.example">
+    <display-name>SPORT TWO [Geo-blocked] (1080p)</display-name>
+  </channel>
   <programme start="{{at:-120:+0200}}" stop="{{at:-30:+0200}}" channel="news.one">
     <title lang="fr">Matinale</title>
   </programme>
@@ -27,6 +35,8 @@
     <sub-title lang="fr">Édition de la mi-journée</sub-title>
     <desc lang="fr">Les titres du jour &amp; la météo.</desc>
     <category lang="fr">Information</category>
+    <category lang="en">News</category>
+    <icon src="{{base}}/logos/journal.jpg"/>
   </programme>
   <programme start="{{at:30:+0200}}" stop="{{at:90:+0200}}" channel="news.one">
     <title lang="fr">La météo</title>
@@ -35,11 +45,24 @@
   <programme start="{{at:30:+0200}}" stop="{{at:60:+0200}}" channel="news.one">
     <title lang="fr">Doublon</title>
   </programme>
-  <programme start="{{at:1500:+0200}}" stop="{{at:1560:+0200}}" channel="news.one">
+  <programme start="{{at:4400:+0200}}" stop="{{at:4460:+0200}}" channel="news.one">
     <title lang="fr">Trop loin</title>
   </programme>
   <programme start="{{at:-10:-0500}}" stop="{{at:50:-0500}}" channel="news.two">
     <title>Talk show</title>
+    <category lang="en">Talk show</category>
+    <episode-num system="xmltv_ns">2.4.0/1</episode-num>
+    <icon src="ftp://example.test/talk.jpg"/>
+  </programme>
+  <programme start="{{at:-15}}" stop="{{at:45}}" channel="kids.one">
+    <title lang="fr">Dessins animés du matin</title>
+    <category lang="fr">Dessin animé</category>
+    <episode-num system="onscreen">S01E03</episode-num>
+    <icon src="{{base}}/logos/missing-cartoons.png"/>
+  </programme>
+  <programme start="{{at:-5}}" stop="{{at:85}}" channel="sport.two.example">
+    <title lang="en">Grand prix</title>
+    <category lang="en">Motorsport</category>
   </programme>
   <programme start="{{at:-45}}" stop="{{at:15}}" channel="sport.one">
     <title lang="en">Match</title>

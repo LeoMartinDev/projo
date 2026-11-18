@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { TvChannelDto } from '@projo/shared/api/tv'
@@ -8,12 +8,16 @@ import type { TvChannelDto } from '@projo/shared/api/tv'
 import { FavoriteIcon } from '../../shared/ui/media-icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
+import { useLongPress } from '../media/use-long-press.ts'
 import { ChannelLogo } from './ChannelLogo.tsx'
 import { clockTime } from './guide-format.ts'
+import { OnNow, type OpenProgramme } from './OnNow.tsx'
+import { ProgrammeDialog } from './ProgrammeDialog.tsx'
 import {
   channelSections,
   elapsedOf,
   onAirAt,
+  onNowRows,
   tvChannelsQuery,
   tvGuideQuery,
   useFavoriteToggle,
@@ -55,15 +59,22 @@ const ChannelCard = ({
   channel,
   at,
   onFavorite,
+  onInfo,
 }: {
   channel: TvChannelDto
   at: number
   onFavorite: (favorite: boolean) => void
+  onInfo: OpenProgramme
 }) => {
   const { t } = useTranslation()
   const favorite = channel.favorite === true
   const now = onAirAt(channel, at).now
   const label = channel.number === undefined ? channel.name : `${channel.number} ${channel.name}`
+  const programmeId = now?.id
+  // A long press or the context menu opens the detail of its programme on now (§29.6).
+  const longPress = useLongPress(() => {
+    if (programmeId !== undefined) onInfo({ programmeId, channelId: channel.id })
+  })
   return (
     <li className="tv-card">
       <Link
@@ -71,6 +82,7 @@ const ChannelCard = ({
         params={{ channelId: channel.id }}
         className="tv-card__link"
         aria-label={now === undefined ? label : `${label}, ${now.title}`}
+        {...(programmeId === undefined ? {} : longPress)}
       >
         <span className="tv-card__tile">
           <ChannelLogo
@@ -100,7 +112,10 @@ const ChannelCard = ({
   )
 }
 
-/** The TV page (§29.6): favourites, then one section per group, a card per channel. */
+/**
+ * The TV page (§29.6): "On now" rows per programme kind, then the favourites, then one section
+ * per group, a card per channel; a programme's detail in a dialog.
+ */
 export const TvPage = () => {
   const { t } = useTranslation()
   // Read again on opening; the shell's copy (its "TV" entry) stays cached.
@@ -108,15 +123,26 @@ export const TvPage = () => {
   const guide = useQuery(tvGuideQuery)
   const favorite = useFavoriteToggle()
   const at = useNow().getTime()
-  const sections = useMemo(
-    () =>
-      channels.data === undefined ? [] : channelSections(withGuide(channels.data, guide.data)),
+  const [detail, setDetail] = useState<{ programmeId: string; channelId: string }>()
+  const listed = useMemo(
+    () => (channels.data === undefined ? undefined : withGuide(channels.data, guide.data)),
     [channels.data, guide.data],
   )
+  const sections = useMemo(() => (listed === undefined ? [] : channelSections(listed)), [listed])
+  // Recomputed each minute too: a programme that ends moves its channel to its next one's row.
+  const rows = useMemo(() => (listed === undefined ? [] : onNowRows(listed, at)), [listed, at])
   return (
     <div className="page tv-page">
       <h1 className="page__title">{t('nav.tv')}</h1>
       {favorite.isError ? <ErrorAlert error={favorite.error} /> : undefined}
+      {rows.length === 0 ? undefined : <OnNow rows={rows} at={at} onInfo={setDetail} />}
+      {detail === undefined ? undefined : (
+        <ProgrammeDialog
+          programmeId={detail.programmeId}
+          channel={listed?.items.find((channel) => channel.id === detail.channelId)}
+          onClose={() => setDetail(undefined)}
+        />
+      )}
       {channels.isPending ? (
         <ul className="tv-grid" aria-hidden="true">
           {skeletonCards.map((index) => (
@@ -152,6 +178,7 @@ export const TvPage = () => {
                   onFavorite={(value) =>
                     favorite.mutate({ channelId: channel.id, favorite: value })
                   }
+                  onInfo={setDetail}
                 />
               ))}
             </ul>

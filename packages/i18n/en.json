@@ -321,7 +321,25 @@
     "otherChannels": "Other channels",
     "favorites": "Favorites",
     "addFavorite": "Add to favorites",
-    "removeFavorite": "Remove from favorites"
+    "removeFavorite": "Remove from favorites",
+    "onNow": {
+      "movie": "Movies on now",
+      "series": "Series on now",
+      "sport": "Sport on now",
+      "news": "News on now",
+      "documentary": "Documentaries on now",
+      "kids": "Kids on now",
+      "entertainment": "Entertainment on now",
+      "music": "Music on now",
+      "other": "Also on now"
+    },
+    "until": "until {{time}}",
+    "information": "Information · {{title}}",
+    "watch": "Watch",
+    "next": "Next",
+    "episode": "S{{season}} E{{episode}}",
+    "seasonOnly": "Season {{season}}",
+    "episodeOnly": "Episode {{episode}}"
   },
   "category": {
     "empty": "Nothing in this category"
@@ -1009,7 +1027,14 @@
       "refresh": "Refresh now",
       "delete": "Delete",
       "deleteTitle": "Delete {{name}}?",
-      "deleteText": "Its channels, their logos and the favourites pointing at them will be deleted."
+      "deleteText": "Its channels, their logos and the favourites pointing at them will be deleted.",
+      "guideChannel": "Guide channel",
+      "guideChannelOf": "Guide channel · {{name}}",
+      "guideAutomatic": "Automatic",
+      "guideManual": "Manual",
+      "guideNone": "No guide",
+      "guideSearch": "Search the guide's channels",
+      "guideNoMatch": "No guide channel matches"
     },
     "settings": {
       "title": "Settings",
@@ -1278,7 +1303,8 @@
         "image_variants": "Image optimization",
         "refresh_tv_source": "TV source refresh",
         "fetch_tv_logos": "Channel logos",
-        "refresh_tv_guide": "TV guide"
+        "refresh_tv_guide": "TV guide",
+        "fetch_tv_programme_images": "TV programme images"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Due {{date}}",
@@ -1464,6 +1490,17 @@
     "tv_movie": "TV movie",
     "war": "War",
     "western": "Western"
+  },
+  "programmeKinds": {
+    "news": "News",
+    "sport": "Sport",
+    "movie": "Movie",
+    "series": "Series",
+    "kids": "Kids",
+    "documentary": "Documentary",
+    "entertainment": "Entertainment",
+    "music": "Music",
+    "other": "Other"
   },
   "editions": {
     "directors_cut": "Director's Cut",
@@ -1705,6 +1742,7 @@
     "update/already_current": "This version is the one running.",
     "update/in_progress": "An update is already in progress.",
     "tv/guide_unreachable": "The TV guide does not answer.",
-    "tv/guide_invalid": "The TV guide cannot be read."
+    "tv/guide_invalid": "The TV guide cannot be read.",
+    "tv/programme_not_found": "This programme no longer exists."
   }
 }

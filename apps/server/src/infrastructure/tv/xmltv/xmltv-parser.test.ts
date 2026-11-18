@@ -21,7 +21,12 @@ const guide = `<?xml version="1.0" encoding="UTF-8"?>
       du jour &copy;</desc>
     <credits><director>Someone</director></credits>
     <category lang="fr">Info</category>
-    <rating system="CSA"><value>-10</value></rating>
+    <category lang="en">News</category>
+    <icon src="http://img.example.test/journal.jpg?w=1&amp;h=2" width="640"/>
+    <icon src="http://img.example.test/second.jpg"></icon>
+    <episode-num system="onscreen">S02E05</episode-num>
+    <episode-num system="xmltv_ns">1 . 4 . 0/1</episode-num>
+    <rating system="CSA"><value>-10</value><icon src="http://example.test/csa.png"/></rating>
   </programme>
   <programme start="20260610110000 +0200" channel="news.one"><title/></programme>
   <programme start="soon" stop="20260610120000" channel="news.one"><title>Bad start</title></programme>
@@ -63,9 +68,18 @@ describe('XMLTV parser (§29.3)', () => {
       ],
       subtitles: [{ lang: 'fr', text: 'Édition <spéciale> & co' }],
       descriptions: [{ lang: 'fr', text: 'Les titres\n      du jour &copy;' }],
-      categories: [{ lang: 'fr', text: 'Info' }],
+      categories: [
+        { lang: 'fr', text: 'Info' },
+        { lang: 'en', text: 'News' },
+      ],
+      // The programme's own icons only (not a rating's), entities decoded.
+      images: ['http://img.example.test/journal.jpg?w=1&h=2', 'http://img.example.test/second.jpg'],
+      // xmltv_ns numbers win over the on-screen text.
+      episode: { season: 2, episode: 5 },
     })
     expect(emptyTitle?.titles).toEqual([{ text: '' }])
+    expect(emptyTitle?.images).toEqual([])
+    expect(emptyTitle?.episode).toBeUndefined()
     expect(emptyTitle?.stop).toBeUndefined()
     // A stop that does not parse: none (the next programme closes it).
     expect(open).toMatchObject({ titles: [{ text: 'No stop' }] })
@@ -76,6 +90,14 @@ describe('XMLTV parser (§29.3)', () => {
       expect(chunked.channels).toEqual(whole.channels)
       expect(chunked.programmes).toEqual(whole.programmes)
     }
+  })
+
+  test('an on-screen episode alone is kept as text', () => {
+    const { programmes } = parseAll(
+      `<tv><programme channel="c" start="20260610100000"><title>T</title><episode-num system="onscreen">Épisode 12</episode-num><episode-num system="dd_progid">EP1</episode-num></programme></tv>`,
+      3,
+    )
+    expect(programmes[0]?.episode).toEqual({ label: 'Épisode 12' })
   })
 
   test('quoted > in an attribute, single quotes, attributes in any order', () => {

@@ -321,7 +321,25 @@
     "otherChannels": "Autres chaînes",
     "favorites": "Favoris",
     "addFavorite": "Ajouter aux favoris",
-    "removeFavorite": "Retirer des favoris"
+    "removeFavorite": "Retirer des favoris",
+    "onNow": {
+      "movie": "Films en ce moment",
+      "series": "Séries en ce moment",
+      "sport": "Sport en ce moment",
+      "news": "Infos en ce moment",
+      "documentary": "Documentaires en ce moment",
+      "kids": "Jeunesse en ce moment",
+      "entertainment": "Divertissement en ce moment",
+      "music": "Musique en ce moment",
+      "other": "Aussi en ce moment"
+    },
+    "until": "jusqu'à {{time}}",
+    "information": "Informations · {{title}}",
+    "watch": "Regarder",
+    "next": "Ensuite",
+    "episode": "S{{season}} E{{episode}}",
+    "seasonOnly": "Saison {{season}}",
+    "episodeOnly": "Épisode {{episode}}"
   },
   "category": {
     "empty": "Aucun titre dans cette catégorie"
@@ -1009,7 +1027,14 @@
       "refresh": "Actualiser maintenant",
       "delete": "Supprimer",
       "deleteTitle": "Supprimer {{name}} ?",
-      "deleteText": "Ses chaînes, leurs logos et les favoris qui les visent seront supprimés."
+      "deleteText": "Ses chaînes, leurs logos et les favoris qui les visent seront supprimés.",
+      "guideChannel": "Programme du guide",
+      "guideChannelOf": "Programme du guide · {{name}}",
+      "guideAutomatic": "Automatique",
+      "guideManual": "Manuel",
+      "guideNone": "Aucun guide",
+      "guideSearch": "Rechercher une chaîne du guide",
+      "guideNoMatch": "Aucune chaîne du guide ne correspond"
     },
     "settings": {
       "title": "Réglages",
@@ -1278,7 +1303,8 @@
         "image_variants": "Optimisation des images",
         "refresh_tv_source": "Actualisation d’une source TV",
         "fetch_tv_logos": "Logos des chaînes",
-        "refresh_tv_guide": "Guide des programmes TV"
+        "refresh_tv_guide": "Guide des programmes TV",
+        "fetch_tv_programme_images": "Images des programmes TV"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Prévu {{date}}",
@@ -1464,6 +1490,17 @@
     "tv_movie": "Téléfilm",
     "war": "Guerre",
     "western": "Western"
+  },
+  "programmeKinds": {
+    "news": "Information",
+    "sport": "Sport",
+    "movie": "Film",
+    "series": "Série",
+    "kids": "Jeunesse",
+    "documentary": "Documentaire",
+    "entertainment": "Divertissement",
+    "music": "Musique",
+    "other": "Autre"
   },
   "editions": {
     "directors_cut": "Director's cut",
@@ -1705,6 +1742,7 @@
     "update/already_current": "Cette version est déjà celle en service.",
     "update/in_progress": "Une mise à jour est déjà en cours.",
     "tv/guide_unreachable": "Le guide des programmes ne répond pas.",
-    "tv/guide_invalid": "Le guide des programmes est illisible."
+    "tv/guide_invalid": "Le guide des programmes est illisible.",
+    "tv/programme_not_found": "Ce programme n'existe plus."
   }
 }

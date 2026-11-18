@@ -129,8 +129,8 @@ export const createFreeboxProvider = ({
         return err(sourceError(host, { kind: 'invalid', reason: 'no_live_channel' }))
       return ok({ channels: listed })
     },
-    // The box's EPG, hour by hour from the current one: 25 requests, one at a time, within one
-    // deadline for the whole read (§29.3).
+    // The box's EPG, hour by hour from 6 hours ago to 72 hours ahead: 79 requests, one at a
+    // time, within one deadline for the whole read (§29.3).
     readGuide: async ({ settings, sink, signal }) => {
       const host = hostOf(settings.address)
       const deadline = AbortSignal.timeout(guideTimeoutMs)
@@ -143,7 +143,8 @@ export const createFreeboxProvider = ({
         if (!answer.ok) return err(guideError(host, answer.failure))
         if (!isGuideResult(answer.value))
           return err(guideError(host, { kind: 'invalid', reason: 'not_freebox' }))
-        for (const programme of freeboxProgrammesOf(answer.value, seen)) sink.programme(programme)
+        for (const programme of freeboxProgrammesOf(answer.value, seen, settings.address))
+          sink.programme(programme)
       }
       return ok({ available: true })
     },

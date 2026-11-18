@@ -37,6 +37,7 @@ const targetKinds: {
   refresh_tv_source: [['tv_source', 'sourceId']],
   fetch_tv_logos: [['tv_source', 'sourceId']],
   refresh_tv_guide: [['tv_source', 'sourceId']],
+  fetch_tv_programme_images: [],
 }
 
 export const jobTargetOf = (type: JobType, payload: unknown): JobTargetRef | undefined => {

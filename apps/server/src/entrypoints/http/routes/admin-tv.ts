@@ -3,22 +3,27 @@ import { Hono } from 'hono'
 import type { JobRef } from '@projo/shared/api/jobs'
 import {
   type AdminTvChannelsPage,
+  type AdminTvGuideChannelsPage,
   type AdminTvSessionsResponse,
   type AdminTvSourcesResponse,
   adminTvChannelsQuerySchema,
+  adminTvGuideChannelsQuerySchema,
   createTvSourceBodySchema,
   setTvEnabledBodySchema,
+  updateTvChannelBodySchema,
   updateTvSourceBodySchema,
 } from '@projo/shared/api/tv'
 
 import type { CreateTvSource } from '../../../application/tv/create-tv-source.ts'
 import type { DeleteTvSource } from '../../../application/tv/delete-tv-source.ts'
 import type { GetTvSource } from '../../../application/tv/get-tv-source.ts'
+import type { ListTvGuideChannels } from '../../../application/tv/list-tv-guide-channels.ts'
 import type { ListTvSourceChannels } from '../../../application/tv/list-tv-source-channels.ts'
 import type { ListLiveSessions } from '../../../application/tv/list-live-sessions.ts'
 import type { ListTvSources } from '../../../application/tv/list-tv-sources.ts'
 import type { RequestTvSourceRefresh } from '../../../application/tv/request-tv-source-refresh.ts'
 import type { SetTvChannelEnabled } from '../../../application/tv/set-tv-channel-enabled.ts'
+import type { SetTvChannelGuideChannel } from '../../../application/tv/set-tv-channel-guide-channel.ts'
 import type { SetTvGroupEnabled } from '../../../application/tv/set-tv-group-enabled.ts'
 import type { StopLiveSessionAsAdmin } from '../../../application/tv/stop-live-session-as-admin.ts'
 import type { UpdateTvSource } from '../../../application/tv/update-tv-source.ts'
@@ -48,6 +53,8 @@ export const adminTvRoutes = ({
   listTvSourceChannels,
   setTvGroupEnabled,
   setTvChannelEnabled,
+  setTvChannelGuideChannel,
+  listTvGuideChannels,
   listLiveSessions,
   stopLiveSessionAsAdmin,
 }: {
@@ -60,6 +67,8 @@ export const adminTvRoutes = ({
   listTvSourceChannels: ListTvSourceChannels
   setTvGroupEnabled: SetTvGroupEnabled
   setTvChannelEnabled: SetTvChannelEnabled
+  setTvChannelGuideChannel: SetTvChannelGuideChannel
+  listTvGuideChannels: ListTvGuideChannels
   listLiveSessions: ListLiveSessions
   stopLiveSessionAsAdmin: StopLiveSessionAsAdmin
 }) =>
@@ -125,16 +134,39 @@ export const adminTvRoutes = ({
         limit,
       })
       if (!result.ok) return respondError(c, result.error)
-      const { items, nextCursor, total } = result.value
+      const { items, nextCursor, total, guideChannels } = result.value
       return c.json(
         {
-          items: items.map(toAdminTvChannelDto),
+          items: items.map((channel) => toAdminTvChannelDto(channel, guideChannels)),
           total,
           ...(nextCursor === undefined ? {} : { nextCursor }),
         } satisfies AdminTvChannelsPage,
         200,
       )
     })
+    .get(
+      '/tv/sources/:id/guide-channels',
+      validate('query', adminTvGuideChannelsQuerySchema),
+      (c) => {
+        const { q, cursor, limit } = c.req.valid('query')
+        const result = listTvGuideChannels({
+          sourceId: c.req.param('id'),
+          ...(q === undefined ? {} : { q }),
+          ...(cursor === undefined ? {} : { cursor }),
+          limit,
+        })
+        if (!result.ok) return respondError(c, result.error)
+        const { items, nextCursor, total } = result.value
+        return c.json(
+          {
+            items: items.map(({ id, names }) => ({ id, names })),
+            total,
+            ...(nextCursor === undefined ? {} : { nextCursor }),
+          } satisfies AdminTvGuideChannelsPage,
+          200,
+        )
+      },
+    )
     .patch('/tv/sources/:id/groups/:groupId', validate('json', setTvEnabledBodySchema), (c) => {
       const result = setTvGroupEnabled({
         sourceId: c.req.param('id'),
@@ -145,11 +177,20 @@ export const adminTvRoutes = ({
         ? c.json(toAdminTvGroupDto(result.value), 200)
         : respondError(c, result.error)
     })
-    .patch('/tv/channels/:id', validate('json', setTvEnabledBodySchema), (c) => {
-      const result = setTvChannelEnabled({
-        id: c.req.param('id'),
-        enabled: c.req.valid('json').enabled,
-      })
+    .patch('/tv/channels/:id', validate('json', updateTvChannelBodySchema), (c) => {
+      const id = c.req.param('id')
+      const { enabled, guideChannel } = c.req.valid('json')
+      // The body holds at least one of them (its schema).
+      const toggled = enabled === undefined ? undefined : setTvChannelEnabled({ id, enabled })
+      if (toggled !== undefined && !toggled.ok) return respondError(c, toggled.error)
+      const result =
+        guideChannel === undefined ? toggled : setTvChannelGuideChannel({ id, guideChannel })
+      if (result === undefined)
+        return respondError(c, {
+          code: 'tv/channel_not_found',
+          message: 'nothing to change',
+          context: { id },
+        })
       return result.ok
         ? c.json(toAdminTvChannelDto(result.value), 200)
         : respondError(c, result.error)

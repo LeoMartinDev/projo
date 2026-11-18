@@ -9,6 +9,8 @@ import type { CreateLiveSession } from '../../../application/tv/create-live-sess
 import type { GetLiveFile } from '../../../application/tv/get-live-file.ts'
 import type { GetLivePlaylist } from '../../../application/tv/get-live-playlist.ts'
 import type { GetTvChannelLogo } from '../../../application/tv/get-tv-channel-logo.ts'
+import type { GetTvProgrammeImage } from '../../../application/tv/get-tv-programme-image.ts'
+import type { GetTvProgramme } from '../../../application/tv/get-tv-programme.ts'
 import type { ListTvChannels } from '../../../application/tv/list-tv-channels.ts'
 import type { ListTvGuide } from '../../../application/tv/list-tv-guide.ts'
 import type { RecordLiveHeartbeat } from '../../../application/tv/record-live-heartbeat.ts'
@@ -20,7 +22,12 @@ import { currentPrincipal, currentProfileId } from '../principal.ts'
 import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
 import type { ImageFileOpener } from './images.ts'
-import { toTvChannelsResponse, toTvGuideResponse, toTvSessionDto } from './tv-dto.ts'
+import {
+  toTvChannelsResponse,
+  toTvGuideResponse,
+  toTvProgrammeDetailDto,
+  toTvSessionDto,
+} from './tv-dto.ts'
 
 const liveAccess = (c: Context<AppEnv>): LiveStreamAccess => ({
   sessionId: c.req.param('sessionId') ?? '',
@@ -44,7 +51,11 @@ export const tvRoutes = ({
   stopLiveSession,
   getLivePlaylist,
   getLiveFile,
+  getTvProgramme,
+  getTvProgrammeImage,
 }: {
+  getTvProgramme: GetTvProgramme
+  getTvProgrammeImage: GetTvProgrammeImage
   getTvChannelLogo: GetTvChannelLogo
   open: ImageFileOpener
   listTvChannels: ListTvChannels
@@ -95,6 +106,39 @@ export const tvRoutes = ({
         return respondError(c, {
           code: 'tv/channel_not_found',
           message: 'tv channel logo not found',
+          context: { id },
+        })
+      return new Response(file, {
+        status: 200,
+        headers: {
+          'Content-Type': found.value.contentType,
+          'Cache-Control': 'private, max-age=3600',
+        },
+      })
+    })
+    .get('/tv/programmes/:id', (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const found = getTvProgramme({ programmeId: c.req.param('id'), profileId: profileId.value })
+      return found.ok
+        ? c.json(toTvProgrammeDetailDto(found.value), 200)
+        : respondError(c, found.error)
+    })
+    .get('/tv/programmes/:id/image', async (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const id = c.req.param('id')
+      const found = getTvProgrammeImage({
+        programmeId: id,
+        profileId: profileId.value,
+        admin: currentPrincipal(c).account.role === 'admin',
+      })
+      if (!found.ok) return respondError(c, found.error)
+      const file = open(found.value.path)
+      if (!(await file.exists()))
+        return respondError(c, {
+          code: 'tv/programme_not_found',
+          message: 'tv programme image not found',
           context: { id },
         })
       return new Response(file, {

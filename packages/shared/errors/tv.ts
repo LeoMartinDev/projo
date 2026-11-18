@@ -12,6 +12,7 @@ export const tvErrorCodes = [
   'tv/segment_not_found',
   'tv/guide_unreachable',
   'tv/guide_invalid',
+  'tv/programme_not_found',
 ] as const
 
 export type TvErrorCode = (typeof tvErrorCodes)[number]

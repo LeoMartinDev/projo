@@ -1,6 +1,7 @@
 import { err, ok, type Result } from '@projo/shared'
 
 import {
+  episodeOfXmltv,
   parseXmltvTime,
   type TvGuideProgramme,
   type TvGuideSink,
@@ -61,9 +62,13 @@ const tagEnd = (text: string, from: number): number => {
   return -1
 }
 
-type Field = 'title' | 'sub-title' | 'desc' | 'category' | 'display-name'
+type Field = 'title' | 'sub-title' | 'desc' | 'category' | 'episode-num' | 'display-name'
 
-const programmeFields = new Set<string>(['title', 'sub-title', 'desc', 'category'])
+const programmeFields = new Set<string>(['title', 'sub-title', 'desc', 'category', 'episode-num'])
+
+/** `<icon>`s and `<episode-num>`s kept per programme: bounds memory on a hostile guide. */
+const MAX_PROGRAMME_ICONS = 5
+const MAX_EPISODE_NUMS = 5
 
 type OpenProgramme = {
   channel: string
@@ -73,12 +78,14 @@ type OpenProgramme = {
   subtitles: TvGuideText[]
   descriptions: TvGuideText[]
   categories: TvGuideText[]
+  images: string[]
+  episodeNums: { system?: string; text: string }[]
 }
 
 /**
  * A streaming XMLTV reader (§29.3): text is pushed chunk by chunk (a tag cut between two chunks
  * waits for its end) and never held whole; only `<channel>` with its display names and
- * `<programme>` with its title, subtitle, description and category reach the sink, every other
+ * `<programme>` with its title, subtitle, description, categories, icons and episode numbers reach the sink, every other
  * element is skipped. Comments, processing instructions and the DOCTYPE are skipped; CDATA is
  * text. A tag left open past 1 MB, or a first element other than `<tv>`, fails the read.
  */
@@ -89,7 +96,8 @@ export const createXmltvParser = (sink: TvGuideSink) => {
   let depth = 0
   let channel: { id: string; names: string[] } | undefined
   let programme: OpenProgramme | undefined
-  let field: { name: Field; lang?: string; depth: number; text: string } | undefined
+  let field:
+    { name: Field; lang?: string; system?: string; depth: number; text: string } | undefined
 
   const appendText = (text: string) => {
     if (field === undefined || field.text.length >= MAX_FIELD_CHARS) return
@@ -111,7 +119,12 @@ export const createXmltvParser = (sink: TvGuideSink) => {
       if (field.name === 'title') programme.titles.push(text)
       else if (field.name === 'sub-title') programme.subtitles.push(text)
       else if (field.name === 'desc') programme.descriptions.push(text)
-      else programme.categories.push(text)
+      else if (field.name === 'category') programme.categories.push(text)
+      else if (programme.episodeNums.length < MAX_EPISODE_NUMS)
+        programme.episodeNums.push({
+          text: field.text,
+          ...(field.system === undefined ? {} : { system: field.system }),
+        })
     }
     field = undefined
   }
@@ -120,6 +133,7 @@ export const createXmltvParser = (sink: TvGuideSink) => {
     const start = parseXmltvTime(open.start)
     if (start === undefined || open.channel === '') return
     const stop = open.stop === undefined ? undefined : parseXmltvTime(open.stop)
+    const episode = episodeOfXmltv(open.episodeNums)
     const read: TvGuideProgramme = {
       channel: open.channel,
       start,
@@ -128,6 +142,8 @@ export const createXmltvParser = (sink: TvGuideSink) => {
       subtitles: open.subtitles,
       descriptions: open.descriptions,
       categories: open.categories,
+      images: open.images,
+      ...(episode === undefined ? {} : { episode }),
     }
     sink.programme(read)
   }
@@ -154,19 +170,28 @@ export const createXmltvParser = (sink: TvGuideSink) => {
         subtitles: [],
         descriptions: [],
         categories: [],
+        images: [],
+        episodeNums: [],
       }
+    } else if (level === 3 && programme !== undefined && name === 'icon') {
+      const src = parseAttributes(attributeSource).get('src')
+      if (src !== undefined && programme.images.length < MAX_PROGRAMME_ICONS)
+        programme.images.push(src.slice(0, 4096))
     } else if (
       level === 3 &&
       field === undefined &&
       ((channel !== undefined && name === 'display-name') ||
         (programme !== undefined && programmeFields.has(name)))
     ) {
-      const lang = parseAttributes(attributeSource).get('lang')
+      const attributes = parseAttributes(attributeSource)
+      const lang = attributes.get('lang')
+      const system = attributes.get('system')
       field = {
         name: name as Field,
         depth: level,
         text: '',
         ...(lang === undefined ? {} : { lang }),
+        ...(system === undefined ? {} : { system }),
       }
     }
     if (selfClosing) endElement(level)

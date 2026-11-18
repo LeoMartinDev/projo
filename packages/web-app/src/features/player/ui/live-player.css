@@ -67,6 +67,36 @@
   color: var(--color-text-secondary);
 }
 
+/* The programme's image left of its lines, a 16:9 thumbnail of the block's height (§29.6). */
+.live-heading__thumb {
+  flex: 0 0 auto;
+  width: 85px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--fill-2);
+  object-fit: cover;
+}
+
+/* The title on now opens the programme's detail. */
+.live-heading__now-open {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.live-heading__now-open:hover {
+  text-decoration: underline;
+}
+
+.live-heading__detail {
+  display: contents;
+}
+
 .live-heading__times {
   flex: 0 0 auto;
   color: var(--color-text-secondary);
@@ -218,5 +248,9 @@
 
   .live-heading__channel {
     gap: 8px;
+  }
+
+  .live-heading__thumb {
+    display: none;
   }
 }
