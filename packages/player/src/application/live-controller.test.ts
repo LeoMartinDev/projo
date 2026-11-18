@@ -12,8 +12,11 @@ const stream = (sessionId: string) => liveSessionDto(sessionId).streamUrl
 
 type Answer = NonNullable<Parameters<typeof createFakeLiveApi>[0]>['answer']
 
-const world = ({ answer }: { answer?: Answer } = {}) => {
-  const fake = createFakeEngine()
+// The wall clock of the tests' live streams: their program dates are on it.
+const t0 = Date.parse('2026-11-18T20:00:00.000Z')
+
+const world = ({ answer, liveSeek = false }: { answer?: Answer; liveSeek?: boolean } = {}) => {
+  const fake = createFakeEngine({ capabilities: { liveSeek } })
   const server = createFakeLiveApi(answer === undefined ? {} : { answer })
   const clock = createManualTimers()
   const ends = createSessionEnds({
@@ -31,6 +34,7 @@ const world = ({ answer }: { answer?: Answer } = {}) => {
     api: server.api,
     ends,
     timers: clock.timers,
+    clock: { now: () => t0 + clock.now() },
     storage: { get: (key) => stored.get(key), set: (key, value) => void stored.set(key, value) },
     page: {
       onHide: (listener) => {
@@ -186,6 +190,197 @@ describe('live controller: pause and the live edge (§29.5)', () => {
     w.fake.commands.splice(0)
     w.fake.loaded(0)
     expect(w.fake.commands).toEqual([])
+  })
+})
+
+/**
+ * The server's replay window at the test's wall clock `nowMs`: 2 s segments since `sinceMs`
+ * (at most `windowS` of them), the newest ending now; a restart's gap when asked.
+ */
+const windowPlaylist = ({
+  nowMs,
+  sinceMs = t0 - 600_000,
+  windowS = 1800,
+  gap,
+}: {
+  nowMs: number
+  sinceMs?: number
+  windowS?: number
+  gap?: { fromMs: number; toMs: number }
+}) => {
+  const count = Math.floor((nowMs - Math.max(sinceMs, nowMs - windowS * 1000)) / 2000)
+  const first = Math.floor((nowMs - sinceMs) / 2000) - count
+  const lines = [
+    '#EXTM3U',
+    '#EXT-X-VERSION:7',
+    '#EXT-X-TARGETDURATION:4',
+    `#EXT-X-MEDIA-SEQUENCE:${first}`,
+    '#EXT-X-START:TIME-OFFSET=-6',
+  ]
+  let previous: number | undefined
+  for (let i = 0; i < count; i += 1) {
+    const sequence = first + i
+    const startMs = sinceMs + sequence * 2000
+    if (gap !== undefined && startMs >= gap.fromMs && startMs < gap.toMs) continue
+    if (previous === undefined || startMs !== previous + 2000)
+      lines.push(
+        ...(previous === undefined ? [] : ['#EXT-X-DISCONTINUITY']),
+        `#EXT-X-MAP:URI="init-${sequence}.mp4"`,
+        `#EXT-X-PROGRAM-DATE-TIME:${new Date(startMs).toISOString()}`,
+      )
+    lines.push('#EXTINF:2.000,', `seg-1-${String(sequence).padStart(5, '0')}.m4s`)
+    previous = startMs
+  }
+  return `${lines.join('\n')}\n`
+}
+
+/** A world whose server has timeshift: a window read live from the wall clock. */
+const timeshiftWorld = (options: { windowS?: number } = {}) => {
+  const w = world({
+    liveSeek: true,
+    answer: (_channelId, index) => ({
+      ...liveSessionDto(`l${index + 1}`),
+      windowS: options.windowS ?? 1800,
+    }),
+  })
+  w.server.playlists(() =>
+    windowPlaylist({ nowMs: t0 + w.clock.now(), windowS: options.windowS ?? 1800 }),
+  )
+  return w
+}
+
+describe('live controller: timeshift (§29.5)', () => {
+  test('starts at the live point the window names; the bar follows the stream', async () => {
+    const w = timeshiftWorld()
+    await w.started()
+    // The window read first: the newest segment ends at t0, the live point is 6 s before.
+    expect(w.fake.commands).toContain(`live ${stream('l1')} from edge@297`)
+    expect(w.controller.timeline()).toMatchObject({
+      startMs: t0 - 600_000,
+      edgeMs: t0,
+      positionMs: t0 - 6_000,
+      delayMs: 0,
+      atLive: true,
+      gaps: [],
+    })
+    // Read again every 5 s, also between two reads the edge moves with the clock.
+    await w.advance(3_000)
+    w.fake.advance(3)
+    expect(w.controller.timeline()).toMatchObject({ edgeMs: t0 + 3_000, positionMs: t0 - 3_000 })
+    const reads = w.server.playlistReads.length
+    await w.advance(5_000)
+    expect(w.server.playlistReads.length).toBe(reads + 1)
+  })
+
+  test('a pause keeps the position; play goes on from there, never reloading', async () => {
+    const w = timeshiftWorld()
+    await w.started()
+    w.fake.advance(4)
+    w.controller.togglePlay()
+    const paused = w.controller.timeline()?.positionMs
+    expect(paused).toBe(t0 - 2_000)
+    await w.advance(120_000)
+    // Paused for two minutes: the position stays, the delay grows.
+    expect(w.controller.timeline()).toMatchObject({
+      positionMs: t0 - 2_000,
+      delayMs: 116_000,
+      atLive: false,
+    })
+    expect(w.server.pausedBeats.at(-1)).toBe(true)
+    w.fake.commands.splice(0)
+    w.controller.togglePlay()
+    expect(w.fake.commands).toEqual(['play'])
+    w.fake.advance(10)
+    expect(w.controller.timeline()?.positionMs).toBe(t0 + 8_000)
+    expect(w.server.created).toHaveLength(1)
+  })
+
+  test('±10 s and a point of the bar, clamped to the window; back to live', async () => {
+    const w = timeshiftWorld()
+    await w.started()
+    w.fake.commands.splice(0)
+    w.controller.seekBy(-10_000)
+    // 16 s before the edge: in the segment of sequence 292 (starting 16 s before t0).
+    expect(w.fake.commands).toEqual([`seek live 292@${t0 - 16_000}`])
+    expect(w.controller.timeline()).toMatchObject({ positionMs: t0 - 16_000, delayMs: 10_000 })
+    // Forward past the live point: the live point.
+    w.controller.seekBy(30_000)
+    expect(w.fake.commands.at(-1)).toBe('seek live edge@297')
+    // Before the window: its start plus one target duration.
+    w.controller.seekTo(t0 - 3_600_000)
+    expect(w.controller.timeline()?.positionMs).toBe(t0 - 600_000 + 4_000)
+    w.controller.goLive()
+    expect(w.fake.commands.at(-1)).toBe('seek live edge@297')
+    expect(w.controller.timeline()).toMatchObject({ atLive: true })
+  })
+
+  test('a point in a restart gap goes to the first segment after it', async () => {
+    const w = world({ liveSeek: true })
+    const gap = { fromMs: t0 - 100_000, toMs: t0 - 80_000 }
+    w.server.playlists(() => windowPlaylist({ nowMs: t0 + w.clock.now(), gap }))
+    await w.started()
+    expect(w.controller.timeline()?.gaps).toEqual([gap])
+    w.controller.seekTo(t0 - 90_000)
+    expect(w.controller.timeline()?.positionMs).toBe(t0 - 80_000)
+  })
+
+  test("a pause whose point left the window resumes at the window's start, with a notice", async () => {
+    const w = timeshiftWorld({ windowS: 60 })
+    await w.started()
+    w.controller.seekBy(-40_000)
+    w.controller.togglePlay()
+    // 30 s later the paused point (46 s behind the edge) is out of the 60 s window.
+    await w.advance(30_000)
+    w.fake.commands.splice(0)
+    w.controller.togglePlay()
+    // Start (t0 + 30 s - 60 s) plus 12 s (three target durations): t0 - 18 s.
+    expect(w.fake.commands).toEqual(['play', `seek live 291@${t0 - 18_000}`])
+    expect(w.controller.get().notice).toBe('resumedOldest')
+    expect(w.controller.timeline()?.positionMs).toBe(t0 - 18_000)
+    await w.advance(4_000)
+    expect(w.controller.get().notice).toBeUndefined()
+  })
+
+  test('a pause as long as the window releases the session; play starts a new one at live', async () => {
+    const w = timeshiftWorld({ windowS: 60 })
+    await w.started()
+    w.controller.togglePlay()
+    await w.advance(59_000)
+    expect(w.server.log).not.toContain('end l1')
+    await w.advance(1_000)
+    expect(w.server.log).toContain('end l1')
+    // Still shown as paused: the controls act, no spinner.
+    expect(w.controller.get()).toMatchObject({ released: true, session: undefined })
+    expect(w.controller.view()).toMatchObject({ loading: false, blocked: false, playing: true })
+    expect(w.controller.timeline()).toBeUndefined()
+    w.server.log.splice(0)
+    w.controller.togglePlay()
+    await w.settle()
+    expect(w.server.log).toEqual(['create c1'])
+    expect(w.fake.commands.at(-1)).toBe(`live ${stream('l2')} from edge@327`)
+    expect(w.controller.get()).toMatchObject({ released: false, notice: 'resumedLive' })
+  })
+
+  test('playing again before the window is over keeps the session', async () => {
+    const w = timeshiftWorld({ windowS: 60 })
+    await w.started()
+    w.controller.togglePlay()
+    await w.advance(50_000)
+    w.controller.togglePlay()
+    w.controller.togglePlay()
+    await w.advance(50_000)
+    expect(w.server.log).not.toContain('end l1')
+  })
+
+  test('an older server without program dates: no bar, a play after a pause reloads at live', async () => {
+    const w = world({ liveSeek: true })
+    await w.started()
+    expect(w.fake.commands).toContain(`live ${stream('l1')}`)
+    expect(w.controller.timeline()).toBeUndefined()
+    w.controller.togglePlay()
+    w.fake.commands.splice(0)
+    w.controller.togglePlay()
+    expect(w.fake.commands).toEqual(['play', `unload ${stream('l1')}`, `live ${stream('l1')}`])
   })
 })
 

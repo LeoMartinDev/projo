@@ -12,6 +12,8 @@ export type LiveSession = {
   streamSecretHash: string
   startedAt: Date
   lastHeartbeatAt: Date
+  /** Its viewer paused since (its heartbeats say so, §29.4); absent while it plays. */
+  pausedSince?: Date
 }
 
 export const liveSessionTimings = {
@@ -25,7 +27,8 @@ export const isLiveSessionExpired = (session: LiveSession, now: Date): boolean =
 export type LiveSessionRepository = {
   insert: (session: LiveSession) => void
   findById: (id: string) => LiveSession | undefined
-  heartbeat: (input: { id: string; at: Date }) => void
+  /** `paused`: sets `pausedSince` (kept while paused), else clears it. */
+  heartbeat: (input: { id: string; at: Date; paused?: boolean }) => void
   /** A session whose channel had to be probed first moves to the rendition its probe chose. */
   setRendition: (input: { id: string; rendition: TvRendition }) => void
   remove: (id: string) => void
@@ -43,6 +46,7 @@ export type ActiveLiveSessionView = {
   device?: string
   startedAt: Date
   lastHeartbeatAt: Date
+  pausedSince?: Date
 }
 
 /** Names of who watches what, read for the admin's list. */

@@ -985,6 +985,8 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       transcodeCacheMaxGb: 10,
       trickplayEnabled: true,
       hwAccel: 'off',
+      liveWindowMinutes: 30,
+      liveCacheMaxGb: 20,
     })
     expect(empty.server).toMatchObject({ name: 'projo', trustProxy: false })
     await world.setKey()
@@ -1007,6 +1009,7 @@ describe('without a TMDB key, then with one (§9.1)', () => {
           audioDownmix: 'keep',
           trickplayEnabled: false,
           hwAccel: 'vaapi',
+          liveWindowMinutes: 45,
         },
         server: { name: '  Maison  ' },
       },
@@ -1020,6 +1023,8 @@ describe('without a TMDB key, then with one (§9.1)', () => {
       transcodeCacheMaxGb: 10,
       trickplayEnabled: false,
       hwAccel: 'vaapi',
+      liveWindowMinutes: 45,
+      liveCacheMaxGb: 20,
     })
     expect(body.server.name).toBe('Maison')
     expect(

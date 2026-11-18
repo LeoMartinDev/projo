@@ -6,7 +6,7 @@ import type {
   TranscodeStatusDto,
 } from '@projo/shared/api/playback'
 import type { UpdateProfileBody } from '@projo/shared/api/profiles'
-import type { CreateTvSessionBody, TvSessionDto } from '@projo/shared/api/tv'
+import type { CreateTvSessionBody, TvHeartbeatBody, TvSessionDto } from '@projo/shared/api/tv'
 
 /**
  * The server calls of the player. Rejections carry the client's API failure
@@ -30,10 +30,17 @@ export type PlaybackApi = {
  */
 export type LiveTvApi = {
   createSession: (channelId: string, body: CreateTvSessionBody) => Promise<TvSessionDto>
-  heartbeat: (sessionId: string) => Promise<unknown>
+  // `paused`: the admin's sessions show a paused viewer (§29.4).
+  heartbeat: (sessionId: string, body: TvHeartbeatBody) => Promise<unknown>
   // A `keepalive` request: it also ends the session when the page goes away.
   endSession: (sessionId: string) => Promise<unknown>
+  // The text of the session's live playlist (its capability URL): the replay window (§29.5).
+  playlist: (streamUrl: string) => Promise<string>
 }
+
+// The wall clock in milliseconds since the epoch (`Date.now()` in a browser): the live
+// stream's program dates are on it (§29.5).
+export type WallClock = { now: () => number }
 
 export type TimerHandle = unknown
 

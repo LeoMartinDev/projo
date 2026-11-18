@@ -1,7 +1,11 @@
 import { type Context, Hono } from 'hono'
 
 import { fromPromise } from '@projo/shared'
-import { createTvSessionBodySchema } from '@projo/shared/api/tv'
+import {
+  createTvSessionBodySchema,
+  tvHeartbeatBodySchema,
+  tvLivePlaylistQuerySchema,
+} from '@projo/shared/api/tv'
 
 import type { LiveStreamAccess } from '../../../application/tv/authorize-live-stream.ts'
 import type { AddTvFavorite } from '../../../application/tv/add-tv-favorite.ts'
@@ -21,6 +25,17 @@ import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
 import type { ImageFileOpener } from './images.ts'
 import { toTvChannelsResponse, toTvGuideResponse, toTvSessionDto } from './tv-dto.ts'
+
+/** A live playlist shorter than this goes as it is: gzip would not pay. */
+const gzipMinChars = 512
+
+const acceptsGzip = (header: string | undefined): boolean =>
+  (header ?? '')
+    .split(',')
+    .map((part) => part.trim().split(';'))
+    .some(
+      ([coding, quality]) => coding?.trim().toLowerCase() === 'gzip' && quality?.trim() !== 'q=0',
+    )
 
 const liveAccess = (c: Context<AppEnv>): LiveStreamAccess => ({
   sessionId: c.req.param('sessionId') ?? '',
@@ -121,10 +136,18 @@ export const tvRoutes = ({
         ? c.json(toTvSessionDto(created.value), 201)
         : respondError(c, created.error)
     })
-    .post('/tv/sessions/:id/heartbeat', (c) => {
+    .post('/tv/sessions/:id/heartbeat', async (c) => {
+      // An optional `{ paused }` (§29.4); anything else, a beacon's body included, is ignored.
+      const raw = await fromPromise(
+        () => c.req.json<unknown>(),
+        () => 'unreadable' as const,
+      )
+      const body = tvHeartbeatBodySchema.safeParse(raw.ok ? raw.value : undefined)
+      const paused = body.success ? body.data.paused : undefined
       const beat = recordLiveHeartbeat({
         sessionId: c.req.param('id'),
         accountId: currentPrincipal(c).account.id,
+        ...(paused === undefined ? {} : { paused }),
       })
       return beat.ok ? noContent(c) : respondError(c, beat.error)
     })
@@ -135,15 +158,30 @@ export const tvRoutes = ({
       })
       return stopped.ok ? noContent(c) : respondError(c, stopped.error)
     })
-    .get('/stream/:sessionId/:secret/live/index.m3u8', (c) => {
-      const playlist = getLivePlaylist(liveAccess(c))
-      return playlist.ok
-        ? c.body(playlist.value, 200, {
-            'Content-Type': 'application/vnd.apple.mpegurl',
-            'Cache-Control': 'no-cache',
-          })
-        : respondError(c, playlist.error)
-    })
+    .get(
+      '/stream/:sessionId/:secret/live/index.m3u8',
+      validate('query', tvLivePlaylistQuerySchema),
+      (c) => {
+        const { from } = c.req.valid('query')
+        const playlist = getLivePlaylist({
+          ...liveAccess(c),
+          ...(from === undefined ? {} : { from }),
+        })
+        if (!playlist.ok) return respondError(c, playlist.error)
+        const headers = {
+          'Content-Type': 'application/vnd.apple.mpegurl',
+          'Cache-Control': 'no-cache',
+          Vary: 'Accept-Encoding',
+        }
+        // A 30-minute window lists about 900 segments (§29.4): gzipped when the player accepts it.
+        return acceptsGzip(c.req.header('Accept-Encoding')) && playlist.value.length >= gzipMinChars
+          ? new Response(Bun.gzipSync(playlist.value), {
+              status: 200,
+              headers: { ...headers, 'Content-Encoding': 'gzip' },
+            })
+          : c.body(playlist.value, 200, headers)
+      },
+    )
     .get('/stream/:sessionId/:secret/live/:file', async (c) => {
       const name = c.req.param('file')
       const file = getLiveFile({ ...liveAccess(c), name })

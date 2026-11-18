@@ -58,16 +58,23 @@ const ToggleSetting = ({
   )
 }
 
+// The numbers of the Playback section, live TV's included (§29.4).
 const limits = {
   maxConcurrentTranscodes: { min: 1, max: 16 },
   transcodeCacheMaxGb: { min: 1, max: 10_000 },
+  liveWindowMinutes: { min: 1, max: 240 },
+  liveCacheMaxGb: { min: 1, max: 10_000 },
 } as const
 
 type Limit = keyof typeof limits
 
+const limitKeys = Object.keys(limits) as Limit[]
+
 const limitLabels = {
   maxConcurrentTranscodes: 'admin.playbackSettings.maxTranscodes',
   transcodeCacheMaxGb: 'admin.playbackSettings.cacheSize',
+  liveWindowMinutes: 'admin.playbackSettings.liveWindow',
+  liveCacheMaxGb: 'admin.playbackSettings.liveCacheSize',
 } as const
 
 const parseLimit = (key: Limit, value: string): number | undefined => {
@@ -82,26 +89,23 @@ const Limits = ({ playback }: { playback: PlaybackSettingsDto }) => {
   const { t } = useTranslation()
   const id = useId()
   const update = useUpdateSettings()
-  const [draft, setDraft] = useState<Record<Limit, string>>({
-    maxConcurrentTranscodes: String(playback.maxConcurrentTranscodes),
-    transcodeCacheMaxGb: String(playback.transcodeCacheMaxGb),
-  })
-  const parsed = {
-    maxConcurrentTranscodes: parseLimit('maxConcurrentTranscodes', draft.maxConcurrentTranscodes),
-    transcodeCacheMaxGb: parseLimit('transcodeCacheMaxGb', draft.transcodeCacheMaxGb),
-  }
-  const valid =
-    parsed.maxConcurrentTranscodes !== undefined && parsed.transcodeCacheMaxGb !== undefined
-  const changes: Partial<PlaybackSettingsDto> = {
-    ...(parsed.maxConcurrentTranscodes === undefined ||
-    parsed.maxConcurrentTranscodes === playback.maxConcurrentTranscodes
-      ? {}
-      : { maxConcurrentTranscodes: parsed.maxConcurrentTranscodes }),
-    ...(parsed.transcodeCacheMaxGb === undefined ||
-    parsed.transcodeCacheMaxGb === playback.transcodeCacheMaxGb
-      ? {}
-      : { transcodeCacheMaxGb: parsed.transcodeCacheMaxGb }),
-  }
+  const [draft, setDraft] = useState<Record<Limit, string>>(
+    () =>
+      Object.fromEntries(limitKeys.map((key) => [key, String(playback[key])])) as Record<
+        Limit,
+        string
+      >,
+  )
+  const parsed = Object.fromEntries(
+    limitKeys.map((key) => [key, parseLimit(key, draft[key])]),
+  ) as Record<Limit, number | undefined>
+  const valid = limitKeys.every((key) => parsed[key] !== undefined)
+  const changes: Partial<PlaybackSettingsDto> = Object.fromEntries(
+    limitKeys.flatMap((key) => {
+      const value = parsed[key]
+      return value === undefined || value === playback[key] ? [] : [[key, value]]
+    }),
+  )
   const dirty = valid && Object.keys(changes).length > 0
 
   const submit = (event: FormEvent) => {
@@ -112,7 +116,7 @@ const Limits = ({ playback }: { playback: PlaybackSettingsDto }) => {
   return (
     <div className="settings-block">
       <form className="seg-thresholds playback-limits" onSubmit={submit} noValidate>
-        {(Object.keys(limits) as Limit[]).map((key) => {
+        {limitKeys.map((key) => {
           const invalid = parsed[key] === undefined
           return (
             <Field key={key} id={`${id}-${key}`} label={t(limitLabels[key])} invalid={invalid}>
@@ -168,7 +172,7 @@ export const PlaybackSettingsPage = () => {
           ) : (
             <>
               <Limits
-                key={`${settings.data.playback.maxConcurrentTranscodes}-${settings.data.playback.transcodeCacheMaxGb}`}
+                key={limitKeys.map((key) => settings.data.playback[key]).join('-')}
                 playback={settings.data.playback}
               />
               <div className="settings-block settings-block--switches">

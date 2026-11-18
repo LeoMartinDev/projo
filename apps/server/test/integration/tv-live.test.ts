@@ -14,6 +14,7 @@ import {
 
 import { transcodeSlotsFactory } from '../../src/application/playback/transcode-slots.ts'
 import { dataPathsFor } from '../../src/core/data-paths.ts'
+import { defaultLiveLimits, type LiveLimits } from '../../src/core/tv/live.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
 import { buildTvModule } from '../../src/entrypoints/modules/tv.ts'
@@ -61,6 +62,8 @@ let slots: ReturnType<typeof transcodeSlotsFactory>
 let logs: ReturnType<typeof createCapturingLogger>
 let liveDir: string
 let cookies: { admin: string; user: string }
+/** The replay window and the cache cap (§29.4): the settings' defaults unless a test says. */
+let limits: LiveLimits = defaultLiveLimits
 
 beforeEach(async () => {
   temp = createTempDir()
@@ -81,7 +84,12 @@ beforeEach(async () => {
       module = buildTvModule(
         { ...built, logger: logs.logger },
         { transcodeSlots: slots, metadataLanguage: () => DEFAULT_METADATA_LANGUAGE },
-        { live: { timings: { retryDelaysMs: [50, 100, 200], idleStopMs: 300 } } },
+        {
+          live: {
+            timings: { retryDelaysMs: [50, 100, 200], idleStopMs: 300, expiredGraceS: 2 },
+            limits: () => limits,
+          },
+        },
       )
       return { tv: module.routes, adminTv: module.adminRoutes }
     },
@@ -92,6 +100,7 @@ beforeEach(async () => {
   cookies = { admin: cookie, user: sessionCookieOf(await t.login('zoe', zoe.password)) }
 })
 afterEach(async () => {
+  limits = defaultLiveLimits
   await module.stop()
   iptv.restoreLive()
   iptv.requests.length = 0
@@ -102,7 +111,7 @@ const request = (method: string, path: string, body?: unknown, as: 'admin' | 'us
   t.as(cookies[as]).send(method, `/api/v1${path}`, body)
 
 /** A request without any credential: what a player sends to a capability URL (§20). */
-const anonymous = (path: string) => t.request(path)
+const anonymous = (path: string, init?: RequestInit) => t.request(path, init)
 
 const runJobs = async (types: readonly JobType[]) => {
   const handlers: Partial<Record<JobType, JobHandler>> = module.jobHandlers
@@ -383,6 +392,73 @@ describe.skipIf(!hasFfmpeg())('live TV relay (§29.4) with real ffmpeg', () => {
     timeout,
   )
 
+  test('timeshift: the window outgrows 30 s with program dates; a segment out of it goes after its grace', async () => {
+    limits = { ...defaultLiveLimits, windowS: 34 }
+    const { channel } = await liveSource()
+    const channelId = channel('Live One')
+    const session = await startSession(channelId)
+    expect(session.windowS).toBe(34)
+    const beat = () => request('POST', `/tv/sessions/${session.sessionId}/heartbeat`)
+    const durationOf = (text: string) =>
+      [...text.matchAll(/#EXTINF:([\d.]+),/gu)].reduce((sum, m) => sum + Number(m[1]), 0)
+
+    let playlist = ''
+    await until(
+      async () => {
+        await beat()
+        playlist = await playlistOf(session)
+        return durationOf(playlist) > 30
+      },
+      50_000,
+      1_000,
+    )
+    expect(playlist).toContain('#EXT-X-START:TIME-OFFSET=-6')
+    expect(playlist).toMatch(/#EXT-X-PROGRAM-DATE-TIME:\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z/u)
+    // The relay's clock is the test app's (stopped): the run's segments follow its first.
+    const programDate = Date.parse(/#EXT-X-PROGRAM-DATE-TIME:(\S+)/u.exec(playlist)?.[1] ?? '')
+    expect(t.clock.now().getTime() - programDate).toBeGreaterThan(0)
+    const [first] = segmentsOf(playlist)
+    expect(first).toBe('seg-1-00000.m4s')
+
+    // From a segment on (mpv, §29.5); anything but a sequence is refused.
+    const from = await (await anonymous(`${session.streamUrl}?from=3`)).text()
+    expect(from).toContain('#EXT-X-MEDIA-SEQUENCE:3')
+    expect(segmentsOf(from)[0]).toBe('seg-1-00003.m4s')
+    expect((await anonymous(`${session.streamUrl}?from=-1`)).status).toBe(400)
+    // Gzipped for a player that accepts it.
+    const zipped = await anonymous(session.streamUrl, {
+      headers: { 'Accept-Encoding': 'gzip, deflate' },
+    })
+    expect(zipped.headers.get('content-encoding')).toBe('gzip')
+    expect(zipped.headers.get('vary')).toContain('Accept-Encoding')
+    expect(
+      new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(await zipped.arrayBuffer()))),
+    ).toStartWith('#EXTM3U')
+
+    // Out of the window, then deleted once its grace (2 s here) is over on the relay's clock
+    // (the test app's, moved by hand).
+    const path = `${liveDir}/${channelId}/${first}`
+    await until(
+      async () => {
+        await beat()
+        return !segmentsOf(await playlistOf(session)).includes(first ?? '')
+      },
+      20_000,
+      500,
+    )
+    expect(existsSync(path)).toBe(true)
+    await until(
+      () => {
+        t.clock.advance(1_000)
+        return !existsSync(path)
+      },
+      15_000,
+      500,
+    )
+    expect((await anonymous(fileUrl(session, first ?? ''))).status).toBe(404)
+    expect(existsSync(`${liveDir}/${channelId}/init-1.mp4`)).toBe(true)
+  }, 90_000)
+
   test(
     'an upstream cut that comes back within the retries: a new run after a discontinuity',
     async () => {
@@ -406,6 +482,17 @@ describe.skipIf(!hasFfmpeg())('live TV relay (§29.4) with real ffmpeg', () => {
       expect(module.liveStreams.snapshot()).toMatchObject([{ failed: false }])
       expect(after.split('\n')).toContain('#EXT-X-DISCONTINUITY')
       expect(after).toContain(target ?? '')
+      // Timeshift (§29.4): the first run's segments stay in the window, dated, and served.
+      const earlier = segmentsOf(after).filter((name) => name.startsWith('seg-1-'))
+      expect(earlier.length).toBeGreaterThan(0)
+      expect(after).toContain('#EXT-X-MAP:URI="init-1.mp4"')
+      const dates = [...after.matchAll(/#EXT-X-PROGRAM-DATE-TIME:(\S+)/gu)].map((m) =>
+        Date.parse(m[1] ?? ''),
+      )
+      expect(dates.length).toBeGreaterThanOrEqual(2)
+      expect(dates).toEqual([...dates].sort((a, b) => a - b))
+      const replayed = await decodeRun(session, 1, earlier)
+      expect(replayed).toEqual({ exitCode: 0, errors: '', codecs: ['h264', 'aac'] })
       const run = Math.max(...[...after.matchAll(/init-(\d+)\.mp4/gu)].map((m) => Number(m[1])))
       expect(run).toBeGreaterThan(1)
       const own = segmentsOf(after).filter((name) => name.startsWith(`seg-${run}-`))

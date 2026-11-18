@@ -14,17 +14,19 @@ import { stopLiveSessionAsAdminFactory } from '../../src/application/tv/stop-liv
 import { stopLiveSessionFactory } from '../../src/application/tv/stop-live-session.ts'
 import { sweepLiveSessionsFactory } from '../../src/application/tv/sweep-live-sessions.ts'
 import type { TvChannel } from '../../src/core/tv/channel.ts'
-import type {
-  LiveCompatSpec,
-  LiveProbeError,
-  LiveProber,
-  LiveRelay,
-  LiveRunExit,
-  LiveRunSpec,
-  LiveSegmentFile,
-  LiveStreamKey,
-  LiveTimers,
-  TvChannelProbe,
+import {
+  defaultLiveLimits,
+  type LiveCompatSpec,
+  type LiveLimits,
+  type LiveProbeError,
+  type LiveProber,
+  type LiveRelay,
+  type LiveRunExit,
+  type LiveRunSpec,
+  type LiveSegmentFile,
+  type LiveStreamKey,
+  type LiveTimers,
+  type TvChannelProbe,
 } from '../../src/core/tv/live.ts'
 import type { LiveSession, LiveSessionRepository } from '../../src/core/tv/live-session.ts'
 import type { TvSource } from '../../src/core/tv/source.ts'
@@ -123,6 +125,10 @@ export const scriptedLiveRelay = () => {
   const compatRuns: ScriptedCompatRun[] = []
   const removedRuns: string[] = []
   const removedStreams: string[] = []
+  /** Segments deleted one by one (out of the replay window), as `a/seg-1-00000.m4s`. */
+  const removedSegments: string[] = []
+  /** The size every segment has (the live cache's cap, §29.4). */
+  const sizes = { segmentBytes: 1000 }
   const journal: string[] = []
   let holding = false
   const runsOf = (channelId: string) => runs.filter((run) => run.spec.channelId === channelId)
@@ -179,6 +185,10 @@ export const scriptedLiveRelay = () => {
       }
     },
     segmentsOf: ({ run, ...key }) => runsOfKey(key).find((r) => r.number === run)?.segments ?? [],
+    sizeOf: () => sizes.segmentBytes,
+    removeSegment: ({ name, ...key }) => {
+      removedSegments.push(`${streamNameOf(key)}/${name}`)
+    },
     removeRun: ({ run, ...key }) => {
       removedRuns.push(`${streamNameOf(key)}:${run}`)
     },
@@ -213,6 +223,8 @@ export const scriptedLiveRelay = () => {
     compatRuns,
     removedRuns,
     removedStreams,
+    removedSegments,
+    sizes,
     journal,
     runsOf,
     compatRunsOf,
@@ -297,9 +309,15 @@ export const inMemoryLiveSessions = () => {
       rows.set(session.id, session)
     },
     findById: (id) => rows.get(id),
-    heartbeat: ({ id, at }) => {
+    heartbeat: ({ id, at, paused }) => {
       const session = rows.get(id)
-      if (session !== undefined) rows.set(id, { ...session, lastHeartbeatAt: at })
+      if (session === undefined) return
+      const { pausedSince, ...playing } = session
+      rows.set(id, {
+        ...playing,
+        lastHeartbeatAt: at,
+        ...(paused === true ? { pausedSince: pausedSince ?? at } : {}),
+      })
     },
     setRendition: ({ id, rendition }) => {
       const session = rows.get(id)
@@ -374,6 +392,8 @@ export const observedTranscodeSlots = ({
  * `addChannel` adds an enabled channel of a source.
  */
 export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: number } = {}) => {
+  /** The replay window and the cache cap (§29.4), settable by the test: the defaults at first. */
+  const limits: LiveLimits = { ...defaultLiveLimits }
   const clock = createManualClock(new Date('2026-06-10T20:00:00.000Z'))
   const { timers, advance, pending } = createManualTimers(clock)
   const relay = scriptedLiveRelay()
@@ -398,6 +418,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     timers,
     clock,
     logger,
+    limits: () => limits,
   })
   const endLiveSession = endLiveSessionFactory({ liveSessions, streams, eventBus, logger })
   const hashSecret = (secret: string) => `hash:${secret}`
@@ -463,6 +484,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     play,
     join,
     pendingTimers: pending,
+    limits,
     relay,
     prober,
     sources,

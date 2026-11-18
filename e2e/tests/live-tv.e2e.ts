@@ -6,7 +6,7 @@ import type {
 import { admin, signIn } from '../support/accounts.ts'
 import { expect, test } from '../support/fixtures.ts'
 import { fr } from '../support/i18n.ts'
-import { currentTime } from '../support/media.ts'
+import { currentTime, paused, wakePlayer } from '../support/media.ts'
 import { iptvBaseUrl } from '../support/paths.ts'
 import { playerVideo, signInMember } from '../support/playback.ts'
 
@@ -22,7 +22,7 @@ test('live TV: the admin adds an M3U source and enables a group, a profile plays
   page,
   adminRequest,
 }) => {
-  test.setTimeout(150_000)
+  test.setTimeout(210_000)
   const video = playerVideo(page)
   try {
     await test.step('Admin → TV: add the M3U source, then enable its "Live" group', async () => {
@@ -85,6 +85,46 @@ test('live TV: the admin adds an M3U source and enables a group, a profile plays
       await expect
         .poll(() => currentTime(video), { intervals: [200], timeout: 20_000 })
         .toBeGreaterThan(start + 1)
+    })
+
+    await test.step('timeshift: a real pause, 10 s back, then back to live (§29.5)', async () => {
+      const window = page.getByRole('slider', { name: fr.player.live.window })
+      // The replay window grows from the stream's start: wait until it holds 30 s.
+      await expect
+        .poll(
+          async () => {
+            await wakePlayer(page)
+            return Number(await window.getAttribute('aria-valuemax'))
+          },
+          { intervals: [1_000], timeout: 45_000 },
+        )
+        .toBeGreaterThanOrEqual(30)
+      await expect(
+        page.getByRole('button', { name: fr.player.live.live, exact: true }),
+      ).toBeVisible()
+
+      // Paused: the picture stays where it is, and play goes on from there, never reloading.
+      await page.keyboard.press('k')
+      await expect.poll(() => paused(video)).toBe(true)
+      const pausedAt = await currentTime(video)
+      await page.waitForTimeout(2_000)
+      expect(await currentTime(video)).toBe(pausedAt)
+      await page.keyboard.press('k')
+      await expect.poll(() => paused(video)).toBe(false)
+      await expect.poll(() => currentTime(video), { timeout: 10_000 }).toBeGreaterThan(pausedAt)
+      expect(await currentTime(video)).toBeLessThan(pausedAt + 2)
+
+      // 10 s back: behind the live point, the badge shows the delay and goes back to live.
+      await page.keyboard.press('ArrowLeft')
+      const behind = page.getByRole('button', { name: new RegExp(`^${fr.player.live.goLive}`) })
+      await wakePlayer(page)
+      await expect(behind).toBeVisible()
+      await expect(behind).toHaveText(/^−0:1\d$/)
+      await behind.click()
+      await wakePlayer(page)
+      await expect(
+        page.getByRole('button', { name: fr.player.live.live, exact: true }),
+      ).toBeVisible()
     })
 
     await test.step('PageDown zaps to the next channel, the old session ends first', async () => {

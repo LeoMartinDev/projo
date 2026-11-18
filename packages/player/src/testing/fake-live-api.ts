@@ -25,6 +25,11 @@ export const createFakeLiveApi = ({
   const held: (() => void)[] = []
   let holding = false
   let beat: (sessionId: string) => PlayerFailure | undefined = () => undefined
+  // The playlist each read answers (none by default: a server without timeshift).
+  let playlist: (streamUrl: string) => string | PlayerFailure = () => ''
+  const playlistReads: string[] = []
+  // Whether each heartbeat said its viewer was paused, in order.
+  const pausedBeats: boolean[] = []
   const api: LiveTvApi = {
     createSession: (channelId, body) => {
       log.push(`create ${channelId}`)
@@ -36,17 +41,29 @@ export const createFakeLiveApi = ({
       if (!holding) return settle()
       return new Promise((resolve, reject) => held.push(() => void settle().then(resolve, reject)))
     },
-    heartbeat: (sessionId) => {
+    heartbeat: (sessionId, body) => {
       log.push(`heartbeat ${sessionId}`)
+      pausedBeats.push(body.paused === true)
       const failure = beat(sessionId)
       return failure === undefined ? Promise.resolve() : Promise.reject(failure)
     },
     endSession: async (sessionId) => void log.push(`end ${sessionId}`),
+    playlist: (streamUrl) => {
+      playlistReads.push(streamUrl)
+      const answer = playlist(streamUrl)
+      return typeof answer === 'string' ? Promise.resolve(answer) : Promise.reject(answer)
+    },
   }
   return {
     api,
     log,
     created,
+    playlistReads,
+    pausedBeats,
+    // Playlist reads are answered by `answer` from now on (a failure rejects them).
+    playlists: (answer: (streamUrl: string) => string | PlayerFailure) => {
+      playlist = answer
+    },
     // Heartbeats are answered by `answer` from now on (a failure rejects them).
     beats: (answer: (sessionId: string) => PlayerFailure | undefined) => {
       beat = answer

@@ -20,7 +20,7 @@ type Deps = {
   tvAccess: TvProfileAccess
   provider: Pick<TvSourceProvider, 'upstreamOf'>
   liveSessions: Pick<LiveSessionRepository, 'insert' | 'findById' | 'remove' | 'setRendition'>
-  streams: Pick<LiveStreams, 'join' | 'ready' | 'leave' | 'probeOf'>
+  streams: Pick<LiveStreams, 'join' | 'ready' | 'leave' | 'probeOf' | 'windowS'>
   streamSecrets: SessionTokens
   clock: Clock
   ids: IdGenerator
@@ -34,7 +34,8 @@ export type CreateLiveSessionError = AppError<
   | 'playback/transcode_limit_reached'
 >
 
-export type CreatedLiveSession = { session: LiveSession; streamSecret: string }
+/** The session, its capability secret, and the replay window it may rewind in (§29.4). */
+export type CreatedLiveSession = { session: LiveSession; streamSecret: string; windowS: number }
 
 /**
  * Opens a live session on a channel (§29.4): joins (or starts) the channel's stream of the
@@ -167,7 +168,7 @@ export const createLiveSessionFactory =
       profileId,
       rendition: session.rendition,
     })
-    return ok({ session, streamSecret })
+    return ok({ session, streamSecret, windowS: streams.windowS() })
   }
 
 export type CreateLiveSession = ReturnType<typeof createLiveSessionFactory>

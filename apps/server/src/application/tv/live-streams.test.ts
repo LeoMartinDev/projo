@@ -60,7 +60,10 @@ describe('live streams (§29.4)', () => {
         '#EXT-X-MEDIA-SEQUENCE:0',
         '#EXT-X-DISCONTINUITY-SEQUENCE:0',
         '#EXT-X-INDEPENDENT-SEGMENTS',
+        '#EXT-X-START:TIME-OFFSET=-6',
         '#EXT-X-MAP:URI="init-1.mp4"',
+        // Its first poll listed it 2.5 s after the start: it ended then.
+        '#EXT-X-PROGRAM-DATE-TIME:2026-06-10T20:00:00.500Z',
         '#EXTINF:2.000,',
         'seg-1-00000.m4s',
         '#EXTINF:2.000,',
@@ -278,18 +281,22 @@ describe('live streams (§29.4)', () => {
     expect(world.streams.snapshot()).toMatchObject([{ viewers: 2, failed: false }])
   })
 
-  test('the window slides over 30 s; a run following another is a discontinuity', async () => {
+  test('a run following another is a discontinuity, its clock after a gap (§29.4)', async () => {
     const world = createLiveWorld()
     await started(world)
     world.relay.write('a', 2)
     await world.advance(500)
     world.relay.current('a').exit()
+    // The upstream is back after the 1 s retry; its first segment is listed 10 s later.
     await world.advance(1_000)
+    await world.advance(10_000)
     world.relay.write('a')
     await world.advance(500)
     const joined = world.streams.playlist(copyOf('a'))
     expect(joined.ok && joined.value.split('\n').slice(6)).toEqual([
+      '#EXT-X-START:TIME-OFFSET=-6',
       '#EXT-X-MAP:URI="init-1.mp4"',
+      '#EXT-X-PROGRAM-DATE-TIME:2026-06-10T19:59:56.500Z',
       '#EXTINF:2.000,',
       'seg-1-00000.m4s',
       '#EXTINF:2.000,',
@@ -300,10 +307,24 @@ describe('live streams (§29.4)', () => {
       'seg-1-00003.m4s',
       '#EXT-X-DISCONTINUITY',
       '#EXT-X-MAP:URI="init-2.mp4"',
+      // Run 1 ended at 20:00:04.5; run 2's segment ended when listed, at 20:00:12.5: a 6 s gap.
+      '#EXT-X-PROGRAM-DATE-TIME:2026-06-10T20:00:10.500Z',
       '#EXTINF:2.000,',
       'seg-2-00000.m4s',
       '',
     ])
+  })
+
+  test('the window keeps the setting, then its segments go after their grace', async () => {
+    const world = createLiveWorld()
+    world.limits.windowS = 30
+    await started(world)
+    world.relay.write('a', 2)
+    await world.advance(500)
+    world.relay.current('a').exit()
+    await world.advance(1_000)
+    world.relay.write('a')
+    await world.advance(500)
 
     world.relay.write('a', 15)
     await world.advance(500)
@@ -312,7 +333,66 @@ describe('live streams (§29.4)', () => {
     expect(slid.ok && slid.value).toContain('#EXT-X-DISCONTINUITY-SEQUENCE:1')
     expect(slid.ok && slid.value).not.toContain('init-1.mp4')
     expect(slid.ok && slid.value.match(/\.m4s/gu)?.length).toBe(15)
+    // Out of the window, still on disk for its duration plus 30 s: a late request finds it.
+    expect(world.relay.removedSegments).toEqual([])
+    expect(world.relay.removedRuns).toEqual([])
+    expect(world.streams.file({ ...copyOf('a'), name: 'seg-1-00000.m4s' }).ok).toBe(true)
+    expect(world.streams.snapshot()).toMatchObject([{ segments: 15, windowS: 30, expired: 5 }])
+
+    await world.play('a', 36_000)
+    expect(world.relay.removedSegments.slice(0, 5)).toEqual([
+      'a/seg-1-00000.m4s',
+      'a/seg-1-00001.m4s',
+      'a/seg-1-00002.m4s',
+      'a/seg-1-00003.m4s',
+      'a/seg-2-00000.m4s',
+    ])
     expect(world.relay.removedRuns).toEqual(['a:1'])
+  })
+
+  test('a 30-minute window by default: a paused viewer rewinds past the old 30 s', async () => {
+    const world = createLiveWorld()
+    await started(world)
+    // The viewer stays (a pause keeps its heartbeats): 10 minutes of stream pile up.
+    await world.play('a', 600_000)
+    expect(world.streams.snapshot()).toMatchObject([
+      { viewers: 1, segments: 302, windowS: 604, expired: 0 },
+    ])
+    expect(world.relay.removedSegments).toEqual([])
+    // Rewound to its first minute: the playlist from there, then growing to the edge.
+    const from = world.streams.playlist({ ...copyOf('a'), from: 30 })
+    expect(from.ok && from.value).toContain('#EXT-X-MEDIA-SEQUENCE:30')
+    expect(from.ok && from.value.match(/\.m4s/gu)?.length).toBe(272)
+
+    // 25 more minutes: the window holds 30 of them, the oldest leave it.
+    await world.play('a', 1_500_000)
+    const [stream] = world.streams.snapshot()
+    expect(stream).toMatchObject({ viewers: 1, segments: 900, windowS: 1800 })
+    expect(world.relay.removedSegments.length).toBeGreaterThan(0)
+  })
+
+  test('the cache cap shortens the oldest window first, never below its newest 30 s', async () => {
+    const world = createLiveWorld()
+    world.relay.sizes.segmentBytes = 1000
+    await started(world, 'a')
+    await world.play('a', 120_000)
+    await started(world, 'b')
+    // 64 of a's segments and 2 of b's: a cap of 40 KB shortens a alone.
+    world.limits.cacheMaxBytes = 40_000
+    world.relay.write('b')
+    await world.advance(500)
+    const byChannel = new Map(world.streams.snapshot().map((s) => [s.channelId, s]))
+    expect(byChannel.get('a')).toMatchObject({ segments: 37 })
+    expect(byChannel.get('b')).toMatchObject({ segments: 3 })
+    expect(world.logs.lines.map((line) => line.message)).toContain(
+      'live cache full: replay windows shortened',
+    )
+
+    // Far too small: each window keeps its newest 30 s.
+    world.limits.cacheMaxBytes = 1
+    await world.play('a', 60_000)
+    const capped = new Map(world.streams.snapshot().map((s) => [s.channelId, s]))
+    expect(capped.get('a')).toMatchObject({ segments: 15, windowS: 30 })
   })
 
   test('the connection limit stops idle streams, longest idle first, else refuses', async () => {

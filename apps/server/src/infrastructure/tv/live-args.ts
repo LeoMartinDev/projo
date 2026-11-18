@@ -84,7 +84,10 @@ const literal = (path: string): string => path.replaceAll('%', '%%')
 
 const head = ['-hide_banner', '-nostdin', '-loglevel', 'error']
 
-/** Live HLS fMP4 of run `run` in `dir` (§29.4): about 2 s segments, the newest 20 kept. */
+/**
+ * Live HLS fMP4 of run `run` in `dir` (§29.4): about 2 s segments, the newest 20 listed; ffmpeg
+ * deletes none, the server keeps the replay window and deletes the rest.
+ */
 const liveHlsOutput = (dir: string, run: number): string[] => [
   '-sn',
   '-dn',
@@ -101,7 +104,7 @@ const liveHlsOutput = (dir: string, run: number): string[] => [
   '-hls_list_size',
   '20',
   '-hls_flags',
-  'delete_segments+independent_segments',
+  'independent_segments',
   '-hls_fmp4_init_filename',
   `init-${run}.mp4`,
   '-hls_segment_filename',

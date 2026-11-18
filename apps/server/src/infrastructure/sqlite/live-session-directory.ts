@@ -61,6 +61,7 @@ export const createSqliteLiveSessionDirectory = ({ db }: { db: Db }): LiveSessio
           ...(device === undefined || device === '' ? {} : { device }),
           startedAt: session.startedAt,
           lastHeartbeatAt: session.lastHeartbeatAt,
+          ...(session.pausedSince === undefined ? {} : { pausedSince: session.pausedSince }),
         },
       ]
     })

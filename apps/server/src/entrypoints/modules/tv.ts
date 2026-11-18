@@ -35,7 +35,7 @@ import { setTvChannelEnabledFactory } from '../../application/tv/set-tv-channel-
 import { setTvGroupEnabledFactory } from '../../application/tv/set-tv-group-enabled.ts'
 import { updateTvSourceFactory } from '../../application/tv/update-tv-source.ts'
 import type { TranscodeSlots } from '../../core/playback/transcode-slots.ts'
-import type { LiveProber, LiveRelay, LiveTimers } from '../../core/tv/live.ts'
+import type { LiveLimits, LiveProber, LiveRelay, LiveTimers } from '../../core/tv/live.ts'
 import { liveSessionTimings } from '../../core/tv/live-session.ts'
 import type { TvLogoDownloader } from '../../core/tv/logo.ts'
 import type { TvSourceProvider } from '../../core/tv/provider.ts'
@@ -80,8 +80,13 @@ export type TvModuleOptions = {
     prober?: LiveProber
     timers?: LiveTimers
     timings?: Parameters<typeof liveStreamsFactory>[0]['timings']
+    /** The replay window and cache cap, in place of the Playback settings (§29.4). */
+    limits?: () => LiveLimits
   }
 }
+
+/** The settings are read at most this often for the streams' polls. */
+const limitsTtlMs = 1_000
 
 /** Live TV (§29): sources, channels, logos, the relay (`copy` and `compat`) and live sessions. */
 export const buildTvModule = (
@@ -157,6 +162,22 @@ export const buildTvModule = (
     })
   // No stream survives a restart (§29.4).
   relay.removeAll()
+  // Every stream polls twice a second: the settings are read once a second at most.
+  let readLimits: { at: number; limits: LiveLimits } | undefined
+  const settingsLimits = (): LiveLimits => {
+    const at = clock.now().getTime()
+    if (readLimits === undefined || at - readLimits.at >= limitsTtlMs || at < readLimits.at) {
+      const settings = playbackSettings.read()
+      readLimits = {
+        at,
+        limits: {
+          windowS: settings.liveWindowMinutes * 60,
+          cacheMaxBytes: settings.liveCacheMaxGb * 1024 ** 3,
+        },
+      }
+    }
+    return readLimits.limits
+  }
   const streams = liveStreamsFactory({
     relay,
     prober: live.prober ?? createLiveProber(),
@@ -165,6 +186,7 @@ export const buildTvModule = (
     timers: live.timers ?? systemTimers,
     clock,
     logger: moduleLogger,
+    limits: live.limits ?? settingsLimits,
     ...(live.timings === undefined ? {} : { timings: live.timings }),
   })
   const liveSessions = createLiveSessionStore()

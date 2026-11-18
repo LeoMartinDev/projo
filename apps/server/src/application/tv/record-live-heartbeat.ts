@@ -35,9 +35,12 @@ export const recordLiveHeartbeatFactory =
   ({
     sessionId,
     accountId,
+    paused,
   }: {
     sessionId: string
     accountId: string
+    /** The viewer is paused (§29.4): the admin's sessions show since when. */
+    paused?: boolean
   }): Result<void, RecordLiveHeartbeatError> => {
     const session = liveSessions.findById(sessionId)
     if (session === undefined || session.accountId !== accountId) {
@@ -70,7 +73,7 @@ export const recordLiveHeartbeatFactory =
         }),
       )
     }
-    liveSessions.heartbeat({ id: sessionId, at: now })
+    liveSessions.heartbeat({ id: sessionId, at: now, ...(paused === undefined ? {} : { paused }) })
     return ok()
   }
 

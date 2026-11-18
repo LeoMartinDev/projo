@@ -60,6 +60,8 @@ const toDto = ({
       transcodeCacheMaxGb: current.transcodeCacheMaxGb,
       trickplayEnabled: current.trickplayEnabled,
       hwAccel: current.hwAccel,
+      liveWindowMinutes: current.liveWindowMinutes,
+      liveCacheMaxGb: current.liveCacheMaxGb,
     },
     metadata: toMetadataDto(metadata.get()),
     segments: toSegmentsDto(segments.get()),

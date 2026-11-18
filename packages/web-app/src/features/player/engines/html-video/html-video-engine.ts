@@ -104,6 +104,8 @@ const capabilitiesOf = (video: HTMLVideoElement): EngineCapabilities => {
     rendersBehindPage: false,
     backdropBlur: true,
     volume: volumeSettable(video),
+    // hls.js and native HLS both seek in a live playlist's window (§29.5).
+    liveSeek: true,
   }
 }
 
@@ -305,6 +307,7 @@ export const createHtmlVideoEngine = (
         withCredentials: serverOrigin === '',
         hls,
         live: true,
+        liveFrom: load.from,
       })
       attached = attachedStream
       return () => {
@@ -312,6 +315,9 @@ export const createHtmlVideoEngine = (
         attachedStream.detach()
       }
     },
+    // Timeshift (§29.5): through the live stream attached (nothing for a title).
+    livePosition: () => attached?.livePosition(),
+    seekLive: (point) => attached?.seekLive(point),
     selectAudio: () => {},
     // Sidecar `<track>`s and native HLS renditions (§10.4): the overlay draws WebVTT tracks itself.
     selectSubtitle: (track) => {
