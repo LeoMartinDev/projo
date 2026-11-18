@@ -42,7 +42,7 @@ import type {
   TvProviderError,
   TvSourceProvider,
 } from '../../src/core/tv/provider.ts'
-import type { TvSource, TvSourceRepository } from '../../src/core/tv/source.ts'
+import { guideUrlOf, type TvSource, type TvSourceRepository } from '../../src/core/tv/source.ts'
 import type { TvFavoriteRepository } from '../../src/core/tv/viewer.ts'
 import { createManualClock } from './clock.ts'
 import { createRecordingJobQueue, createSequentialIds } from './fakes.ts'
@@ -329,11 +329,11 @@ export const scriptedTvProvider = () => {
   const guideReads: string[] = []
   const provider: TvSourceProvider = {
     listChannels: async ({ settings }) => {
-      calls.push(settings.playlistUrl)
+      calls.push(settings.kind === 'm3u' ? settings.playlistUrl : settings.address)
       return answer
     },
     readGuide: async ({ source, sink }) => {
-      guideReads.push(source.settings.guideUrl ?? source.discoveredGuideUrl ?? '')
+      guideReads.push(guideUrlOf(source.settings) ?? source.discoveredGuideUrl ?? '')
       if (!guide.ok) return guide
       if (guide.value === undefined) return ok({ available: false })
       for (const channel of guide.value.channels ?? []) sink.channel(channel)

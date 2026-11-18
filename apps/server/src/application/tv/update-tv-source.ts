@@ -5,6 +5,7 @@ import type { Logger } from '../../core/logger.ts'
 import type { TvChannelRepository } from '../../core/tv/channel.ts'
 import {
   applySettingsPatch,
+  guideUrlOf,
   listingSettingsChanged,
   type TvRefreshActivity,
   type TvSource,
@@ -65,7 +66,7 @@ export const updateTvSourceFactory =
     const refresh = listingSettingsChanged(source.settings, settings)
     if (refresh) queueTvSourceRefresh(jobQueue, source.id)
     // A refresh queues the guide after it; a new XMLTV URL alone queues it now (§29.3).
-    else if (source.settings.guideUrl !== settings.guideUrl) queueTvGuide(jobQueue, source.id)
+    else if (guideUrlOf(source.settings) !== guideUrlOf(settings)) queueTvGuide(jobQueue, source.id)
     logger.info('tv source updated', { tvSourceId: source.id, refresh })
     return ok(
       toTvSourceView({

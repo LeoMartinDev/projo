@@ -75,9 +75,13 @@ const AddSourceDialog = ({ onClose }: { onClose: () => void }) => {
   const id = useId()
   const create = useCreateTvSource()
   const [form, setForm] = useState<SourceForm>(emptySourceForm)
-  const [kind, setKind] = useState<TvSourceKind>('m3u')
   const [submitted, setSubmitted] = useState(false)
   const invalid = invalidSourceFields(form, { creating: true })
+
+  const change = (patch: Partial<SourceForm>) => {
+    setForm((current) => ({ ...current, ...patch }))
+    if (create.isError) create.reset()
+  }
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
@@ -113,20 +117,18 @@ const AddSourceDialog = ({ onClose }: { onClose: () => void }) => {
           idPrefix={id}
           form={form}
           invalid={submitted ? invalid : new Set()}
-          onChange={(patch) => {
-            setForm((current) => ({ ...current, ...patch }))
-            if (create.isError) create.reset()
-          }}
+          onChange={change}
+          reserveKinds
           kindField={
             <SelectField<TvSourceKind>
               id={`${id}-kind`}
               label={t('admin.tv.form.kind')}
-              value={kind}
+              value={form.kind}
               options={tvSourceKinds.map((value) => ({
                 value,
                 label: t(`admin.tv.kind.${value}`),
               }))}
-              onChange={setKind}
+              onChange={(kind) => change({ kind })}
             />
           }
           autoFocus

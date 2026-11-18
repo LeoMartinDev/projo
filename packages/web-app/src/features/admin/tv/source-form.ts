@@ -1,6 +1,9 @@
 import {
   type AdminTvSourceDto,
   type CreateTvSourceBody,
+  DEFAULT_FREEBOX_ADDRESS,
+  freeboxAddressSchema,
+  type TvSourceKind,
   tvHttpUrlSchema,
   tvMaxConnectionsSchema,
   tvUserAgentSchema,
@@ -8,34 +11,44 @@ import {
 } from '@projo/shared/api/tv'
 
 /**
- * The fields of a TV source's form. URLs come back masked (§29.7): on an existing source a URL
- * field starts empty and, left empty, keeps the stored one; `removeGuide` asks to drop the guide.
+ * The fields of a TV source's form, every kind's (§29.6). URLs of an `m3u` source come back
+ * masked (§29.7): on an existing source a URL field starts empty and, left empty, keeps the
+ * stored one; `removeGuide` asks to drop the guide. A Freebox's address holds no secret: it
+ * starts with the stored one (the default on a new source).
  */
 export type SourceForm = {
+  kind: TvSourceKind
   name: string
   playlistUrl: string
   guideUrl: string
   removeGuide: boolean
   userAgent: string
+  address: string
   maxConnections: string
 }
 
-export type SourceField = 'name' | 'playlistUrl' | 'guideUrl' | 'userAgent' | 'maxConnections'
+export type SourceField =
+  'name' | 'playlistUrl' | 'guideUrl' | 'userAgent' | 'address' | 'maxConnections'
 
 export const emptySourceForm: SourceForm = {
+  kind: 'm3u',
   name: '',
   playlistUrl: '',
   guideUrl: '',
   removeGuide: false,
   userAgent: '',
+  address: DEFAULT_FREEBOX_ADDRESS,
   maxConnections: '',
 }
 
-/** The form of a stored source: its name, `User-Agent` and limit; URL fields empty (kept). */
+/** The form of a stored source: its name, kind, unmasked settings and limit; URLs empty (kept). */
 export const sourceFormOf = (source: AdminTvSourceDto): SourceForm => ({
   ...emptySourceForm,
+  kind: source.kind,
   name: source.name,
-  userAgent: source.settings.userAgent ?? '',
+  ...(source.settings.kind === 'm3u'
+    ? { userAgent: source.settings.userAgent ?? '' }
+    : { address: source.settings.address }),
   maxConnections: source.maxConnections === undefined ? '' : String(source.maxConnections),
 })
 
@@ -45,7 +58,7 @@ const parseLimit = (text: string): number | undefined => {
   return tvMaxConnectionsSchema.safeParse(Number(trimmed)).data
 }
 
-/** Fields whose value cannot be sent; `creating`: the playlist URL is required. */
+/** Fields of the form's kind whose value cannot be sent; `creating`: the playlist URL is required. */
 export const invalidSourceFields = (
   form: SourceForm,
   { creating }: { creating: boolean },
@@ -53,15 +66,19 @@ export const invalidSourceFields = (
   const invalid = new Set<SourceField>()
   const name = form.name.trim()
   if (name === '' || name.length > 100) invalid.add('name')
-  if (
-    (creating || form.playlistUrl.trim() !== '') &&
-    !tvHttpUrlSchema.safeParse(form.playlistUrl).success
-  )
-    invalid.add('playlistUrl')
-  if (form.guideUrl.trim() !== '' && !tvHttpUrlSchema.safeParse(form.guideUrl).success)
-    invalid.add('guideUrl')
-  if (form.userAgent.trim() !== '' && !tvUserAgentSchema.safeParse(form.userAgent).success)
-    invalid.add('userAgent')
+  if (form.kind === 'freebox') {
+    if (!freeboxAddressSchema.safeParse(form.address).success) invalid.add('address')
+  } else {
+    if (
+      (creating || form.playlistUrl.trim() !== '') &&
+      !tvHttpUrlSchema.safeParse(form.playlistUrl).success
+    )
+      invalid.add('playlistUrl')
+    if (form.guideUrl.trim() !== '' && !tvHttpUrlSchema.safeParse(form.guideUrl).success)
+      invalid.add('guideUrl')
+    if (form.userAgent.trim() !== '' && !tvUserAgentSchema.safeParse(form.userAgent).success)
+      invalid.add('userAgent')
+  }
   if (form.maxConnections.trim() !== '' && parseLimit(form.maxConnections) === undefined)
     invalid.add('maxConnections')
   return invalid
@@ -72,31 +89,40 @@ const optional = (value: string): string | undefined => {
   return trimmed === '' ? undefined : trimmed
 }
 
-/** `POST /admin/tv/sources` of a valid form. */
-export const toCreateBody = (form: SourceForm): CreateTvSourceBody => {
+const settingsOf = (form: SourceForm): CreateTvSourceBody['settings'] => {
+  if (form.kind === 'freebox') return { kind: 'freebox', address: form.address.trim() }
   const guideUrl = optional(form.guideUrl)
   const userAgent = optional(form.userAgent)
+  return {
+    kind: 'm3u',
+    playlistUrl: form.playlistUrl.trim(),
+    ...(guideUrl === undefined ? {} : { guideUrl }),
+    ...(userAgent === undefined ? {} : { userAgent }),
+  }
+}
+
+/** `POST /admin/tv/sources` of a valid form. */
+export const toCreateBody = (form: SourceForm): CreateTvSourceBody => {
   const maxConnections = parseLimit(form.maxConnections)
   return {
     name: form.name.trim(),
-    settings: {
-      kind: 'm3u',
-      playlistUrl: form.playlistUrl.trim(),
-      ...(guideUrl === undefined ? {} : { guideUrl }),
-      ...(userAgent === undefined ? {} : { userAgent }),
-    },
+    settings: settingsOf(form),
     ...(maxConnections === undefined ? {} : { maxConnections }),
   }
 }
 
-/** `PATCH /admin/tv/sources/:id` of a valid form: only what changed (`{}` when nothing did). */
-export const toPatchBody = (source: AdminTvSourceDto, form: SourceForm): UpdateTvSourceBody => {
-  const name = form.name.trim()
+const settingsPatchOf = (
+  source: AdminTvSourceDto,
+  form: SourceForm,
+): UpdateTvSourceBody['settings'] => {
+  if (source.settings.kind === 'freebox') {
+    const address = form.address.trim()
+    return address === source.settings.address ? undefined : { kind: 'freebox', address }
+  }
   const playlistUrl = optional(form.playlistUrl)
   const guideUrl = optional(form.guideUrl)
   const userAgent = form.userAgent.trim()
   const storedAgent = source.settings.userAgent ?? ''
-  const limit = form.maxConnections.trim() === '' ? undefined : parseLimit(form.maxConnections)
   const settings = {
     ...(playlistUrl === undefined ? {} : { playlistUrl }),
     ...(guideUrl !== undefined
@@ -106,9 +132,17 @@ export const toPatchBody = (source: AdminTvSourceDto, form: SourceForm): UpdateT
         : {}),
     ...(userAgent === storedAgent ? {} : { userAgent }),
   }
+  return Object.keys(settings).length === 0 ? undefined : { kind: 'm3u', ...settings }
+}
+
+/** `PATCH /admin/tv/sources/:id` of a valid form: only what changed (`{}` when nothing did). */
+export const toPatchBody = (source: AdminTvSourceDto, form: SourceForm): UpdateTvSourceBody => {
+  const name = form.name.trim()
+  const settings = settingsPatchOf(source, form)
+  const limit = form.maxConnections.trim() === '' ? undefined : parseLimit(form.maxConnections)
   return {
     ...(name === source.name ? {} : { name }),
-    ...(Object.keys(settings).length === 0 ? {} : { settings: { kind: 'm3u', ...settings } }),
+    ...(settings === undefined ? {} : { settings }),
     ...(limit === source.maxConnections ? {} : { maxConnections: limit ?? ('' as const) }),
   }
 }

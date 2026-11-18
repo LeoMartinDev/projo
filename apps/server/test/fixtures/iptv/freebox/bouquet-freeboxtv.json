@@ -1,0 +1,204 @@
+{
+  "success": true,
+  "result": [
+    {
+      "number": 3,
+      "uuid": "uuid-webtv-302",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302&flavour=sd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/ld/master.m3u8",
+          "quality": "ld"
+        }
+      ],
+      "sub_number": 21
+    },
+    {
+      "number": 925,
+      "uuid": "uuid-webtv-302",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=302&flavour=sd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/302/ld/master.m3u8",
+          "quality": "ld"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 939,
+      "uuid": "uuid-webtv-1220",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=1220&flavour=ld",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/1220/ld/master.m3u8",
+          "quality": "ld"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 940,
+      "uuid": "uuid-webtv-855",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=855&flavour=ld",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/855/sd/master.m3u8",
+          "quality": "sd"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 1029,
+      "uuid": "uuid-webtv-1366",
+      "pub_service": true,
+      "available": false,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=1366",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/1366/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=1366&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/1366/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=1366&flavour=ld",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/1366/ld/master.m3u8",
+          "quality": "ld"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 1,
+      "uuid": "uuid-webtv-612",
+      "pub_service": false,
+      "available": true,
+      "sub_number": 0
+    },
+    {
+      "number": 2,
+      "uuid": "uuid-webtv-201",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=201",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/201/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=201&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/201/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=201&flavour=sd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/201/sd/master.m3u8",
+          "quality": "sd"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 7,
+      "uuid": "uuid-webtv-204",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=204",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/204/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=204&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/204/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=204&flavour=ld",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/204/ld/master.m3u8",
+          "quality": "ld"
+        }
+      ],
+      "sub_number": 0
+    },
+    {
+      "number": 28,
+      "uuid": "uuid-webtv-213",
+      "pub_service": true,
+      "available": true,
+      "streams": [
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=213",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/213/auto/master.m3u8",
+          "quality": "auto"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=213&flavour=hd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/213/hd/master.m3u8",
+          "quality": "hd"
+        },
+        {
+          "rtsp": "rtsp://mafreebox.freebox.fr/fbxtv_pub/stream?namespace=1&service=213&flavour=sd",
+          "type": "iptv",
+          "hls": "http://mafreebox.freebox.fr:8765/service/213/sd/master.m3u8",
+          "quality": "sd"
+        }
+      ],
+      "sub_number": 0
+    }
+  ]
+}

@@ -49,6 +49,22 @@
   flex: 0 0 auto;
 }
 
+/* Every kind's fields over one another, the others hidden: the form keeps its size. */
+.tv-form__kinds {
+  display: grid;
+}
+
+.tv-form__kind {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tv-form__kind[inert] {
+  visibility: hidden;
+}
+
 .tv-dialog {
   flex: 1 1 auto;
   display: flex;

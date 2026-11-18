@@ -118,3 +118,40 @@ describe('toPatchBody', () => {
     ).toEqual({ name: 'Living room', maxConnections: 4 })
   })
 })
+
+describe('a Freebox source', () => {
+  const freebox: AdminTvSourceDto = {
+    ...source,
+    kind: 'freebox',
+    settings: { kind: 'freebox', address: 'http://mafreebox.freebox.fr' },
+  }
+
+  test('starts with the default address, which must be an http origin', () => {
+    const form = { ...emptySourceForm, kind: 'freebox' as const, name: 'Freebox' }
+    expect(form.address).toBe('http://mafreebox.freebox.fr')
+    expect(invalidSourceFields(form, { creating: true }).size).toBe(0)
+    expect(toCreateBody(form)).toEqual({
+      name: 'Freebox',
+      settings: { kind: 'freebox', address: 'http://mafreebox.freebox.fr' },
+    })
+    for (const address of [
+      '',
+      'mafreebox.freebox.fr',
+      'http://mafreebox.freebox.fr/api',
+      'https://mafreebox.freebox.fr',
+    ])
+      expect(invalidSourceFields({ ...form, address }, { creating: true })).toEqual(
+        new Set(['address']),
+      )
+  })
+
+  test('its form holds the stored address; a patch sends it only when changed', () => {
+    const form = sourceFormOf(freebox)
+    expect(form).toMatchObject({ kind: 'freebox', address: 'http://mafreebox.freebox.fr' })
+    expect(isEmptyPatch(toPatchBody(freebox, form))).toBe(true)
+    expect(toPatchBody(freebox, { ...form, address: ' http://192.168.1.254 ' })).toEqual({
+      settings: { kind: 'freebox', address: 'http://192.168.1.254' },
+    })
+    expect(toPatchBody(freebox, { ...form, maxConnections: '' })).toEqual({ maxConnections: '' })
+  })
+})

@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { isoDateTimeSchema, paginationQuerySchema } from './common.ts'
 import { clientCapabilitiesSchema } from './playback.ts'
 
-/** Kinds of TV source (§29.2); slice 1 has `m3u` only, later slices add theirs. */
-export const tvSourceKinds = ['m3u'] as const
+/** Kinds of TV source (§29.2). */
+export const tvSourceKinds = ['m3u', 'freebox'] as const
 export const tvSourceKindSchema = z.enum(tvSourceKinds)
 export type TvSourceKind = z.infer<typeof tvSourceKindSchema>
 
@@ -27,6 +27,20 @@ export const tvUserAgentSchema = z
   .max(512)
   .regex(/^[\x20-\x7e]+$/u, { message: 'must be visible ASCII characters' })
 
+/** A Freebox's own address on its network (§29.2). */
+export const DEFAULT_FREEBOX_ADDRESS = 'http://mafreebox.freebox.fr'
+
+/**
+ * `http`, a host and an optional port; nothing else (a trailing `/` is accepted). Never `https`:
+ * the box's certificate chains to Freebox's own authority, which the server does not trust.
+ */
+export const freeboxAddressSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(512)
+  .regex(/^http:\/\/[^\s/?#@\\]+\/?$/iu, { message: 'must be an http address' })
+
 export const tvMaxConnectionsSchema = z.number().int().min(1).max(1000)
 
 const sourceNameSchema = z.string().trim().min(1).max(100)
@@ -37,7 +51,14 @@ export const m3uSettingsInputSchema = z.object({
   guideUrl: tvHttpUrlSchema.optional(),
   userAgent: tvUserAgentSchema.optional(),
 })
-export const tvSourceSettingsInputSchema = z.discriminatedUnion('kind', [m3uSettingsInputSchema])
+export const freeboxSettingsInputSchema = z.object({
+  kind: z.literal('freebox'),
+  address: freeboxAddressSchema,
+})
+export const tvSourceSettingsInputSchema = z.discriminatedUnion('kind', [
+  m3uSettingsInputSchema,
+  freeboxSettingsInputSchema,
+])
 export type TvSourceSettingsInput = z.infer<typeof tvSourceSettingsInputSchema>
 
 export const createTvSourceBodySchema = z.object({
@@ -54,7 +75,14 @@ export const m3uSettingsPatchSchema = z.object({
   guideUrl: z.union([tvHttpUrlSchema, z.literal('')]).optional(),
   userAgent: z.union([tvUserAgentSchema, z.literal('')]).optional(),
 })
-export const tvSourceSettingsPatchSchema = z.discriminatedUnion('kind', [m3uSettingsPatchSchema])
+export const freeboxSettingsPatchSchema = z.object({
+  kind: z.literal('freebox'),
+  address: freeboxAddressSchema.optional(),
+})
+export const tvSourceSettingsPatchSchema = z.discriminatedUnion('kind', [
+  m3uSettingsPatchSchema,
+  freeboxSettingsPatchSchema,
+])
 export type TvSourceSettingsPatch = z.infer<typeof tvSourceSettingsPatchSchema>
 
 export const updateTvSourceBodySchema = z
@@ -73,7 +101,15 @@ export const m3uSettingsDtoSchema = z.object({
   guideUrl: z.string().optional(),
   userAgent: z.string().optional(),
 })
-export const tvSourceSettingsDtoSchema = z.discriminatedUnion('kind', [m3uSettingsDtoSchema])
+/** A Freebox's address holds no secret: returned as it is. */
+export const freeboxSettingsDtoSchema = z.object({
+  kind: z.literal('freebox'),
+  address: z.string(),
+})
+export const tvSourceSettingsDtoSchema = z.discriminatedUnion('kind', [
+  m3uSettingsDtoSchema,
+  freeboxSettingsDtoSchema,
+])
 export type TvSourceSettingsDto = z.infer<typeof tvSourceSettingsDtoSchema>
 
 export const tvSourceStates = ['pending', 'refreshing', 'ready', 'error'] as const

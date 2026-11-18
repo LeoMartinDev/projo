@@ -29,6 +29,19 @@ describe('applySettingsPatch', () => {
       guideUrl: 'http://p/xmltv.php',
     })
   })
+
+  test('a Freebox keeps or replaces its address; a patch of another kind is refused', () => {
+    const freebox: TvSourceSettings = { kind: 'freebox', address: 'http://mafreebox.freebox.fr' }
+    expect(applySettingsPatch(freebox, { kind: 'freebox' })).toEqual(freebox)
+    expect(
+      applySettingsPatch(freebox, { kind: 'freebox', address: 'http://192.168.1.254' }),
+    ).toEqual({ kind: 'freebox', address: 'http://192.168.1.254' })
+    expect(applySettingsPatch(freebox, { kind: 'm3u' })).toBeUndefined()
+    expect(applySettingsPatch(settings, { kind: 'freebox' })).toBeUndefined()
+    expect(
+      listingSettingsChanged(freebox, { kind: 'freebox', address: 'http://192.168.1.254' }),
+    ).toBe(true)
+  })
 })
 
 describe('listingSettingsChanged', () => {

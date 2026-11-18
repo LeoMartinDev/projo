@@ -56,6 +56,7 @@ import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
 import { createLiveRelay } from '../../infrastructure/tv/live-relay.ts'
 import { createLiveSessionStore } from '../../infrastructure/tv/live-session-store.ts'
 import { createTvLogoDownloader } from '../../infrastructure/tv/logo-downloader.ts'
+import { createFreeboxProvider } from '../../infrastructure/tv/freebox/freebox-provider.ts'
 import { createM3uProvider } from '../../infrastructure/tv/m3u/m3u-provider.ts'
 import { createTvSourceProvider } from '../../infrastructure/tv/providers.ts'
 import { adminTvRoutes } from '../http/routes/admin-tv.ts'
@@ -101,7 +102,12 @@ export const buildTvModule = (
   const tvChannels = createSqliteTvChannelRepository({ db })
   const refreshActivity = createSqliteTvRefreshActivity({ db })
   const logoFiles = createTvLogoFiles({ imagesDir: paths.images.dir })
-  const sourceProvider = provider ?? createTvSourceProvider({ m3u: createM3uProvider() })
+  const sourceProvider =
+    provider ??
+    createTvSourceProvider({
+      m3u: createM3uProvider(),
+      freebox: createFreeboxProvider({ now: () => clock.now() }),
+    })
   const tvAccess = createSqliteTvProfileAccess({ db })
   const favorites = createSqliteTvFavoriteRepository({ db })
   const guide = createSqliteTvGuideRepository({ db, ids })

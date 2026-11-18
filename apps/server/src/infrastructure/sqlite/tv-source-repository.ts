@@ -19,11 +19,9 @@ import { tvSources } from './schema/tv.ts'
 const failureSchema = z.object({ code: z.string(), message: z.string() })
 
 const toSettings = (value: unknown): TvSourceSettings => {
-  const { kind, playlistUrl, guideUrl, userAgent } = parseJsonColumn(
-    tvSourceSettingsInputSchema,
-    value,
-    'tv_sources.settings',
-  )
+  const settings = parseJsonColumn(tvSourceSettingsInputSchema, value, 'tv_sources.settings')
+  if (settings.kind === 'freebox') return { kind: 'freebox', address: settings.address }
+  const { kind, playlistUrl, guideUrl, userAgent } = settings
   return {
     kind,
     playlistUrl,

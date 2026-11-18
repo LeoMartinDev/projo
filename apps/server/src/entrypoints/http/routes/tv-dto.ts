@@ -9,6 +9,8 @@ import type {
   TvProgrammeDto,
   TvSessionDto,
   TvSourceSettingsDto,
+  TvSourceSettingsInput,
+  TvSourceSettingsPatch as TvSourceSettingsPatchInput,
 } from '@projo/shared/api/tv'
 
 import type {
@@ -20,7 +22,7 @@ import type { TvChannelsView } from '../../../application/tv/list-tv-channels.ts
 import type { TvChannel, TvGroupSummary } from '../../../core/tv/channel.ts'
 import type { TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
 import type { ActiveLiveSessionView } from '../../../core/tv/live-session.ts'
-import type { TvSourceSettings } from '../../../core/tv/source.ts'
+import type { TvSourceSettings, TvSourceSettingsPatch } from '../../../core/tv/source.ts'
 
 /**
  * A URL as the admin API shows it (§29.7): `<scheme>://<host>[:port]/…`, never its user info,
@@ -32,12 +34,39 @@ export const maskUrl = (url: string): string => {
   return `${protocol}//${host}/…`
 }
 
-export const toTvSourceSettingsDto = (settings: TvSourceSettings): TvSourceSettingsDto => ({
-  kind: settings.kind,
-  playlistUrl: maskUrl(settings.playlistUrl),
-  ...(settings.guideUrl === undefined ? {} : { guideUrl: maskUrl(settings.guideUrl) }),
-  ...(settings.userAgent === undefined ? {} : { userAgent: settings.userAgent }),
-})
+export const toTvSourceSettingsDto = (settings: TvSourceSettings): TvSourceSettingsDto =>
+  settings.kind === 'freebox'
+    ? { kind: 'freebox', address: settings.address }
+    : {
+        kind: settings.kind,
+        playlistUrl: maskUrl(settings.playlistUrl),
+        ...(settings.guideUrl === undefined ? {} : { guideUrl: maskUrl(settings.guideUrl) }),
+        ...(settings.userAgent === undefined ? {} : { userAgent: settings.userAgent }),
+      }
+
+/** The settings of a `POST /admin/tv/sources` body. */
+export const toTvSourceSettings = (input: TvSourceSettingsInput): TvSourceSettings =>
+  input.kind === 'freebox'
+    ? { kind: 'freebox', address: input.address }
+    : {
+        kind: input.kind,
+        playlistUrl: input.playlistUrl,
+        ...(input.guideUrl === undefined ? {} : { guideUrl: input.guideUrl }),
+        ...(input.userAgent === undefined ? {} : { userAgent: input.userAgent }),
+      }
+
+/** The settings of a `PATCH /admin/tv/sources/:id` body. */
+export const toTvSourceSettingsPatch = (
+  input: TvSourceSettingsPatchInput,
+): TvSourceSettingsPatch =>
+  input.kind === 'freebox'
+    ? { kind: 'freebox', ...(input.address === undefined ? {} : { address: input.address }) }
+    : {
+        kind: input.kind,
+        ...(input.playlistUrl === undefined ? {} : { playlistUrl: input.playlistUrl }),
+        ...(input.guideUrl === undefined ? {} : { guideUrl: input.guideUrl }),
+        ...(input.userAgent === undefined ? {} : { userAgent: input.userAgent }),
+      }
 
 export const toAdminTvSourceDto = (view: TvSourceView): AdminTvSourceDto => ({
   id: view.id,

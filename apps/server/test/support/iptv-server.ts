@@ -22,6 +22,12 @@ import { join, resolve } from 'node:path'
  *   `mp2` (H.264 and MP2 audio), `described` (H.264, an AAC audio description first, then the
  *   main track in MP2);
  *   `failLive()` answers 503 to them and cuts the running ones until `restoreLive()`;
+ * - the Freebox TV API of `fixtures/iptv/freebox/` (answers trimmed from a real box, §29.2) at
+ *   the root, so a `freebox` source's address is the server's URL: `/api_version`,
+ *   `/api/v8/tv/channels`, `/api/v8/tv/bouquets/freeboxtv/channels`,
+ *   `/api/v8/tv/epg/by_time/<t>` (the programmes of `epg.json` overlapping the UTC hour that
+ *   holds `t`, its `{{epoch:<minutes>}}` written as the Unix seconds that many minutes from the
+ *   guide's now) and the logos under `/api/latest/tv/img/` (a PNG);
  * - `override(path, response)`: replaces the answer of one path (a changed playlist, a failure).
  */
 
@@ -231,6 +237,59 @@ export const startIptvServer = ({
     })
   }
 
+  /** `{{epoch:<minutes>}}` as Unix seconds from the guide's now (a number where it is quoted). */
+  const writeEpochs = (text: string): string => {
+    const at = (minutes: string) =>
+      String(Math.floor(guideNow().getTime() / 60_000) * 60 + Number(minutes) * 60)
+    return text
+      .replaceAll(/"\{\{epoch:(-?\d+)\}\}"/gu, (_, minutes: string) => at(minutes))
+      .replaceAll(/\{\{epoch:(-?\d+)\}\}/gu, (_, minutes: string) => at(minutes))
+  }
+
+  const freeboxJson = (relative: string): Response => {
+    const body = text(`freebox/${relative}`)
+    return body === undefined
+      ? new Response('not found', { status: 404 })
+      : new Response(body, { headers: { 'content-type': 'application/json' } })
+  }
+
+  /** The Freebox's `epg/by_time/<t>`: every programme overlapping the hour that holds `t`. */
+  const freeboxGuide = (t: number): Response => {
+    const body = text('freebox/epg.json')
+    if (body === undefined) return new Response('not found', { status: 404 })
+    const hour = Math.floor(t / 3600) * 3600
+    const guide = JSON.parse(writeEpochs(body)) as Record<
+      string,
+      Record<string, { date: number; duration: number }>
+    >
+    const result = Object.fromEntries(
+      Object.entries(guide).flatMap(([uuid, programmes]) => {
+        const inHour = Object.entries(programmes).filter(
+          ([, p]) => p.date < hour + 3600 && p.date + p.duration > hour,
+        )
+        return inHour.length === 0 ? [] : [[uuid, Object.fromEntries(inHour)]]
+      }),
+    )
+    return Response.json({ success: true, result })
+  }
+
+  const freebox = (path: string): Response => {
+    if (path === '/api_version') return freeboxJson('api_version.json')
+    if (path === '/api/v8/tv/channels') return freeboxJson('channels.json')
+    if (path === '/api/v8/tv/bouquets/freeboxtv/channels')
+      return freeboxJson('bouquet-freeboxtv.json')
+    const [, t] = /^\/api\/v8\/tv\/epg\/by_time\/(\d+)$/u.exec(path) ?? []
+    if (t !== undefined) return freeboxGuide(Number(t))
+    if (path.startsWith('/api/latest/tv/img/') && path.endsWith('.png'))
+      return new Response(PNG_BYTES, { headers: { 'content-type': 'image/png' } })
+    return Response.json(
+      { success: false, error_code: 'invalid_request', msg: 'not found' },
+      {
+        status: 404,
+      },
+    )
+  }
+
   const logo = (name: string): Response => {
     if (name.startsWith('missing')) return new Response('not found', { status: 404 })
     if (name.endsWith('.svg'))
@@ -268,6 +327,7 @@ export const startIptvServer = ({
       if (root === 'live') return live(request, name)
       if (root === 'xmltv') return guide(request, url, name)
       if (root === 'status') return new Response(undefined, { status: Number(name) || 500 })
+      if (path === '/api_version' || root === 'api') return freebox(path)
       return new Response('not found', { status: 404 })
     },
   })
@@ -284,14 +344,19 @@ export const startIptvServer = ({
       if (body === undefined) throw new Error(`no iptv fixture m3u/${name}`)
       return body
     },
-    /** Serves `body` (or a status, with a `Location`) at `path` until `restore(path)`. */
-    override: (path: string, response: string | { status: number; location?: string }) => {
+    /**
+     * Serves `body` (or a status, with a `Location` or a body) at `path` until `restore(path)`.
+     */
+    override: (
+      path: string,
+      response: string | { status: number; location?: string; body?: string },
+    ) => {
       overrides.set(path, () =>
         typeof response === 'string'
           ? new Response(response.replaceAll('{{base}}', base), {
               headers: { 'content-type': 'audio/x-mpegurl' },
             })
-          : new Response(undefined, {
+          : new Response(response.body?.replaceAll('{{base}}', base), {
               status: response.status,
               headers: response.location === undefined ? {} : { location: response.location },
             }),

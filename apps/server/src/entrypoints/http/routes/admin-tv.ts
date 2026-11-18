@@ -33,6 +33,8 @@ import {
   toAdminTvSessionDto,
   toAdminTvSourceDetailDto,
   toAdminTvSourceDto,
+  toTvSourceSettings,
+  toTvSourceSettingsPatch,
 } from './tv-dto.ts'
 
 /** Admin → TV (§29.7), mounted under `/api/v1/admin`. */
@@ -72,12 +74,7 @@ export const adminTvRoutes = ({
       const { name, settings, maxConnections } = c.req.valid('json')
       const created = createTvSource({
         name,
-        settings: {
-          kind: settings.kind,
-          playlistUrl: settings.playlistUrl,
-          ...(settings.guideUrl === undefined ? {} : { guideUrl: settings.guideUrl }),
-          ...(settings.userAgent === undefined ? {} : { userAgent: settings.userAgent }),
-        },
+        settings: toTvSourceSettings(settings),
         ...(maxConnections === undefined ? {} : { maxConnections }),
       })
       return c.json(toAdminTvSourceDto(created), 201)
@@ -96,14 +93,7 @@ export const adminTvRoutes = ({
         ...(settings === undefined
           ? {}
           : {
-              settings: {
-                kind: settings.kind,
-                ...(settings.playlistUrl === undefined
-                  ? {}
-                  : { playlistUrl: settings.playlistUrl }),
-                ...(settings.guideUrl === undefined ? {} : { guideUrl: settings.guideUrl }),
-                ...(settings.userAgent === undefined ? {} : { userAgent: settings.userAgent }),
-              },
+              settings: toTvSourceSettingsPatch(settings),
             }),
         ...(maxConnections === undefined
           ? {}

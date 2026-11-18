@@ -1,51 +1,30 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { AdminTvSourceDto } from '@projo/shared/api/tv'
+import { type AdminTvSourceDto, type TvSourceKind, tvSourceKinds } from '@projo/shared/api/tv'
 
 import { Field } from '../../../shared/ui/controls.tsx'
 import { CloseIcon } from '../../../shared/ui/icons.tsx'
 import type { SourceField, SourceForm } from './source-form.ts'
 
-/**
- * The fields of a TV source. With `stored` (the settings of an existing source), each URL field
- * shows the stored masked URL as its placeholder and the connection limit is offered.
- */
-export const SourceFields = ({
-  idPrefix,
-  form,
-  invalid,
-  onChange,
-  stored,
-  kindField,
-  autoFocus = false,
-}: {
+type FieldsProps = {
   idPrefix: string
   form: SourceForm
   invalid: ReadonlySet<SourceField>
   onChange: (patch: Partial<SourceForm>) => void
   stored?: AdminTvSourceDto
-  kindField?: ReactNode
-  autoFocus?: boolean
-}) => {
+}
+
+const fieldId = (idPrefix: string, field: SourceField) => `${idPrefix}-${field}`
+
+/** An `m3u` source's playlist URL, XMLTV URL and `User-Agent` (§29.6). */
+const M3uFields = ({ idPrefix, form, invalid, onChange, stored }: FieldsProps) => {
   const { t } = useTranslation()
-  const id = (field: SourceField) => `${idPrefix}-${field}`
-  const storedGuide = form.removeGuide ? undefined : stored?.settings.guideUrl
+  const id = (field: SourceField) => fieldId(idPrefix, field)
+  const settings = stored?.settings.kind === 'm3u' ? stored.settings : undefined
+  const storedGuide = form.removeGuide ? undefined : settings?.guideUrl
   return (
     <>
-      <Field id={id('name')} label={t('admin.tv.form.name')} invalid={invalid.has('name')}>
-        <input
-          id={id('name')}
-          className="field__input"
-          value={form.name}
-          maxLength={100}
-          autoComplete="off"
-          autoFocus={autoFocus}
-          aria-invalid={invalid.has('name')}
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </Field>
-      {kindField}
       <Field
         id={id('playlistUrl')}
         label={t('admin.tv.form.playlistUrl')}
@@ -60,7 +39,7 @@ export const SourceFields = ({
           maxLength={4096}
           autoComplete="off"
           spellCheck={false}
-          {...(stored === undefined ? {} : { placeholder: stored.settings.playlistUrl })}
+          {...(settings === undefined ? {} : { placeholder: settings.playlistUrl })}
           aria-invalid={invalid.has('playlistUrl')}
           onChange={(event) => onChange({ playlistUrl: event.target.value })}
         />
@@ -117,6 +96,85 @@ export const SourceFields = ({
           onChange={(event) => onChange({ userAgent: event.target.value })}
         />
       </Field>
+    </>
+  )
+}
+
+/** A Freebox's address on its network (§29.6). */
+const FreeboxFields = ({ idPrefix, form, invalid, onChange }: FieldsProps) => {
+  const { t } = useTranslation()
+  const id = fieldId(idPrefix, 'address')
+  return (
+    <Field id={id} label={t('admin.tv.form.address')} invalid={invalid.has('address')}>
+      <input
+        id={id}
+        className="field__input mono"
+        type="url"
+        inputMode="url"
+        value={form.address}
+        maxLength={512}
+        autoComplete="off"
+        spellCheck={false}
+        aria-invalid={invalid.has('address')}
+        onChange={(event) => onChange({ address: event.target.value })}
+      />
+    </Field>
+  )
+}
+
+const KindFields = ({ kind, ...props }: FieldsProps & { kind: TvSourceKind }) =>
+  kind === 'freebox' ? <FreeboxFields {...props} /> : <M3uFields {...props} />
+
+/**
+ * The fields of a TV source: its name, `kindField`, then its kind's settings. With `stored` (an
+ * existing source), each masked URL field shows the stored URL as its placeholder and the
+ * connection limit is offered. `reserveKinds` (the kind can change) lays every kind's fields
+ * over one another, the others hidden, so the form keeps its size when the kind changes.
+ */
+export const SourceFields = ({
+  idPrefix,
+  form,
+  invalid,
+  onChange,
+  stored,
+  kindField,
+  reserveKinds = false,
+  autoFocus = false,
+}: FieldsProps & { kindField?: ReactNode; reserveKinds?: boolean; autoFocus?: boolean }) => {
+  const { t } = useTranslation()
+  const id = (field: SourceField) => fieldId(idPrefix, field)
+  const props = { idPrefix, form, invalid, onChange, ...(stored === undefined ? {} : { stored }) }
+  return (
+    <>
+      <Field id={id('name')} label={t('admin.tv.form.name')} invalid={invalid.has('name')}>
+        <input
+          id={id('name')}
+          className="field__input"
+          value={form.name}
+          maxLength={100}
+          autoComplete="off"
+          autoFocus={autoFocus}
+          aria-invalid={invalid.has('name')}
+          onChange={(event) => onChange({ name: event.target.value })}
+        />
+      </Field>
+      {kindField}
+      {reserveKinds ? (
+        <div className="tv-form__kinds">
+          {tvSourceKinds.map((kind) => (
+            <div
+              key={kind}
+              className="tv-form__kind"
+              inert={kind !== form.kind}
+              aria-hidden={kind !== form.kind}
+            >
+              <KindFields kind={kind} {...props} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <KindFields kind={form.kind} {...props} />
+      )}
       {stored === undefined ? undefined : (
         <Field
           id={id('maxConnections')}

@@ -1,6 +1,13 @@
 import { expect, test } from 'bun:test'
 
-import { tvHttpUrlSchema, tvUserAgentSchema, updateTvSourceBodySchema } from './tv.ts'
+import {
+  createTvSourceBodySchema,
+  DEFAULT_FREEBOX_ADDRESS,
+  freeboxAddressSchema,
+  tvHttpUrlSchema,
+  tvUserAgentSchema,
+  updateTvSourceBodySchema,
+} from './tv.ts'
 
 test('a source URL is an absolute http or https URL', () => {
   for (const url of [
@@ -34,4 +41,37 @@ test('a User-Agent is visible ASCII, a header value a fetch accepts', () => {
     expect(tvUserAgentSchema.safeParse(value).success).toBe(true)
   for (const value of ['Télé/1', 'Box\u0001', 'a\nb', 'Box\u007f', 'TV 📺'])
     expect(tvUserAgentSchema.safeParse(value).success).toBe(false)
+})
+
+test('a Freebox address is an http origin, nothing more', () => {
+  for (const address of [
+    DEFAULT_FREEBOX_ADDRESS,
+    'http://192.168.1.254',
+    'http://mafreebox.freebox.fr:80/',
+    ' http://[fe80::1]:80 ',
+  ])
+    expect(freeboxAddressSchema.safeParse(address).success).toBe(true)
+  for (const address of [
+    '',
+    'mafreebox.freebox.fr',
+    'https://mafreebox.freebox.fr',
+    'ftp://mafreebox.freebox.fr',
+    'http://mafreebox.freebox.fr/api',
+    'http://user:pass@mafreebox.freebox.fr',
+    'http://mafreebox.freebox.fr?x=1',
+    'http://mafreebox.freebox.fr#a',
+  ])
+    expect(freeboxAddressSchema.safeParse(address).success).toBe(false)
+})
+
+test('a Freebox source takes its address, a patch may omit it', () => {
+  expect(
+    createTvSourceBodySchema.parse({
+      name: 'Freebox',
+      settings: { kind: 'freebox', address: 'http://mafreebox.freebox.fr' },
+    }).settings,
+  ).toEqual({ kind: 'freebox', address: 'http://mafreebox.freebox.fr' })
+  expect(updateTvSourceBodySchema.parse({ settings: { kind: 'freebox' } })).toEqual({
+    settings: { kind: 'freebox' },
+  })
 })

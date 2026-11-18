@@ -970,7 +970,8 @@
         "state": "État"
       },
       "kind": {
-        "m3u": "M3U"
+        "m3u": "M3U",
+        "freebox": "Freebox"
       },
       "state": {
         "pending": "En attente",
@@ -985,6 +986,7 @@
         "playlistUrl": "URL de la liste M3U",
         "guideUrl": "URL du guide XMLTV",
         "userAgent": "User-Agent",
+        "address": "Adresse de la Freebox",
         "maxConnections": "Connexions simultanées",
         "noLimit": "Sans limite",
         "removeGuide": "Retirer le guide",

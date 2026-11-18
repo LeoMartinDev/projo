@@ -970,7 +970,8 @@
         "state": "State"
       },
       "kind": {
-        "m3u": "M3U"
+        "m3u": "M3U",
+        "freebox": "Freebox"
       },
       "state": {
         "pending": "Pending",
@@ -985,6 +986,7 @@
         "playlistUrl": "M3U playlist URL",
         "guideUrl": "XMLTV guide URL",
         "userAgent": "User-Agent",
+        "address": "Freebox address",
         "maxConnections": "Simultaneous connections",
         "noLimit": "No limit",
         "removeGuide": "Remove the guide",

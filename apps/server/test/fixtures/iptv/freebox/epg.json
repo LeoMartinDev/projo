@@ -1,0 +1,113 @@
+{
+  "uuid-webtv-201": {
+    "{{epoch:-8}}_37059540": {
+      "id": "pluri_1776874952",
+      "date": "{{epoch:-8}}",
+      "duration": 4200,
+      "title": "Ça commence aujourd'hui",
+      "sub_title": "Syndrome de Diogène : ils vivent emprisonnés de leurs objets",
+      "desc": "Des personnes racontent des maisons saturées et des familles étouffées.",
+      "category": 10,
+      "category_name": "Magazine",
+      "picture": "/api/latest/tv/img/epg/programs/100x77/COL_52831102_AG.jpg",
+      "picture_big": "/api/latest/tv/img/epg/programs/168x130/COL_52831102_AG.jpg"
+    },
+    "{{epoch:62}}_5d0c2a11": {
+      "id": "pluri_1776874953",
+      "date": "{{epoch:62}}",
+      "duration": 3000,
+      "title": "Je t'aime, etc.",
+      "category": 10,
+      "category_name": "Magazine"
+    },
+    "{{epoch:1380}}_0b9e7f42": {
+      "id": "pluri_1776874990",
+      "date": "{{epoch:1380}}",
+      "duration": 1800,
+      "title": "Télématin",
+      "category": 20,
+      "category_name": "Journal"
+    },
+    "{{epoch:1500}}_9a3c11fe": {
+      "id": "pluri_1776874999",
+      "date": "{{epoch:1500}}",
+      "duration": 1800,
+      "title": "Past the window",
+      "category": 20,
+      "category_name": "Journal"
+    }
+  },
+  "uuid-webtv-204": {
+    "{{epoch:-33}}_6ad1f0c4": {
+      "id": "pluri_1776731071",
+      "date": "{{epoch:-33}}",
+      "duration": 3300,
+      "title": "Invitation au voyage",
+      "desc": "Linda Lorin nous emmène à la découverte de notre patrimoine artistique.",
+      "category": 5,
+      "category_name": "Documentaire",
+      "season_number": 9,
+      "episode_number": 52
+    },
+    "{{epoch:22}}_1f4b83d0": {
+      "id": "pluri_1776731072",
+      "date": "{{epoch:22}}",
+      "duration": 2700,
+      "title": "Les grands mythes",
+      "sub_title": "Persée, le fils du ciel",
+      "category": 5,
+      "category_name": "Documentaire"
+    }
+  },
+  "uuid-webtv-213": {
+    "{{epoch:-58}}_3ae1fb32": {
+      "id": "pluri_1776726016",
+      "date": "{{epoch:-58}}",
+      "duration": 3300,
+      "title": "Elementary",
+      "sub_title": "La main invisible",
+      "category": 3,
+      "category_name": "Série/Feuilleton",
+      "season_number": 4,
+      "episode_number": 23
+    },
+    "{{epoch:-3}}_a5c022cd": {
+      "id": "pluri_1776726011",
+      "date": "{{epoch:-3}}",
+      "duration": 2700,
+      "title": "Elementary",
+      "sub_title": "Le sceau impérial",
+      "category": 3,
+      "category_name": "Série/Feuilleton",
+      "season_number": 5,
+      "episode_number": 2
+    },
+    "{{epoch:42}}_f91fb7e3": {
+      "id": "pluri_1776726017",
+      "date": "{{epoch:42}}",
+      "duration": 2700,
+      "title": "Elementary",
+      "sub_title": "Charmeur de serpents",
+      "category": 3,
+      "category_name": "Série/Feuilleton",
+      "season_number": 5,
+      "episode_number": 6
+    }
+  },
+  "uuid-webtv-612": {
+    "{{epoch:-8}}_f8257e1d": {
+      "id": "pluri_1776869117",
+      "date": "{{epoch:-8}}",
+      "duration": 300,
+      "title": "Météo"
+    }
+  },
+  "uuid-webtv-1366": {
+    "{{epoch:-20}}_77aa01b2": {
+      "id": "pluri_1776860001",
+      "date": "{{epoch:-20}}",
+      "duration": 3600,
+      "title": "Not a kept channel"
+    }
+  }
+}

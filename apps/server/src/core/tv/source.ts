@@ -10,19 +10,24 @@ export type M3uSettings = {
   userAgent?: string
 }
 
-/** Settings of a source, one member per kind; stored in clear, masked in every admin answer. */
-export type TvSourceSettings = M3uSettings
+/** Settings of a `freebox` source (§29.2): the box's address on its network, no secret. */
+export type FreeboxSettings = { kind: 'freebox'; address: string }
+
+/** Settings of a source, one member per kind; stored in clear, secrets masked in admin answers. */
+export type TvSourceSettings = M3uSettings | FreeboxSettings
 
 /**
  * Changes to a source's settings: an absent field keeps the stored value, `''` removes an
  * optional one (§29.7). The kind cannot change.
  */
-export type TvSourceSettingsPatch = {
-  kind: 'm3u'
-  playlistUrl?: string
-  guideUrl?: string
-  userAgent?: string
-}
+export type TvSourceSettingsPatch =
+  | {
+      kind: 'm3u'
+      playlistUrl?: string
+      guideUrl?: string
+      userAgent?: string
+    }
+  | { kind: 'freebox'; address?: string }
 
 export type TvSourceFailure = { code: string; message: string }
 
@@ -59,14 +64,21 @@ export const applySettingsPatch = (
   settings: TvSourceSettings,
   patch: TvSourceSettingsPatch,
 ): TvSourceSettings | undefined => {
-  if (patch.kind !== settings.kind) return undefined
-  return {
-    kind: 'm3u',
-    playlistUrl: patch.playlistUrl ?? settings.playlistUrl,
-    ...optional('guideUrl', patch.guideUrl ?? settings.guideUrl),
-    ...optional('userAgent', patch.userAgent ?? settings.userAgent),
-  }
+  if (patch.kind === 'm3u' && settings.kind === 'm3u')
+    return {
+      kind: 'm3u',
+      playlistUrl: patch.playlistUrl ?? settings.playlistUrl,
+      ...optional('guideUrl', patch.guideUrl ?? settings.guideUrl),
+      ...optional('userAgent', patch.userAgent ?? settings.userAgent),
+    }
+  if (patch.kind === 'freebox' && settings.kind === 'freebox')
+    return { kind: 'freebox', address: patch.address ?? settings.address }
+  return undefined
 }
+
+/** The guide location the settings name (an `m3u` source's XMLTV URL), §29.3. */
+export const guideUrlOf = (settings: TvSourceSettings): string | undefined =>
+  settings.kind === 'm3u' ? settings.guideUrl : undefined
 
 /** Whether the change reaches the channel listing (the guide URL does not): a refresh is due. */
 export const listingSettingsChanged = (
@@ -111,3 +123,7 @@ export const sourceIdOfRefreshKey = (key: string): string | undefined =>
 
 /** `dedupe_key` of a source's `fetch_tv_logos` (§18). */
 export const tvLogosDedupeKey = (sourceId: string): string => `tv_logos:${sourceId}`
+
+/** The `User-Agent` the settings name for the source's requests (an `m3u` source's), §29.2. */
+export const userAgentOf = (settings: TvSourceSettings): string | undefined =>
+  settings.kind === 'm3u' ? settings.userAgent : undefined

@@ -337,7 +337,7 @@ describe('live TV sources (§29.2) on SQLite against a test provider', () => {
       state: 'refreshing',
       settings: { userAgent: 'Box/1' },
     })
-    expect((await detail(id)).settings.guideUrl).toBeUndefined()
+    expect((await detail(id)).settings).not.toHaveProperty('guideUrl')
     await runJobs(['refresh_tv_source'])
     expect(iptv.requests.findLast((r) => r.path.startsWith('/m3u/'))?.userAgent).toBe('Box/1')
 

@@ -1,0 +1,86 @@
+{
+  "success": true,
+  "result": {
+    "uuid-webtv-213": {
+      "uuid": "uuid-webtv-213",
+      "name": "Paris Première",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-213.png",
+      "has_service": true,
+      "short_name": "Paris Première",
+      "has_abo": true
+    },
+    "uuid-webtv-201": {
+      "uuid": "uuid-webtv-201",
+      "name": "France 2",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-201.png",
+      "has_service": true,
+      "short_name": "France 2",
+      "has_abo": false
+    },
+    "uuid-webtv-612": {
+      "uuid": "uuid-webtv-612",
+      "name": "TF1",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-612.png",
+      "has_service": true,
+      "short_name": "TF1",
+      "has_abo": false
+    },
+    "uuid-webtv-204": {
+      "uuid": "uuid-webtv-204",
+      "name": "Arte",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-204.png",
+      "has_service": true,
+      "short_name": "Arte",
+      "has_abo": false
+    },
+    "uuid-webtv-855": {
+      "uuid": "uuid-webtv-855",
+      "name": "TV78",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-855.png",
+      "has_service": true,
+      "short_name": "TV78",
+      "has_abo": false
+    },
+    "uuid-webtv-1366": {
+      "uuid": "uuid-webtv-1366",
+      "name": "Echorouk News",
+      "available": false,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-1366.png",
+      "has_service": true,
+      "short_name": "Echorouk News",
+      "has_abo": false
+    },
+    "uuid-webtv-302": {
+      "uuid": "uuid-webtv-302",
+      "name": "France 3 Provence-Alpes-Côte d'Azur",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-302.png",
+      "has_service": true,
+      "short_name": "France 3 Provence-Alpes-Côte d'Azur",
+      "has_abo": false
+    },
+    "uuid-webtv-1220": {
+      "uuid": "uuid-webtv-1220",
+      "name": "Télé Bocal",
+      "available": true,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-1220.png",
+      "has_service": true,
+      "short_name": "Télé Bocal",
+      "has_abo": false
+    },
+    "uuid-webtv-1659": {
+      "uuid": "uuid-webtv-1659",
+      "name": "CANAL+Ligue 1 Uber Eats",
+      "available": false,
+      "logo_url": "/api/latest/tv/img/channels/logos68x60/uuid-webtv-1659.png",
+      "has_service": false,
+      "short_name": "CANAL+Ligue 1 Uber Eats",
+      "has_abo": false
+    }
+  }
+}

@@ -303,3 +303,108 @@ describe('Live TV access (§29.6)', () => {
     expect((await channels()).favorites).toEqual([channel.id])
   })
 })
+
+describe('a Freebox source (§29.2, §29.3) on SQLite against a replayed box', () => {
+  test('lists its channels, gets their logos and reads the guide hour by hour', async () => {
+    const created = await request(
+      'POST',
+      '/admin/tv/sources',
+      { name: 'Freebox', settings: { kind: 'freebox', address: iptv.url } },
+      'admin',
+    )
+    expect(created.status).toBe(201)
+    const { id } = (await created.json()) as { id: string }
+    expect(await runJobs(['refresh_tv_source'])).toEqual(['refresh_tv_source done'])
+
+    const detail = adminTvSourceDetailDtoSchema.parse(
+      await (await request('GET', `/admin/tv/sources/${id}`, undefined, 'admin')).json(),
+    )
+    expect(detail).toMatchObject({
+      kind: 'freebox',
+      settings: { kind: 'freebox', address: iptv.url },
+      state: 'ready',
+      channelCount: 6,
+      enabledChannelCount: 0,
+      groups: [{ name: 'Freebox TV', enabled: false, channelCount: 6 }],
+    })
+    const [group] = detail.groups
+    if (group === undefined) throw new Error('no group')
+    await request('PATCH', `/admin/tv/sources/${id}/groups/${group.id}`, { enabled: true }, 'admin')
+    expect((await runJobs(['refresh_tv_guide', 'fetch_tv_logos'])).sort()).toEqual([
+      'fetch_tv_logos done',
+      'refresh_tv_guide done',
+    ])
+
+    expect(iptv.requests.filter((r) => r.path.includes('/epg/by_time/'))).toHaveLength(25)
+    expect(iptv.requests.filter((r) => r.path.startsWith('/api/latest/tv/img/'))).toHaveLength(6)
+
+    const listed = await channels()
+    expect(listed.groups.map((g) => g.name)).toEqual(['Freebox TV'])
+    expect(listed.items.map((item) => [item.number, item.name])).toEqual([
+      [2, 'France 2'],
+      [3, "France 3 Provence-Alpes-Côte d'Azur"],
+      [7, 'Arte'],
+      [28, 'Paris Première'],
+      [939, 'Télé Bocal'],
+      [940, 'TV78'],
+    ])
+    const now = Math.floor(t.clock.now().getTime() / minute) * minute
+    const at = (minutes: number) => new Date(now + minutes * minute).toISOString()
+    expect(byName(listed, 'France 2')).toMatchObject({
+      logoUrl: `/api/v1/tv/channels/${byName(listed, 'France 2').id}/logo`,
+      now: { title: "Ça commence aujourd'hui", startAt: at(-8), endAt: at(62) },
+      next: { title: "Je t'aime, etc.", startAt: at(62), endAt: at(112) },
+    })
+    expect(byName(listed, 'Paris Première')).toMatchObject({
+      now: { title: 'Elementary', startAt: at(-3), endAt: at(42) },
+      next: { title: 'Elementary', startAt: at(42) },
+    })
+    expect(byName(listed, 'TV78').now).toBeUndefined()
+    // France 2's four programmes but the one past 24 hours, Arte's two, Paris Première's two.
+    expect(programmeRows()).toHaveLength(7)
+  })
+
+  test('a patch keeps its kind; a new address queues a refresh', async () => {
+    const created = await request(
+      'POST',
+      '/admin/tv/sources',
+      { name: 'Freebox', settings: { kind: 'freebox', address: iptv.url } },
+      'admin',
+    )
+    const { id } = (await created.json()) as { id: string }
+    expect(await runJobs(['refresh_tv_source'])).toEqual(['refresh_tv_source done'])
+
+    const other = await request(
+      'PATCH',
+      `/admin/tv/sources/${id}`,
+      { settings: { kind: 'm3u' } },
+      'admin',
+    )
+    expect(other.status).toBe(422)
+    expect(await other.json()).toMatchObject({ error: { code: 'tv/source_invalid' } })
+    expect(await runJobs(['refresh_tv_source'])).toEqual([])
+
+    const https = await request(
+      'PATCH',
+      `/admin/tv/sources/${id}`,
+      { settings: { kind: 'freebox', address: 'https://mafreebox.freebox.fr' } },
+      'admin',
+    )
+    expect(https.status).toBe(400)
+
+    iptv.requests.length = 0
+    const moved = await request(
+      'PATCH',
+      `/admin/tv/sources/${id}`,
+      { settings: { kind: 'freebox', address: `${iptv.url}/` } },
+      'admin',
+    )
+    expect(moved.status).toBe(200)
+    expect(await moved.json()).toMatchObject({
+      state: 'refreshing',
+      settings: { kind: 'freebox', address: `${iptv.url}/` },
+    })
+    expect(await runJobs(['refresh_tv_source'])).toEqual(['refresh_tv_source done'])
+    expect(iptv.requests.map((r) => r.path)).toContain('/api_version')
+  })
+})

@@ -1,11 +1,9 @@
 import { appError, err, ok, type Result } from '@projo/shared'
 
 import type { M3uSettings } from '../../../core/tv/source.ts'
-import type {
-  TvChannelListing,
-  TvProviderError,
-  TvSourceProvider,
-} from '../../../core/tv/provider.ts'
+import type { TvUpstream } from '../../../core/tv/channel.ts'
+import type { TvGuideRead, TvGuideSink } from '../../../core/tv/guide.ts'
+import type { TvChannelListing, TvProviderError } from '../../../core/tv/provider.ts'
 import { fetchFailureReason } from '../fetch-failure.ts'
 import { readXmltv, type XmltvReaderOptions } from '../xmltv/xmltv-reader.ts'
 import { createM3uParser, type M3uPlaylist } from './m3u-parser.ts'
@@ -20,8 +18,12 @@ export type M3uProvider = {
     settings: M3uSettings
     signal?: AbortSignal
   }) => Promise<Result<TvChannelListing, TvProviderError>>
-  readGuide: TvSourceProvider['readGuide']
-  upstreamOf: TvSourceProvider['upstreamOf']
+  readGuide: (input: {
+    source: { settings: M3uSettings; discoveredGuideUrl?: string }
+    sink: TvGuideSink
+    signal?: AbortSignal
+  }) => Promise<TvGuideRead>
+  upstreamOf: (input: { settings: M3uSettings; upstream: TvUpstream }) => TvUpstream
 }
 
 /** The playlist's host, for errors and logs: never its path or query (they carry the secret). */

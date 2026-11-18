@@ -13,7 +13,7 @@ import {
   type TvLogoFiles,
   tvLogoPathOf,
 } from '../../core/tv/logo.ts'
-import type { TvSourceRepository } from '../../core/tv/source.ts'
+import { type TvSourceRepository, userAgentOf } from '../../core/tv/source.ts'
 
 type Deps = {
   tvSources: Pick<TvSourceRepository, 'findById'>
@@ -61,7 +61,7 @@ export const fetchTvLogosFactory =
     let fetched = 0
     let failed = 0
     const fetchOne = async (channel: TvChannel & { logoUrl: string }) => {
-      const userAgent = channel.upstream.userAgent ?? source.settings.userAgent
+      const userAgent = channel.upstream.userAgent ?? userAgentOf(source.settings)
       const logo = await downloader.download({
         url: channel.logoUrl,
         ...(userAgent === undefined ? {} : { userAgent }),
