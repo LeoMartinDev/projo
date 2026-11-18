@@ -10,6 +10,7 @@ import type {
   TvGuideResponse,
   TvProgrammeDetailDto,
   TvProgrammeDto,
+  TvScheduleResponse,
   TvSessionDto,
   TvSourceSettingsDto,
   TvSourceSettingsInput,
@@ -23,6 +24,7 @@ import type {
 import type { CreatedLiveSession } from '../../../application/tv/create-live-session.ts'
 import type { TvProgrammeView } from '../../../application/tv/get-tv-programme.ts'
 import type { TvChannelsView } from '../../../application/tv/list-tv-channels.ts'
+import type { TvScheduleEntry } from '../../../application/tv/list-tv-schedule.ts'
 import type { TvChannel, TvGroupSummary } from '../../../core/tv/channel.ts'
 import type { TvEpisode, TvGuideChannel, TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
 import type { ActiveLiveSessionView } from '../../../core/tv/live-session.ts'
@@ -248,6 +250,24 @@ export const toTvGuideResponse = (guide: ReadonlyMap<string, TvNowNext>): TvGuid
   items: [...guide.entries()].map(([channelId, entry]) => ({
     channelId,
     ...nowNextFields(entry),
+  })),
+})
+
+/** The guide grid's programmes (§29.7): compact, without texts nor images. */
+export const toTvScheduleResponse = (entries: readonly TvScheduleEntry[]): TvScheduleResponse => ({
+  items: entries.map(({ channelId, programmes }) => ({
+    channelId,
+    programmes: programmes.map((programme) => {
+      const episode = toTvEpisodeDto(programme.episode)
+      return {
+        id: programme.id,
+        title: programme.title,
+        startAt: programme.startAt.toISOString(),
+        endAt: programme.endAt.toISOString(),
+        kind: programme.kind,
+        ...(episode === undefined ? {} : { episode }),
+      }
+    }),
   })),
 })
 

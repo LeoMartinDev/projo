@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 
-import { eq, inArray, lte, sql } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, lt, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { tvProgrammeKindSchema } from '@projo/shared/api/tv'
@@ -60,7 +60,9 @@ const toCategories = (value: string | null): TvGuideText[] => {
     : []
 }
 
-const toEpisode = (row: ProgrammeRow): TvEpisode | undefined => {
+const toEpisode = (
+  row: Pick<ProgrammeRow, 'episode_season' | 'episode_number' | 'episode_label'>,
+): TvEpisode | undefined => {
   const episode: TvEpisode = {
     ...(row.episode_season === null ? {} : { season: row.episode_season }),
     ...(row.episode_number === null ? {} : { episode: row.episode_number }),
@@ -218,5 +220,51 @@ export const createSqliteTvGuideRepository = ({
         LIMIT 1`)
       return row === undefined ? undefined : toProgramme(row)
     },
+
+    schedule: ({ channelIds, from, to }) =>
+      chunks(channelIds).flatMap((part) =>
+        db
+          .select({
+            id: tvProgrammes.id,
+            channelId: tvProgrammes.channelId,
+            startAt: tvProgrammes.startAt,
+            endAt: tvProgrammes.endAt,
+            title: tvProgrammes.title,
+            kind: tvProgrammes.kind,
+            episodeSeason: tvProgrammes.episodeSeason,
+            episodeNumber: tvProgrammes.episodeNumber,
+            episodeLabel: tvProgrammes.episodeLabel,
+          })
+          .from(tvProgrammes)
+          .innerJoin(tvChannels, eq(tvChannels.id, tvProgrammes.channelId))
+          .where(
+            and(
+              inArray(tvProgrammes.channelId, part),
+              gt(tvProgrammes.endAt, toIso(from)),
+              lt(tvProgrammes.startAt, toIso(to)),
+              eq(tvChannels.enabled, true),
+              isNull(tvChannels.missingSince),
+            ),
+          )
+          .orderBy(tvProgrammes.channelId, tvProgrammes.startAt)
+          .all()
+          .map((row) => {
+            const kind = tvProgrammeKindSchema.safeParse(row.kind)
+            const episode = toEpisode({
+              episode_season: row.episodeSeason,
+              episode_number: row.episodeNumber,
+              episode_label: row.episodeLabel,
+            })
+            return {
+              id: row.id,
+              channelId: row.channelId,
+              startAt: fromIso(row.startAt),
+              endAt: fromIso(row.endAt),
+              title: row.title,
+              kind: kind.success ? kind.data : 'other',
+              ...(episode === undefined ? {} : { episode }),
+            }
+          }),
+      ),
   }
 }

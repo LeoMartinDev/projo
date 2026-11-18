@@ -26,6 +26,7 @@ import { WhoIsWatching } from '../features/profiles/WhoIsWatching.tsx'
 import { AppShell } from '../features/shell/AppShell.tsx'
 import { UpdateBanner } from '../shared/app-update/UpdateBanner.tsx'
 import { isKeptTab } from '../features/shell/KeptTabs.tsx'
+import { parseTvView, type TvView } from '../features/tv/tv-view.ts'
 import { canAdminister, canManageAccount } from '../shared/session/active-profile.ts'
 import { applyMe, sessionQuery, setupStatusQuery } from '../shared/session/session.ts'
 import { EmptyState, ErrorState, FullPageSpinner } from '../shared/ui/states.tsx'
@@ -356,8 +357,21 @@ const watchlistRoute = createRoute({
 const tvRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '/tv',
+  validateSearch: (search: Record<string, unknown>): { view?: TvView } => {
+    const view = parseTvView(search['view'])
+    return view === undefined ? {} : { view }
+  },
   loader: () => TvPage.preload?.(),
-  component: TvPage,
+  component: function Tv() {
+    const { view } = tvRoute.useSearch()
+    const navigate = tvRoute.useNavigate()
+    return (
+      <TvPage
+        view={view}
+        onView={(next) => void navigate({ search: { view: next }, replace: true })}
+      />
+    )
+  },
 })
 
 const shellNotFoundRoute = createRoute({

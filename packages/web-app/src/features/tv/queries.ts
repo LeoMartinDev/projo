@@ -7,6 +7,7 @@ import type {
   TvGuideResponse,
   TvProgrammeDto,
   TvProgrammeKind,
+  TvScheduleResponse,
 } from '@projo/shared/api/tv'
 
 import { api, request } from '../../shared/api/client.ts'
@@ -84,6 +85,37 @@ export const tvProgrammeQuery = (programmeId: string) =>
     queryKey: ['catalog', 'tv', 'programme', programmeId],
     queryFn: () => request(() => api.tv.programmes[':id'].$get({ param: { id: programmeId } })),
     staleTime: guideRefreshMs,
+  })
+
+/**
+ * A reading of the guide grid (§29.6): the programmes of `[from, to)` (a UTC-aligned window) of
+ * a block of channels, kept 5 minutes.
+ */
+export const tvScheduleQuery = <T>({
+  from,
+  to,
+  channelIds,
+  select,
+}: {
+  from: number
+  to: number
+  channelIds: readonly string[]
+  select: (response: TvScheduleResponse) => T
+}) =>
+  queryOptions({
+    queryKey: ['catalog', 'tv', 'schedule', from, to, channelIds.join(',')],
+    queryFn: () =>
+      request(() =>
+        api.tv.schedule.$get({
+          query: {
+            from: new Date(from).toISOString(),
+            to: new Date(to).toISOString(),
+            channels: channelIds.join(','),
+          },
+        }),
+      ),
+    staleTime: 5 * 60_000,
+    select,
   })
 
 /** The order of the "On now" rows (§29.6). */

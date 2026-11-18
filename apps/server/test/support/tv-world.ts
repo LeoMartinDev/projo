@@ -13,6 +13,7 @@ import { getTvChannelLogoFactory } from '../../src/application/tv/get-tv-channel
 import { getTvSourceFactory } from '../../src/application/tv/get-tv-source.ts'
 import { listTvChannelsFactory } from '../../src/application/tv/list-tv-channels.ts'
 import { listTvGuideFactory } from '../../src/application/tv/list-tv-guide.ts'
+import { listTvScheduleFactory } from '../../src/application/tv/list-tv-schedule.ts'
 import { listTvSourceChannelsFactory } from '../../src/application/tv/list-tv-source-channels.ts'
 import { listTvSourcesFactory } from '../../src/application/tv/list-tv-sources.ts'
 import { purgeEndedTvProgrammesFactory } from '../../src/application/tv/purge-ended-tv-programmes.ts'
@@ -333,6 +334,31 @@ export const inMemoryTvGuide = (channels: ReturnType<typeof inMemoryTvChannels>[
       programmes
         .filter((p) => p.channelId === channelId && p.startAt.getTime() >= at.getTime())
         .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())[0],
+    schedule: ({ channelIds, from, to }) =>
+      programmes
+        .filter((p) => {
+          const channel = channels.get(p.channelId)
+          return (
+            channelIds.includes(p.channelId) &&
+            channel?.enabled === true &&
+            channel.missingSince === undefined &&
+            p.endAt.getTime() > from.getTime() &&
+            p.startAt.getTime() < to.getTime()
+          )
+        })
+        .sort(
+          (a, b) =>
+            a.channelId.localeCompare(b.channelId) || a.startAt.getTime() - b.startAt.getTime(),
+        )
+        .map(({ id, channelId, startAt, endAt, title, kind, episode }) => ({
+          id,
+          channelId,
+          startAt,
+          endAt,
+          title,
+          kind,
+          ...(episode === undefined ? {} : { episode }),
+        })),
     nowAndNext: (at) => {
       const guide = new Map<string, TvNowNext>()
       for (const channel of channels.values()) {
@@ -674,6 +700,7 @@ export const createTvWorld = () => {
       clock,
     }),
     listTvGuide: listTvGuideFactory({ tvAccess, guide: guide.repository, clock }),
+    listTvSchedule: listTvScheduleFactory({ tvAccess, guide: guide.repository }),
     addTvFavorite: addTvFavoriteFactory({
       tvChannels,
       tvAccess,

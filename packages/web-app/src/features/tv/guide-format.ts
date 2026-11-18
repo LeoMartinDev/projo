@@ -17,6 +17,14 @@ const formatOf = (key: string, options: Intl.DateTimeFormatOptions): Intl.DateTi
 export const clockTime = (iso: string): string =>
   formatOf('clock', { hour: 'numeric', minute: '2-digit' }).format(new Date(iso))
 
+/** A time of day from a timestamp. */
+export const clockTimeOf = (time: number): string =>
+  formatOf('clock', { hour: 'numeric', minute: '2-digit' }).format(new Date(time))
+
+/** A day, short (`jeu. 20 nov.`): the guide grid's days and midnights. */
+export const shortDay = (time: number): string =>
+  formatOf('day', { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(time))
+
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&

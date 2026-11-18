@@ -12,6 +12,7 @@ import { getLivePlaylistFactory } from '../../application/tv/get-live-playlist.t
 import { listLiveSessionsFactory } from '../../application/tv/list-live-sessions.ts'
 import { listTvChannelsFactory } from '../../application/tv/list-tv-channels.ts'
 import { listTvGuideFactory } from '../../application/tv/list-tv-guide.ts'
+import { listTvScheduleFactory } from '../../application/tv/list-tv-schedule.ts'
 import { purgeEndedTvProgrammesFactory } from '../../application/tv/purge-ended-tv-programmes.ts'
 import { queueDueTvGuideRefreshesFactory } from '../../application/tv/queue-due-tv-guide-refreshes.ts'
 import { refreshTvGuideFactory } from '../../application/tv/refresh-tv-guide.ts'
@@ -263,6 +264,7 @@ export const buildTvModule = (
         open: (path) => Bun.file(path),
         listTvChannels: listTvChannelsFactory({ tvChannels, tvAccess, favorites, guide, clock }),
         listTvGuide: listTvGuideFactory({ tvAccess, guide, clock }),
+        listTvSchedule: listTvScheduleFactory({ tvAccess, guide }),
         addTvFavorite: addTvFavoriteFactory({ tvChannels, tvAccess, favorites, clock }),
         removeTvFavorite: removeTvFavoriteFactory({ tvChannels, tvAccess, favorites }),
         createLiveSession: createLiveSessionFactory({

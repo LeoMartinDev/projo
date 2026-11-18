@@ -65,6 +65,12 @@ export type TvProgramme = TvProgrammeData & {
 
 export type TvNowNext = { now?: TvProgramme; next?: TvProgramme }
 
+/** A programme as the guide grid reads it (§29.7): no subtitle, description nor image. */
+export type TvScheduleProgramme = Pick<
+  TvProgramme,
+  'id' | 'channelId' | 'startAt' | 'endAt' | 'title' | 'kind' | 'episode'
+>
+
 export type TvGuideRepository = {
   /**
    * Replaces every programme of the source's channels with `programmes` (one transaction),
@@ -83,6 +89,15 @@ export type TvGuideRepository = {
   findProgramme: (id: string) => TvProgramme | undefined
   /** The channel's programme that starts at or after `at` first. */
   programmeAfter: (input: { channelId: string; at: Date }) => TvProgramme | undefined
+  /**
+   * The programmes overlapping `[from, to)` (starting before `to`, ending after `from`) of those
+   * of `channelIds` that are enabled and present, by channel then start.
+   */
+  schedule: (input: {
+    channelIds: readonly string[]
+    from: Date
+    to: Date
+  }) => TvScheduleProgramme[]
 }
 
 /** A guide channel as the admin picks it (§29.3): the source's list of its last read. */

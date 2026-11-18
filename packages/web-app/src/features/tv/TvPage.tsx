@@ -1,16 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { TvChannelDto } from '@projo/shared/api/tv'
 
 import { FavoriteIcon } from '../../shared/ui/media-icons.tsx'
+import { Segmented } from '../../shared/ui/Segmented.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
 import { useLongPress } from '../media/use-long-press.ts'
 import { ChannelLogo } from './ChannelLogo.tsx'
 import { clockTime } from './guide-format.ts'
+import { GuideView } from './GuideView.tsx'
 import { OnNow, type OpenProgramme } from './OnNow.tsx'
 import { ProgrammeDialog } from './ProgrammeDialog.tsx'
 import {
@@ -23,6 +25,7 @@ import {
   useFavoriteToggle,
   withGuide,
 } from './queries.ts'
+import { rememberedTvView, rememberTvView, type TvView } from './tv-view.ts'
 import './tv.css'
 
 const skeletonCards = Array.from({ length: 12 }, (_, index) => index)
@@ -113,17 +116,30 @@ const ChannelCard = ({
 }
 
 /**
- * The TV page (§29.6): "On now" rows per programme kind, then the favourites, then one section
- * per group, a card per channel; a programme's detail in a dialog.
+ * The TV page (§29.6): two views. "Featured": "On now" rows per programme kind, then the
+ * favourites, then one section per group, a card per channel. "Guide": the guide grid. A
+ * programme's detail in a dialog. `view` is the URL's; without one, the last one shown here.
  */
-export const TvPage = () => {
+export const TvPage = ({
+  view: asked,
+  onView,
+}: {
+  view?: TvView | undefined
+  onView: (view: TvView) => void
+}) => {
   const { t } = useTranslation()
+  const [remembered] = useState(rememberedTvView)
+  const view = asked ?? remembered
   // Read again on opening; the shell's copy (its "TV" entry) stays cached.
   const channels = useQuery({ ...tvChannelsQuery, staleTime: 0 })
   const guide = useQuery(tvGuideQuery)
   const favorite = useFavoriteToggle()
   const at = useNow().getTime()
-  const [detail, setDetail] = useState<{ programmeId: string; channelId: string }>()
+  const [detail, setDetail] = useState<{
+    programmeId: string
+    channelId: string
+    watch?: boolean
+  }>()
   const listed = useMemo(
     () => (channels.data === undefined ? undefined : withGuide(channels.data, guide.data)),
     [channels.data, guide.data],
@@ -131,18 +147,63 @@ export const TvPage = () => {
   const sections = useMemo(() => (listed === undefined ? [] : channelSections(listed)), [listed])
   // Recomputed each minute too: a programme that ends moves its channel to its next one's row.
   const rows = useMemo(() => (listed === undefined ? [] : onNowRows(listed, at)), [listed, at])
+  // `/tv` alone opens the view last shown on this device.
+  useEffect(() => rememberTvView(view), [view])
+  const dialog =
+    detail === undefined ? undefined : (
+      <ProgrammeDialog
+        programmeId={detail.programmeId}
+        channel={listed?.items.find((channel) => channel.id === detail.channelId)}
+        watch={detail.watch ?? true}
+        onClose={() => setDetail(undefined)}
+      />
+    )
+  const head = (
+    <div className="tv-page__head">
+      <h1 className="page__title">{t('nav.tv')}</h1>
+      <Segmented
+        role="tab"
+        label={t('tv.guide.views')}
+        options={[
+          { value: 'featured', label: t('tv.guide.featured') },
+          { value: 'guide', label: t('tv.guide.title') },
+        ]}
+        value={view}
+        onChange={onView}
+      />
+    </div>
+  )
+  if (view === 'guide')
+    return (
+      <div className="page tv-page tv-page--guide">
+        {head}
+        {favorite.isError ? <ErrorAlert error={favorite.error} /> : undefined}
+        {dialog}
+        {channels.isError ? (
+          <div className="tv-guide tv-guide--state">
+            <ErrorState error={channels.error} onRetry={() => void channels.refetch()} />
+          </div>
+        ) : listed !== undefined && listed.items.length === 0 ? (
+          <div className="tv-guide tv-guide--state">
+            <EmptyState title={t('tv.empty')} />
+          </div>
+        ) : (
+          <GuideView
+            channels={listed}
+            onProgramme={({ programmeId, channelId, onAir }) =>
+              setDetail({ programmeId, channelId, watch: onAir })
+            }
+            onFavorite={(channelId, value) => favorite.mutate({ channelId, favorite: value })}
+          />
+        )}
+      </div>
+    )
   return (
     <div className="page tv-page">
-      <h1 className="page__title">{t('nav.tv')}</h1>
+      {head}
       {favorite.isError ? <ErrorAlert error={favorite.error} /> : undefined}
       {rows.length === 0 ? undefined : <OnNow rows={rows} at={at} onInfo={setDetail} />}
-      {detail === undefined ? undefined : (
-        <ProgrammeDialog
-          programmeId={detail.programmeId}
-          channel={listed?.items.find((channel) => channel.id === detail.channelId)}
-          onClose={() => setDetail(undefined)}
-        />
-      )}
+      {dialog}
       {channels.isPending ? (
         <ul className="tv-grid" aria-hidden="true">
           {skeletonCards.map((index) => (
