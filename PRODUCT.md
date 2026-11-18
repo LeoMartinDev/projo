@@ -3,7 +3,7 @@
 > A self-hosted media server for movies and TV shows, built for a household, with the user experience as its only differentiator.
 > This document bounds the project: anything not in it is not in projo. It is written to be carried out from A to Z by a developer or an agent, milestone by milestone.
 
-Document version: 1.5 (2026-11-15: the desktop app bundles its UI, §28). Product language: French first, English shipped.
+Document version: 1.6 (2026-11-18: live TV from IPTV sources, §29). Product language: French first, English shipped.
 
 ---
 
@@ -37,6 +37,7 @@ Document version: 1.5 (2026-11-15: the desktop app bundles its UI, §28). Produc
 26. [Mobile app (iOS, iPadOS)](#26-mobile-app-ios-ipados)
 27. [MCP server](#27-mcp-server)
 28. [Desktop app (Windows, macOS)](#28-desktop-app-windows-macos)
+29. [Live TV (IPTV)](#29-live-tv-iptv)
 
 ---
 
@@ -69,6 +70,7 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 - Full administration: first-launch wizard, libraries, queues, accounts, active sessions, playback settings, metadata editing, jobs, notifications.
 - Application updates from the admin page, without redeploying the container, with rollback.
 - An MCP server for the admin: the "To review" queue and match fixes from Claude (Code, Desktop, connectors) or ChatGPT, with a token or OAuth 2.1 (§27).
+- Live TV from the household's own IPTV sources (M3U, Xtream Codes, Freebox), relayed by the server, with a now / next guide, on the web and the desktop app (§29).
 - French and English interface, dark theme.
 
 ### 2.2 Planned for v2 (not in v1, but the architecture must not make it impossible)
@@ -84,12 +86,14 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 - Outgoing webhooks for alerts, qBittorrent and Radarr/Sonarr integrations.
 - TMDB collections, person pages, trailers.
 - Playing extras (trailers, making-of).
+- IPTV beyond live channels: the provider's VOD and series in the catalogue, replay (§29.10).
 
 ### 2.3 Permanently out of scope
 
 - Multi-tenancy, billing, cloud account, relay, native HTTPS, certificate management.
 - Chromecast, native TV apps (Apple TV, Android TV, Tizen, webOS). AirPlay only as the platform player provides it: the iOS app's (§26.6) and Safari's on the web (§10.7), never a feature of its own.
-- Music, photos, live TV, books, unidentifiable home videos.
+- Music, photos, books, unidentifiable home videos.
+- Recording live TV, pausing or rewinding it, tuners, radios, any bundled or suggested playlist (§29.10).
 - Renaming, moving or deleting files by the app. The library is read-only.
 - NFO files and local images (`poster.jpg`, `fanart.jpg`).
 - Disc folders (`VIDEO_TS`, `BDMV`), ISO images, 3D files.
@@ -112,6 +116,8 @@ projo is a **self-hosted, single-tenant** media server. One installation = one h
 | **Part** | One source among several that, put end to end, make a single movie (`cd1`, `cd2`). |
 | **Segment** | A typed time interval on an item: intro, recap, end credits, preview. |
 | **Playback session** | Ongoing playback by a profile on a device, with its delivery mode. |
+| **TV source** | An IPTV subscription added by the admin: an M3U playlist, an Xtream Codes account or a Freebox (§29). |
+| **Channel** | A live channel of a TV source. Not an item: no TMDB identity, no progress. |
 | **Job** | A persisted background task (scan, probe, matching, images, trickplay, fingerprinting, update). |
 | **Runtime** | The Docker image: Bun, ffmpeg, ffprobe, fpcalc, supervisor. Versioned separately from the app. |
 | **Bundle** | A version of the application (pure JS) installed in the data volume. |
@@ -1056,6 +1062,8 @@ Queue persisted in `jobs`, run in process by workers started by `entrypoints/job
 | `cleanup_cache` | hourly | 20 | 1 | singleton |
 | `purge_missing` | daily | 20 | 1 | singleton |
 | `image_variants` | by hand ("Optimize images") | 10 | 1 | singleton (missing variants only) |
+| `refresh_tv_source` | source created, daily, manual (§29.2) | 40 | 1 | `dedupe_key = tv_source:<id>` |
+| `refresh_tv_guide` | every 6 hours, after `refresh_tv_source` (§29.3) | 20 | 1 | per source |
 
 Rules: derived files (subtitles, trickplay, keyframe indexes, previews) of deleted sources, tracks and items are erased by the hourly `media-assets-cleanup` task. "Heavy ffmpeg" jobs (`fingerprint_season`, `trickplay`, `preview_clip`) run one at a time across the three types, and do not run while a transcode is active and the server has fewer than 4 cores; they resume afterwards. The ffmpeg, ffprobe and fpcalc processes of jobs run at the lowest CPU priority (nice 19), except `index_keyframes` when a player waits for it (priority 100); those of playback (transcode, remux, probe at session start, on-demand subtitles) keep the normal one. Attempts: 3 with exponential backoff, except `apply_update` (1). Each job publishes `progress` and an SSE event. A job that fails on its last attempt creates a notification with the error code. The hourly `purge-jobs` task deletes `done` jobs 7 days after they finish and `failed` / `cancelled` ones after 30 days; `queued` and `running` jobs are never purged. It also deletes notifications resolved more than 30 days ago and scan runs finished more than 30 days ago (each library keeps its latest). The daily `metadata-purge` task deletes the images nothing references any more (rows, files and WebP variants: their title was purged) and the `tmdb_responses` older than 30 days (no reader accepts an older one).
 
@@ -1220,6 +1228,19 @@ Vertical slices (§27):
 
 Criterion: *"I paste one command into Claude Code, ask it to sort my files to review, check its preview, and the files show up in projo with the right titles."*
 
+### M8 — Live TV: I zap through my channels in projo
+
+Vertical slices (§29), each usable end to end:
+1. **Channels**: TV sources of kind `m3u` (refresh, groups and channels to enable, connection limit), Admin → TV, the relay's `copy` rendition, live sessions, the player's live mode, the TV page without guide. Web and desktop.
+2. **Every channel on the web**: the probe and the `compat` rendition (interlaced video, codecs the browser does not decode).
+3. **Guide and favourites**: XMLTV, now and next on the page and in the player, favourites, the per-profile access switch.
+4. **Freebox**: the `freebox` kind (channels, logos and guide from the box's API).
+5. **Xtream Codes**: the `xtream` kind, its connection limit read from the account.
+
+The spec of each slice is completed in §29 before its code.
+
+Criterion: *"I add my box and a playlist, tick the channels I want, and from the web or the desktop app I zap between them and see what is on now and next, without any of it leaving my server's address."*
+
 ---
 
 ## 24. Default decisions
@@ -1253,6 +1274,7 @@ Decisions taken to move forward, changeable without breaking the model. Values a
 | TMDB image sizes | poster w500, backdrop w1280, logo w500, still w300, person w185 |
 | HLS segments | 4 s in transcode, 3 to 8 s in remux |
 | Qualities | Original, 1080p 8 Mb/s, 720p 4 Mb/s, 480p 1.5 Mb/s |
+| Live TV (§29) | source refresh daily, guide every 6 h over the next 24 h, HLS segments about 2 s over a 30 s window, stream stopped 30 s after its last viewer, missing channel deleted after 7 days |
 | Multichannel audio | stereo downmix |
 | Trickplay | 1 image / 10 s, 320 px, 10×10 sprites |
 | Fingerprinting | first 10 min, last 5 min, intro 15 to 150 s, 2 corroborating episodes |
@@ -1560,3 +1582,79 @@ The same app, UI and IPC contract (§28.6) as on Windows; what differs:
 - **Token** in the login keychain (the `keyring` crate's `apple-native` backend, same service and user as on Windows). **Device name**: the computer's name of System Settings (`scutil --get ComputerName`), else "Mac". **Config** in `~/Library/Application Support/dev.leomartin.projo.desktop/`.
 - **Icon**: `design/brand/ouverture/native/macos-desktop.icns` (Apple's grid: the Windows icon's dark rounded square at 824 px with a soft shadow on 1024 px), copied to `src-tauri/icons/icon.icns` with `icon.png` (the Dock outside a bundle) by `build-desktop-icon.mjs`; the menu bar takes `icons/tray-template.png`, a template image the system tints.
 - **Not yet**: a Developer ID signature and notarization, an Intel build, the system media controls (`media_session.rs` does nothing outside Windows), Dolby Vision profile 5.
+
+---
+
+## 29. Live TV (IPTV)
+
+### 29.1 Goal and scope
+
+A household that has an IPTV subscription (an M3U playlist, an Xtream Codes account, or a Freebox) watches its live channels in projo, next to its movies and shows: a "TV" page, the programme on now and the next one, and the same player. projo ships no playlist, names no provider and suggests none: the admin brings their own source.
+
+- **In**: live channels from any number of sources, a now / next guide, favourites per profile, on the web and the desktop app.
+- **The server always relays** (§29.4): a client never talks to the provider. Many sources are reachable only from the server's network (a Freebox serves RTSP over UDP on its LAN only), a browser plays neither MPEG-TS nor RTSP, the provider's URL carries its credentials, and providers cap simultaneous connections.
+- **Not in this version** (§29.10): the provider's VOD and series, replay, recording, pausing the live, a full guide grid, the mobile app.
+
+### 29.2 Sources
+
+A **TV source** is one subscription, added by the admin (Admin → TV). Three kinds behind one port (`TvSourceProvider`: list the channels, read the guide, give a channel's upstream URL):
+
+| Kind | Settings | Channels | Guide |
+|---|---|---|---|
+| `m3u` | playlist URL (`http`/`https`), optional XMLTV URL, optional `User-Agent` | `#EXTINF` entries: `tvg-id`, `tvg-name`, `tvg-logo`, `tvg-chno`, `group-title`; `#EXTVLCOPT:http-user-agent` and `http-referrer` kept per channel. Upstream URLs: `http`, `https`, `rtsp`, `rtp`, `udp` | the XMLTV URL of the settings, else the playlist header's `url-tvg` / `x-tvg-url`; matched on `tvg-id` |
+| `xtream` | server URL, username, password | `player_api.php`: `get_live_categories`, `get_live_streams`; upstream `/live/<user>/<pass>/<id>.ts` | the account's `xmltv.php` |
+| `freebox` | box address (default `http://mafreebox.freebox.fr`) | the box's TV API (`/api/v8/tv/bouquets/freeboxtv/channels` joined with `/tv/channels`), one channel per service with its best `rtsp` stream (HD, else auto, else standard); channels without a stream are left out | the box's `/tv/epg/` API |
+
+- **Not live, ignored**: playlist entries that are files (`.mkv`, `.mp4`, `.avi`…, Xtream `/movie/` and `/series/` paths) and channels without video (radios).
+- **Nothing is visible until enabled**: playlists commonly hold thousands of channels. The source's dialog lists its groups and channels; the admin enables groups (channels added to an enabled group later are enabled too) or single channels.
+- **Refresh**: on creation, daily, and by hand (`refresh_tv_source`). A channel keeps its id across refreshes (key: Xtream stream id, Freebox uuid, M3U `tvg-id` else name + group), so favourites survive. A channel gone from the source is hidden at once and deleted after 7 days.
+- **Connections**: `max_connections` per source: read from the Xtream account (`user_info.max_connections`), set by the admin for the others (empty = no limit).
+- **Connectors**: one adapter per kind (`infrastructure/tv/{m3u,xtream,freebox}/`); channels, guide, relay and player never know a channel's kind. `m3u` is the universal format and `xtream` the API of most paid providers: together they cover nearly every subscription. `freebox` only adds the logos and the guide the box's own M3U playlist lacks.
+- **Authentication to the provider**: no interactive sign-in. The admin enters the settings once and the server replays them on every request: for `m3u` the secret is part of the playlist URL (token or credentials in the query), plus the `User-Agent` some providers require; for `xtream` the username and password go in each API call and each stream URL; `freebox` has none (the box answers its own network without credentials). Stored as they are in `tv_sources.settings`, like the TMDB key: the server must read them back to open a stream. Viewers only ever authenticate to projo.
+- **Secrets**: the source's URL, credentials and every upstream URL stay on the server; the admin API returns them masked. Logos are downloaded and served by the server (`/tv/channels/:id/logo`), never hotlinked.
+- A refresh that fails three times raises the notification `tv/source_unreachable`, resolved by the next success; the channels stay as they were.
+
+Data (`infrastructure/sqlite/schema/tv.ts`): `tv_sources` (kind, name, settings JSON, `max_connections`, last refresh and error), `tv_channels` (source, key, name, number, group, logo, upstream, guide key, `enabled`, `missing_since`, cached probe), `tv_groups` (source, name, `enabled`), `tv_programmes` (channel, start, end, title, subtitle, description, category), `tv_favorites` (profile, channel, position).
+
+### 29.3 Guide
+
+Now and next only. `refresh_tv_guide` (every 6 hours and after a source refresh) reads each source's guide and keeps, for enabled channels only, the programmes ending after now and starting within 24 hours; older ones are deleted. XMLTV files reach hundreds of MB: read as a stream (gzip accepted), never loaded whole. A channel without guide data shows its name alone. Times are stored in UTC; XMLTV offsets are honoured.
+
+### 29.4 Relay
+
+- **Channel stream**: one upstream connection per channel, whatever the number of viewers. The first viewer starts it: one ffmpeg reads the upstream and writes a live HLS playlist in `/data/cache/live/<channel>/` (`copy` rendition: video copied, the audio copied if AAC, otherwise transcoded to stereo AAC; fMP4 segments cut on the source's keyframes, about 2 s, a sliding window of the last 30 s). RTSP is tried over TCP, then over UDP (a Freebox accepts UDP only).
+- **`compat` rendition**: when a viewer cannot play the copy (interlaced video on a `browser` engine, which does not deinterlace; a video codec the client does not decode), a second ffmpeg reads the local `copy` playlist, never the provider, and produces H.264 (deinterlaced, at most 1080p, §10.3 encoder rules, VAAPI included) with AAC. It is shared by the channel's viewers who need it and takes one transcode slot (§10.3, `playback/transcode_limit_reached`). The `mpv` engine always gets `copy`.
+- The channel is probed when its stream first starts (codec, interlacing, audio tracks); the result is cached on the channel and refreshed when a stream fails to start.
+- **Audio**: one track, the first that is not an audio description. **Subtitles**: none.
+- **Stopping**: a stream without viewers stops after 30 s (zapping back is instant). Segments are deleted with it.
+- **Connection limit**: when starting a channel would exceed the source's `max_connections`, streams without viewers are stopped first; if none, the session is refused with `tv/connection_limit_reached` ("All the provider's connections are in use").
+- **Upstream failure**: ffmpeg is restarted up to 3 times (1, 2, 4 s); then viewers get `tv/stream_unavailable`.
+- **Live session**: `POST /tv/channels/:id/sessions` with the client capabilities of §10.2 → `{ sessionId, streamUrl, rendition }`; heartbeat every 10 s, gone after 60 s without one, `DELETE` on leaving. The stream is served under the session's capability URL (§20). Live sessions appear in the admin's active sessions and can be stopped there. No progress is ever recorded.
+- Docker: a Freebox source needs the container to receive the box's UDP stream (host networking); the README says so.
+
+### 29.5 Player
+
+The same player (§10.7), in a live mode of `@projo/player`: a `MediaState` without duration. No timeline, seek, speed, trickplay, segments, next episode, quality, audio or subtitle menu. Shown: the channel's logo and name, the programme on now with its elapsed part, the next one and its time. Pause is allowed; resuming returns to the live edge. Previous / next channel (`PageUp` / `PageDown`, buttons) follows the page's order (favourites, then groups), and a channel list opens over the picture. Full screen, PiP and AirPlay follow `EngineCapabilities` as elsewhere. `html-video` plays the live playlist (hls.js, native HLS in Safari); `mpv` plays the `copy` playlist.
+
+### 29.6 Interface
+
+- **Viewer**: a "TV" entry in the navigation, present only when the profile can see at least one enabled channel. The page: favourites first, then one section per group; each channel is a card (logo, number, name, now with its progress, next). A star on the card adds or removes a favourite. The guide data of the page is refreshed every minute without reloading the list.
+- **Profiles**: a "Live TV" access switch per profile (default on), next to library access (§14); the maximum content rating does not apply to channels.
+- **Admin → TV**: the sources as a table (name, kind, enabled / total channels, last refresh, state); a row opens the source's dialog: settings, "Refresh now", connection limit, groups and channels to enable (searchable, fixed height).
+
+### 29.7 API
+
+Under `/api/v1`: `GET /tv/channels` (the profile's enabled channels with group, favourite flag, now and next), `GET /tv/channels/:id/logo`, `PUT` / `DELETE /tv/channels/:id/favorite`, `POST /tv/channels/:id/sessions`, `POST /tv/sessions/:id/heartbeat`, `DELETE /tv/sessions/:id`. Under `/api/v1/admin`: `GET` / `POST /tv/sources`, `GET` / `PATCH` / `DELETE /tv/sources/:id`, `POST /tv/sources/:id/refresh`, `GET /tv/sources/:id/channels`, `PATCH /tv/sources/:id/groups/:groupId`, `PATCH /tv/channels/:id` (`enabled`). Error domain `tv` (`tv/source_not_found`, `tv/source_unreachable`, `tv/source_invalid`, `tv/channel_not_found`, `tv/connection_limit_reached`, `tv/stream_unavailable`). Schemas in `packages/shared/api/tv.ts`. The desktop app's `minimumServerVersion` rises to the first server with these routes.
+
+### 29.8 Tests
+
+Never a real provider. `test/support/iptv-server.ts` replays `test/fixtures/iptv/` (an M3U, an XMLTV, the Xtream `player_api.php` answers, the Freebox TV API answers) and serves an endless MPEG-TS made by ffmpeg, progressive and interlaced. Unit: the M3U and XMLTV parsers, channel identity across refreshes, the connection limit, the rendition choice. Integration: refresh and guide jobs on SQLite, the relay with real ffmpeg (start, sharing one upstream between two viewers, stop, restart on failure). E2E (journey 6): the admin adds an M3U source and enables a group, a profile opens TV and plays a channel.
+
+### 29.9 Order
+
+Milestone M8 (§23), one slice at a time; each slice's details are completed here before its code.
+
+### 29.10 What it does not do
+
+- **Later, when a version is specified here**: the provider's VOD and series (as catalogue items identified through TMDB), Xtream replay, the mobile app, the choice of the audio track, teletext and DVB subtitles.
+- **Not planned**: recording, pausing or rewinding the live, a guide grid, tuners (DVB, HDHomeRun), radios, any bundled or suggested playlist.
