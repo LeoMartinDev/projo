@@ -71,7 +71,7 @@ bun run dev     # server on :8080, web app on :5173
 bun run test
 ```
 
-[CLAUDE.md](CLAUDE.md) describes the code layout, the architecture rules and every command. The specification is in [PRODUCT.md](PRODUCT.md), the Docker image and the release process in [runtime/README.md](runtime/README.md).
+[CLAUDE.md](CLAUDE.md) describes the code layout, the architecture rules and every command. The specification is in [PRODUCT.md](PRODUCT.md), the Docker image and the release process in [runtime/README.md](runtime/README.md). See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ## Credits
 
@@ -79,6 +79,6 @@ Metadata and images provided by [TMDB]; this product uses the TMDB API but is no
 
 ## License
 
-MIT.
+[GNU AGPL-3.0](LICENSE). You can use, modify and share projo; if you run a modified version that others reach over a network, you must offer them its source code.
 
 [TMDB]: https://www.themoviedb.org/

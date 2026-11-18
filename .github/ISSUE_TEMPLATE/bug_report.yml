@@ -1,0 +1,59 @@
+name: Bug report
+description: Something does not work as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a show
+        2. Play an episode
+        3. …
+  - type: input
+    id: server-version
+    attributes:
+      label: Server version
+      description: Administration → Updates.
+      placeholder: 1.28.1
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: Where
+      multiple: true
+      options:
+        - Browser (desktop)
+        - Browser (phone or tablet)
+        - Installed web app (PWA)
+        - Desktop app (Windows)
+        - Desktop app (macOS)
+        - Server only (scan, metadata, jobs, updates)
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Browser, device and host
+      description: Browser and its version, device, and what runs the server (Linux distribution, Synology, Unraid…).
+      placeholder: Safari 19 on an iPad, server on a Synology DS923+
+  - type: textarea
+    id: compose
+    attributes:
+      label: docker-compose.yml
+      description: Remove anything private (paths you would rather not share, domains).
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Administration → Logs, filtered on Warning or Error around the time of the problem (Export gives a file to attach).
+      render: text

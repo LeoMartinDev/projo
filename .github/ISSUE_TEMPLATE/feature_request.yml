@@ -1,0 +1,18 @@
+name: Feature request
+description: Something projo should do.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Check [what projo does not handle](https://github.com/LeoMartinDev/projo#features) first.
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: The situation and what gets in the way, rather than a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help

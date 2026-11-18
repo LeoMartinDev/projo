@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Installation guide and troubleshooting
+    url: https://getprojo.com/installation/#troubleshooting
+    about: Permissions, hardware transcoding, reverse proxy, file naming.
+  - name: Security vulnerability
+    url: https://github.com/LeoMartinDev/projo/security/advisories/new
+    about: Report it privately, never in a public issue.

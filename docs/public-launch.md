@@ -10,14 +10,14 @@ leaving Plex or Jellyfin. For reference: 1 star, 2 downloads of the 1.28.0 relea
 
 ## 1. Repository hygiene (a few hours, do first)
 
-- [ ] **`LICENSE` file.** The README says MIT, but GitHub detects no license. Many people and
+- [x] **`LICENSE` file** (AGPL-3.0, chosen on 2026-11-18). The README said MIT, but GitHub detected no license. Many people and
       directories skip a project without one, and no list (awesome-selfhosted) will take it.
-- [ ] **`SECURITY.md`.** projo is a server exposed to the internet, with accounts and invitations:
+- [x] **`SECURITY.md`.** projo is a server exposed to the internet, with accounts and invitations:
       it needs a private channel to report a vulnerability (GitHub private vulnerability reporting).
-- [ ] **Issue templates** (`.github/ISSUE_TEMPLATE/`). A bug report asking for the version, the
+- [x] **Issue templates** (`.github/ISSUE_TEMPLATE/`). A bug report asking for the version, the
       platform, the compose file and an excerpt of the logs (the NDJSON export already exists).
 - [ ] **GitHub Discussions** enabled, for questions that are not bugs.
-- [ ] **`CONTRIBUTING.md`.** The only contributor guide is `CLAUDE.md` (77 KB), and `bun lint`
+- [x] **`CONTRIBUTING.md`.** The only contributor guide is `CLAUDE.md` (77 KB), and `bun lint`
       needs a canary Bun: a short guide for an outside contributor (setup, tests, lint, scope).
 
 ## 2. Make people want to try it

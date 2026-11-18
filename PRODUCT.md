@@ -1261,7 +1261,7 @@ Decisions taken to move forward, changeable without breaking the model. Values a
 | Metadata language | fr-FR, en-US fallback |
 | Environment variables | `PORT`, `DATA_DIR`, `TRUST_PROXY`, `LOG_LEVEL` (fixed) |
 | Data folder | `/data`, §5.4 layout (fixed) |
-| Licence | MIT |
+| Licence | AGPL-3.0-only |
 | Docker image | `ghcr.io/leomartindev/projo` |
 
 ---
