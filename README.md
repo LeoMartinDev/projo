@@ -61,6 +61,8 @@ Open `http://<your-machine>:8080`, create the administrator account and pick you
 
 The [installation guide](https://getprojo.com/installation/) covers the rest: [file permissions](https://getprojo.com/installation/#permissions), [hardware transcoding](https://getprojo.com/installation/#gpu), [running behind a reverse proxy](https://getprojo.com/installation/#proxy), [naming your files](https://getprojo.com/installation/#naming), [downloads, network shares and several disks](https://getprojo.com/installation/#sources), [updates](https://getprojo.com/installation/#updates), [backups](https://getprojo.com/installation/#backup) and [troubleshooting](https://getprojo.com/installation/#troubleshooting).
 
+A Freebox TV source needs the container on the box's network: the box answers its API and streams its channels (RTSP over UDP) on its own network only. Replace `ports:` with `network_mode: host`.
+
 ## Development
 
 Requires [Bun](https://bun.sh) (the version in `package.json`'s `packageManager`), plus `ffmpeg`, `ffprobe` and `fpcalc` in the `PATH`.
