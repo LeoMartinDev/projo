@@ -12,7 +12,7 @@ const groupId = (name: string) => {
 
 beforeEach(async () => {
   world = createTvWorld()
-  sourceId = world.createTvSource({
+  sourceId = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   }).id
@@ -65,7 +65,7 @@ test('a channel switched on its own leaves its group flag; the group switch over
 })
 
 test('refuses a group of another source', () => {
-  const other = world.createTvSource({
+  const other = world.addTvSource({
     name: 'B',
     settings: { kind: 'm3u', playlistUrl: 'http://b/list.m3u' },
   }).id

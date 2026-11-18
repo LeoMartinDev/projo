@@ -10,11 +10,22 @@ export type M3uSettings = {
   userAgent?: string
 }
 
+/**
+ * Settings of an `xtream` source (§29.2): the panel's root, and the account's credentials that go
+ * in every API call and stream URL (never returned by the admin API).
+ */
+export type XtreamSettings = {
+  kind: 'xtream'
+  serverUrl: string
+  username: string
+  password: string
+}
+
 /** Settings of a `freebox` source (§29.2): the box's address on its network, no secret. */
 export type FreeboxSettings = { kind: 'freebox'; address: string }
 
 /** Settings of a source, one member per kind; stored in clear, secrets masked in admin answers. */
-export type TvSourceSettings = M3uSettings | FreeboxSettings
+export type TvSourceSettings = M3uSettings | XtreamSettings | FreeboxSettings
 
 /**
  * Changes to a source's settings: an absent field keeps the stored value, `''` removes an
@@ -27,6 +38,7 @@ export type TvSourceSettingsPatch =
       guideUrl?: string
       userAgent?: string
     }
+  | { kind: 'xtream'; serverUrl?: string; username?: string; password?: string }
   | { kind: 'freebox'; address?: string }
 
 export type TvSourceFailure = { code: string; message: string }
@@ -71,6 +83,13 @@ export const applySettingsPatch = (
       ...optional('guideUrl', patch.guideUrl ?? settings.guideUrl),
       ...optional('userAgent', patch.userAgent ?? settings.userAgent),
     }
+  if (patch.kind === 'xtream' && settings.kind === 'xtream')
+    return {
+      kind: 'xtream',
+      serverUrl: patch.serverUrl ?? settings.serverUrl,
+      username: patch.username ?? settings.username,
+      password: patch.password ?? settings.password,
+    }
   if (patch.kind === 'freebox' && settings.kind === 'freebox')
     return { kind: 'freebox', address: patch.address ?? settings.address }
   return undefined
@@ -100,7 +119,16 @@ export type TvSourceRepository = {
   /** Inserts or replaces the source's own fields (name, settings, connection limit). */
   save: (source: TvSource) => void
   delete: (id: string) => void
-  recordSuccess: (input: { id: string; at: Date; discoveredGuideUrl?: string }) => void
+  /**
+   * Records a successful refresh; `account` (an `xtream` source's) replaces the connection limit
+   * with the account's (no limit without `maxConnections`).
+   */
+  recordSuccess: (input: {
+    id: string
+    at: Date
+    discoveredGuideUrl?: string
+    account?: { maxConnections?: number }
+  }) => void
   /** Records the failure and returns the new count of consecutive failures. */
   recordFailure: (input: { id: string; at: Date; error: TvSourceFailure }) => number
   /** Records a `refresh_tv_guide` attempt, whatever its outcome (§29.3). */

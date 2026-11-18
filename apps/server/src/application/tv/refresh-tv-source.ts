@@ -106,6 +106,7 @@ export const refreshTvSourceFactory =
       ...(listing.value.guideUrl === undefined
         ? {}
         : { discoveredGuideUrl: listing.value.guideUrl }),
+      ...(listing.value.account === undefined ? {} : { account: listing.value.account }),
     })
     notifier.resolve({ kind: 'tv/source_unreachable', key: sourceId })
 

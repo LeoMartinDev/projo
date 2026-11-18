@@ -5,13 +5,14 @@ import type { TvUpstream } from '../../../core/tv/channel.ts'
 import type { TvGuideRead, TvGuideSink } from '../../../core/tv/guide.ts'
 import type { TvChannelListing, TvProviderError } from '../../../core/tv/provider.ts'
 import { fetchFailureReason } from '../fetch-failure.ts'
+import { fetchFollowingRedirects } from '../fetch-redirects.ts'
 import { readXmltv, type XmltvReaderOptions } from '../xmltv/xmltv-reader.ts'
 import { createM3uParser, type M3uPlaylist } from './m3u-parser.ts'
 
 export const M3U_TIMEOUT_MS = 60_000
 export const M3U_MAX_BYTES = 64 * 1024 * 1024
 
-type Fetch = (input: string, init: RequestInit) => Promise<Response>
+type Fetch = (input: string, init: BunFetchRequestInit) => Promise<Response>
 
 export type M3uProvider = {
   listChannels: (input: {
@@ -91,20 +92,22 @@ export const createM3uProvider = ({
         }),
       )
     const timeout = AbortSignal.timeout(timeoutMs)
-    const response = await doFetch(settings.playlistUrl, {
-      headers: settings.userAgent === undefined ? {} : { 'User-Agent': settings.userAgent },
-      redirect: 'follow',
-      signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
-    }).then(
-      (value) => ({ ok: true as const, value }),
-      (cause: unknown) => ({ ok: false as const, cause }),
+    // Redirects one hop at a time, never from https down to http: the URL carries the secret.
+    const followed = await fetchFollowingRedirects(
+      settings.playlistUrl,
+      {
+        headers: settings.userAgent === undefined ? {} : { 'User-Agent': settings.userAgent },
+        signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
+      },
+      doFetch,
     )
-    if (!response.ok) return unreachable(fetchFailureReason(response.cause))
-    if (!response.value.ok || !response.value.body) {
-      await response.value.body?.cancel().catch(() => {})
-      return unreachable('http_status', { status: response.value.status })
+    if (!followed.ok) return unreachable(followed.reason)
+    const { response } = followed
+    if (!response.ok || !response.body) {
+      await response.body?.cancel().catch(() => {})
+      return unreachable('http_status', { status: response.status })
     }
-    const read = await readPlaylist(response.value.body, maxBytes)
+    const read = await readPlaylist(response.body, maxBytes)
     if (read.kind === 'failed') return unreachable(fetchFailureReason(read.cause))
     if (read.kind === 'too_large') return invalid('too_large')
     const { playlist } = read

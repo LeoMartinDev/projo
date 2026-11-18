@@ -1,4 +1,5 @@
 import { type AppError, appError, err, ok, type Result } from '@projo/shared'
+import { limitFromAccount } from '@projo/shared/api/tv'
 
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
@@ -27,7 +28,8 @@ export type UpdateTvSourceError = AppError<'tv/source_not_found' | 'tv/source_in
 
 /**
  * Changes a source's name, settings or connection limit (§29.7); a change that reaches the
- * channel listing (playlist URL, `User-Agent`) queues a refresh.
+ * channel listing (playlist URL, `User-Agent`, Xtream server URL or credentials, Freebox address)
+ * queues a refresh. An `xtream` source's limit is its account's: the admin cannot set it.
  */
 export const updateTvSourceFactory =
   ({ tvSources, tvChannels, refreshActivity, jobQueue, logger }: Deps) =>
@@ -50,6 +52,12 @@ export const updateTvSourceFactory =
     if (settings === undefined)
       return err(
         appError('tv/source_invalid', 'the kind of a tv source cannot change', {
+          context: { id: input.id, kind: source.settings.kind },
+        }),
+      )
+    if (input.maxConnections !== undefined && limitFromAccount(source.settings.kind))
+      return err(
+        appError('tv/source_invalid', 'the connection limit of this source is its account limit', {
           context: { id: input.id, kind: source.settings.kind },
         }),
       )

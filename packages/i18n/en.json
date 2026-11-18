@@ -971,6 +971,7 @@
       },
       "kind": {
         "m3u": "M3U",
+        "xtream": "Xtream Codes",
         "freebox": "Freebox"
       },
       "state": {
@@ -987,6 +988,9 @@
         "guideUrl": "XMLTV guide URL",
         "userAgent": "User-Agent",
         "address": "Freebox address",
+        "serverUrl": "Server URL",
+        "username": "Username",
+        "password": "Password",
         "maxConnections": "Simultaneous connections",
         "noLimit": "No limit",
         "removeGuide": "Remove the guide",
@@ -1676,6 +1680,7 @@
     "tv/source_not_found": "TV source not found.",
     "tv/source_unreachable": "The provider does not answer.",
     "tv/source_invalid": "The provider does not return a usable channel list.",
+    "tv/account_refused": "The provider refuses the account: wrong credentials, expired or disabled.",
     "tv/group_not_found": "Channel group not found.",
     "tv/channel_not_found": "Channel not found.",
     "tv/logo_unavailable": "Channel logo unavailable.",

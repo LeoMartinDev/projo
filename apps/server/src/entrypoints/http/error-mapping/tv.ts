@@ -6,6 +6,7 @@ export const tvErrorStatus = {
   'tv/source_not_found': 404,
   'tv/source_unreachable': 502,
   'tv/source_invalid': 422,
+  'tv/account_refused': 502,
   'tv/group_not_found': 404,
   'tv/channel_not_found': 404,
   'tv/logo_unavailable': 502,

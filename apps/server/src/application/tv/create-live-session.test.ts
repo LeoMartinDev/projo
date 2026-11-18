@@ -65,6 +65,26 @@ describe('createLiveSession (§29.4)', () => {
     expect(world.sessions.rows.size).toBe(0)
   })
 
+  test('an upstream that is not a stream URL is never opened (§29.4)', async () => {
+    const world = createLiveWorld()
+    for (const [id, url] of [
+      ['relative', 'live/101.ts'],
+      ['local', '/etc/passwd'],
+      ['file', 'file:///etc/passwd'],
+      ['windows', 'C:\\media\\a.ts'],
+    ] as const) {
+      const channel = world.addChannel(id)
+      world.channels.channels.set(id, { ...channel, upstream: { url } })
+      expect(await open(world, id)).toMatchObject({
+        ok: false,
+        error: { code: 'tv/stream_unavailable', context: { reason: 'invalid_upstream' } },
+      })
+    }
+    expect(world.prober.calls).toEqual([])
+    expect(world.relay.runs).toEqual([])
+    expect(world.sessions.rows.size).toBe(0)
+  })
+
   test('a stream that never gets ready leaves no session behind', async () => {
     const world = createLiveWorld()
     world.addChannel('a')

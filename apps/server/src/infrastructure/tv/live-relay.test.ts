@@ -153,3 +153,35 @@ describe.skipIf(!hasFfmpeg())('live relay: compat runs with real ffmpeg (§29.4)
     relay.removeStream({ channelId: 'a', rendition: 'compat' })
   }, 60_000)
 })
+
+describe.skipIf(!hasFfmpeg())("live relay: ffmpeg's errors (§29.4) with real ffmpeg", () => {
+  test("an upstream's URL and credentials never reach the run's error lines", async () => {
+    const panel = Bun.serve({
+      port: 0,
+      hostname: '127.0.0.1',
+      fetch: () => new Response('no', { status: 401 }),
+    })
+    const temp = createTempDir('projo-live-relay-errors-')
+    try {
+      const { logger } = createCapturingLogger()
+      const relay = createLiveRelay({ liveDir: temp.path.replaceAll('\\', '/'), logger })
+      // A short username (a token only) and a password needing percent-encoding.
+      const secrets = ['jo', 'p@ss/w0rd 1']
+      const url = `http://127.0.0.1:${panel.port}/live/jo/${encodeURIComponent('p@ss/w0rd 1')}/101.ts`
+      const run = relay.start({
+        channelId: 'x',
+        run: 1,
+        upstream: { url, secrets },
+        videoCodec: 'h264',
+      })
+      const exit = await run.exited
+      expect(exit.exitCode).not.toBe(0)
+      expect(exit.errorLines).toContain(`http://127.0.0.1:${panel.port}/…`)
+      for (const leak of ['/live/', 'jo/', 'p@ss', 'p%40ss', 'w0rd', '101.ts'])
+        expect(exit.errorLines).not.toContain(leak)
+    } finally {
+      await panel.stop(true)
+      temp.cleanup()
+    }
+  }, 30_000)
+})

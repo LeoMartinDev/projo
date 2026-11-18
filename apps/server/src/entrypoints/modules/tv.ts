@@ -59,6 +59,7 @@ import { createTvLogoDownloader } from '../../infrastructure/tv/logo-downloader.
 import { createFreeboxProvider } from '../../infrastructure/tv/freebox/freebox-provider.ts'
 import { createM3uProvider } from '../../infrastructure/tv/m3u/m3u-provider.ts'
 import { createTvSourceProvider } from '../../infrastructure/tv/providers.ts'
+import { createXtreamProvider } from '../../infrastructure/tv/xtream/xtream-provider.ts'
 import { adminTvRoutes } from '../http/routes/admin-tv.ts'
 import { tvRoutes } from '../http/routes/tv.ts'
 import { defineJobHandlers } from '../jobs/handler.ts'
@@ -106,6 +107,7 @@ export const buildTvModule = (
     provider ??
     createTvSourceProvider({
       m3u: createM3uProvider(),
+      xtream: createXtreamProvider({ now: () => clock.now() }),
       freebox: createFreeboxProvider({ now: () => clock.now() }),
     })
   const tvAccess = createSqliteTvProfileAccess({ db })

@@ -4,11 +4,11 @@ import { createTvWorld } from '../../../test/support/tv-world.ts'
 
 test('lists the sources with their channel counts and state', async () => {
   const world = createTvWorld()
-  const a = world.createTvSource({
+  const a = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   })
-  const b = world.createTvSource({
+  const b = world.addTvSource({
     name: 'B',
     settings: { kind: 'm3u', playlistUrl: 'http://b/list.m3u' },
   })

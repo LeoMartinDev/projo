@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { type AdminTvSourceDto, type TvSourceKind, tvSourceKinds } from '@projo/shared/api/tv'
+import {
+  type AdminTvSourceDto,
+  limitFromAccount,
+  type TvSourceKind,
+  tvSourceKinds,
+} from '@projo/shared/api/tv'
 
 import { Field } from '../../../shared/ui/controls.tsx'
 import { CloseIcon } from '../../../shared/ui/icons.tsx'
@@ -100,6 +105,73 @@ const M3uFields = ({ idPrefix, form, invalid, onChange, stored }: FieldsProps) =
   )
 }
 
+/** What a stored credential shows: never returned, only kept (§29.7). */
+const storedSecret = '••••••••'
+
+/** An Xtream Codes panel's server URL, username and password (§29.6). */
+const XtreamFields = ({ idPrefix, form, invalid, onChange, stored }: FieldsProps) => {
+  const { t } = useTranslation()
+  const id = (field: SourceField) => fieldId(idPrefix, field)
+  const secretPlaceholder = stored === undefined ? {} : { placeholder: storedSecret }
+  return (
+    <>
+      <Field
+        id={id('serverUrl')}
+        label={t('admin.tv.form.serverUrl')}
+        invalid={invalid.has('serverUrl')}
+      >
+        <input
+          id={id('serverUrl')}
+          className="field__input mono"
+          type="url"
+          inputMode="url"
+          value={form.serverUrl}
+          maxLength={512}
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={invalid.has('serverUrl')}
+          onChange={(event) => onChange({ serverUrl: event.target.value })}
+        />
+      </Field>
+      <Field
+        id={id('username')}
+        label={t('admin.tv.form.username')}
+        invalid={invalid.has('username')}
+      >
+        <input
+          id={id('username')}
+          className="field__input mono"
+          value={form.username}
+          maxLength={200}
+          autoComplete="off"
+          spellCheck={false}
+          {...secretPlaceholder}
+          aria-invalid={invalid.has('username')}
+          onChange={(event) => onChange({ username: event.target.value })}
+        />
+      </Field>
+      <Field
+        id={id('password')}
+        label={t('admin.tv.form.password')}
+        invalid={invalid.has('password')}
+      >
+        <input
+          id={id('password')}
+          className="field__input mono"
+          type="password"
+          value={form.password}
+          maxLength={200}
+          autoComplete="new-password"
+          spellCheck={false}
+          {...secretPlaceholder}
+          aria-invalid={invalid.has('password')}
+          onChange={(event) => onChange({ password: event.target.value })}
+        />
+      </Field>
+    </>
+  )
+}
+
 /** A Freebox's address on its network (§29.6). */
 const FreeboxFields = ({ idPrefix, form, invalid, onChange }: FieldsProps) => {
   const { t } = useTranslation()
@@ -122,13 +194,21 @@ const FreeboxFields = ({ idPrefix, form, invalid, onChange }: FieldsProps) => {
   )
 }
 
-const KindFields = ({ kind, ...props }: FieldsProps & { kind: TvSourceKind }) =>
-  kind === 'freebox' ? <FreeboxFields {...props} /> : <M3uFields {...props} />
+const KindFields = ({ kind, ...props }: FieldsProps & { kind: TvSourceKind }) => {
+  switch (kind) {
+    case 'm3u':
+      return <M3uFields {...props} />
+    case 'xtream':
+      return <XtreamFields {...props} />
+    case 'freebox':
+      return <FreeboxFields {...props} />
+  }
+}
 
 /**
  * The fields of a TV source: its name, `kindField`, then its kind's settings. With `stored` (an
- * existing source), each masked URL field shows the stored URL as its placeholder and the
- * connection limit is offered. `reserveKinds` (the kind can change) lays every kind's fields
+ * existing source), each masked field shows the stored value as its placeholder and the
+ * connection limit is offered (read-only when it is the provider account's). `reserveKinds` (the kind can change) lays every kind's fields
  * over one another, the others hidden, so the form keeps its size when the kind changes.
  */
 export const SourceFields = ({
@@ -190,6 +270,7 @@ export const SourceFields = ({
             max={1000}
             step={1}
             value={form.maxConnections}
+            readOnly={limitFromAccount(form.kind)}
             placeholder={t('admin.tv.form.noLimit')}
             aria-invalid={invalid.has('maxConnections')}
             onChange={(event) => onChange({ maxConnections: event.target.value })}

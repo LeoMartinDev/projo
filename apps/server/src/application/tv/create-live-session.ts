@@ -8,6 +8,7 @@ import type { Logger } from '../../core/logger.ts'
 import type { TvChannelRepository } from '../../core/tv/channel.ts'
 import type { LiveSession, LiveSessionRepository } from '../../core/tv/live-session.ts'
 import type { TvSourceProvider } from '../../core/tv/provider.ts'
+import { isRelayableUpstream } from '../../core/tv/live.ts'
 import { liveRenditionOf } from '../../core/tv/rendition.ts'
 import type { TvSourceRepository } from '../../core/tv/source.ts'
 import type { TvProfileAccess } from '../../core/tv/viewer.ts'
@@ -84,6 +85,16 @@ export const createLiveSessionFactory =
         appError('tv/channel_not_found', 'tv channel not found', { context: { channelId } }),
       )
     }
+    const upstream = provider.upstreamOf({ settings: source.settings, upstream: channel.upstream })
+    if (upstream === undefined || !isRelayableUpstream(upstream.url)) {
+      // Never a local path nor an unknown scheme: the stored upstream cannot be opened (§29.4).
+      logger.warn('live stream refused: the upstream is not a stream URL', { channelId })
+      return err(
+        appError('tv/stream_unavailable', 'the channel has no stream URL', {
+          context: { channelId, reason: 'invalid_upstream' },
+        }),
+      )
+    }
     // The running copy's probe first: the cached one may have been dropped meanwhile.
     const probeOf = () => streams.probeOf(channelId) ?? tvChannels.probeOf(channelId)
     const chosen = liveRenditionOf(probeOf(), capabilities)
@@ -104,7 +115,7 @@ export const createLiveSessionFactory =
     const target = {
       sessionId: session.id,
       channel: { id: channel.id, sourceId: channel.sourceId },
-      upstream: provider.upstreamOf({ settings: source.settings, upstream: channel.upstream }),
+      upstream,
       maxConnections: source.maxConnections,
     }
     const joined = streams.join({ ...target, rendition: session.rendition })

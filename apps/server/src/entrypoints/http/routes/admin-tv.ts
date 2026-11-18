@@ -77,7 +77,9 @@ export const adminTvRoutes = ({
         settings: toTvSourceSettings(settings),
         ...(maxConnections === undefined ? {} : { maxConnections }),
       })
-      return c.json(toAdminTvSourceDto(created), 201)
+      return created.ok
+        ? c.json(toAdminTvSourceDto(created.value), 201)
+        : respondError(c, created.error)
     })
     .get('/tv/sources/:id', (c) => {
       const result = getTvSource({ id: c.req.param('id') })

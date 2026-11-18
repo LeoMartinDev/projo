@@ -21,6 +21,10 @@ const failureSchema = z.object({ code: z.string(), message: z.string() })
 const toSettings = (value: unknown): TvSourceSettings => {
   const settings = parseJsonColumn(tvSourceSettingsInputSchema, value, 'tv_sources.settings')
   if (settings.kind === 'freebox') return { kind: 'freebox', address: settings.address }
+  if (settings.kind === 'xtream') {
+    const { serverUrl, username, password } = settings
+    return { kind: 'xtream', serverUrl, username, password }
+  }
   const { kind, playlistUrl, guideUrl, userAgent } = settings
   return {
     kind,
@@ -84,7 +88,7 @@ export const createSqliteTvSourceRepository = ({ db }: { db: Db }): TvSourceRepo
   delete: (id) => {
     db.delete(tvSources).where(eq(tvSources.id, id)).run()
   },
-  recordSuccess: ({ id, at, discoveredGuideUrl }) => {
+  recordSuccess: ({ id, at, discoveredGuideUrl, account }) => {
     db.update(tvSources)
       .set({
         lastAttemptAt: toIso(at),
@@ -92,6 +96,7 @@ export const createSqliteTvSourceRepository = ({ db }: { db: Db }): TvSourceRepo
         lastError: null,
         failureCount: 0,
         discoveredGuideUrl: toNullable(discoveredGuideUrl),
+        ...(account === undefined ? {} : { maxConnections: toNullable(account.maxConnections) }),
       })
       .where(eq(tvSources.id, id))
       .run()

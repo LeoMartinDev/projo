@@ -11,12 +11,10 @@ import {
   type LiveStreamKey,
 } from '../../core/tv/live.ts'
 import { createCompatAccelerations } from './compat-accelerations.ts'
-import { liveCompatArgs, liveRelayArgs, maskUrls } from './live-args.ts'
+import { createMaskedTail, liveCompatArgs, liveRelayArgs } from './live-args.ts'
 
+/** What a run keeps of ffmpeg's stderr: its last characters, masked before the cut. */
 const stderrKeptChars = 2_000
-
-const tail = (text: string): string =>
-  text.length <= stderrKeptChars ? text : text.slice(text.length - stderrKeptChars)
 
 const remove = (path: string): void => {
   try {
@@ -24,14 +22,21 @@ const remove = (path: string): void => {
   } catch {}
 }
 
-/** Reads a process's stderr to the end, keeping its last lines. */
-const readTail = async (stream: ReadableStream<Uint8Array>): Promise<string> => {
+/**
+ * Reads a process's stderr to the end, keeping its last lines masked (§29.4): each line is
+ * masked whole before the text is cut, so a cut never leaves part of a URL or a secret.
+ */
+const readMaskedTail = async (
+  stream: ReadableStream<Uint8Array>,
+  secrets: readonly string[],
+): Promise<string> => {
   const decoder = new TextDecoder()
-  let kept = ''
+  const tail = createMaskedTail(secrets, stderrKeptChars)
   try {
-    for await (const chunk of stream) kept = tail(kept + decoder.decode(chunk, { stream: true }))
+    for await (const chunk of stream) tail.push(decoder.decode(chunk, { stream: true }))
+    tail.push(decoder.decode())
   } catch {}
-  return kept
+  return tail.text()
 }
 
 const finishedRun = (exit: LiveRunExit): LiveRun => ({
@@ -74,6 +79,7 @@ export const createLiveRelay = ({
     dir: string,
     args: string[],
     stdin: 'ignore' | 'pipe',
+    secrets: readonly string[] = [],
   ):
     | { proc: Bun.Subprocess<'ignore' | 'pipe', 'ignore', 'pipe'>; exited: Promise<LiveRunExit> }
     | undefined => {
@@ -85,10 +91,10 @@ export const createLiveRelay = ({
       logger.error('cannot start ffmpeg for a live stream', { channelId, error: cause })
       return undefined
     }
-    const stderr = readTail(proc.stderr)
+    const stderr = readMaskedTail(proc.stderr, secrets)
     const exited = (async (): Promise<LiveRunExit> => {
       const exitCode = await proc.exited
-      return { exitCode, errorLines: maskUrls((await stderr).trim()) }
+      return { exitCode, errorLines: await stderr }
     })()
     return { proc, exited }
   }
@@ -96,7 +102,13 @@ export const createLiveRelay = ({
   return {
     start: (spec) => {
       const dir = dirOf({ channelId: spec.channelId, rendition: 'copy' })
-      const spawned = spawn(spec.channelId, dir, liveRelayArgs({ spec, dir }), 'ignore')
+      const spawned = spawn(
+        spec.channelId,
+        dir,
+        liveRelayArgs({ spec, dir }),
+        'ignore',
+        spec.upstream.secrets,
+      )
       if (spawned === undefined) {
         return finishedRun({ exitCode: -1, errorLines: 'ffmpeg could not be started' })
       }

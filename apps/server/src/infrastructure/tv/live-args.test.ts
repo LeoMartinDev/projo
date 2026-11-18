@@ -6,6 +6,7 @@ import {
   liveProbeArgs,
   liveProtocols,
   liveRelayArgs,
+  createMaskedTail,
   maskUrls,
 } from './live-args.ts'
 
@@ -109,6 +110,80 @@ describe('ffmpeg arguments of the relay (§29.4)', () => {
     ).toBe(
       "[http @ 0x1] HTTP error 403 Forbidden\nhttp://provider.test:8080/… Server returned 403 Forbidden 'rtsp://box.lan/…'",
     )
+  })
+
+  test("an upstream's secrets are masked wherever ffmpeg's output holds them (§29.2)", () => {
+    expect(
+      maskUrls('/live/alice-user/hunter22/101.ts: Invalid data found at http://p.test/live/x', [
+        'alice-user',
+        'hunter22',
+      ]),
+    ).toBe('/live/***/***/101.ts: Invalid data found at http://p.test/…')
+  })
+
+  test('a secret holding another is masked whole, the longest first, raw and percent-encoded', () => {
+    expect(
+      maskUrls('user john1234 and john; encoded j%40hn%2F12 j%40hn%2f12', [
+        'john',
+        'john1234',
+        'j@hn/12',
+      ]),
+    ).toBe('user *** and ***; encoded *** ***')
+  })
+
+  test('a short secret is masked as a token of a path or query, not inside words', () => {
+    const masked = maskUrls(
+      'Opening \'live/ab/x1/7.ts\' failed; user=ab&pass=x1 for ab: about x1y /x1/ "ab"',
+      ['ab', 'x1'],
+    )
+    expect(masked).toBe(
+      'Opening \'live/***/***/7.ts\' failed; user=***&pass=*** for ***: about x1y /***/ "***"',
+    )
+    expect(maskUrls('a/b', ['a', ''])).toBe('***/b')
+  })
+
+  test('scheme-less stream paths and credential parameters are masked without secrets', () => {
+    expect(
+      maskUrls('GET /live/someone/hunter2/1.ts and /player_api.php?username=x&password=y&a=b'),
+    ).toBe('GET /live/***/***/1.ts and /player_api.php?username=***&password=***&a=b')
+  })
+
+  test('a long output is masked before it is cut: no tail of a URL or a secret is left', () => {
+    const secrets = ['projo-user', 's3cret/pass']
+    const url = 'http://panel.test:8080/live/projo-user/s3cret%2Fpass/101.ts'
+    for (const cutAt of [5, url.indexOf('s3cret') + 3, url.indexOf('pass/') + 2]) {
+      // The kept window starts `cutAt` characters into the URL of the first line.
+      const lines = `${url}: Server returned 401\n${'x'.repeat(50)}\n`
+      const masked = maskUrls(lines, secrets)
+      const maxChars = masked.length - masked.indexOf('/…') + 1
+      const tail = createMaskedTail(secrets, maxChars - cutAt)
+      for (const char of lines) tail.push(char)
+      const kept = tail.text()
+      expect(kept).not.toContain('s3cret')
+      expect(kept).not.toContain('pass')
+      expect(kept).not.toContain('projo')
+      expect(kept).not.toContain('101.ts')
+    }
+
+    const tail = createMaskedTail(secrets, 120)
+    for (let line = 0; line < 50; line += 1)
+      tail.push(`[http @ 0x${line}] ${url}?token=t${line}: Server returned 401\r\n`)
+    tail.push(`last ${url.slice(0, 40)}`)
+    tail.push(`${url.slice(40)} ended`)
+    const kept = tail.text()
+    expect(kept.length).toBeLessThanOrEqual(121)
+    expect(kept.startsWith('…')).toBe(true)
+    expect(kept).toEndWith('last http://panel.test:8080/… ended')
+    for (const leak of ['s3cret', 'projo-user', '%2F', 'token', '101.ts'])
+      expect(kept).not.toContain(leak)
+  })
+
+  test('a line too long to be a message is left out up to its end', () => {
+    const tail = createMaskedTail(['hunter22'], 2_000)
+    tail.push('first line\n')
+    tail.push(`noise ${'y'.repeat(70 * 1024)}`)
+    tail.push('hunter22 still the same line\nnext line')
+    expect(tail.text()).toBe('…first line\nnext line')
   })
 })
 

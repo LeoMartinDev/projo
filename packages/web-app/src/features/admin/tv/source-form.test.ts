@@ -155,3 +155,56 @@ describe('a Freebox source', () => {
     expect(toPatchBody(freebox, { ...form, maxConnections: '' })).toEqual({ maxConnections: '' })
   })
 })
+
+describe('an Xtream Codes source', () => {
+  const xtream: AdminTvSourceDto = {
+    ...source,
+    kind: 'xtream',
+    settings: { kind: 'xtream', serverUrl: 'http://line.example:8080' },
+  }
+
+  test('a new source needs the server URL, the username and the password', () => {
+    const form = { ...emptySourceForm, kind: 'xtream' as const, name: 'Panel' }
+    expect(invalidSourceFields(form, { creating: true })).toEqual(
+      new Set(['serverUrl', 'username', 'password']),
+    )
+    const filled = {
+      ...form,
+      serverUrl: ' http://line.example:8080/ ',
+      username: 'jo',
+      password: 'p@ss/word',
+      maxConnections: '3',
+    }
+    expect(invalidSourceFields(filled, { creating: true }).size).toBe(0)
+    // The account sets the connection limit (§29.2): never sent.
+    expect(toCreateBody(filled)).toEqual({
+      name: 'Panel',
+      settings: {
+        kind: 'xtream',
+        serverUrl: 'http://line.example:8080/',
+        username: 'jo',
+        password: 'p@ss/word',
+      },
+    })
+    expect(
+      invalidSourceFields(
+        { ...filled, serverUrl: 'http://line.example/panel', password: 'with space' },
+        { creating: true },
+      ),
+    ).toEqual(new Set(['serverUrl', 'password']))
+  })
+
+  test('empty credentials keep the stored ones; the limit is never patched', () => {
+    const form = sourceFormOf(xtream)
+    expect(form).toMatchObject({
+      serverUrl: 'http://line.example:8080',
+      username: '',
+      password: '',
+    })
+    expect(invalidSourceFields(form, { creating: false }).size).toBe(0)
+    expect(isEmptyPatch(toPatchBody(xtream, { ...form, maxConnections: '' }))).toBe(true)
+    expect(toPatchBody(xtream, { ...form, password: 'new-pass' })).toEqual({
+      settings: { kind: 'xtream', password: 'new-pass' },
+    })
+  })
+})

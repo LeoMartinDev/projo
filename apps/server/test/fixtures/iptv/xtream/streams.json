@@ -1,0 +1,72 @@
+[
+  {
+    "num": 1,
+    "name": "News One",
+    "stream_type": "live",
+    "stream_id": 101,
+    "stream_icon": "{{base}}/logos/news-one.png",
+    "epg_channel_id": "news.one",
+    "added": "1609459200",
+    "category_id": "1",
+    "category_ids": [1],
+    "custom_sid": "",
+    "tv_archive": 0,
+    "direct_source": "",
+    "tv_archive_duration": 0
+  },
+  {
+    "num": "2",
+    "name": "  News   Two ",
+    "stream_type": "live",
+    "stream_id": "102",
+    "stream_icon": "",
+    "epg_channel_id": null,
+    "added": "1609459200",
+    "category_id": 1,
+    "custom_sid": null,
+    "tv_archive": "0",
+    "direct_source": "http://direct.example/ignored.ts",
+    "tv_archive_duration": null
+  },
+  {
+    "num": null,
+    "name": "Sport One",
+    "stream_type": "created_live",
+    "stream_id": 103,
+    "stream_icon": "javascript:alert(1)",
+    "epg_channel_id": "",
+    "category_id": "2"
+  },
+  {
+    "num": 4,
+    "name": "Radio One",
+    "stream_type": "radio_streams",
+    "stream_id": 104,
+    "stream_icon": "{{base}}/logos/radio.png",
+    "epg_channel_id": "radio.one",
+    "category_id": "3"
+  },
+  {
+    "num": 5,
+    "name": "A Movie",
+    "stream_type": "movie",
+    "stream_id": 105,
+    "category_id": "1"
+  },
+  {
+    "num": 6,
+    "name": "News One again",
+    "stream_type": "live",
+    "stream_id": 101,
+    "category_id": "1"
+  },
+  {
+    "num": "7",
+    "name": "Interlaced TV",
+    "stream_id": 110,
+    "category_id": "99"
+  },
+  { "num": 8, "name": "Broken id", "stream_type": "live", "stream_id": "abc", "category_id": "1" },
+  { "num": 9, "name": "", "stream_type": "live", "stream_id": 109, "category_id": "1" },
+  "not an entry"
+]

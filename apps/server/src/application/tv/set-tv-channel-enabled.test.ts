@@ -4,7 +4,7 @@ import { createTvWorld } from '../../../test/support/tv-world.ts'
 
 test('switches one channel and queues its logo when enabled; a missing one is not found', async () => {
   const world = createTvWorld()
-  const { id: sourceId } = world.createTvSource({
+  const { id: sourceId } = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   })

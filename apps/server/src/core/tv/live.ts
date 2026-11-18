@@ -152,6 +152,18 @@ export const liveTimings = {
 export const isLiveFileName = (name: string): boolean =>
   /^(?:init-\d{1,6}\.mp4|seg-\d{1,6}-\d{5,9}\.m4s)$/u.test(name)
 
+/** Schemes the relay opens (§29.2, §29.4). */
+const relayedSchemes = new Set(['http', 'https', 'rtsp', 'rtsps', 'rtp', 'udp'])
+
+/**
+ * Whether the relay may open `url`: an absolute URL of a relayed scheme with a host. Anything
+ * else (a relative or local path, `file:`…) is never handed to ffmpeg, whatever the source's kind.
+ */
+export const isRelayableUpstream = (url: string): boolean => {
+  const match = /^([a-z][a-z0-9+.-]*):\/\/[^\s/?#]+/iu.exec(url) ?? undefined
+  return match !== undefined && relayedSchemes.has(match[1]?.toLowerCase() ?? '')
+}
+
 /** `<scheme>://<host>[:port]`: what logs may say of an upstream, never its path or query. */
 export const upstreamHostOf = (url: string): string => {
   const match = /^([a-z][a-z0-9+.-]*):\/\/(?:[^/?#@]*@)?([^/?#]*)/iu.exec(url) ?? undefined

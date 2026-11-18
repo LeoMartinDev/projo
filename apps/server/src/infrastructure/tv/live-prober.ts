@@ -41,7 +41,10 @@ const failure = (
       context: {
         upstream: upstreamHostOf(upstream.url),
         reason,
-        ...(stderr === undefined || stderr === '' ? {} : { stderr: maskUrls(stderrTail(stderr)) }),
+        ...(stderr === undefined || stderr === ''
+          ? {}
+          : // Masked whole, then cut: a cut inside a URL or a secret would leave its tail.
+            { stderr: stderrTail(maskUrls(stderr, upstream.secrets)) }),
       },
     }),
   )

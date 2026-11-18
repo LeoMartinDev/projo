@@ -4,7 +4,7 @@
 
 .tv-tr {
   grid-template-columns:
-    minmax(0, 1.4fr) 88px minmax(0, 0.8fr) minmax(0, 1fr)
+    minmax(0, 1.4fr) 112px minmax(0, 0.8fr) minmax(0, 1fr)
     minmax(0, 1.4fr);
 }
 
@@ -47,6 +47,12 @@
 /* The form scrolls inside its tab: its rows keep their size instead of shrinking to fit. */
 .tv-form > * {
   flex: 0 0 auto;
+}
+
+/* An Xtream source's connection limit is its account's (§29.2): shown, never edited. */
+.tv-form .field__input[readonly] {
+  color: var(--color-text-muted);
+  cursor: default;
 }
 
 /* Every kind's fields over one another, the others hidden: the form keeps its size. */

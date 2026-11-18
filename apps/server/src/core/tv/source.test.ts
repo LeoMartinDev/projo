@@ -42,6 +42,20 @@ describe('applySettingsPatch', () => {
       listingSettingsChanged(freebox, { kind: 'freebox', address: 'http://192.168.1.254' }),
     ).toBe(true)
   })
+
+  test('an Xtream source keeps every credential its patch does not name', () => {
+    const xtream: TvSourceSettings = {
+      kind: 'xtream',
+      serverUrl: 'http://panel.test:8080',
+      username: 'jo',
+      password: 'secret',
+    }
+    expect(applySettingsPatch(xtream, { kind: 'xtream' })).toEqual(xtream)
+    const changed = applySettingsPatch(xtream, { kind: 'xtream', password: 'other' })
+    expect(changed).toEqual({ ...xtream, password: 'other' })
+    expect(listingSettingsChanged(xtream, changed ?? xtream)).toBe(true)
+    expect(applySettingsPatch(xtream, { kind: 'm3u' })).toBeUndefined()
+  })
 })
 
 describe('listingSettingsChanged', () => {

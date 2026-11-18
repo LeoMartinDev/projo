@@ -34,39 +34,70 @@ export const maskUrl = (url: string): string => {
   return `${protocol}//${host}/…`
 }
 
-export const toTvSourceSettingsDto = (settings: TvSourceSettings): TvSourceSettingsDto =>
-  settings.kind === 'freebox'
-    ? { kind: 'freebox', address: settings.address }
-    : {
-        kind: settings.kind,
+/** An Xtream panel's origin (§29.7): its URL holds no path, its credentials are never shown. */
+const originOf = (url: string): string => (URL.canParse(url) ? new URL(url).origin : '…')
+
+export const toTvSourceSettingsDto = (settings: TvSourceSettings): TvSourceSettingsDto => {
+  switch (settings.kind) {
+    case 'freebox':
+      return { kind: 'freebox', address: settings.address }
+    case 'xtream':
+      return { kind: 'xtream', serverUrl: originOf(settings.serverUrl) }
+    case 'm3u':
+      return {
+        kind: 'm3u',
         playlistUrl: maskUrl(settings.playlistUrl),
         ...(settings.guideUrl === undefined ? {} : { guideUrl: maskUrl(settings.guideUrl) }),
         ...(settings.userAgent === undefined ? {} : { userAgent: settings.userAgent }),
       }
+  }
+}
 
 /** The settings of a `POST /admin/tv/sources` body. */
-export const toTvSourceSettings = (input: TvSourceSettingsInput): TvSourceSettings =>
-  input.kind === 'freebox'
-    ? { kind: 'freebox', address: input.address }
-    : {
-        kind: input.kind,
+export const toTvSourceSettings = (input: TvSourceSettingsInput): TvSourceSettings => {
+  switch (input.kind) {
+    case 'freebox':
+      return { kind: 'freebox', address: input.address }
+    case 'xtream':
+      return {
+        kind: 'xtream',
+        serverUrl: input.serverUrl,
+        username: input.username,
+        password: input.password,
+      }
+    case 'm3u':
+      return {
+        kind: 'm3u',
         playlistUrl: input.playlistUrl,
         ...(input.guideUrl === undefined ? {} : { guideUrl: input.guideUrl }),
         ...(input.userAgent === undefined ? {} : { userAgent: input.userAgent }),
       }
+  }
+}
 
 /** The settings of a `PATCH /admin/tv/sources/:id` body. */
 export const toTvSourceSettingsPatch = (
   input: TvSourceSettingsPatchInput,
-): TvSourceSettingsPatch =>
-  input.kind === 'freebox'
-    ? { kind: 'freebox', ...(input.address === undefined ? {} : { address: input.address }) }
-    : {
-        kind: input.kind,
+): TvSourceSettingsPatch => {
+  switch (input.kind) {
+    case 'freebox':
+      return { kind: 'freebox', ...(input.address === undefined ? {} : { address: input.address }) }
+    case 'xtream':
+      return {
+        kind: 'xtream',
+        ...(input.serverUrl === undefined ? {} : { serverUrl: input.serverUrl }),
+        ...(input.username === undefined ? {} : { username: input.username }),
+        ...(input.password === undefined ? {} : { password: input.password }),
+      }
+    case 'm3u':
+      return {
+        kind: 'm3u',
         ...(input.playlistUrl === undefined ? {} : { playlistUrl: input.playlistUrl }),
         ...(input.guideUrl === undefined ? {} : { guideUrl: input.guideUrl }),
         ...(input.userAgent === undefined ? {} : { userAgent: input.userAgent }),
       }
+  }
+}
 
 export const toAdminTvSourceDto = (view: TvSourceView): AdminTvSourceDto => ({
   id: view.id,

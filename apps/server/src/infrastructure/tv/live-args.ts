@@ -200,9 +200,103 @@ export const liveProbeArgs = (upstream: TvUpstream, transport?: LiveTransport): 
   ...liveInputArgs(upstream, transport, probeAnalyzeUs),
 ]
 
-/** Every URL of a text masked to `<scheme>://<host>/…`: ffmpeg quotes the upstream's URL. */
-export const maskUrls = (text: string): string =>
-  text.replace(
-    /\b([a-z][a-z0-9+.-]*):\/\/(?:[^\s/?#@'"]*@)?([^\s/?#'"]*)[^\s'"]*/giu,
-    (_match, scheme: string, host: string) => `${scheme}://${host}/…`,
-  )
+/** A secret as it may be written: raw, and percent-encoded the way URLs carry it. */
+const writtenForms = (secret: string): string[] => {
+  const encoded = encodeURIComponent(secret)
+  return [secret, encoded, encoded.replace(/%[0-9A-F]{2}/gu, (escape) => escape.toLowerCase())]
+}
+
+const escapeRegExp = (text: string): string => text.replace(/[\\^$.*+?()[\]{}|/]/gu, '\\$&')
+
+/** A secret this long or longer is masked wherever it appears; a shorter one as a token only. */
+const minFreeTextSecret = 4
+
+/**
+ * Where a short secret is a token: between the delimiters of a URL's path or query (`/`, `=`,
+ * `&`, `?`, `#`, `:`, `@`, `;`, `,`), quotes, whitespace, or the ends of the text.
+ */
+const tokenPattern = (form: string): RegExp =>
+  new RegExp(`(?<=^|[\\s/=&?#:@;,'"])${escapeRegExp(form)}(?=$|[\\s/=&?#:@;,'"])`, 'gu')
+
+/**
+ * Masks what ffmpeg's or ffprobe's output may quote of an upstream (§29.2, §29.4, §20). First
+ * each of the upstream's `secrets` (an Xtream username and password), raw and percent-encoded,
+ * the longest form first so that a secret holding another (`john1234`, `john`) leaves nothing
+ * of itself: one of 4 characters or more is masked anywhere; a shorter one only as a token of a
+ * URL's path or query (between `/`, `=`, `&`…, quotes or whitespace), which is where a credential
+ * stands, so that `ab` does not blank every word holding those two letters. Then every URL to
+ * `<scheme>://<host>/…`, an Xtream stream path quoted without its scheme (`live/<user>/<pass>/`)
+ * with both segments as `***`, and any `username=` or `password=` parameter to `***`.
+ *
+ * It masks a whole text: a caller keeping only the end of a long output masks before cutting
+ * (a cut inside a URL or a secret would leave its tail unmasked).
+ */
+export const maskUrls = (text: string, secrets: readonly string[] = []): string =>
+  [...new Set(secrets.flatMap(writtenForms))]
+    .filter((form) => form !== '')
+    .sort((a, b) => b.length - a.length)
+    .reduce(
+      (masked, form) =>
+        form.length >= minFreeTextSecret
+          ? masked.replaceAll(form, '***')
+          : masked.replace(tokenPattern(form), '***'),
+      text,
+    )
+    .replace(
+      /\b([a-z][a-z0-9+.-]*):\/\/(?:[^\s/?#@'"]*@)?([^\s/?#'"]*)[^\s'"]*/giu,
+      (_match, scheme: string, host: string) => `${scheme}://${host}/…`,
+    )
+    .replace(/\blive\/[^\s/'"]+\/[^\s/'"]+\//giu, 'live/***/***/')
+    .replace(/\b(username|password)=[^\s&#'"]*/giu, '$1=***')
+
+/** A line longer than this is not one of ffmpeg's messages: it is left out whole. */
+const maxLineChars = 64 * 1024
+
+/**
+ * The end of a process's output as it streams, at most `maxChars`, masked by `maskUrls` line by
+ * line before anything is cut: a line is masked once complete, then the text kept is cut to its
+ * last `maxChars` and the partial line the cut leaves at its start dropped (`…` in its place).
+ * A line past 64 KiB is dropped up to its end, never masked in pieces.
+ */
+export const createMaskedTail = (secrets: readonly string[], maxChars: number) => {
+  let kept = ''
+  let cut = false
+  let pending = ''
+  let skipping = false
+  const keep = (lines: string): void => {
+    kept += maskUrls(lines, secrets)
+    if (kept.length <= maxChars) return
+    kept = kept.slice(kept.length - maxChars)
+    const lineEnd = kept.search(/[\r\n]/u)
+    if (lineEnd !== -1) kept = kept.slice(lineEnd + 1)
+    cut = true
+  }
+  return {
+    push: (text: string): void => {
+      let rest = text
+      if (skipping) {
+        const lineEnd = rest.search(/[\r\n]/u)
+        if (lineEnd === -1) return
+        skipping = false
+        rest = rest.slice(lineEnd + 1)
+      }
+      pending += rest
+      const lastEnd = Math.max(pending.lastIndexOf('\n'), pending.lastIndexOf('\r'))
+      if (lastEnd !== -1) {
+        keep(pending.slice(0, lastEnd + 1))
+        pending = pending.slice(lastEnd + 1)
+      }
+      if (pending.length > maxLineChars) {
+        pending = ''
+        skipping = true
+        cut = true
+      }
+    },
+    /** The text kept, the line under way included, trimmed. */
+    text: (): string => {
+      if (pending !== '') keep(pending)
+      pending = ''
+      return `${cut ? '…' : ''}${kept}`.trim()
+    },
+  }
+}

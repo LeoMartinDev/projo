@@ -4,7 +4,7 @@ import { isoDateTimeSchema, paginationQuerySchema } from './common.ts'
 import { clientCapabilitiesSchema } from './playback.ts'
 
 /** Kinds of TV source (§29.2). */
-export const tvSourceKinds = ['m3u', 'freebox'] as const
+export const tvSourceKinds = ['m3u', 'xtream', 'freebox'] as const
 export const tvSourceKindSchema = z.enum(tvSourceKinds)
 export type TvSourceKind = z.infer<typeof tvSourceKindSchema>
 
@@ -41,6 +41,33 @@ export const freeboxAddressSchema = z
   .max(512)
   .regex(/^http:\/\/[^\s/?#@\\]+\/?$/iu, { message: 'must be an http address' })
 
+/**
+ * An Xtream Codes panel's root (§29.2): `http` or `https`, a host and an optional port, nothing
+ * else (a trailing `/` is accepted).
+ */
+export const xtreamServerUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(512)
+  .regex(/^https?:\/\/[^\s/?#@\\]+\/?$/iu, { message: 'must be an http or https address' })
+
+/** Neither whitespace nor a control character. */
+const isPrintableWord = (value: string): boolean => {
+  for (const char of value) {
+    const code = char.codePointAt(0) ?? 0
+    if (code <= 0x20 || code === 0x7f || /\s/u.test(char)) return false
+  }
+  return true
+}
+
+/** An Xtream username or password: sent percent-encoded in every URL, never trimmed. */
+export const xtreamCredentialSchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine(isPrintableWord, { message: 'must hold no whitespace nor control character' })
+
 export const tvMaxConnectionsSchema = z.number().int().min(1).max(1000)
 
 const sourceNameSchema = z.string().trim().min(1).max(100)
@@ -51,16 +78,31 @@ export const m3uSettingsInputSchema = z.object({
   guideUrl: tvHttpUrlSchema.optional(),
   userAgent: tvUserAgentSchema.optional(),
 })
+export const xtreamSettingsInputSchema = z.object({
+  kind: z.literal('xtream'),
+  serverUrl: xtreamServerUrlSchema,
+  username: xtreamCredentialSchema,
+  password: xtreamCredentialSchema,
+})
 export const freeboxSettingsInputSchema = z.object({
   kind: z.literal('freebox'),
   address: freeboxAddressSchema,
 })
 export const tvSourceSettingsInputSchema = z.discriminatedUnion('kind', [
   m3uSettingsInputSchema,
+  xtreamSettingsInputSchema,
   freeboxSettingsInputSchema,
 ])
 export type TvSourceSettingsInput = z.infer<typeof tvSourceSettingsInputSchema>
 
+/**
+ * Whether a source's connection limit is its provider account's (an `xtream` source's, read by
+ * each refresh), never the admin's (§29.2): the server refuses one (`tv/source_invalid`), the
+ * admin form shows it read-only.
+ */
+export const limitFromAccount = (kind: TvSourceKind): boolean => kind === 'xtream'
+
+/** `maxConnections` on an `xtream` source is refused by the server (`tv/source_invalid`). */
 export const createTvSourceBodySchema = z.object({
   name: sourceNameSchema,
   settings: tvSourceSettingsInputSchema,
@@ -75,12 +117,20 @@ export const m3uSettingsPatchSchema = z.object({
   guideUrl: z.union([tvHttpUrlSchema, z.literal('')]).optional(),
   userAgent: z.union([tvUserAgentSchema, z.literal('')]).optional(),
 })
+/** An absent field keeps the stored value; an empty one is refused (never wiped by accident). */
+export const xtreamSettingsPatchSchema = z.object({
+  kind: z.literal('xtream'),
+  serverUrl: xtreamServerUrlSchema.optional(),
+  username: xtreamCredentialSchema.optional(),
+  password: xtreamCredentialSchema.optional(),
+})
 export const freeboxSettingsPatchSchema = z.object({
   kind: z.literal('freebox'),
   address: freeboxAddressSchema.optional(),
 })
 export const tvSourceSettingsPatchSchema = z.discriminatedUnion('kind', [
   m3uSettingsPatchSchema,
+  xtreamSettingsPatchSchema,
   freeboxSettingsPatchSchema,
 ])
 export type TvSourceSettingsPatch = z.infer<typeof tvSourceSettingsPatchSchema>
@@ -101,6 +151,11 @@ export const m3uSettingsDtoSchema = z.object({
   guideUrl: z.string().optional(),
   userAgent: z.string().optional(),
 })
+/** The panel's origin; the username and password are never returned (§29.7). */
+export const xtreamSettingsDtoSchema = z.object({
+  kind: z.literal('xtream'),
+  serverUrl: z.string(),
+})
 /** A Freebox's address holds no secret: returned as it is. */
 export const freeboxSettingsDtoSchema = z.object({
   kind: z.literal('freebox'),
@@ -108,6 +163,7 @@ export const freeboxSettingsDtoSchema = z.object({
 })
 export const tvSourceSettingsDtoSchema = z.discriminatedUnion('kind', [
   m3uSettingsDtoSchema,
+  xtreamSettingsDtoSchema,
   freeboxSettingsDtoSchema,
 ])
 export type TvSourceSettingsDto = z.infer<typeof tvSourceSettingsDtoSchema>

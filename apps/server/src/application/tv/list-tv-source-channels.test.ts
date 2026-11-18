@@ -6,7 +6,7 @@ let world: TvWorld
 let sourceId: string
 beforeEach(async () => {
   world = createTvWorld()
-  sourceId = world.createTvSource({
+  sourceId = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   }).id

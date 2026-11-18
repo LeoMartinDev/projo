@@ -1,8 +1,17 @@
 import type { TvGuideTarget } from './guide.ts'
 import type { TvChannelProbe } from './live.ts'
 
-/** Where a channel's stream is read; never leaves the server (§29.2). */
-export type TvUpstream = { url: string; userAgent?: string; referrer?: string }
+/**
+ * Where a channel's stream is read; never leaves the server (§29.2). `secrets`: values the URL
+ * carries that the relay's logs never show (an Xtream username and password), set only by
+ * `upstreamOf`, never stored.
+ */
+export type TvUpstream = {
+  url: string
+  userAgent?: string
+  referrer?: string
+  secrets?: readonly string[]
+}
 
 export type TvGroup = {
   id: string

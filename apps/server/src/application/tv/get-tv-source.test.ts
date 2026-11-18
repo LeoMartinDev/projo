@@ -4,7 +4,7 @@ import { createTvWorld } from '../../../test/support/tv-world.ts'
 
 test('gives a source with its groups in playlist order', async () => {
   const world = createTvWorld()
-  const { id } = world.createTvSource({
+  const { id } = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   })

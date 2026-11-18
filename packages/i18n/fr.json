@@ -971,6 +971,7 @@
       },
       "kind": {
         "m3u": "M3U",
+        "xtream": "Xtream Codes",
         "freebox": "Freebox"
       },
       "state": {
@@ -987,6 +988,9 @@
         "guideUrl": "URL du guide XMLTV",
         "userAgent": "User-Agent",
         "address": "Adresse de la Freebox",
+        "serverUrl": "URL du serveur",
+        "username": "Identifiant",
+        "password": "Mot de passe",
         "maxConnections": "Connexions simultanées",
         "noLimit": "Sans limite",
         "removeGuide": "Retirer le guide",
@@ -1676,6 +1680,7 @@
     "tv/source_not_found": "Source TV introuvable.",
     "tv/source_unreachable": "Le fournisseur ne répond pas.",
     "tv/source_invalid": "Le fournisseur ne renvoie pas de liste de chaînes utilisable.",
+    "tv/account_refused": "Le fournisseur refuse le compte : identifiants erronés, abonnement expiré ou désactivé.",
     "tv/group_not_found": "Groupe de chaînes introuvable.",
     "tv/channel_not_found": "Chaîne introuvable.",
     "tv/logo_unavailable": "Logo de la chaîne indisponible.",

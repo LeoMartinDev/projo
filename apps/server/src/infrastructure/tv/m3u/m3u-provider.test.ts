@@ -80,9 +80,32 @@ describe('m3u provider', () => {
     iptv.restore('/m3u/redirected.m3u')
     expect(redirected).toMatchObject({
       ok: false,
-      error: { context: { reason: 'UnsupportedRedirectProtocol' } },
+      error: { context: { reason: 'unsupported_redirect' } },
     })
     expect(JSON.stringify(redirected.ok ? {} : redirected.error)).not.toContain('SECRET')
+  })
+
+  test('a redirect from https down to http is refused: the URL carries the secret', async () => {
+    const requested: string[] = []
+    const downgrading = createM3uProvider({
+      fetch: (input) => {
+        requested.push(input)
+        return Promise.resolve(
+          new Response(undefined, {
+            status: 302,
+            headers: { location: 'http://provider.example/list.m3u?token=SECRET' },
+          }),
+        )
+      },
+    })
+    const result = await downgrading.listChannels({
+      settings: { kind: 'm3u', playlistUrl: 'https://provider.example/list.m3u?token=SECRET' },
+    })
+    expect(result).toMatchObject({
+      ok: false,
+      error: { code: 'tv/source_unreachable', context: { reason: 'insecure_redirect' } },
+    })
+    expect(requested).toEqual(['https://provider.example/list.m3u?token=SECRET'])
   })
 
   test('an answer that is not a playlist, or holds no live channel, is invalid', async () => {

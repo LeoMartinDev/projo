@@ -7,8 +7,7 @@ const hour = 60 * 60_000
 test('queues the sources whose last attempt is a day old, and those never tried', async () => {
   const world = createTvWorld()
   const create = (name: string) =>
-    world.createTvSource({ name, settings: { kind: 'm3u', playlistUrl: `http://${name}/l.m3u` } })
-      .id
+    world.addTvSource({ name, settings: { kind: 'm3u', playlistUrl: `http://${name}/l.m3u` } }).id
   const old = create('old')
   const recent = create('recent')
   const never = create('never')

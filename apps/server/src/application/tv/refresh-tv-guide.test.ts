@@ -37,7 +37,7 @@ const titles = () =>
 
 beforeEach(async () => {
   world = createTvWorld()
-  sourceId = world.createTvSource({
+  sourceId = world.addTvSource({
     name: 'Provider',
     settings: { kind: 'm3u', playlistUrl: 'http://p/list.m3u', guideUrl: 'http://p/guide.xml' },
   }).id
@@ -146,7 +146,7 @@ describe('refreshTvGuide (§29.3)', () => {
       programmes: [programme('news', minutes(world, -5), minutes(world, 55), 'Soon over')],
     })
     await world.refreshTvGuide({ sourceId })
-    const other = world.createTvSource({
+    const other = world.addTvSource({
       name: 'Never read',
       settings: { kind: 'm3u', playlistUrl: 'http://q/list.m3u' },
     }).id

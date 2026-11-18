@@ -2,6 +2,7 @@ import { appError, err, ok } from '@projo/shared'
 
 import type { TvGuideRead, TvGuideSink } from '../../../core/tv/guide.ts'
 import { fetchFailureReason } from '../fetch-failure.ts'
+import { fetchFollowingRedirects } from '../fetch-redirects.ts'
 import { createXmltvParser } from './xmltv-parser.ts'
 
 export const XMLTV_TIMEOUT_MS = 5 * 60_000
@@ -174,7 +175,7 @@ const readGuideBody = async (
 
 /**
  * Reads an XMLTV guide from `url` as a stream into `sink` (§29.3): the source's `User-Agent`,
- * redirects followed, 5 minutes at most, 200 MB received (as they come) and 1 GB decompressed at
+ * redirects followed (never from `https` down to `http`), 5 minutes at most, 200 MB received (as they come) and 1 GB decompressed at
  * most. A gzip or deflate `Content-Encoding` and a gzip signature (a `.gz` file) are undone here,
  * never by the client, so that the received bytes are counted before decompression. Decoded as
  * UTF-8.
@@ -208,30 +209,31 @@ export const readXmltv = async (
       }),
     )
   const timeout = AbortSignal.timeout(timeoutMs)
-  const response = await doFetch(url, {
-    headers: {
-      'Accept-Encoding': 'gzip, deflate',
-      ...(userAgent === undefined ? {} : { 'User-Agent': userAgent }),
+  const fetched = await fetchFollowingRedirects(
+    url,
+    {
+      headers: {
+        'Accept-Encoding': 'gzip, deflate',
+        ...(userAgent === undefined ? {} : { 'User-Agent': userAgent }),
+      },
+      // Undone by `readGuideBody`, after counting the bytes received (§29.3).
+      decompress: false,
+      signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
     },
-    // Undone by `readGuideBody`, after counting the bytes received (§29.3).
-    decompress: false,
-    redirect: 'follow',
-    signal: signal === undefined ? timeout : AbortSignal.any([signal, timeout]),
-  }).then(
-    (value) => ({ ok: true as const, value }),
-    (cause: unknown) => ({ ok: false as const, cause }),
+    doFetch,
   )
-  if (!response.ok) return unreachable(fetchFailureReason(response.cause))
-  if (!response.value.ok || !response.value.body) {
-    await response.value.body?.cancel().catch(() => {})
-    return unreachable('http_status', { status: response.value.status })
+  if (!fetched.ok) return unreachable(fetched.reason)
+  const { response } = fetched
+  if (!response.ok || !response.body) {
+    await response.body?.cancel().catch(() => {})
+    return unreachable('http_status', { status: response.status })
   }
-  const codings = contentCodings(response.value.headers.get('content-encoding') ?? undefined)
+  const codings = contentCodings(response.headers.get('content-encoding') ?? undefined)
   if (codings === undefined) {
-    await response.value.body.cancel().catch(() => {})
+    await response.body.cancel().catch(() => {})
     return invalid('encoding')
   }
-  const read = await readGuideBody(response.value.body, sink, {
+  const read = await readGuideBody(response.body, sink, {
     codings,
     maxBytes,
     maxDecodedBytes,

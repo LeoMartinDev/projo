@@ -86,6 +86,59 @@ describe('reading an XMLTV guide (§29.3)', () => {
     })
   })
 
+  test('redirects are followed one by one, never from https down to http nor past 5', async () => {
+    const asked: string[] = []
+    /** `/hop/<n>/…` redirects to `/hop/<n-1>/…`; `/hop/0/<rest>` to the test provider's `/<rest>`. */
+    const hops =
+      (
+        target: (hop: number, rest: string, url: URL) => string,
+      ): NonNullable<XmltvReaderOptions['fetch']> =>
+      async (input, init) => {
+        asked.push(input)
+        expect(init.redirect).toBe('manual')
+        const url = new URL(input)
+        const match = /^\/hop\/(\d+)\/(.*)$/u.exec(url.pathname) ?? undefined
+        if (match === undefined) return fetch(input, init)
+        return new Response(undefined, {
+          status: 302,
+          headers: { Location: target(Number(match[1]), match[2] ?? '', url) },
+        })
+      }
+    const relative = hops((hop, rest) =>
+      hop === 0 ? iptv.at(`/${rest}`) : `/hop/${hop - 1}/${rest}`,
+    )
+    const followed = await read('http://guide.test/hop/3/xmltv/guide.xml', { fetch: relative })
+    expect(followed.result).toEqual({ ok: true, value: { available: true } })
+    expect(followed.programmes.length).toBeGreaterThan(0)
+    expect(asked).toHaveLength(5)
+
+    expect(
+      (await read('http://guide.test/hop/5/xmltv/guide.xml', { fetch: relative })).result,
+    ).toMatchObject({
+      ok: false,
+      error: { code: 'tv/guide_unreachable', context: { reason: 'too_many_redirects' } },
+    })
+
+    asked.length = 0
+    const downgrading = hops(() => 'http://guide.test/xmltv/guide.xml?token=secret')
+    const refused = await read('https://guide.test/hop/0/g?token=secret', { fetch: downgrading })
+    expect(refused.result).toMatchObject({
+      ok: false,
+      error: {
+        code: 'tv/guide_unreachable',
+        context: { host: 'guide.test', reason: 'insecure_redirect' },
+      },
+    })
+    expect(asked).toEqual(['https://guide.test/hop/0/g?token=secret'])
+    expect(JSON.stringify(refused.result)).not.toContain('secret')
+
+    const local = hops(() => 'file:///etc/passwd')
+    expect((await read('http://guide.test/hop/0/g', { fetch: local })).result).toMatchObject({
+      ok: false,
+      error: { code: 'tv/guide_unreachable', context: { reason: 'unsupported_redirect' } },
+    })
+  })
+
   test('a Content-Encoding body counts as received before it is decompressed', async () => {
     // Highly compressible: 300 bytes or so on the wire, 60,000 once decompressed.
     const xml = Buffer.from(

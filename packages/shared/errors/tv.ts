@@ -2,6 +2,7 @@ export const tvErrorCodes = [
   'tv/source_not_found',
   'tv/source_unreachable',
   'tv/source_invalid',
+  'tv/account_refused',
   'tv/group_not_found',
   'tv/channel_not_found',
   'tv/logo_unavailable',

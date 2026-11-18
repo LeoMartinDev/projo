@@ -6,7 +6,7 @@ let world: TvWorld
 let id: string
 beforeEach(() => {
   world = createTvWorld()
-  id = world.createTvSource({
+  id = world.addTvSource({
     name: 'Provider',
     settings: {
       kind: 'm3u',
@@ -49,6 +49,27 @@ test('keeps what the source recorded of its refreshes', async () => {
   await world.refreshTvSource({ sourceId: id })
   world.updateTvSource({ id, name: 'Renamed' })
   expect(world.sources.rows.get(id)).toMatchObject({ failureCount: 1, lastError: {} })
+})
+
+test("an Xtream source's limit is its account's: the admin cannot set it (§29.2)", () => {
+  const xtream = world.addTvSource({
+    name: 'Panel',
+    settings: { kind: 'xtream', serverUrl: 'http://panel.test', username: 'jo', password: 'pw' },
+  }).id
+  world.enqueued.length = 0
+  for (const maxConnections of [3, 'none'] as const)
+    expect(world.updateTvSource({ id: xtream, maxConnections })).toMatchObject({
+      ok: false,
+      error: { code: 'tv/source_invalid' },
+    })
+  expect(
+    world.updateTvSource({ id: xtream, settings: { kind: 'xtream', password: 'new' } }),
+  ).toMatchObject({ ok: true })
+  expect(world.sources.rows.get(xtream)?.settings).toMatchObject({
+    username: 'jo',
+    password: 'new',
+  })
+  expect(world.enqueued.map((job) => job.type)).toEqual(['refresh_tv_source'])
 })
 
 test('refuses an unknown source', () => {

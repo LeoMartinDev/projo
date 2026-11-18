@@ -17,7 +17,7 @@ let world: TvWorld
 let sourceId: string
 beforeEach(() => {
   world = createTvWorld()
-  sourceId = world.createTvSource({
+  sourceId = world.addTvSource({
     name: 'Provider',
     settings: { kind: 'm3u', playlistUrl: 'http://p/get.php?password=secret' },
   }).id

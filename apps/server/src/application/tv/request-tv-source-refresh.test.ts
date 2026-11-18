@@ -4,7 +4,7 @@ import { createTvWorld } from '../../../test/support/tv-world.ts'
 
 test('queues a refresh of a known source', () => {
   const world = createTvWorld()
-  const { id } = world.createTvSource({
+  const { id } = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   })

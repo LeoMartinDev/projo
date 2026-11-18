@@ -72,16 +72,18 @@ export const inMemoryTvSources = () => {
     delete: (id) => {
       rows.delete(id)
     },
-    recordSuccess: ({ id, at, discoveredGuideUrl }) => {
+    recordSuccess: ({ id, at, discoveredGuideUrl, account }) => {
       const source = rows.get(id)
       if (source === undefined) return
-      const { lastError: _gone, discoveredGuideUrl: _old, ...rest } = source
+      const { lastError: _gone, discoveredGuideUrl: _old, maxConnections: limit, ...rest } = source
+      const maxConnections = account === undefined ? limit : account.maxConnections
       rows.set(id, {
         ...rest,
         lastAttemptAt: at,
         lastRefreshAt: at,
         failureCount: 0,
         ...(discoveredGuideUrl === undefined ? {} : { discoveredGuideUrl }),
+        ...(maxConnections === undefined ? {} : { maxConnections }),
       })
     },
     recordFailure: ({ id, at, error }) => {
@@ -329,7 +331,13 @@ export const scriptedTvProvider = () => {
   const guideReads: string[] = []
   const provider: TvSourceProvider = {
     listChannels: async ({ settings }) => {
-      calls.push(settings.kind === 'm3u' ? settings.playlistUrl : settings.address)
+      calls.push(
+        settings.kind === 'm3u'
+          ? settings.playlistUrl
+          : settings.kind === 'xtream'
+            ? settings.serverUrl
+            : settings.address,
+      )
       return answer
     },
     readGuide: async ({ source, sink }) => {
@@ -420,6 +428,8 @@ export const createTvWorld = () => {
   const tvAccess = { hasLiveTv: (profileId: string) => !withoutLiveTv.has(profileId) }
   let guideLanguage = 'fr-FR'
 
+  const createTvSource = createTvSourceFactory({ tvSources, jobQueue, ids, clock, logger })
+
   return {
     clock,
     sources,
@@ -435,7 +445,13 @@ export const createTvWorld = () => {
     setGuideLanguage: (language: string) => {
       guideLanguage = language
     },
-    createTvSource: createTvSourceFactory({ tvSources, jobQueue, ids, clock, logger }),
+    createTvSource,
+    /** `createTvSource` for a test's setup: the created source, or a thrown error. */
+    addTvSource: (input: Parameters<typeof createTvSource>[0]) => {
+      const created = createTvSource(input)
+      if (!created.ok) throw new Error(created.error.message)
+      return created.value
+    },
     updateTvSource: updateTvSourceFactory({
       tvSources,
       tvChannels,

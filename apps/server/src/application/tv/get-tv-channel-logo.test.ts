@@ -4,7 +4,7 @@ import { createTvWorld } from '../../../test/support/tv-world.ts'
 
 test('serves the logo of an enabled channel, of a disabled one to an admin only', async () => {
   const world = createTvWorld()
-  const { id: sourceId } = world.createTvSource({
+  const { id: sourceId } = world.addTvSource({
     name: 'A',
     settings: { kind: 'm3u', playlistUrl: 'http://a/list.m3u' },
   })

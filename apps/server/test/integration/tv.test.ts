@@ -393,11 +393,11 @@ describe('live TV sources (§29.2) on SQLite against a test provider', () => {
       'refresh_tv_source tv/source_unreachable',
     ])
     expect(failures).toMatchObject([
-      { context: { host: new URL(iptv.url).host, reason: 'UnsupportedRedirectProtocol' } },
+      { context: { host: new URL(iptv.url).host, reason: 'unsupported_redirect' } },
     ])
     expect(failures.map((failure) => failure.cause)).toEqual([undefined])
     const warning = logs.lines.find((line) => line.message === 'tv source refresh failed')
-    expect(warning?.fields).toMatchObject({ reason: 'UnsupportedRedirectProtocol' })
+    expect(warning?.fields).toMatchObject({ reason: 'unsupported_redirect' })
     const exposed = JSON.stringify([failures, logs.lines, await detail(id), openNotifications()])
     expect(exposed).not.toContain('secret')
     expect(exposed).not.toContain('playlist.m3u')

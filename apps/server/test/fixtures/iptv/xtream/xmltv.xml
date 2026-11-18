@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Times are {{at:<minutes from now>[:<offset>]}}, written by the test provider. -->
+<tv generator-info-name="projo-test-xtream">
+  <channel id="news.one">
+    <display-name>News One</display-name>
+  </channel>
+  <channel id="sport.feed">
+    <display-name>Sport One</display-name>
+  </channel>
+  <programme start="{{at:-30}}" stop="{{at:30}}" channel="news.one">
+    <title>Xtream news</title>
+  </programme>
+  <programme start="{{at:30}}" stop="{{at:90}}" channel="news.one">
+    <title>Xtream weather</title>
+  </programme>
+  <programme start="{{at:-10}}" stop="{{at:50}}" channel="sport.feed">
+    <title>Xtream match</title>
+  </programme>
+</tv>

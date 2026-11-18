@@ -28,6 +28,13 @@ import { join, resolve } from 'node:path'
  *   `/api/v8/tv/epg/by_time/<t>` (the programmes of `epg.json` overlapping the UTC hour that
  *   holds `t`, its `{{epoch:<minutes>}}` written as the Unix seconds that many minutes from the
  *   guide's now) and the logos under `/api/latest/tv/img/` (a PNG);
+ * - an Xtream Codes panel of `fixtures/iptv/xtream/` at the root, so an `xtream` source's server
+ *   URL is the server's URL, for the account `xtreamCredentials` (a password with a `/`, sent
+ *   percent-encoded): `/player_api.php` (the account, `{ user_info: { auth: 0 } }` for other
+ *   credentials, its `user_info` changed by `setXtreamAccount`; `action=get_live_categories` and
+ *   `get_live_streams`, 401 for other credentials), `/xmltv.php` (the guide, its times written
+ *   like `/xmltv/`'s) and `/live/<user>/<pass>/<stream id>.ts` (the endless MPEG-TS: `interlaced`
+ *   for stream 110, `progressive` for the others; 401 for other credentials, 404 for `.m3u8`);
  * - `override(path, response)`: replaces the answer of one path (a changed playlist, a failure).
  */
 
@@ -73,6 +80,13 @@ export const writeGuideTimes = (text: string, now: Date): string =>
   )
 
 type Override = () => Response
+
+/** The account the Xtream panel accepts. */
+export const xtreamCredentials = { username: 'projo-user', password: 's3cret/pass' } as const
+
+/** The variant an Xtream stream id plays. */
+const xtreamVariantOf = (streamId: string): string =>
+  streamId === '110' ? 'interlaced' : 'progressive'
 
 const h264 = ['-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency']
 
@@ -188,9 +202,24 @@ export const startIptvServer = ({
   const encoders = new Set<{ stop: () => void }>()
   let liveFailing = false
   let guideNow = (): Date => new Date()
+  let xtreamAccountPatch: Record<string, unknown> = {}
+
+  const isXtreamAccount = (username: unknown, password: unknown): boolean =>
+    username === xtreamCredentials.username && password === xtreamCredentials.password
+
+  /** `<variant>.ts`, or an Xtream `<user>/<pass>/<stream id>.ts` (percent-encoded parts). */
+  const liveVariantOf = (name: string): string[] | undefined | 'refused' => {
+    const parts = name.split('/')
+    if (parts.length === 1) return liveVariants[name.replace(/\.ts$/u, '')]
+    const [username = '', password = '', file = ''] = parts.map((part) => decodeURIComponent(part))
+    if (parts.length !== 3 || !isXtreamAccount(username, password)) return 'refused'
+    const [, streamId] = /^(\d+)\.ts$/u.exec(file) ?? []
+    return streamId === undefined ? undefined : liveVariants[xtreamVariantOf(streamId)]
+  }
 
   const live = (request: Request, name: string): Response => {
-    const variant = liveVariants[name.replace(/\.ts$/u, '')]
+    const variant = liveVariantOf(name)
+    if (variant === 'refused') return new Response('unauthorized', { status: 401 })
     if (variant === undefined) return new Response('not found', { status: 404 })
     if (liveFailing) return new Response('unavailable', { status: 503 })
     const encoder = liveEncoder(variant)
@@ -290,6 +319,40 @@ export const startIptvServer = ({
     )
   }
 
+  const xtreamJson = (name: string): unknown => {
+    const body = text(`xtream/${name}`)
+    if (body === undefined) throw new Error(`no iptv fixture xtream/${name}`)
+    return JSON.parse(body) as unknown
+  }
+
+  /** The panel's `player_api.php` and `xmltv.php` (§29.2). */
+  const xtream = (url: URL): Response => {
+    const authorized = isXtreamAccount(
+      url.searchParams.get('username'),
+      url.searchParams.get('password'),
+    )
+    if (url.pathname === '/xmltv.php') {
+      if (!authorized) return new Response('unauthorized', { status: 401 })
+      const body = text('xtream/xmltv.xml') ?? ''
+      return new Response(writeGuideTimes(body, guideNow()), {
+        headers: { 'content-type': 'application/xml' },
+      })
+    }
+    const action = url.searchParams.get('action') ?? undefined
+    if (action === undefined) {
+      if (!authorized) return Response.json({ user_info: { auth: 0 } })
+      const account = xtreamJson('account.json') as { user_info: Record<string, unknown> }
+      return Response.json({
+        ...account,
+        user_info: { ...account.user_info, ...xtreamAccountPatch },
+      })
+    }
+    if (!authorized) return new Response('unauthorized', { status: 401 })
+    if (action === 'get_live_categories') return Response.json(xtreamJson('categories.json'))
+    if (action === 'get_live_streams') return Response.json(xtreamJson('streams.json'))
+    return Response.json([])
+  }
+
   const logo = (name: string): Response => {
     if (name.startsWith('missing')) return new Response('not found', { status: 404 })
     if (name.endsWith('.svg'))
@@ -328,6 +391,7 @@ export const startIptvServer = ({
       if (root === 'xmltv') return guide(request, url, name)
       if (root === 'status') return new Response(undefined, { status: Number(name) || 500 })
       if (path === '/api_version' || root === 'api') return freebox(path)
+      if (path === '/player_api.php' || path === '/xmltv.php') return xtream(url)
       return new Response('not found', { status: 404 })
     },
   })
@@ -364,6 +428,10 @@ export const startIptvServer = ({
     },
     restore: (path: string) => {
       overrides.delete(path)
+    },
+    /** Changes the Xtream account's `user_info` (`{}` puts the fixture's back). */
+    setXtreamAccount: (patch: Record<string, unknown>) => {
+      xtreamAccountPatch = patch
     },
     /** The moment the guide fixtures' times are written from (the tests' clock). */
     setGuideNow: (now: () => Date) => {
