@@ -16,7 +16,7 @@ leaving Plex or Jellyfin. For reference: 1 star, 2 downloads of the 1.28.0 relea
       it needs a private channel to report a vulnerability (GitHub private vulnerability reporting).
 - [x] **Issue templates** (`.github/ISSUE_TEMPLATE/`). A bug report asking for the version, the
       platform, the compose file and an excerpt of the logs (the NDJSON export already exists).
-- [ ] **GitHub Discussions** enabled, for questions that are not bugs.
+- [x] **GitHub Discussions** enabled, for questions that are not bugs.
 - [x] **`CONTRIBUTING.md`.** The only contributor guide is `CLAUDE.md` (77 KB), and `bun lint`
       needs a canary Bun: a short guide for an outside contributor (setup, tests, lint, scope).
 

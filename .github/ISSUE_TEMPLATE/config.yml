@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Questions and ideas
+    url: https://github.com/LeoMartinDev/projo/discussions
+    about: Setup help, how-tos and open-ended ideas.
   - name: Installation guide and troubleshooting
     url: https://getprojo.com/installation/#troubleshooting
     about: Permissions, hardware transcoding, reverse proxy, file naming.
