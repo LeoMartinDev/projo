@@ -19,6 +19,7 @@ import {
   type TvChannelRepository,
   type TvGroup,
 } from '../../src/core/tv/channel.ts'
+import type { TvChannelProbe } from '../../src/core/tv/live.ts'
 import type { TvLogo, TvLogoDownloader, TvLogoFiles } from '../../src/core/tv/logo.ts'
 import type {
   TvChannelListing,
@@ -79,6 +80,7 @@ export const inMemoryTvSources = () => {
 export const inMemoryTvChannels = () => {
   const groups = new Map<string, TvGroup>()
   const channels = new Map<string, TvChannel>()
+  const probes = new Map<string, TvChannelProbe>()
   const present = (channel: TvChannel) => channel.missingSince === undefined
   const summary = (group: TvGroup) => {
     const own = [...channels.values()].filter((c) => c.groupId === group.id && present(c))
@@ -208,8 +210,29 @@ export const inMemoryTvChannels = () => {
       [...channels.values()].flatMap((c) =>
         c.sourceId === sourceId && c.logoPath !== undefined ? [c.logoPath] : [],
       ),
+    // Sources in id order here (the SQLite adapter orders them by name).
+    listViewable: () => {
+      const rank = (c: TvChannel) => groups.get(c.groupId)?.position ?? 0
+      const listed = [...channels.values()]
+        .filter((c) => c.enabled && present(c))
+        .sort(
+          (a, b) =>
+            a.sourceId.localeCompare(b.sourceId) || rank(a) - rank(b) || a.position - b.position,
+        )
+      const seen = new Map<string, TvGroup>()
+      for (const c of listed) {
+        const group = groups.get(c.groupId)
+        if (group !== undefined && !seen.has(group.id)) seen.set(group.id, group)
+      }
+      return { groups: [...seen.values()], channels: listed }
+    },
+    probeOf: (id) => probes.get(id),
+    recordProbe: ({ id, probe }) => {
+      if (probe === undefined) probes.delete(id)
+      else probes.set(id, probe)
+    },
   }
-  return { repository, groups, channels }
+  return { repository, groups, channels, probes }
 }
 
 /** A provider answering what the test scripts: a listing or a failure. */

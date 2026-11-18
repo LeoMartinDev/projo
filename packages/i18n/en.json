@@ -925,13 +925,15 @@
       "mode": {
         "direct": "Direct",
         "hls_remux": "Remux",
-        "hls_transcode": "Transcode"
+        "hls_transcode": "Transcode",
+        "live": "Live"
       },
       "original": "Original",
       "burnIn": "Burnt-in subtitles",
       "positionOf": "{{position}} / {{duration}}",
       "stop": "Stop",
-      "stopNamed": "Stop {{profile}} watching {{title}}"
+      "stopNamed": "Stop {{profile}} watching {{title}}",
+      "stopLive": "Stop {{channel}} for {{profile}}"
     },
     "tv": {
       "title": "TV",
@@ -1657,6 +1659,8 @@
     "tv/logo_unavailable": "Channel logo unavailable.",
     "tv/connection_limit_reached": "All the provider’s connections are in use.",
     "tv/stream_unavailable": "The channel is not broadcasting right now.",
+    "tv/session_not_found": "The live session no longer exists.",
+    "tv/segment_not_found": "Live video segment not found.",
     "setup/already_completed": "The server is already set up.",
     "source/not_found": "File not found.",
     "source/file_missing": "The file is gone from the disk.",

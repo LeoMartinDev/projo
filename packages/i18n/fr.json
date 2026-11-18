@@ -925,13 +925,15 @@
       "mode": {
         "direct": "Direct",
         "hls_remux": "Remux",
-        "hls_transcode": "Transcodage"
+        "hls_transcode": "Transcodage",
+        "live": "En direct"
       },
       "original": "Original",
       "burnIn": "Sous-titres incrustés",
       "positionOf": "{{position}} / {{duration}}",
       "stop": "Arrêter",
-      "stopNamed": "Arrêter la lecture de {{title}} par {{profile}}"
+      "stopNamed": "Arrêter la lecture de {{title}} par {{profile}}",
+      "stopLive": "Arrêter {{channel}} pour {{profile}}"
     },
     "tv": {
       "title": "TV",
@@ -1657,6 +1659,8 @@
     "tv/logo_unavailable": "Logo de la chaîne indisponible.",
     "tv/connection_limit_reached": "Toutes les connexions du fournisseur sont utilisées.",
     "tv/stream_unavailable": "La chaîne ne diffuse pas pour le moment.",
+    "tv/session_not_found": "La session de direct n’existe plus.",
+    "tv/segment_not_found": "Segment vidéo du direct introuvable.",
     "setup/already_completed": "Le serveur est déjà configuré.",
     "source/not_found": "Fichier introuvable.",
     "source/file_missing": "Le fichier a disparu du disque.",

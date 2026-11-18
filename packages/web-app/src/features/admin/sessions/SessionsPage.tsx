@@ -4,13 +4,19 @@ import { useTranslation } from 'react-i18next'
 import { episodeLine, itemTitle } from '@projo/i18n/item-titles'
 import { versionLabel } from '@projo/i18n/versions'
 import type { AdminPlaybackSessionDto } from '@projo/shared/api/playback'
+import type { AdminTvSessionDto } from '@projo/shared/api/tv'
 import type { AvatarColor } from '@projo/shared/api/profiles'
 
 import { api, request } from '../../../shared/api/client.ts'
 import { formatClock } from '../../../shared/format/format.ts'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { AdminAvatar, avatarColors } from '../accounts/parts.tsx'
-import { playbackSessionsQuery, playbackSessionsQueryKey } from './queries.ts'
+import {
+  liveSessionsQuery,
+  liveSessionsQueryKey,
+  playbackSessionsQuery,
+  playbackSessionsQueryKey,
+} from './queries.ts'
 import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
@@ -114,29 +120,98 @@ const SessionRow = ({
   )
 }
 
+/** A live TV session (§29.4): the channel instead of a title, no position. */
+const LiveSessionRow = ({
+  session,
+  stopping,
+  onStop,
+}: {
+  session: AdminTvSessionDto
+  stopping: boolean
+  onStop: () => void
+}) => {
+  const { t } = useTranslation()
+  const { channel } = session
+  return (
+    <div className="ses-tr" role="row">
+      <div className="ses-tr__who" role="cell">
+        <AdminAvatar name={session.profile.name} color={colorOf(session.profile.color)} />
+        <span className="ses-tr__lines">
+          <span className="ses-tr__strong">{session.profile.name}</span>
+          <span className="ses-tr__muted">{session.account.name}</span>
+        </span>
+      </div>
+      <div className="ses-tr__cell" role="cell">
+        <span className="ses-tr__lines">
+          <span className="ses-tr__strong">{channel.name}</span>
+          {channel.number === undefined ? undefined : (
+            <span className="ses-tr__muted ses-tr__mono">{channel.number}</span>
+          )}
+        </span>
+      </div>
+      <div className="ses-tr__cell ses-tr__playback" role="cell">
+        <span className="ses-pills">
+          <span className="acc-pill" data-mode="live">
+            {t('admin.sessions.mode.live')}
+          </span>
+        </span>
+      </div>
+      <div className="ses-tr__cell ses-tr__position" role="cell">
+        <span className="ses-tr__muted">—</span>
+      </div>
+      <div className="ses-tr__cell ses-tr__device" role="cell">
+        <span className="ses-tr__muted">{session.device ?? '—'}</span>
+      </div>
+      <div className="ses-tr__action" role="cell">
+        <button
+          type="button"
+          className="button button--glass button--small"
+          disabled={stopping}
+          aria-label={t('admin.sessions.stopLive', {
+            profile: session.profile.name,
+            channel: channel.name,
+          })}
+          onClick={onStop}
+        >
+          {stopping ? <span className="spinner" aria-hidden="true" /> : undefined}
+          {t('admin.sessions.stop')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export const SessionsPage = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const sessions = useQuery(playbackSessionsQuery)
+  const live = useQuery(liveSessionsQuery)
   const stop = useMutation({
     mutationFn: (id: string) =>
       request(() => api.admin.playback.sessions[':id'].$delete({ param: { id } })),
     onSettled: () => queryClient.invalidateQueries({ queryKey: playbackSessionsQueryKey }),
   })
+  const stopLive = useMutation({
+    mutationFn: (id: string) =>
+      request(() => api.admin.tv.sessions[':id'].$delete({ param: { id } })),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: liveSessionsQueryKey }),
+  })
   const items = sessions.data ?? []
+  const liveItems = live.data?.items ?? []
+  const count = items.length + liveItems.length
+  // The live sessions never hide the playback ones: their failure is an alert above the table.
+  const loaded = sessions.isSuccess && !live.isPending
 
   return (
     <div className="admin-page ses-page">
       <AdminPageHeader
         title={t('admin.sessions.title')}
-        summary={
-          sessions.isSuccess && items.length > 0
-            ? t('admin.sessions.summary', { count: items.length })
-            : undefined
-        }
+        summary={loaded && count > 0 ? t('admin.sessions.summary', { count }) : undefined}
       />
 
       {stop.isError ? <ErrorAlert error={stop.error} /> : undefined}
+      {stopLive.isError ? <ErrorAlert error={stopLive.error} /> : undefined}
+      {live.isError ? <ErrorAlert error={live.error} /> : undefined}
 
       <div className="ses-table" role="table" aria-label={t('admin.sessions.list')}>
         <div className="ses-tr ses-tr--head" role="row">
@@ -151,21 +226,30 @@ export const SessionsPage = () => {
         </div>
         <div className="ses-table__body">
           {sessions.isPending ? <SkeletonRows /> : undefined}
-          {sessions.isSuccess && items.length === 0 ? (
-            <EmptyState title={t('admin.sessions.empty')} />
-          ) : undefined}
+          {loaded && count === 0 ? <EmptyState title={t('admin.sessions.empty')} /> : undefined}
           {sessions.isError ? (
             <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />
-          ) : (
-            items.map((session) => (
-              <SessionRow
-                key={session.id}
-                session={session}
-                stopping={stop.isPending && stop.variables === session.id}
-                onStop={() => stop.mutate(session.id)}
-              />
-            ))
-          )}
+          ) : undefined}
+          {sessions.isSuccess ? (
+            <>
+              {items.map((session) => (
+                <SessionRow
+                  key={session.id}
+                  session={session}
+                  stopping={stop.isPending && stop.variables === session.id}
+                  onStop={() => stop.mutate(session.id)}
+                />
+              ))}
+              {liveItems.map((session) => (
+                <LiveSessionRow
+                  key={session.id}
+                  session={session}
+                  stopping={stopLive.isPending && stopLive.variables === session.id}
+                  onStop={() => stopLive.mutate(session.id)}
+                />
+              ))}
+            </>
+          ) : undefined}
         </div>
       </div>
     </div>

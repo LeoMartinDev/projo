@@ -249,3 +249,33 @@ describe('channel search (§29.7)', () => {
     ).toMatchObject({ total: 2, items: [{ name: 'Canal Plus' }] })
   })
 })
+
+describe('viewer channels and probes (§29.4, §29.7)', () => {
+  test('lists enabled present channels in group then playlist order, with their groups', () => {
+    repository.applyRefresh(
+      plan({
+        groups: { insert: [group('g0', 'Kids', -1)] },
+        channels: {
+          insert: [channel('k', 'Kids One', { groupId: 'g0', position: 9 })],
+          missing: ['d'],
+        },
+      }),
+    )
+    const listed = repository.listViewable()
+    expect(listed.groups.map((g) => g.name)).toEqual(['Kids', 'News'])
+    expect(listed.channels.map((c) => c.id)).toEqual(['k', 'a', 'b'])
+  })
+
+  test('caches a probe and drops it', () => {
+    expect(repository.probeOf('a')).toBeUndefined()
+    const probe = {
+      video: { codec: 'h264', height: 1080, fieldOrder: 'tt' },
+      audio: [{ index: 1, codec: 'mp2', channels: 2, audioDescription: false }],
+      transport: 'udp' as const,
+    }
+    repository.recordProbe({ id: 'a', probe, at: now })
+    expect(repository.probeOf('a')).toEqual(probe)
+    repository.recordProbe({ id: 'a', at: now })
+    expect(repository.probeOf('a')).toBeUndefined()
+  })
+})

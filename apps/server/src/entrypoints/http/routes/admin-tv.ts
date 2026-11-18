@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import type { JobRef } from '@projo/shared/api/jobs'
 import {
   type AdminTvChannelsPage,
+  type AdminTvSessionsResponse,
   type AdminTvSourcesResponse,
   adminTvChannelsQuerySchema,
   createTvSourceBodySchema,
@@ -14,18 +15,22 @@ import type { CreateTvSource } from '../../../application/tv/create-tv-source.ts
 import type { DeleteTvSource } from '../../../application/tv/delete-tv-source.ts'
 import type { GetTvSource } from '../../../application/tv/get-tv-source.ts'
 import type { ListTvSourceChannels } from '../../../application/tv/list-tv-source-channels.ts'
+import type { ListLiveSessions } from '../../../application/tv/list-live-sessions.ts'
 import type { ListTvSources } from '../../../application/tv/list-tv-sources.ts'
 import type { RequestTvSourceRefresh } from '../../../application/tv/request-tv-source-refresh.ts'
 import type { SetTvChannelEnabled } from '../../../application/tv/set-tv-channel-enabled.ts'
 import type { SetTvGroupEnabled } from '../../../application/tv/set-tv-group-enabled.ts'
+import type { StopLiveSessionAsAdmin } from '../../../application/tv/stop-live-session-as-admin.ts'
 import type { UpdateTvSource } from '../../../application/tv/update-tv-source.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
+import { currentPrincipal } from '../principal.ts'
 import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
 import {
   toAdminTvChannelDto,
   toAdminTvGroupDto,
+  toAdminTvSessionDto,
   toAdminTvSourceDetailDto,
   toAdminTvSourceDto,
 } from './tv-dto.ts'
@@ -41,6 +46,8 @@ export const adminTvRoutes = ({
   listTvSourceChannels,
   setTvGroupEnabled,
   setTvChannelEnabled,
+  listLiveSessions,
+  stopLiveSessionAsAdmin,
 }: {
   listTvSources: ListTvSources
   createTvSource: CreateTvSource
@@ -51,6 +58,8 @@ export const adminTvRoutes = ({
   listTvSourceChannels: ListTvSourceChannels
   setTvGroupEnabled: SetTvGroupEnabled
   setTvChannelEnabled: SetTvChannelEnabled
+  listLiveSessions: ListLiveSessions
+  stopLiveSessionAsAdmin: StopLiveSessionAsAdmin
 }) =>
   new Hono<AppEnv>()
     .get('/tv/sources', (c) =>
@@ -152,6 +161,19 @@ export const adminTvRoutes = ({
       return result.ok
         ? c.json(toAdminTvChannelDto(result.value), 200)
         : respondError(c, result.error)
+    })
+    .get('/tv/sessions', (c) =>
+      c.json(
+        { items: listLiveSessions().map(toAdminTvSessionDto) } satisfies AdminTvSessionsResponse,
+        200,
+      ),
+    )
+    .delete('/tv/sessions/:id', (c) => {
+      const stopped = stopLiveSessionAsAdmin({
+        sessionId: c.req.param('id'),
+        adminAccountId: currentPrincipal(c).account.id,
+      })
+      return stopped.ok ? noContent(c) : respondError(c, stopped.error)
     })
 
 export type AdminTvRoutes = ReturnType<typeof adminTvRoutes>

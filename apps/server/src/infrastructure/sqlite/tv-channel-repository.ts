@@ -21,9 +21,10 @@ import {
   type TvGroup,
   type TvGroupSummary,
 } from '../../core/tv/channel.ts'
+import type { TvChannelProbe } from '../../core/tv/live.ts'
 import type { Db } from './database.ts'
 import { chunks, fromIso, parseJsonColumn, stripNulls, toIso, toNullable } from './rows.ts'
-import { tvChannels, tvGroups } from './schema/tv.ts'
+import { tvChannels, tvGroups, tvSources } from './schema/tv.ts'
 
 const upstreamSchema = z.object({
   url: z.string(),
@@ -41,6 +42,44 @@ const toUpstream = (value: unknown): TvChannel['upstream'] => {
     url,
     ...(userAgent === undefined ? {} : { userAgent }),
     ...(referrer === undefined ? {} : { referrer }),
+  }
+}
+
+/** A cached probe is a cache: one that no longer parses is dropped, never a crash. */
+const probeSchema = z.object({
+  video: z.object({
+    codec: z.string(),
+    width: z.number().int().optional(),
+    height: z.number().int().optional(),
+    fieldOrder: z.string().optional(),
+  }),
+  audio: z.array(
+    z.object({
+      index: z.number().int(),
+      codec: z.string(),
+      channels: z.number().int().optional(),
+      language: z.string().optional(),
+      audioDescription: z.boolean(),
+    }),
+  ),
+  transport: z.enum(['tcp', 'udp']).optional(),
+})
+
+const toProbe = (value: z.infer<typeof probeSchema>): TvChannelProbe => {
+  const { width, height, fieldOrder } = value.video
+  return {
+    video: {
+      codec: value.video.codec,
+      ...(width === undefined ? {} : { width }),
+      ...(height === undefined ? {} : { height }),
+      ...(fieldOrder === undefined ? {} : { fieldOrder }),
+    },
+    audio: value.audio.map(({ channels, language, ...track }) => ({
+      ...track,
+      ...(channels === undefined ? {} : { channels }),
+      ...(language === undefined ? {} : { language }),
+    })),
+    ...(value.transport === undefined ? {} : { transport: value.transport }),
   }
 }
 
@@ -335,5 +374,45 @@ export const createSqliteTvChannelRepository = ({ db }: { db: Db }): TvChannelRe
         .where(and(eq(tvChannels.sourceId, sourceId), isNotNull(tvChannels.logoPath)))
         .all()
         .flatMap(({ logoPath }) => (logoPath === null ? [] : [logoPath])),
+
+    listViewable: () => {
+      const rows = db
+        .select({ channel: tvChannels, group: tvGroups })
+        .from(tvChannels)
+        .innerJoin(tvGroups, eq(tvGroups.id, tvChannels.groupId))
+        .innerJoin(tvSources, eq(tvSources.id, tvChannels.sourceId))
+        .where(and(eq(tvChannels.enabled, true), present))
+        .orderBy(
+          asc(tvSources.name),
+          asc(tvSources.id),
+          asc(tvGroups.position),
+          asc(tvChannels.position),
+        )
+        .all()
+      const groups = new Map<string, TvGroup>()
+      for (const { group } of rows) if (!groups.has(group.id)) groups.set(group.id, toGroup(group))
+      return {
+        groups: [...groups.values()],
+        channels: rows.map(({ channel }) => toChannel(channel)),
+      }
+    },
+
+    probeOf: (id) => {
+      const row = db
+        .select({ probe: tvChannels.probe })
+        .from(tvChannels)
+        .where(eq(tvChannels.id, id))
+        .get()
+      if (row?.probe === undefined || row.probe === null) return undefined
+      const parsed = probeSchema.safeParse(row.probe)
+      return parsed.success ? toProbe(parsed.data) : undefined
+    },
+
+    recordProbe: ({ id, probe, at }) => {
+      db.update(tvChannels)
+        .set(probe === undefined ? { probe: null, probedAt: null } : { probe, probedAt: toIso(at) })
+        .where(eq(tvChannels.id, id))
+        .run()
+    },
   }
 }

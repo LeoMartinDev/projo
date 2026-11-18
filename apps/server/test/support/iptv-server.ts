@@ -12,6 +12,11 @@ import { join, resolve } from 'node:path'
  * - `/logos/<name>.png|.jpg|.webp|.gif`: a tiny image of that type; `missing*` answers 404, an
  *   `.svg` answers an SVG document, `huge.png` a PNG larger than the logo limit;
  * - `/status/<code>`: an empty answer with that status;
+ * - `/live/<variant>.ts`: an endless MPEG-TS encoded by ffmpeg in real time (`-re`, 320×180,
+ *   1 s GOP), one encoder per request, killed when the client goes: `progressive` (H.264 and
+ *   AAC), `interlaced` (H.264 top field first and AAC), `mp2` (H.264 and MP2 audio),
+ *   `described` (H.264, an AAC audio description first, then the main track in MP2);
+ *   `failLive()` answers 503 to them and cuts the running ones until `restoreLive()`;
  * - `override(path, response)`: replaces the answer of one path (a changed playlist, a failure).
  */
 
@@ -42,9 +47,108 @@ export type IptvRequest = { path: string; userAgent?: string; referrer?: string 
 
 type Override = () => Response
 
+const liveVariants: Record<string, string[]> = {
+  progressive: ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '96k'],
+  interlaced: [
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-vf',
+    'setfield=tff',
+    '-flags',
+    '+ildct+ilme',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '96k',
+  ],
+  mp2: ['-map', '0:v', '-map', '1:a', '-c:a', 'mp2', '-b:a', '128k'],
+  described: [
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-map',
+    '1:a',
+    '-c:a:0',
+    'aac',
+    '-b:a:0',
+    '96k',
+    '-disposition:a:0',
+    'visual_impaired',
+    '-c:a:1',
+    'mp2',
+    '-b:a:1',
+    '128k',
+  ],
+}
+
+/** An endless MPEG-TS of `variant`, read as ffmpeg produces it; `stop` kills the encoder. */
+const liveEncoder = (variant: string[]) => {
+  const proc = Bun.spawn(
+    [
+      'ffmpeg',
+      '-hide_banner',
+      '-loglevel',
+      'error',
+      '-re',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc2=size=320x180:rate=25',
+      '-f',
+      'lavfi',
+      '-i',
+      'sine=frequency=440:sample_rate=48000',
+      ...variant,
+      '-c:v',
+      'libx264',
+      '-preset',
+      'ultrafast',
+      '-tune',
+      'zerolatency',
+      '-g',
+      '25',
+      '-pix_fmt',
+      'yuv420p',
+      '-f',
+      'mpegts',
+      'pipe:1',
+    ],
+    { stdin: 'ignore', stdout: 'pipe', stderr: 'ignore' },
+  )
+  const stop = () => {
+    proc.kill()
+  }
+  const reader = proc.stdout.getReader()
+  const body = new ReadableStream<Uint8Array>({
+    pull: async (controller) => {
+      const chunk = await reader.read()
+      if (chunk.done) controller.close()
+      else controller.enqueue(chunk.value)
+    },
+    cancel: stop,
+  })
+  return { body, stop, exited: proc.exited }
+}
+
 export const startIptvServer = ({ requireUserAgent }: { requireUserAgent?: string } = {}) => {
   const requests: IptvRequest[] = []
   const overrides = new Map<string, Override>()
+  const encoders = new Set<{ stop: () => void }>()
+  let liveFailing = false
+
+  const live = (request: Request, name: string): Response => {
+    const variant = liveVariants[name.replace(/\.ts$/u, '')]
+    if (variant === undefined) return new Response('not found', { status: 404 })
+    if (liveFailing) return new Response('unavailable', { status: 503 })
+    const encoder = liveEncoder(variant)
+    encoders.add(encoder)
+    void encoder.exited.then(() => encoders.delete(encoder))
+    request.signal.addEventListener('abort', encoder.stop, { once: true })
+    return new Response(encoder.body, { headers: { 'content-type': 'video/mp2t' } })
+  }
   let base = ''
 
   const text = (relative: string): string | undefined => {
@@ -99,6 +203,7 @@ export const startIptvServer = ({ requireUserAgent }: { requireUserAgent?: strin
       const [, root, name = ''] = /^\/([^/]+)\/(.+)$/u.exec(path) ?? []
       if (root === 'm3u') return playlist(request, name)
       if (root === 'logos') return logo(name)
+      if (root === 'live') return live(request, name)
       if (root === 'status') return new Response(undefined, { status: Number(name) || 500 })
       return new Response('not found', { status: 404 })
     },
@@ -132,7 +237,22 @@ export const startIptvServer = ({ requireUserAgent }: { requireUserAgent?: strin
     restore: (path: string) => {
       overrides.delete(path)
     },
-    stop: () => server.stop(true),
+    /** Live upstream requests so far (`/live/…`). */
+    liveRequests: () => requests.filter((r) => r.path.startsWith('/live/')),
+    /** Encoders running now: the upstream connections open. */
+    liveConnections: () => encoders.size,
+    /** The live upstream fails: running streams are cut, new requests answer 503. */
+    failLive: () => {
+      liveFailing = true
+      for (const encoder of encoders) encoder.stop()
+    },
+    restoreLive: () => {
+      liveFailing = false
+    },
+    stop: () => {
+      for (const encoder of encoders) encoder.stop()
+      server.stop(true)
+    },
   }
 }
 

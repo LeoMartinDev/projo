@@ -1,0 +1,12 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="live.one" tvg-chno="1" group-title="Live",Live One
+{{base}}/live/progressive.ts?token=secret
+#EXTINF:-1 tvg-id="live.mp2" tvg-chno="2" group-title="Live",Live MP2
+{{base}}/live/mp2.ts?token=secret
+#EXTINF:-1 tvg-id="live.described" tvg-chno="3" group-title="Live",Live Described
+#EXTVLCOPT:http-user-agent=ProviderPlayer/2.0
+{{base}}/live/described.ts?token=secret
+#EXTINF:-1 tvg-id="live.interlaced" tvg-chno="4" group-title="Live",Live Interlaced
+{{base}}/live/interlaced.ts?token=secret
+#EXTINF:-1 tvg-id="live.down" tvg-chno="5" group-title="Other",Live Down
+{{base}}/status/503?token=secret

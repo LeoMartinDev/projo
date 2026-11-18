@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { isoDateTimeSchema, paginationQuerySchema } from './common.ts'
+import { clientCapabilitiesSchema } from './playback.ts'
 
 /** Kinds of TV source (§29.2); slice 1 has `m3u` only, later slices add theirs. */
 export const tvSourceKinds = ['m3u'] as const
@@ -142,3 +143,66 @@ export type AdminTvChannelsPage = z.infer<typeof adminTvChannelsPageSchema>
 
 export const setTvEnabledBodySchema = z.object({ enabled: z.boolean() })
 export type SetTvEnabledBody = z.infer<typeof setTvEnabledBodySchema>
+
+/** A programme of the guide (§29.3); absent until the guide slice. */
+export const tvProgrammeDtoSchema = z.object({
+  title: z.string(),
+  startAt: isoDateTimeSchema,
+  endAt: isoDateTimeSchema,
+})
+export type TvProgrammeDto = z.infer<typeof tvProgrammeDtoSchema>
+
+/** A channel as a viewer sees it (§29.7); `logoUrl` is a server path (media key accepted). */
+export const tvChannelDtoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  number: z.number().int().optional(),
+  groupId: z.string(),
+  logoUrl: z.string().optional(),
+  favorite: z.boolean().optional(),
+  now: tvProgrammeDtoSchema.optional(),
+  next: tvProgrammeDtoSchema.optional(),
+})
+export type TvChannelDto = z.infer<typeof tvChannelDtoSchema>
+
+/** A group of the listed channels; `name` is empty for an unnamed group ("Other channels"). */
+export const tvGroupDtoSchema = z.object({ id: z.string(), name: z.string() })
+export type TvGroupDto = z.infer<typeof tvGroupDtoSchema>
+
+export const tvChannelsResponseSchema = z.object({
+  groups: z.array(tvGroupDtoSchema),
+  items: z.array(tvChannelDtoSchema),
+})
+export type TvChannelsResponse = z.infer<typeof tvChannelsResponseSchema>
+
+/** What a live session plays (§29.4): the relayed stream, or its H.264 transcode (later). */
+export const tvRenditions = ['copy', 'compat'] as const
+export const tvRenditionSchema = z.enum(tvRenditions)
+export type TvRendition = z.infer<typeof tvRenditionSchema>
+
+export const createTvSessionBodySchema = z.object({ capabilities: clientCapabilitiesSchema })
+export type CreateTvSessionBody = z.infer<typeof createTvSessionBodySchema>
+
+/** `streamUrl` is the session's capability URL of its live playlist (§20). */
+export const tvSessionDtoSchema = z.object({
+  sessionId: z.string(),
+  streamUrl: z.string(),
+  rendition: tvRenditionSchema,
+})
+export type TvSessionDto = z.infer<typeof tvSessionDtoSchema>
+
+/** A live session in the admin's active sessions (§29.4). */
+export const adminTvSessionDtoSchema = z.object({
+  id: z.string(),
+  account: z.object({ id: z.string(), name: z.string() }),
+  profile: z.object({ id: z.string(), name: z.string(), color: z.string() }),
+  channel: z.object({ id: z.string(), name: z.string(), number: z.number().int().optional() }),
+  rendition: tvRenditionSchema,
+  device: z.string().optional(),
+  startedAt: isoDateTimeSchema,
+  lastHeartbeatAt: isoDateTimeSchema,
+})
+export type AdminTvSessionDto = z.infer<typeof adminTvSessionDtoSchema>
+
+export const adminTvSessionsResponseSchema = z.object({ items: z.array(adminTvSessionDtoSchema) })
+export type AdminTvSessionsResponse = z.infer<typeof adminTvSessionsResponseSchema>

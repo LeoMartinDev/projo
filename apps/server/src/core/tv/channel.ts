@@ -1,3 +1,5 @@
+import type { TvChannelProbe } from './live.ts'
+
 /** Where a channel's stream is read; never leaves the server (§29.2). */
 export type TvUpstream = { url: string; userAgent?: string; referrer?: string }
 
@@ -101,6 +103,15 @@ export type TvChannelRepository = {
   dropLogo: (id: string) => void
   /** Logo files of the source's channels (to delete with it). */
   logoPathsOf: (sourceId: string) => string[]
+  /**
+   * Every enabled present channel a viewer sees (§29.7), ordered by source name, then group and
+   * channel position, with their groups in the same order.
+   */
+  listViewable: () => { groups: TvGroup[]; channels: TvChannel[] }
+  /** The channel's cached probe (§29.4). */
+  probeOf: (id: string) => TvChannelProbe | undefined
+  /** Caches a probe, or drops the cached one without `probe`. */
+  recordProbe: (input: { id: string; probe?: TvChannelProbe; at: Date }) => void
 }
 
 /** A name lowercased without accents (§29.7: the admin's search ignores both). */

@@ -7,6 +7,8 @@ export const tvErrorCodes = [
   'tv/logo_unavailable',
   'tv/connection_limit_reached',
   'tv/stream_unavailable',
+  'tv/session_not_found',
+  'tv/segment_not_found',
 ] as const
 
 export type TvErrorCode = (typeof tvErrorCodes)[number]

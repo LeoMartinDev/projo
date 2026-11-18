@@ -17,6 +17,7 @@ export type DataPaths = {
     subtitles: string
     keyframes: string
     previews: string
+    live: string
   }
   app: {
     dir: string
@@ -56,6 +57,7 @@ export const dataPathsFor = (root: string): DataPaths => {
       subtitles: join(cache, 'subtitles'),
       keyframes: join(cache, 'keyframes'),
       previews: join(cache, 'previews'),
+      live: join(cache, 'live'),
     },
     app: {
       dir: app,
@@ -84,6 +86,7 @@ export const requiredDirectories = (paths: DataPaths): string[] => [
   paths.cache.subtitles,
   paths.cache.keyframes,
   paths.cache.previews,
+  paths.cache.live,
   paths.app.versions,
   paths.app.staging,
   paths.logs,

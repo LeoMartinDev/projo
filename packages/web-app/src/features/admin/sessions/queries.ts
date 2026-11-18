@@ -11,3 +11,12 @@ export const playbackSessionsQuery = queryOptions({
   queryFn: () => request(() => api.admin.playback.sessions.$get()),
   refetchInterval: sessionsRefreshMs,
 })
+
+export const liveSessionsQueryKey = ['admin', 'tv', 'sessions'] as const
+
+/** Live TV sessions (§29.4), listed with the playback sessions. */
+export const liveSessionsQuery = queryOptions({
+  queryKey: liveSessionsQueryKey,
+  queryFn: () => request(() => api.admin.tv.sessions.$get()),
+  refetchInterval: sessionsRefreshMs,
+})
