@@ -33,7 +33,7 @@
 - **Updates from the admin page**, with automatic rollback if the new version does not start.
 - English and French, installable as an app (PWA), on desktop, tablet and phone.
 
-projo does not handle music, photos, live TV, casting or file renaming.
+projo does not handle music, photos, live TV recording, casting or file renaming.
 
 ## Quick start
 
