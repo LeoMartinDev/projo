@@ -337,12 +337,13 @@ describe('the richer guide (§29.3, §29.7) on SQLite against a test provider', 
     const chosen = await request(
       'PATCH',
       `/admin/tv/channels/${bare}`,
-      { guideChannel: 'sport.two.example' },
+      // Any case: guide channel ids match ignoring it (§29.3).
+      { guideChannel: 'Sport.Two.example' },
       'admin',
     )
     expect(chosen.status).toBe(200)
     expect(await chosen.json()).toMatchObject({
-      guideChannel: { id: 'sport.two.example', manual: true },
+      guideChannel: { id: 'Sport.Two.example', manual: true },
     })
     await request('POST', `/admin/tv/sources/${id}/refresh`, undefined, 'admin')
     expect(await runJobs(['refresh_tv_source', 'refresh_tv_guide'])).toEqual([
@@ -351,6 +352,14 @@ describe('the richer guide (§29.3, §29.7) on SQLite against a test provider', 
     ])
     const after = await channels()
     expect(byName(after, 'Bare Name').now?.title).toBe('Grand prix')
+    expect((await adminChannels(id)).find((channel) => channel.id === bare)).toMatchObject({
+      guideChannel: {
+        id: 'Sport.Two.example',
+        name: 'SPORT TWO [Geo-blocked] (1080p)',
+        manual: true,
+      },
+      guideMatched: true,
+    })
     // A programme read again keeps its id.
     expect(byName(after, 'News One HD').now?.id).toBe(journal?.id)
     await request('PATCH', `/admin/tv/channels/${bare}`, { guideChannel: '' }, 'admin')

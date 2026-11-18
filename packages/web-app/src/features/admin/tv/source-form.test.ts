@@ -141,6 +141,10 @@ describe('channel snapshots (§29.4)', () => {
     expect(
       invalidSourceFields({ ...form, snapshotGrabsPerHour: '600' }, { creating: false }),
     ).not.toContain('snapshotGrabsPerHour')
+    // Its field is disabled while the snapshots are off: it never blocks the save then.
+    const off = { ...form, snapshots: false, snapshotGrabsPerHour: '0' }
+    expect(invalidSourceFields(off, { creating: false })).not.toContain('snapshotGrabsPerHour')
+    expect(toPatchBody(source, off)).toEqual({ snapshots: false })
   })
 })
 

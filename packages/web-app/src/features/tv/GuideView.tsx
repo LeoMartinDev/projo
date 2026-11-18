@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 
 import { type TvChannelDto, type TvChannelsResponse, tvProgrammeKinds } from '@projo/shared/api/tv'
 
+import { useErrorMessage } from '../../shared/i18n/errors.ts'
 import { FavoriteIcon } from '../../shared/ui/media-icons.tsx'
 import { SelectField } from '../../shared/ui/Select.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
@@ -147,6 +148,9 @@ type Schedule = {
   programmes: ReadonlyMap<string, readonly GuideProgramme[]>
   /** The spans each block has read. */
   loaded: ReadonlyMap<number, readonly Span[]>
+  /** A reading that failed and has nothing to show (its rows stay skeletons), and its retry. */
+  failure?: unknown
+  retry: () => void
 }
 
 const cellKey = (row: number, segment?: GuideSegment) =>
@@ -179,6 +183,7 @@ export const GuideView = ({
   onFavorite: (channelId: string, favorite: boolean) => void
 }) => {
   const { t } = useTranslation()
+  const message = useErrorMessage()
   const phone = useDevice() === 'phone'
   const layout = phone ? layouts.phone : layouts.wide
   const now = useNow().getTime()
@@ -277,6 +282,7 @@ export const GuideView = ({
     (results: QueryObserverResult<Map<string, GuideProgramme[]>>[]): Schedule => {
       const reads: Map<string, GuideProgramme[]>[] = []
       const spans = new Map<number, Span[]>()
+      const failed = results.filter((result) => result.isError && result.data === undefined)
       results.forEach((result, index) => {
         const reading = readings[index]
         if (result.data === undefined || reading === undefined) return
@@ -288,6 +294,10 @@ export const GuideView = ({
       return {
         programmes: mergeSchedules(reads),
         loaded: new Map([...spans].map(([block, own]) => [block, mergeSpans(own)])),
+        ...(failed[0] === undefined ? {} : { failure: failed[0].error }),
+        retry: () => {
+          for (const result of failed) void result.refetch()
+        },
       }
     },
     [readings],
@@ -690,6 +700,15 @@ export const GuideView = ({
           ]}
           onChange={setKind}
         />
+        {/* A failed reading (its rows stay skeletons): said on the toolbar's line, with a retry. */}
+        {schedule.failure === undefined ? undefined : (
+          <span className="tv-guide__failed" role="alert">
+            <span className="tv-guide__failed-text">{message(schedule.failure)}</span>
+            <button type="button" className="tv-guide__now-button" onClick={schedule.retry}>
+              {t('common.retry')}
+            </button>
+          </span>
+        )}
       </div>
       <div
         ref={scrollerRef}

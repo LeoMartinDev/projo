@@ -164,7 +164,10 @@ export const LiveTimeline = ({
   )
 }
 
-/** "LIVE" at the live point; behind it, the delay (−4:12), a button back to live (§29.5). */
+/**
+ * "LIVE" at the live point; behind it, the delay (−4:12), a button back to live (§29.5). At live
+ * it does nothing (with `mpv` a move to the live point would load the stream again).
+ */
 export const LiveBadge = ({ timeline, onLive }: { timeline: Timeline; onLive: () => void }) => {
   const { t } = useTranslation()
   const delay = formatClock(timeline.delayMs)
@@ -173,12 +176,13 @@ export const LiveBadge = ({ timeline, onLive }: { timeline: Timeline; onLive: ()
       type="button"
       className="live-badge"
       data-live={timeline.atLive}
+      aria-disabled={timeline.atLive}
       aria-label={
         timeline.atLive
           ? t('player.live.live')
           : `${t('player.live.goLive')}, ${t('player.live.behind', { time: delay })}`
       }
-      onClick={onLive}
+      onClick={timeline.atLive ? undefined : onLive}
     >
       {timeline.atLive ? t('player.live.live') : `−${delay}`}
     </button>

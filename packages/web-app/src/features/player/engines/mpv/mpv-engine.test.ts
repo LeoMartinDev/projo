@@ -211,7 +211,8 @@ describe('mpv engine', () => {
       'set start=none',
       'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8?from=297 replace',
     ])
-    expect(engine.livePosition()).toBeUndefined()
+    // Loading: the segment it starts from.
+    expect(engine.livePosition()).toBe(t0)
     await mpv.emit({ kind: 'event', event: 'file-loaded' })
     await mpv.emit({ kind: 'property', name: 'time-pos', value: 2.5 })
     await mpv.emit({ kind: 'event', event: 'playback-restart' })
@@ -233,6 +234,8 @@ describe('mpv engine', () => {
       'set start=none',
       'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8?from=293 replace',
     ])
+    // While it loads again, the position is already the point's segment (no jump to the edge).
+    expect(engine.livePosition()).toBe(t0 - 8000)
     mpv.calls.splice(0)
     await mpv.emit({ kind: 'event', event: 'file-loaded' })
     expect(mpv.calls).toEqual([])

@@ -66,9 +66,17 @@ type Field = 'title' | 'sub-title' | 'desc' | 'category' | 'episode-num' | 'disp
 
 const programmeFields = new Set<string>(['title', 'sub-title', 'desc', 'category', 'episode-num'])
 
-/** `<icon>`s and `<episode-num>`s kept per programme: bounds memory on a hostile guide. */
+/**
+ * `<icon>`s and `<episode-num>`s kept per programme, and texts of one kind (titles in several
+ * languages, display names…) per programme or channel: bounds memory on a hostile guide.
+ */
 const MAX_PROGRAMME_ICONS = 5
 const MAX_EPISODE_NUMS = 5
+const MAX_TEXTS_PER_FIELD = 16
+
+const pushBounded = <T>(list: T[], value: T) => {
+  if (list.length < MAX_TEXTS_PER_FIELD) list.push(value)
+}
 
 type OpenProgramme = {
   channel: string
@@ -114,12 +122,13 @@ export const createXmltvParser = (sink: TvGuideSink) => {
       text: field.text,
       ...(field.lang === undefined ? {} : { lang: field.lang }),
     }
-    if (field.name === 'display-name') channel?.names.push(field.text)
-    else if (programme !== undefined) {
-      if (field.name === 'title') programme.titles.push(text)
-      else if (field.name === 'sub-title') programme.subtitles.push(text)
-      else if (field.name === 'desc') programme.descriptions.push(text)
-      else if (field.name === 'category') programme.categories.push(text)
+    if (field.name === 'display-name') {
+      if (channel !== undefined) pushBounded(channel.names, field.text)
+    } else if (programme !== undefined) {
+      if (field.name === 'title') pushBounded(programme.titles, text)
+      else if (field.name === 'sub-title') pushBounded(programme.subtitles, text)
+      else if (field.name === 'desc') pushBounded(programme.descriptions, text)
+      else if (field.name === 'category') pushBounded(programme.categories, text)
       else if (programme.episodeNums.length < MAX_EPISODE_NUMS)
         programme.episodeNums.push({
           text: field.text,

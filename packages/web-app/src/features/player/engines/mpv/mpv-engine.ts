@@ -486,12 +486,14 @@ export const createMpvEngine = ({
         },
       )
     },
-    // Wall clock of the frame shown: the segment the playlist was loaded from, plus `time-pos`.
+    // Wall clock of the frame shown: the segment the playlist was loaded from, plus `time-pos`;
+    // that segment's start while it loads (a seek reloads: the bar stays where it was sent).
     livePosition: () => {
       const anchor = current?.live?.anchorMs
-      return anchor === undefined || playback.phase !== 'loaded' || !playback.media.ready
-        ? undefined
-        : anchor + Math.round(playback.media.currentTime * 1000)
+      if (anchor === undefined || playback.phase === 'idle') return undefined
+      return playback.phase === 'loaded' && playback.media.ready
+        ? anchor + Math.round(playback.media.currentTime * 1000)
+        : anchor
     },
     // libmpv never seeks in a live playlist (§29.5): the same entry loads it again from the
     // point's segment, paused or playing as it was.

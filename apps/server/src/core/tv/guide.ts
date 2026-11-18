@@ -418,6 +418,10 @@ export const createGuideCollector = ({
     channels.map((channel) => [channel.id, undefined]),
   )
   const candidates = new Map<string, Candidate[]>()
+  // A key no rule placed takes the programmes of its own key, else those of its stem (§29.3):
+  // the stem's are held apart, and used only by a channel that got none of its own.
+  const stemCandidates = new Map<string, Candidate[]>()
+  const stemMatches = new Map<string, string>()
   const windowStart = now.getTime() - TV_GUIDE_PAST_MS
   const windowEnd = now.getTime() + TV_GUIDE_AHEAD_MS
   // Everything that starts from a day before the window is kept, ended or not: a programme
@@ -480,8 +484,11 @@ export const createGuideCollector = ({
     programme: (programme) => {
       routes ??= resolve()
       const lower = programme.channel.trim().toLowerCase()
-      const targets = routes.get(lower) ?? stemRoutes.get(guideKeyStem(lower))
-      if (targets === undefined || targets.length === 0) return
+      const targets = routes.get(lower) ?? []
+      const stemTargets = (stemRoutes.get(guideKeyStem(lower)) ?? []).filter(
+        (target) => !targets.includes(target),
+      )
+      if (targets.length === 0 && stemTargets.length === 0) return
       const start = programme.start.getTime()
       if (start >= windowEnd) return
       const stop = programme.stop?.getTime()
@@ -502,11 +509,10 @@ export const createGuideCollector = ({
       const categories = cleanCategories(programme.categories)
       const imageUrl = programmeImageOf(programme.images)
       const { episode } = programme
-      for (const target of targets) {
-        if (matches.get(target) === undefined) matches.set(target, programme.channel.trim())
-        const list = candidates.get(target)
-        if (list !== undefined && list.length >= MAX_CANDIDATES_PER_CHANNEL) continue
-        pushTo(candidates, target, {
+      const add = (into: Map<string, Candidate[]>, target: string) => {
+        const list = into.get(target)
+        if (list !== undefined && list.length >= MAX_CANDIDATES_PER_CHANNEL) return
+        pushTo(into, target, {
           start: programme.start,
           ...(programme.stop === undefined ? {} : { stop: programme.stop }),
           title,
@@ -518,6 +524,14 @@ export const createGuideCollector = ({
           ...(imageUrl === undefined ? {} : { imageUrl }),
         })
       }
+      for (const target of targets) {
+        if (matches.get(target) === undefined) matches.set(target, programme.channel.trim())
+        add(candidates, target)
+      }
+      for (const target of stemTargets) {
+        if (!stemMatches.has(target)) stemMatches.set(target, programme.channel.trim())
+        add(stemCandidates, target)
+      }
     },
   }
 
@@ -526,6 +540,11 @@ export const createGuideCollector = ({
     /** The settled programmes of every matched channel, what matched, and the guide's channels. */
     finish: (): TvGuideCollected => {
       routes ??= resolve()
+      for (const [target, list] of stemCandidates) {
+        if (candidates.has(target)) continue
+        candidates.set(target, list)
+        matches.set(target, stemMatches.get(target))
+      }
       return {
         programmes: [...candidates.entries()].flatMap(([channelId, list]) =>
           settleProgrammes(channelId, list, now),

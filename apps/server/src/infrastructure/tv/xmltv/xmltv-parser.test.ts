@@ -142,6 +142,24 @@ describe('XMLTV parser (§29.3)', () => {
     expect(last).toEqual({ ok: false, error: 'token_too_large' })
   })
 
+  test('texts of one kind are bounded per programme and per channel, not held without end', () => {
+    const many = (tag: string) =>
+      Array.from({ length: 1000 }, (_, index) => `<${tag}>t${index}</${tag}>`).join('')
+    const { channels, programmes, result } = parseAll(
+      `<tv><channel id="a">${many('display-name')}</channel>
+      <programme start="20260610100000" channel="a">${many('title')}${many('sub-title')}${many('desc')}${many('category')}</programme></tv>`,
+      4096,
+    )
+    expect(result.ok).toBe(true)
+    expect(channels[0]?.names).toHaveLength(16)
+    const [programme] = programmes
+    expect(programme?.titles).toHaveLength(16)
+    expect(programme?.titles[0]?.text).toBe('t0')
+    expect(programme?.subtitles).toHaveLength(16)
+    expect(programme?.descriptions).toHaveLength(16)
+    expect(programme?.categories).toHaveLength(16)
+  })
+
   test('a long text run outside any field is skipped, not held', () => {
     const parser = createXmltvParser({ channel: () => {}, programme: () => {} })
     expect(parser.push('<tv><desc>').ok).toBe(true)

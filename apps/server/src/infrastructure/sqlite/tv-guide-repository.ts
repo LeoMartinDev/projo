@@ -95,6 +95,27 @@ const programmeColumns = sql`p.id, p.channel_id, p.start_at, p.end_at, p.title, 
   p.description, p.categories, p.kind, p.episode_season, p.episode_number, p.episode_label,
   p.image_url, p.image_key, i.path AS image_path`
 
+/**
+ * A table of each enabled, present channel's first two programmes ending after `at` (every column
+ * of `tv_programmes`), to alias. A channel's stored programmes never overlap (§29.3: each is cut
+ * at the next one's start), so their order by end is their order by start, and both are read per
+ * channel on `tv_programmes_channel_end_idx`: two index seeks per channel instead of sorting
+ * every stored programme (3 days of thousands of channels).
+ */
+export const firstTwoEndingAfter = (at: Date) => {
+  const time = toIso(at)
+  return sql`(
+    SELECT n.* FROM ${tvChannels} c CROSS JOIN ${tvProgrammes} n
+    WHERE c.enabled = 1 AND c.missing_since IS NULL
+      AND n.channel_id = c.id AND n.end_at > ${time}
+      AND n.end_at <= coalesce((
+        SELECT x.end_at FROM ${tvProgrammes} x
+        WHERE x.channel_id = c.id AND x.end_at > ${time}
+        ORDER BY x.end_at LIMIT 1 OFFSET 1
+      ), '9999')
+  )`
+}
+
 /** The guide's programmes (§29.3): replaced per source, read as now and next and one by one. */
 export const createSqliteTvGuideRepository = ({
   db,
@@ -172,19 +193,12 @@ export const createSqliteTvGuideRepository = ({
         .all().length,
 
     nowAndNext: (at) => {
-      const time = toIso(at)
-      // Each enabled, present channel's first two programmes ending after `at`.
+      // Each enabled, present channel's first two programmes ending after `at` (§29.3).
       const rows = db.all<ProgrammeRow>(sql`
-        SELECT * FROM (
-          SELECT ${programmeColumns},
-            row_number() OVER (PARTITION BY p.channel_id ORDER BY p.start_at) AS rank
-          FROM ${tvProgrammes} p
-          JOIN ${tvChannels} c ON c.id = p.channel_id
-          LEFT JOIN ${tvProgrammeImages} i ON i.key = p.image_key
-          WHERE p.end_at > ${time} AND c.enabled = 1 AND c.missing_since IS NULL
-        )
-        WHERE rank <= 2
-        ORDER BY channel_id, start_at`)
+        SELECT ${programmeColumns}
+        FROM ${firstTwoEndingAfter(at)} p
+        LEFT JOIN ${tvProgrammeImages} i ON i.key = p.image_key
+        ORDER BY p.channel_id, p.start_at`)
       const byChannel = new Map<string, TvProgramme[]>()
       for (const row of rows) {
         const programme = toProgramme(row)

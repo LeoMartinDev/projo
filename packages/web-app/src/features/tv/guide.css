@@ -41,6 +41,23 @@
   color: var(--color-text-strong);
 }
 
+.tv-guide__failed {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.tv-guide__failed-text {
+  overflow: hidden;
+  color: var(--color-error-soft);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tv-guide__grid {
   position: relative;
   flex: 1 1 0;

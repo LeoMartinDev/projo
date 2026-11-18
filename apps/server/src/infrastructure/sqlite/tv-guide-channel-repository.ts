@@ -57,14 +57,24 @@ export const createSqliteTvGuideChannelRepository = ({
   },
 
   findMany: ({ sourceId, ids }) => {
+    // Guide channel ids match ignoring case (§29.3): an admin's choice typed in another case
+    // still names the listed one. The first listed wins, as matching takes it.
     const found = new Map<string, TvGuideChannel>()
-    for (const part of chunks([...new Set(ids)])) {
+    for (const part of chunks([...new Set(ids.map((id) => id.toLowerCase()))])) {
       for (const row of db
         .select()
         .from(tvGuideChannels)
-        .where(and(eq(tvGuideChannels.sourceId, sourceId), inArray(tvGuideChannels.key, part)))
-        .all())
-        found.set(row.key.toLowerCase(), toGuideChannel(row))
+        .where(
+          and(
+            eq(tvGuideChannels.sourceId, sourceId),
+            inArray(sql`lower(${tvGuideChannels.key})`, part),
+          ),
+        )
+        .orderBy(asc(tvGuideChannels.position))
+        .all()) {
+        const lower = row.key.toLowerCase()
+        if (!found.has(lower)) found.set(lower, toGuideChannel(row))
+      }
     }
     return found
   },

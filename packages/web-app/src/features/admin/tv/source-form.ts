@@ -139,7 +139,8 @@ export const invalidSourceFields = (
     parseLimit(form.maxConnections) === undefined
   )
     invalid.add('maxConnections')
-  if (parseGrabsPerHour(form.snapshotGrabsPerHour) === undefined)
+  // Disabled while the snapshots are off: a value left there then never blocks the save.
+  if (form.snapshots && parseGrabsPerHour(form.snapshotGrabsPerHour) === undefined)
     invalid.add('snapshotGrabsPerHour')
   return invalid
 }

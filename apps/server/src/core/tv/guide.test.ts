@@ -306,6 +306,30 @@ describe('collecting a guide (§29.3)', () => {
     expect(collected.matches.get('unlisted')).toBe('hidden.fr')
   })
 
+  test('unlisted keys: each quality takes its own key, else its stem, whatever the others take', () => {
+    const collector = createGuideCollector({
+      channels: [
+        { id: 'plain', name: 'A', group: '', guideKey: 'France2.fr' },
+        { id: 'hd', name: 'B', group: '', guideKey: 'France2.fr@HD' },
+        { id: 'sd', name: 'C', group: '', guideKey: 'France2.fr@SD' },
+      ],
+      now,
+      language: 'fr',
+    })
+    collector.sink.programme(programme('France2.fr', at('11:30'), at('12:30'), [{ text: 'Plain' }]))
+    collector.sink.programme(programme('France2.fr@SD', at('11:30'), at('12:30'), [{ text: 'SD' }]))
+    const collected = collector.finish()
+    const titlesOf = (channelId: string) =>
+      collected.programmes.filter((p) => p.channelId === channelId).map((p) => p.title)
+    expect(titlesOf('plain')).toEqual(['Plain'])
+    // No programme of its own key: those of its stem, though another channel's key is that stem.
+    expect(titlesOf('hd')).toEqual(['Plain'])
+    expect(collected.matches.get('hd')).toBe('France2.fr')
+    // Its own key's programmes, never mixed with its stem's.
+    expect(titlesOf('sd')).toEqual(['SD'])
+    expect(collected.matches.get('sd')).toBe('France2.fr@SD')
+  })
+
   test('a guide without channels (Freebox) matches on the key alone', () => {
     const collector = createGuideCollector({
       channels: [{ id: 'c', name: 'France 2', group: '', guideKey: 'uuid-webtv-201' }],

@@ -662,7 +662,7 @@
       "goLive": "Revenir au direct",
       "behind": "{{time}} de retard sur le direct",
       "window": "Position dans le direct",
-      "resumedOldest": "Reprise au plus ancien moment gardé",
+      "resumedOldest": "Reprise au plus ancien moment conservé",
       "resumedLive": "Pause trop longue : retour au direct"
     }
   },
@@ -1066,8 +1066,8 @@
       "delete": "Supprimer",
       "deleteTitle": "Supprimer {{name}} ?",
       "deleteText": "Ses chaînes, leurs logos et les favoris qui les visent seront supprimés.",
-      "guideChannel": "Programme du guide",
-      "guideChannelOf": "Programme du guide · {{name}}",
+      "guideChannel": "Chaîne du guide",
+      "guideChannelOf": "Chaîne du guide · {{name}}",
       "guideAutomatic": "Automatique",
       "guideManual": "Manuel",
       "guideNone": "Aucun guide",

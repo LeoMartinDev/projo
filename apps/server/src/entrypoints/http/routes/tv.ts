@@ -43,13 +43,16 @@ import {
 /** A live playlist shorter than this goes as it is: gzip would not pay. */
 const gzipMinChars = 512
 
-const acceptsGzip = (header: string | undefined): boolean =>
+/** Whether `Accept-Encoding` takes gzip: listed with a weight above 0 (`gzip;q=0.0` refuses it). */
+export const acceptsGzip = (header: string | undefined): boolean =>
   (header ?? '')
     .split(',')
-    .map((part) => part.trim().split(';'))
-    .some(
-      ([coding, quality]) => coding?.trim().toLowerCase() === 'gzip' && quality?.trim() !== 'q=0',
-    )
+    .map((part) => part.split(';').map((piece) => piece.trim().toLowerCase()))
+    .some(([coding, ...parameters]) => {
+      if (coding !== 'gzip') return false
+      const weight = parameters.find((parameter) => parameter.startsWith('q='))
+      return weight === undefined || Number.parseFloat(weight.slice(2)) > 0
+    })
 
 const liveAccess = (c: Context<AppEnv>): LiveStreamAccess => ({
   sessionId: c.req.param('sessionId') ?? '',
