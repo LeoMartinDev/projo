@@ -30,13 +30,17 @@ export const useMediaSession = ({
   metadata,
   seekBy,
   next,
+  play,
 }: {
   engine: WebPlayerEngine
   metadata: Omit<NowPlaying, 'actions'> | undefined
   seekBy: ((deltaMs: number) => void) | undefined
   next: (() => void) | undefined
+  // What "play" does when not the engine's own (live: a session released by a long pause).
+  play?: () => void
 }) => {
   const { systemMedia } = useHost()
+  const onPlay = useEffectEvent(() => (play === undefined ? engine.play() : play()))
   const onSeekBy = useEffectEvent((deltaMs: number) => seekBy?.(deltaMs))
   const onNext = useEffectEvent(() => next?.())
   const hasNext = next !== undefined
@@ -48,7 +52,7 @@ export const useMediaSession = ({
     const stopActions = systemMedia.onAction((request: SystemMediaRequest) => {
       switch (request.action) {
         case 'play':
-          return engine.play()
+          return onPlay()
         case 'pause':
           return engine.pause()
         case 'seekbackward':

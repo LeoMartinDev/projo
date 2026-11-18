@@ -119,7 +119,8 @@ test('live TV: the admin adds an M3U source and enables a group, a profile plays
       const behind = page.getByRole('button', { name: new RegExp(`^${fr.player.live.goLive}`) })
       await wakePlayer(page)
       await expect(behind).toBeVisible()
-      await expect(behind).toHaveText(/^−0:1\d$/)
+      // About 10 s behind the live point (where the player sat, give or take a segment).
+      await expect(behind).toHaveText(/^−0:(?:0[5-9]|1\d)$/)
       await behind.click()
       await wakePlayer(page)
       await expect(

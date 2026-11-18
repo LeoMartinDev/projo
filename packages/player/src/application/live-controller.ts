@@ -62,6 +62,8 @@ export type LiveController = ReadableStore<LiveState> & {
   // Another channel: the old session ends, then the new one is created.
   zap: (channelId: string) => void
   togglePlay: () => void
+  // Play from elsewhere (the system's media controls): a released session starts anew.
+  play: () => void
   setVolume: (volume: number) => void
   toggleMute: () => void
   // Timeshift (§29.5): ±10 s, a point of the bar (wall clock), back to the live point.
@@ -84,6 +86,9 @@ const noPosition = { positionMs: 0, paused: true }
 
 // A notice stays this long over the picture.
 const noticeMs = 4_000
+
+// The window's first read waits this long at most before the stream loads.
+const firstReadTimeoutMs = 5_000
 
 const initialState = (channelId: string): LiveState => ({
   channelId,
@@ -239,8 +244,17 @@ export const createLiveController = ({
     }
     attached = current
     // With timeshift, the stream starts at the live point the window names (an engine that
-    // cannot seek in a live playlist anchors its position there, §29.5).
-    const first = engine.capabilities.liveSeek ? readWindow(session) : Promise.resolve()
+    // cannot seek in a live playlist anchors its position there, §29.5); a read that does not
+    // answer in time lets it start at the live edge without one.
+    const first = engine.capabilities.liveSeek
+      ? new Promise<void>((resolve) => {
+          const late = timers.setTimeout(resolve, firstReadTimeoutMs)
+          void readWindow(session).then(() => {
+            timers.clearTimeout(late)
+            resolve()
+          })
+        })
+      : Promise.resolve()
     void first.then(() => {
       if (!loading || attached !== current) return
       const known = boundsNow()
@@ -366,6 +380,12 @@ export const createLiveController = ({
     update({ session: undefined, window: undefined, released: true })
   }
 
+  // Play after a release: a new session at the live point, told so.
+  const resumeReleased = () => {
+    renew({ reconnectAttempt: 0 })
+    notify('resumedLive')
+  }
+
   // ── Reactions ───────────────────────────────────────────────────────────
 
   const react = () => {
@@ -483,6 +503,9 @@ export const createLiveController = ({
       for (const unsubscribe of unsubscribes) unsubscribe()
       unsubscribes = []
       reconnectEffect.reset()
+      if (noticeTimer !== undefined) timers.clearTimeout(noticeTimer)
+      noticeTimer = undefined
+      if (state().notice !== undefined) store.set({ ...state(), notice: undefined })
       const sessionId = detach()
       if (sessionId !== undefined)
         ends.release(sessionId, () => ends.endOnce(sessionId, noPosition))
@@ -496,14 +519,17 @@ export const createLiveController = ({
 
     togglePlay: () => {
       if (state().released) {
-        renew({ reconnectAttempt: 0 })
-        notify('resumedLive')
+        resumeReleased()
         return
       }
       if (attached === undefined) return
       const media = engine.read()
       if (media.paused || media.ended) engine.play()
       else engine.pause()
+    },
+    play: () => {
+      if (state().released) resumeReleased()
+      else if (attached !== undefined) engine.play()
     },
     setVolume: (volume) => {
       const level = Math.min(1, Math.max(0, volume))

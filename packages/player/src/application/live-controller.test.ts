@@ -354,7 +354,8 @@ describe('live controller: timeshift (§29.5)', () => {
     expect(w.controller.view()).toMatchObject({ loading: false, blocked: false, playing: true })
     expect(w.controller.timeline()).toBeUndefined()
     w.server.log.splice(0)
-    w.controller.togglePlay()
+    // Play from the system's media controls, as from the page.
+    w.controller.play()
     await w.settle()
     expect(w.server.log).toEqual(['create c1'])
     expect(w.fake.commands.at(-1)).toBe(`live ${stream('l2')} from edge@327`)

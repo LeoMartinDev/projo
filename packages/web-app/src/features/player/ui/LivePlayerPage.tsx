@@ -408,6 +408,7 @@ export const LivePlayerPage = ({
     metadata: nowPlaying,
     seekBy: undefined,
     next: canStep ? () => stepChannel(1) : undefined,
+    play: controller.play,
   })
 
   const runCommand = (command: LiveCommand) => {

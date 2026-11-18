@@ -1034,6 +1034,7 @@ describe('without a TMDB key, then with one (§9.1)', () => {
     ).toEqual([
       { key: 'playback.audio_downmix', value: '"keep"' },
       { key: 'playback.hw_accel', value: '"vaapi"' },
+      { key: 'playback.live_window_minutes', value: '45' },
       { key: 'playback.max_concurrent_transcodes', value: '4' },
       { key: 'playback.trickplay_enabled', value: 'false' },
       { key: 'server.name', value: '"Maison"' },
