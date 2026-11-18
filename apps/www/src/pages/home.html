@@ -403,6 +403,45 @@
               </div>
             </article>
 
+            <article class="card card--live">
+              <div class="card__visual" aria-hidden="true">
+                <div class="ui ui--guide glass">
+                  <span class="guide__times"
+                    ><span>{{ t.home.live.time1 }}</span><span>{{ t.home.live.time2 }}</span
+                    ><span>{{ t.home.live.time3 }}</span></span
+                  >
+                  <span class="guide__row"
+                    ><span class="guide__channel">1</span
+                    ><span class="guide__programme guide__programme--2 is-now"
+                      >{{ t.home.live.news }}<span class="guide__progress"></span></span
+                    ><span class="guide__programme guide__programme--4"
+                      >{{ t.home.show }}</span
+                    ></span
+                  >
+                  <span class="guide__row"
+                    ><span class="guide__channel">2</span
+                    ><span class="guide__programme guide__programme--3 is-now"
+                      >{{ t.home.next.title }}<span class="guide__progress"></span></span
+                    ><span class="guide__programme guide__programme--3"
+                      >{{ t.home.live.orbit }}</span
+                    ></span
+                  >
+                  <span class="guide__row"
+                    ><span class="guide__channel">3</span
+                    ><span class="guide__programme guide__programme--4 is-now"
+                      >{{ t.home.live.ferry }}<span class="guide__progress"></span></span
+                    ><span class="guide__programme guide__programme--2"
+                      >{{ t.home.live.tides }}</span
+                    ></span
+                  >
+                </div>
+              </div>
+              <div class="card__body">
+                <h3>{{ t.home.live.title }}</h3>
+                <p>{{ t.home.live.text }}</p>
+              </div>
+            </article>
+
             <article class="card card--updates">
               <div class="card__visual" aria-hidden="true">
                 <div class="ui ui--update glass">
@@ -837,7 +876,7 @@
         <ul class="pills">
           <li>{{ t.home.notDoing.music }}</li>
           <li>{{ t.home.notDoing.photos }}</li>
-          <li>{{ t.home.notDoing.live }}</li>
+          <li>{{ t.home.notDoing.recording }}</li>
           <li>Chromecast</li>
           <li>AirPlay</li>
           <li>{{ t.home.notDoing.tvApps }}</li>

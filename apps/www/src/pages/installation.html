@@ -122,6 +122,7 @@
             <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
             <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
             <li><a href="#sources">{{ t.docs.sections.sources }}</a></li>
+            <li><a href="#live-tv">{{ t.docs.sections.live }}</a></li>
             <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
             <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
             <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
@@ -137,6 +138,7 @@
           <li><a href="#tmdb">{{ t.docs.sections.tmdb }}</a></li>
           <li><a href="#naming">{{ t.docs.sections.naming }}</a></li>
           <li><a href="#sources">{{ t.docs.sections.sources }}</a></li>
+          <li><a href="#live-tv">{{ t.docs.sections.live }}</a></li>
           <li><a href="#updates">{{ t.docs.sections.updates }}</a></li>
           <li><a href="#backup">{{ t.docs.sections.backup }}</a></li>
           <li><a href="#troubleshooting">{{ t.docs.sections.troubleshooting }}</a></li>
@@ -422,6 +424,18 @@ sudo sysctl --system</code></pre>
           <p>{{ t.docs.sources.disksText }}</p>
           <h3>{{ t.docs.sources.paths }}</h3>
           <p>{{ t.docs.sources.pathsText }}</p>
+        </section>
+
+        <section id="live-tv">
+          <h2>{{ t.docs.sections.live }}</h2>
+          <p>{{ t.docs.live.text }}</p>
+          <h3>{{ t.docs.live.freebox }}</h3>
+          <p>{{ t.docs.live.freeboxText }}</p>
+          <pre><code>services:
+  projo:
+    network_mode: host   <span class="c"># {{ t.docs.live.host }}</span></code></pre>
+          <h3>{{ t.docs.live.cache }}</h3>
+          <p>{{ t.docs.live.cacheText }}</p>
         </section>
 
         <section id="updates">

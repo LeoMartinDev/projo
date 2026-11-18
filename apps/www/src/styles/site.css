@@ -507,6 +507,7 @@ h2 {
 .features {
   grid-template-areas:
     'playback tmdb tmdb'
+    'live live live'
     'updates screens libraries'
     'tracks tracks libraries';
 }
@@ -533,6 +534,10 @@ h2 {
 
 .card--tracks {
   grid-area: tracks;
+}
+
+.card--live {
+  grid-area: live;
 }
 
 .card {
@@ -687,6 +692,122 @@ h2 {
   grid-column: 1;
   align-self: end;
   padding: 28px;
+}
+
+/* The live TV band: its text on the left, the guide on the right, as wide as the rest. */
+.card--live {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+.card--live .card__visual {
+  grid-column: 2;
+  height: auto;
+  min-height: 260px;
+  padding: 32px;
+}
+
+.card--live .card__body {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: end;
+  padding: 32px;
+}
+
+/* The guide: a channel per row, an hour and a half across, what is on now lit with its progress. */
+.ui--guide {
+  gap: 4px;
+  max-width: 640px;
+  padding: 10px;
+  border-radius: var(--radius-well);
+}
+
+.guide__times,
+.guide__row {
+  display: grid;
+  grid-template-columns: 40px repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.guide__times span {
+  grid-column: span 2;
+  padding: 4px 10px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.guide__times span:first-child {
+  grid-column: 2 / span 2;
+}
+
+.guide__channel,
+.guide__programme {
+  height: 44px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.guide__channel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fill-2);
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.guide__programme {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  padding: 0 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--fill-1);
+  color: var(--color-text-muted-strong);
+}
+
+.guide__programme.is-now {
+  background: var(--fill-3);
+  font-weight: 500;
+  color: var(--color-text-strong);
+}
+
+.guide__programme--2 {
+  grid-column: span 2;
+}
+
+.guide__programme--3 {
+  grid-column: span 3;
+}
+
+.guide__programme--4 {
+  grid-column: span 4;
+}
+
+.guide__progress {
+  position: absolute;
+  left: 12px;
+  bottom: 7px;
+  width: 30%;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-text-strong);
+}
+
+.guide__row:nth-child(2) .guide__progress {
+  width: 62%;
+}
+
+.guide__row:nth-child(3) .guide__progress {
+  width: 41%;
+}
+
+.guide__row:nth-child(4) .guide__progress {
+  width: 24%;
 }
 
 /* The tall card: its text first, then the folder listing running on past the bottom edge. */
@@ -1529,6 +1650,7 @@ h2 {
     grid-template-areas:
       'playback updates'
       'tmdb tmdb'
+      'live live'
       'screens libraries'
       'tracks tracks';
   }
@@ -1792,7 +1914,7 @@ h2 {
     font-size: 15px;
   }
 
-  /* On a phone the six cards follow one another, full width, like the two above. */
+  /* On a phone the seven cards follow one another, full width, like the two above. */
   .features {
     display: flex;
     flex-direction: column;
@@ -1859,6 +1981,41 @@ h2 {
   .card--tmdb .card__body {
     align-self: auto;
     padding: 4px 20px 22px;
+  }
+
+  .features .card--live {
+    display: flex;
+  }
+
+  .features .card--live .card__visual {
+    height: auto;
+    min-height: 0;
+    padding: 24px 18px 14px;
+  }
+
+  .card--live .card__body {
+    align-self: auto;
+    padding: 4px 20px 22px;
+  }
+
+  .guide__times,
+  .guide__row {
+    grid-template-columns: 30px repeat(6, minmax(0, 1fr));
+  }
+
+  .guide__channel,
+  .guide__programme {
+    height: 38px;
+    font-size: 12px;
+  }
+
+  .guide__programme {
+    padding: 0 9px;
+  }
+
+  .guide__progress {
+    left: 9px;
+    bottom: 6px;
   }
 
   .ui--languages {

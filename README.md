@@ -29,11 +29,12 @@
 - **Movies and shows identified automatically** with [TMDB]: posters, overviews, cast. Messy folders welcome.
 - **Plays any file in the browser**: direct play when possible, remux or transcode otherwise (optional Intel VAAPI).
 - **Continue watching, skip intro and credits, next episode autoplay**, audio and subtitle choices remembered per show.
+- **Live TV** from your own M3U, Xtream Codes or Freebox source, relayed by the server: a three-day guide, favourites, pause and 30 minutes of rewind, on the web and the desktop app. projo ships no channels.
 - **For the whole family**: accounts invited by link, profiles with a PIN, per-library access and content ratings.
 - **Updates from the admin page**, with automatic rollback if the new version does not start.
 - English and French, installable as an app (PWA), on desktop, tablet and phone.
 
-projo does not handle music, photos, live TV recording, casting or file renaming.
+projo does not handle music, photos, recording or catch-up of live TV, casting or file renaming.
 
 ## Quick start
 
@@ -61,7 +62,7 @@ Open `http://<your-machine>:8080`, create the administrator account and pick you
 
 The [installation guide](https://getprojo.com/installation/) covers the rest: [file permissions](https://getprojo.com/installation/#permissions), [hardware transcoding](https://getprojo.com/installation/#gpu), [running behind a reverse proxy](https://getprojo.com/installation/#proxy), [naming your files](https://getprojo.com/installation/#naming), [downloads, network shares and several disks](https://getprojo.com/installation/#sources), [updates](https://getprojo.com/installation/#updates), [backups](https://getprojo.com/installation/#backup) and [troubleshooting](https://getprojo.com/installation/#troubleshooting).
 
-A Freebox TV source needs the container on the box's network: the box answers its API and streams its channels (RTSP over UDP) on its own network only. Replace `ports:` with `network_mode: host`.
+A Freebox TV source needs the container on the box's network: the box answers its API and streams its channels (RTSP over UDP) on its own network only. Replace `ports:` with `network_mode: host`. For pause and rewind, live TV keeps up to 20 GB in `projo-data/cache` by default (Administration → Playback).
 
 ## Development
 

@@ -75,6 +75,17 @@ export const fr = {
       text: 'Lecture directe, remux ou transcodage, avec un choix de qualité. Transcodage matériel Intel en option.',
       quality: 'Qualité',
     },
+    live: {
+      title: 'TV en direct',
+      text: 'Vos chaînes M3U, Xtream Codes ou Freebox, relayées par le serveur : guide sur trois jours, favoris, pause et 30 minutes de retour en arrière. projo ne fournit aucune chaîne.',
+      time1: '20:30',
+      time2: '21:00',
+      time3: '21:30',
+      news: 'Le journal',
+      orbit: 'Orbite basse',
+      ferry: 'Le Dernier Ferry',
+      tides: 'Marées',
+    },
     tracks: {
       title: 'Audio et sous-titres',
       text: 'Choisis selon les langues du profil, puis mémorisés par série.',
@@ -128,7 +139,7 @@ export const fr = {
       text: 'Et il ne modifie, ne renomme ni ne déplace jamais vos fichiers.',
       music: 'Musique',
       photos: 'Photos',
-      live: 'TV en direct',
+      recording: 'Enregistrement TV',
       tvApps: 'Apps TV natives',
       cloud: 'Cloud',
       renaming: 'Renommage de fichiers',
@@ -179,6 +190,7 @@ export const fr = {
       tmdb: 'Clé TMDB',
       naming: 'Nommer vos fichiers',
       sources: "D'où viennent vos fichiers",
+      live: 'TV en direct',
       updates: 'Mises à jour',
       backup: 'Sauvegarde et restauration',
       troubleshooting: "Un fichier n'apparaît pas",
@@ -190,7 +202,7 @@ export const fr = {
       tmdb: 'Une <strong>clé API TMDB</strong>, gratuite, sur <a href="https://www.themoviedb.org/">themoviedb.org</a> (Paramètres → API). Sans elle, pas d\'affiches ni d\'identification.',
       browser:
         'Un <strong>navigateur récent</strong> : Chrome, Edge, Firefox, Safari, sur ordinateur ou mobile.',
-      note: "Le transcodage se fait par défaut sur le processeur. Son cache occupe jusqu'à 10 Go dans <code>/data</code> (réglable).",
+      note: "Le transcodage se fait par défaut sur le processeur. Son cache occupe jusqu'à 10 Go dans <code>/data</code>, celui de la TV en direct jusqu'à 20 Go (réglables).",
     },
     install: {
       step1: '1. Créez le fichier <code>docker-compose.yml</code>',
@@ -278,6 +290,16 @@ export const fr = {
       paths: 'Changer un chemin',
       pathsText:
         "Si vos vidéos changent de place sur l'hôte, ne changez que la partie gauche du volume et gardez le même chemin sous <code>/media</code>. Sinon, remplacez le dossier dans <strong>Administration → Bibliothèques</strong> : les titres identifiés gardent leur progression, et les corrections suivent les fichiers dont le chemin sous le dossier ne change pas.",
+    },
+    live: {
+      text: "<strong>Administration → TV</strong> : ajoutez votre source (une playlist M3U, un compte Xtream Codes ou une Freebox), puis activez les groupes de chaînes à proposer. projo ne fournit aucune chaîne. Le serveur relaie chaque chaîne : les navigateurs ne contactent jamais le fournisseur. L'accès à la TV se règle par profil.",
+      freebox: 'Freebox',
+      freeboxText:
+        'La box ne répond et ne diffuse ses chaînes que sur son réseau local. Le conteneur doit être sur ce réseau : remplacez <code>ports:</code> par <code>network_mode: host</code>.',
+      host: 'à la place de ports:',
+      cache: 'Pause et retour en arrière',
+      cacheText:
+        'Le serveur garde les 30 dernières minutes de chaque chaîne regardée dans <code>cache/</code> : environ 0,5 à 2 Go par chaîne, 20 Go au plus en tout. Les deux se règlent dans <strong>Administration → Lecture</strong>.',
     },
     updates: {
       app: "L'application",
@@ -400,6 +422,17 @@ export const en: Messages = {
       text: 'Direct play, remux or transcode, with a quality picker. Optional Intel hardware transcoding.',
       quality: 'Quality',
     },
+    live: {
+      title: 'Live TV',
+      text: 'Your M3U, Xtream Codes or Freebox channels, relayed by the server: a three-day guide, favourites, pause and 30 minutes of rewind. projo ships no channels.',
+      time1: '8:30 PM',
+      time2: '9:00 PM',
+      time3: '9:30 PM',
+      news: 'The news',
+      orbit: 'Low Orbit',
+      ferry: 'The Last Ferry',
+      tides: 'Tides',
+    },
     tracks: {
       title: 'Audio and subtitles',
       text: "Picked from the profile's languages, then remembered per show.",
@@ -453,7 +486,7 @@ export const en: Messages = {
       text: 'And it never modifies, renames or moves your files.',
       music: 'Music',
       photos: 'Photos',
-      live: 'Live TV',
+      recording: 'TV recording',
       tvApps: 'Native TV apps',
       cloud: 'Cloud',
       renaming: 'File renaming',
@@ -504,6 +537,7 @@ export const en: Messages = {
       tmdb: 'TMDB key',
       naming: 'Naming your files',
       sources: 'Where your files come from',
+      live: 'Live TV',
       updates: 'Updates',
       backup: 'Backup and restore',
       troubleshooting: 'A file does not show up',
@@ -515,7 +549,7 @@ export const en: Messages = {
       tmdb: 'A free <strong>TMDB API key</strong> from <a href="https://www.themoviedb.org/">themoviedb.org</a> (Settings → API). Without it, no posters and no identification.',
       browser:
         'A <strong>recent browser</strong>: Chrome, Edge, Firefox, Safari, on a computer or a phone.',
-      note: 'Transcoding runs on the CPU by default. Its cache takes up to 10 GB in <code>/data</code> (configurable).',
+      note: 'Transcoding runs on the CPU by default. Its cache takes up to 10 GB in <code>/data</code>, the live TV cache up to 20 GB (both configurable).',
     },
     install: {
       step1: '1. Create <code>docker-compose.yml</code>',
@@ -602,6 +636,16 @@ export const en: Messages = {
       paths: 'Changing a path',
       pathsText:
         'If your videos move on the host, change only the left side of the volume and keep the same path under <code>/media</code>. Otherwise, replace the folder in <strong>Administration → Libraries</strong>: identified titles keep their progress, and corrections follow the files whose path under the folder does not change.',
+    },
+    live: {
+      text: '<strong>Administration → TV</strong>: add your source (an M3U playlist, an Xtream Codes account or a Freebox), then turn on the channel groups to offer. projo ships no channels. The server relays every channel: browsers never contact the provider. Access to live TV is set per profile.',
+      freebox: 'Freebox',
+      freeboxText:
+        'The box answers and streams its channels on its local network only. The container must be on that network: replace <code>ports:</code> with <code>network_mode: host</code>.',
+      host: 'instead of ports:',
+      cache: 'Pause and rewind',
+      cacheText:
+        'The server keeps the last 30 minutes of each channel being watched in <code>cache/</code>: about 0.5 to 2 GB per channel, 20 GB at most in all. Both are set in <strong>Administration → Playback</strong>.',
     },
     updates: {
       app: 'The application',
