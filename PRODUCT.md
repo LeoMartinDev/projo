@@ -1602,7 +1602,7 @@ A **TV source** is one subscription, added by the admin (Admin → TV). Three ki
 
 | Kind | Settings | Channels | Guide |
 |---|---|---|---|
-| `m3u` | playlist URL (`http`/`https`), optional XMLTV URL, optional `User-Agent` | `#EXTINF` entries: `tvg-id`, `tvg-name`, `tvg-logo`, `tvg-chno`, `group-title`; `#EXTVLCOPT:http-user-agent` and `http-referrer` kept per channel. Upstream URLs: `http`, `https`, `rtsp`, `rtp`, `udp` | the XMLTV URL of the settings, else the playlist header's `url-tvg` / `x-tvg-url`; matched on `tvg-id` |
+| `m3u` | playlist URL (`http`/`https`), optional XMLTV URL, optional `User-Agent` (visible ASCII: a header value) | `#EXTINF` entries: `tvg-id`, `tvg-name`, `tvg-logo`, `tvg-chno`, `group-title`; `#EXTVLCOPT:http-user-agent` and `http-referrer` kept per channel. Upstream URLs: `http`, `https`, `rtsp`, `rtp`, `udp` | the XMLTV URL of the settings, else the playlist header's `url-tvg` / `x-tvg-url`; matched on `tvg-id` |
 | `xtream` | server URL, username, password | `player_api.php`: `get_live_categories`, `get_live_streams`; upstream `/live/<user>/<pass>/<id>.ts` | the account's `xmltv.php` |
 | `freebox` | box address (default `http://mafreebox.freebox.fr`) | the box's TV API (`/api/v8/tv/bouquets/freeboxtv/channels` joined with `/tv/channels`), one channel per service with its best `rtsp` stream (HD, else auto, else standard); channels without a stream are left out | the box's `/tv/epg/` API |
 
@@ -1626,7 +1626,7 @@ Data (`infrastructure/sqlite/schema/tv.ts`): `tv_sources` (kind, name, settings 
 - The URL is the first non-comment line after the `#EXTINF`; a URL without one is ignored. Kept only for the schemes `http`, `https`, `rtsp`, `rtp`, `udp`.
 - **File, not live**: a URL whose path ends in a video file extension (`.mkv .mp4 .m4v .avi .mov .wmv .flv .webm .mpg .mpeg .divx .ogv .3gp .iso`) or holds a `/movie/` or `/series/` segment. **Radio**: an entry with `radio="true"` or whose path ends in an audio extension (`.mp3 .aac .m4a .ogg .oga .opus .flac .wav`). Both are ignored.
 - Channel key: `tvg:<tvg-id>|<name>` when `tvg-id` is set, else `name:<group>|<name>`. A key seen again in the same playlist is a duplicate: the first entry wins.
-- `tv/source_unreachable`: the request failed (network, timeout, HTTP status ≥ 400). `tv/source_invalid`: the answer is not a playlist (no `#EXTM3U` first line and no `#EXTINF`), is too large, or holds no live channel at all (a provider's empty answer never hides every channel).
+- `tv/source_unreachable`: the request failed (network, timeout, HTTP status ≥ 400); its context holds the host and a fixed reason (`timeout`, the error's code such as `ECONNREFUSED`, `http_status`), never the URL nor the runtime's error message, which may quote it with its secret. `tv/source_invalid`: the answer is not a playlist (no `#EXTM3U` first line and no `#EXTINF`), is too large, or holds no live channel at all (a provider's empty answer never hides every channel).
 
 **Refresh in detail**:
 
@@ -1637,7 +1637,7 @@ Data (`infrastructure/sqlite/schema/tv.ts`): `tv_sources` (kind, name, settings 
 - **Daily**: the hourly task `tv-sources-refresh` queues `refresh_tv_source` for every source whose last attempt is more than 24 hours old. Creating a source, or changing its playlist URL or `User-Agent`, queues one at once.
 - The upstream stored per channel is a URL with the channel's own `User-Agent` and referrer; the port's `upstreamOf` completes it from the source (its `User-Agent` when the channel has none). Kinds whose URL carries credentials rebuild it at each refresh.
 
-**Logos**: downloaded only for enabled channels (a playlist holds thousands), by `fetch_tv_logos`, queued after each successful refresh and when channels are enabled. A channel is fetched again when its logo URL changed, or a day after a failed attempt. `http`/`https` only, the channel's or source's `User-Agent`, 15 s and 1 MB at most, 4 at a time; PNG, JPEG, WebP and GIF accepted by their magic signature (SVG refused), stored as they are in `/data/images/tv/<channel id>.<ext>`. A failure is logged, never fails the job. A channel without a logo shows its name.
+**Logos**: downloaded only for enabled channels (a playlist holds thousands), by `fetch_tv_logos`, queued after each successful refresh and when channels are enabled. A channel is fetched again when its logo URL changed, or a day after a failed attempt; while a changed URL fails, the previous logo is kept and served. `http`/`https` only, the channel's or source's `User-Agent`, 15 s and 1 MB at most, 4 at a time; the host of the logo and of each redirect (at most 5, followed one by one) must not resolve to a loopback, link-local, unspecified or multicast address (LAN addresses are allowed: a Freebox serves its logos from the LAN); PNG, JPEG, WebP and GIF accepted by their magic signature (SVG refused), stored as they are in `/data/images/tv/<channel id>.<ext>`. A failure is logged, never fails the job. A channel without a logo shows its name.
 
 ### 29.3 Guide
 
