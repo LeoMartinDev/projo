@@ -72,6 +72,8 @@ const routes: ApiRoutes = {
   adminNotifications: unwired<'adminNotifications'>(),
   adminSystem: unwired<'adminSystem'>(),
   adminUpdates: unwired<'adminUpdates'>(),
+  tv: unwired<'tv'>(),
+  adminTv: unwired<'adminTv'>(),
   adminAssistants: unwired<'adminAssistants'>(),
   oauthConsent: unwired<'oauthConsent'>(),
 }

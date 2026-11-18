@@ -12,6 +12,7 @@ import {
   BellIcon,
   DashboardIcon,
   JobsIcon,
+  LiveTvIcon,
   LogsIcon,
   MissingIcon,
   PendingIcon,
@@ -189,6 +190,10 @@ export const AdminLayout = () => {
           >
             <EyeOffIcon />
             <span className="admin__nav-label">{t('admin.hidden.title')}</span>
+          </Link>
+          <Link to="/admin/tv" className="admin__nav-link" activeProps={{ 'aria-current': 'page' }}>
+            <LiveTvIcon />
+            <span className="admin__nav-label">{t('admin.tv.title')}</span>
           </Link>
           <span className="admin__nav-separator" aria-hidden="true" />
           <Link

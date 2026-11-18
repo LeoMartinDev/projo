@@ -50,6 +50,11 @@ const expectedTables = [
   'sources',
   'tmdb_responses',
   'track_preferences',
+  'tv_channels',
+  'tv_favorites',
+  'tv_groups',
+  'tv_programmes',
+  'tv_sources',
   'update_runs',
   'watchlist',
 ]

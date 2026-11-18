@@ -1,0 +1,343 @@
+import { appError, err, ok, type Result } from '@projo/shared'
+
+import { createTvSourceFactory } from '../../src/application/tv/create-tv-source.ts'
+import { deleteTvSourceFactory } from '../../src/application/tv/delete-tv-source.ts'
+import { fetchTvLogosFactory } from '../../src/application/tv/fetch-tv-logos.ts'
+import { getTvChannelLogoFactory } from '../../src/application/tv/get-tv-channel-logo.ts'
+import { getTvSourceFactory } from '../../src/application/tv/get-tv-source.ts'
+import { listTvSourceChannelsFactory } from '../../src/application/tv/list-tv-source-channels.ts'
+import { listTvSourcesFactory } from '../../src/application/tv/list-tv-sources.ts'
+import { queueDueTvSourceRefreshesFactory } from '../../src/application/tv/queue-due-tv-source-refreshes.ts'
+import { refreshTvSourceFactory } from '../../src/application/tv/refresh-tv-source.ts'
+import { requestTvSourceRefreshFactory } from '../../src/application/tv/request-tv-source-refresh.ts'
+import { setTvChannelEnabledFactory } from '../../src/application/tv/set-tv-channel-enabled.ts'
+import { setTvGroupEnabledFactory } from '../../src/application/tv/set-tv-group-enabled.ts'
+import { updateTvSourceFactory } from '../../src/application/tv/update-tv-source.ts'
+import {
+  searchNameOf,
+  type TvChannel,
+  type TvChannelRepository,
+  type TvGroup,
+} from '../../src/core/tv/channel.ts'
+import type { TvLogo, TvLogoDownloader, TvLogoFiles } from '../../src/core/tv/logo.ts'
+import type {
+  TvChannelListing,
+  TvProviderError,
+  TvSourceProvider,
+} from '../../src/core/tv/provider.ts'
+import type { TvSource, TvSourceRepository } from '../../src/core/tv/source.ts'
+import { createManualClock } from './clock.ts'
+import { createRecordingJobQueue, createSequentialIds } from './fakes.ts'
+import { silentLogger } from './logger.ts'
+import { recordingOpenNotifications } from './operations-world.ts'
+
+/** Sources in memory, like `createSqliteTvSourceRepository`. */
+export const inMemoryTvSources = () => {
+  const rows = new Map<string, TvSource>()
+  const repository: TvSourceRepository = {
+    list: () => [...rows.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    findById: (id) => rows.get(id),
+    save: (source) => {
+      const stored = rows.get(source.id)
+      const { lastAttemptAt, lastRefreshAt, lastError, discoveredGuideUrl } = stored ?? source
+      rows.set(source.id, {
+        ...source,
+        failureCount: stored?.failureCount ?? source.failureCount,
+        ...(lastAttemptAt === undefined ? {} : { lastAttemptAt }),
+        ...(lastRefreshAt === undefined ? {} : { lastRefreshAt }),
+        ...(lastError === undefined ? {} : { lastError }),
+        ...(discoveredGuideUrl === undefined ? {} : { discoveredGuideUrl }),
+      })
+    },
+    delete: (id) => {
+      rows.delete(id)
+    },
+    recordSuccess: ({ id, at, discoveredGuideUrl }) => {
+      const source = rows.get(id)
+      if (source === undefined) return
+      const { lastError: _gone, discoveredGuideUrl: _old, ...rest } = source
+      rows.set(id, {
+        ...rest,
+        lastAttemptAt: at,
+        lastRefreshAt: at,
+        failureCount: 0,
+        ...(discoveredGuideUrl === undefined ? {} : { discoveredGuideUrl }),
+      })
+    },
+    recordFailure: ({ id, at, error }) => {
+      const source = rows.get(id)
+      if (source === undefined) return 0
+      const failureCount = source.failureCount + 1
+      rows.set(id, { ...source, lastAttemptAt: at, lastError: error, failureCount })
+      return failureCount
+    },
+  }
+  return { repository, rows }
+}
+
+/** Groups and channels in memory, like `createSqliteTvChannelRepository`. */
+export const inMemoryTvChannels = () => {
+  const groups = new Map<string, TvGroup>()
+  const channels = new Map<string, TvChannel>()
+  const present = (channel: TvChannel) => channel.missingSince === undefined
+  const summary = (group: TvGroup) => {
+    const own = [...channels.values()].filter((c) => c.groupId === group.id && present(c))
+    return {
+      ...group,
+      channelCount: own.length,
+      enabledChannelCount: own.filter((c) => c.enabled).length,
+    }
+  }
+  const ordered = <T extends { position: number }>(values: T[]) =>
+    values.sort((a, b) => a.position - b.position)
+
+  const repository: TvChannelRepository = {
+    stateOf: (sourceId) => ({
+      groups: [...groups.values()].filter((g) => g.sourceId === sourceId),
+      channels: [...channels.values()].filter((c) => c.sourceId === sourceId),
+    }),
+    applyRefresh: (plan) => {
+      for (const group of plan.groups.insert) groups.set(group.id, group)
+      for (const { id, position } of plan.groups.update) {
+        const group = groups.get(id)
+        if (group !== undefined) groups.set(id, { ...group, position })
+      }
+      for (const channel of plan.channels.insert) channels.set(channel.id, channel)
+      for (const update of plan.channels.update) {
+        const stored = channels.get(update.id)
+        if (stored === undefined) continue
+        const { missingSince: _m, number: _n, guideKey: _g, logoUrl: _l, ...rest } = stored
+        const { number, guideKey, logoUrl, ...fields } = update
+        channels.set(update.id, {
+          ...rest,
+          ...fields,
+          ...(number === undefined ? {} : { number }),
+          ...(guideKey === undefined ? {} : { guideKey }),
+          ...(logoUrl === undefined ? {} : { logoUrl }),
+        })
+      }
+      for (const id of plan.channels.markMissing.ids) {
+        const stored = channels.get(id)
+        if (stored !== undefined && present(stored))
+          channels.set(id, { ...stored, missingSince: plan.channels.markMissing.at })
+      }
+      for (const id of plan.channels.delete) channels.delete(id)
+      for (const id of plan.groups.delete) groups.delete(id)
+    },
+    countsBySource: () => {
+      const counts = new Map<string, { channelCount: number; enabledChannelCount: number }>()
+      for (const channel of channels.values()) {
+        if (!present(channel)) continue
+        const count = counts.get(channel.sourceId) ?? { channelCount: 0, enabledChannelCount: 0 }
+        counts.set(channel.sourceId, {
+          channelCount: count.channelCount + 1,
+          enabledChannelCount: count.enabledChannelCount + (channel.enabled ? 1 : 0),
+        })
+      }
+      return counts
+    },
+    groupsOf: (sourceId) =>
+      ordered([...groups.values()].filter((g) => g.sourceId === sourceId)).map(summary),
+    findGroup: (id) => {
+      const group = groups.get(id)
+      return group === undefined ? undefined : summary(group)
+    },
+    setGroupEnabled: ({ id, enabled }) => {
+      const group = groups.get(id)
+      if (group === undefined) return
+      groups.set(id, { ...group, enabled })
+      for (const channel of channels.values())
+        if (channel.groupId === id) channels.set(channel.id, { ...channel, enabled })
+    },
+    findChannel: (id) => channels.get(id),
+    setChannelEnabled: ({ id, enabled }) => {
+      const channel = channels.get(id)
+      if (channel !== undefined) channels.set(id, { ...channel, enabled })
+    },
+    listChannels: ({ sourceId, search, groupId, offset, limit }) => {
+      const matching = ordered(
+        [...channels.values()].filter(
+          (c) =>
+            c.sourceId === sourceId &&
+            present(c) &&
+            (groupId === undefined || c.groupId === groupId) &&
+            (search === undefined || searchNameOf(c.name).includes(search)),
+        ),
+      )
+      return { items: matching.slice(offset, offset + limit), total: matching.length }
+    },
+    logoWork: ({ sourceId, retryFailedBefore }) => {
+      const own = ordered([...channels.values()].filter((c) => c.sourceId === sourceId))
+      return {
+        fetch: own.filter(
+          (c) =>
+            c.enabled &&
+            present(c) &&
+            c.logoUrl !== undefined &&
+            (c.logoFetchedUrl !== c.logoUrl ||
+              (c.logoFailedAt !== undefined &&
+                c.logoFailedAt.getTime() < retryFailedBefore.getTime())),
+        ),
+        drop: own.filter((c) => c.logoUrl === undefined && c.logoPath !== undefined),
+      }
+    },
+    recordLogo: ({ id, url, at, path }) => {
+      const channel = channels.get(id)
+      if (channel === undefined) return false
+      if (path === undefined) {
+        channels.set(id, { ...channel, logoFetchedUrl: url, logoFailedAt: at })
+        return true
+      }
+      const { logoFailedAt: _failed, ...rest } = channel
+      channels.set(id, { ...rest, logoFetchedUrl: url, logoFetchedAt: at, logoPath: path })
+      return true
+    },
+    dropLogo: (id) => {
+      const channel = channels.get(id)
+      if (channel === undefined) return
+      const {
+        logoPath: _p,
+        logoFetchedUrl: _u,
+        logoFetchedAt: _a,
+        logoFailedAt: _f,
+        ...rest
+      } = channel
+      channels.set(id, rest)
+    },
+    logoPathsOf: (sourceId) =>
+      [...channels.values()].flatMap((c) =>
+        c.sourceId === sourceId && c.logoPath !== undefined ? [c.logoPath] : [],
+      ),
+  }
+  return { repository, groups, channels }
+}
+
+/** A provider answering what the test scripts: a listing or a failure. */
+export const scriptedTvProvider = () => {
+  let answer: Result<TvChannelListing, TvProviderError> = ok({ channels: [] })
+  const calls: string[] = []
+  const provider: TvSourceProvider = {
+    listChannels: async ({ settings }) => {
+      calls.push(settings.playlistUrl)
+      return answer
+    },
+    upstreamOf: ({ upstream }) => upstream,
+  }
+  return {
+    provider,
+    calls,
+    answer: (listing: TvChannelListing) => {
+      answer = ok(listing)
+    },
+    fail: (code: TvProviderError['code'] = 'tv/source_unreachable') => {
+      answer = err(appError(code, 'scripted failure'))
+    },
+  }
+}
+
+/**
+ * Logos by URL: a URL listed in `images` answers that image, any other fails. `duringDownload`
+ * runs inside each download (something happening meanwhile: a deletion, a shutdown).
+ */
+export const scriptedLogos = () => {
+  const images = new Map<string, TvLogo>()
+  const downloads: { url: string; userAgent?: string }[] = []
+  const files = new Map<string, Uint8Array>()
+  const hooks: { duringDownload?: (url: string) => Promise<void> } = {}
+  const downloader: TvLogoDownloader = {
+    download: async ({ url, userAgent }) => {
+      downloads.push({ url, ...(userAgent === undefined ? {} : { userAgent }) })
+      await hooks.duringDownload?.(url)
+      const image = images.get(url)
+      return image === undefined
+        ? err(
+            appError('tv/logo_unavailable', 'scripted failure', {
+              context: { reason: 'http_404' },
+            }),
+          )
+        : ok(image)
+    },
+  }
+  const logoFiles: TvLogoFiles = {
+    write: async ({ path, bytes }) => {
+      files.set(path, bytes)
+      return ok()
+    },
+    remove: async (path) => {
+      files.delete(path)
+    },
+    absolutePath: (path) => `/images/${path}`,
+  }
+  return { images, downloads, files, hooks, downloader, logoFiles }
+}
+
+/** The TV use cases over in-memory sources, channels, provider, logos and job queue. */
+export const createTvWorld = () => {
+  const clock = createManualClock(new Date('2026-06-10T10:00:00.000Z'))
+  const ids = createSequentialIds('tv-')
+  const sources = inMemoryTvSources()
+  const channels = inMemoryTvChannels()
+  const provider = scriptedTvProvider()
+  const logos = scriptedLogos()
+  const notifications = recordingOpenNotifications()
+  const { queue: jobQueue, enqueued } = createRecordingJobQueue()
+  const refreshing = new Set<string>()
+  const tvSources = sources.repository
+  const tvChannels = channels.repository
+  const refreshActivity = { refreshingSourceIds: () => refreshing }
+  const logger = silentLogger
+
+  return {
+    clock,
+    sources,
+    channels,
+    provider,
+    logos,
+    notifications,
+    enqueued,
+    refreshing,
+    createTvSource: createTvSourceFactory({ tvSources, jobQueue, ids, clock, logger }),
+    updateTvSource: updateTvSourceFactory({
+      tvSources,
+      tvChannels,
+      refreshActivity,
+      jobQueue,
+      logger,
+    }),
+    deleteTvSource: deleteTvSourceFactory({
+      tvSources,
+      tvChannels,
+      logoFiles: logos.logoFiles,
+      logger,
+    }),
+    listTvSources: listTvSourcesFactory({ tvSources, tvChannels, refreshActivity }),
+    getTvSource: getTvSourceFactory({ tvSources, tvChannels, refreshActivity }),
+    requestTvSourceRefresh: requestTvSourceRefreshFactory({ tvSources, jobQueue }),
+    queueDueTvSourceRefreshes: queueDueTvSourceRefreshesFactory({ tvSources, jobQueue, clock }),
+    refreshTvSource: refreshTvSourceFactory({
+      tvSources,
+      tvChannels,
+      provider: provider.provider,
+      logoFiles: logos.logoFiles,
+      notifier: notifications.notifier,
+      jobQueue,
+      ids,
+      clock,
+      logger,
+    }),
+    setTvGroupEnabled: setTvGroupEnabledFactory({ tvSources, tvChannels, jobQueue, logger }),
+    setTvChannelEnabled: setTvChannelEnabledFactory({ tvChannels, jobQueue }),
+    listTvSourceChannels: listTvSourceChannelsFactory({ tvSources, tvChannels }),
+    fetchTvLogos: fetchTvLogosFactory({
+      tvSources,
+      tvChannels,
+      downloader: logos.downloader,
+      logoFiles: logos.logoFiles,
+      clock,
+      logger,
+    }),
+    getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, logoFiles: logos.logoFiles }),
+  }
+}
+
+export type TvWorld = ReturnType<typeof createTvWorld>

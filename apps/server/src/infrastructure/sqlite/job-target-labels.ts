@@ -12,6 +12,7 @@ import type { Db } from './database.ts'
 import { stripNulls } from './rows.ts'
 import { items } from './schema/items.ts'
 import { libraries, sources } from './schema/libraries.ts'
+import { tvSources } from './schema/tv.ts'
 
 const idsOf = (targets: readonly JobTargetRef[], kinds: readonly JobTargetRef['kind'][]) => [
   ...new Set(targets.filter((target) => kinds.includes(target.kind)).map((target) => target.id)),
@@ -78,6 +79,16 @@ export const createSqliteJobTargetLabels = ({ db }: { db: Db }): JobTargetLabels
         names.set(jobTargetKey({ kind: kind === 'season' ? 'season' : 'item', id }), { item })
         if (kind === 'season') names.set(jobTargetKey({ kind: 'item', id }), { item })
       }
+    }
+
+    const tvSourceIds = idsOf(targets, ['tv_source'])
+    if (tvSourceIds.length > 0) {
+      for (const row of db
+        .select({ id: tvSources.id, name: tvSources.name })
+        .from(tvSources)
+        .where(inArray(tvSources.id, tvSourceIds))
+        .all())
+        names.set(jobTargetKey({ kind: 'tv_source', id: row.id }), { label: row.name })
     }
 
     for (const target of targets)

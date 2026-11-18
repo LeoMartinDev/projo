@@ -17,6 +17,7 @@ export const notificationKinds = [
   'update/rolled_back',
   'cache/disk_low',
   'playback/hw_accel_failed',
+  'tv/source_unreachable',
 ] as const
 export const notificationKindSchema = z.enum(notificationKinds)
 export type NotificationKind = z.infer<typeof notificationKindSchema>

@@ -58,7 +58,7 @@ export type JobAdminRepository = {
 }
 
 export type JobTargetRef = {
-  kind: 'library' | 'source' | 'item' | 'season' | 'version'
+  kind: 'library' | 'source' | 'item' | 'season' | 'version' | 'tv_source'
   id: string
 }
 

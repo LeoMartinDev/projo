@@ -38,6 +38,7 @@ import { buildSegmentsModule } from './modules/segments.ts'
 import { buildSettingsModule } from './modules/settings.ts'
 import { buildSetupModule } from './modules/setup.ts'
 import { buildSourcesModule } from './modules/sources.ts'
+import { buildTvModule } from './modules/tv.ts'
 import type { ModuleContribution } from './modules/types.ts'
 import { buildUpdatesModule } from './modules/updates.ts'
 
@@ -146,6 +147,7 @@ export const startProjo = ({
     assistantPorts: metadata.assistantPorts,
     listLogs: logs.listLogs,
   })
+  const tv = buildTvModule(platform)
 
   const modules: ModuleContribution[] = [
     auth,
@@ -168,6 +170,7 @@ export const startProjo = ({
     operations,
     updates,
     assistants,
+    tv,
     // Last: stopping it flushes the lines the other modules log while they stop.
     logs,
   ]
@@ -192,6 +195,7 @@ export const startProjo = ({
       previews: mediaAssets.routes.previews,
       segments: segments.routes.segments,
       images: metadata.routes.images,
+      tv: tv.routes,
       adminLibraries: libraries.routes,
       adminFs: fs.routes,
       adminSources: sources.routes,
@@ -209,6 +213,7 @@ export const startProjo = ({
       adminSystem: operations.routes.system,
       adminUpdates: updates.routes,
       adminAssistants: assistants.adminRoutes,
+      adminTv: tv.adminRoutes,
       oauthConsent: assistants.oauthConsentRoutes,
     },
   })

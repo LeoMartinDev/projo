@@ -93,6 +93,15 @@ export const notificationDetail = (
         ? t('admin.notificationCenter.hwAccelRenderNode', { renderNode })
         : t('admin.notificationCenter.hwAccelFfmpeg', { codec: text(context, 'codec') ?? '' })
     }
+    case 'tv/source_unreachable': {
+      const code = text(context, 'code')
+      return [
+        text(context, 'name'),
+        code !== undefined && isErrorCode(code) ? t(`errors.${code}`) : code,
+      ]
+        .filter((part) => part !== undefined)
+        .join(' · ')
+    }
     case 'metadata/tmdb_key_missing':
     case 'tmdb/unauthorized':
       return undefined
@@ -110,7 +119,8 @@ export const notificationTarget = (
   | '/admin/updates'
   | '/admin/settings/metadata'
   | '/admin/settings/playback'
-  | '/admin/server' => {
+  | '/admin/server'
+  | '/admin/tv' => {
   switch (kind) {
     case 'library/root_unreachable':
     case 'scan/unsupported_layout':
@@ -135,5 +145,7 @@ export const notificationTarget = (
       return '/admin/server'
     case 'playback/hw_accel_failed':
       return '/admin/settings/playback'
+    case 'tv/source_unreachable':
+      return '/admin/tv'
   }
 }

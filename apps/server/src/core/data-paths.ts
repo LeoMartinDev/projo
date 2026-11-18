@@ -8,6 +8,7 @@ export type DataPaths = {
     logos: string
     stills: string
     custom: string
+    tv: string
   }
   cache: {
     dir: string
@@ -46,6 +47,7 @@ export const dataPathsFor = (root: string): DataPaths => {
       logos: join(images, 'logos'),
       stills: join(images, 'stills'),
       custom: join(images, 'custom'),
+      tv: join(images, 'tv'),
     },
     cache: {
       dir: cache,
@@ -76,6 +78,7 @@ export const requiredDirectories = (paths: DataPaths): string[] => [
   paths.images.logos,
   paths.images.stills,
   paths.images.custom,
+  paths.images.tv,
   paths.cache.transcode,
   paths.cache.trickplay,
   paths.cache.subtitles,

@@ -1,0 +1,255 @@
+@import '@projo/design/media.css';
+
+/* Admin → TV (§29.6): the sources table, then a source's dialog. */
+
+.tv-tr {
+  grid-template-columns:
+    minmax(0, 1.4fr) 88px minmax(0, 0.8fr) minmax(0, 1fr)
+    minmax(0, 1.4fr);
+}
+
+.tv-tr .lib-status {
+  height: auto;
+  min-height: 40px;
+}
+
+.tv-tr__kind {
+  align-self: flex-start;
+}
+
+.tv-tr__count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (--compact) {
+  .tv-tr {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .tv-tr > :last-child {
+    grid-column: 1 / -1;
+  }
+
+  .tv-tr .lib-status {
+    min-height: 0;
+  }
+}
+
+.tv-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px;
+  margin: -6px;
+}
+
+/* The form scrolls inside its tab: its rows keep their size instead of shrinking to fit. */
+.tv-form > * {
+  flex: 0 0 auto;
+}
+
+.tv-dialog {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.tv-dialog__tabs {
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.tv-dialog__panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tv-dialog__panel[hidden] {
+  display: none;
+}
+
+.tv-dialog__delete {
+  margin-right: auto;
+}
+
+.tv-pane {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.tv-pane > .field,
+.tv-pane > .alert {
+  flex: 0 0 auto;
+}
+
+.tv-pane__group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.tv-pane__group-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-pane__scroll {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.tv-pane__scroll > .state {
+  flex: 1 1 auto;
+}
+
+.tv-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tv-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 14px;
+}
+
+.tv-row:has(.tv-row__open) {
+  transition: background-color var(--duration-fast) ease;
+}
+
+.tv-row:has(.tv-row__open):hover {
+  background: var(--fill-1);
+}
+
+.tv-row:has(.tv-row__open:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.tv-row .switch {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+}
+
+.tv-row--skeleton .skeleton {
+  width: 55%;
+}
+
+.tv-row__open {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.tv-row__open::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.tv-row__open:focus-visible {
+  outline: none;
+}
+
+.tv-row__name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-row__count {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-row__chevron {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.tv-row__logo {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 28px;
+}
+
+.tv-row__logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.tv-row__number {
+  flex: 0 0 auto;
+  min-width: 4ch;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.tv-list__end {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+  min-height: 24px;
+  padding: 8px 0;
+}
+
+.tv-list__retry {
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+@media (--phone) {
+  .tv-row {
+    gap: 10px;
+    padding: 6px 2px;
+  }
+
+  .tv-row__logo {
+    width: 36px;
+  }
+}

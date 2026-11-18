@@ -34,6 +34,8 @@ const targetKinds: {
   cleanup_cache: [],
   purge_missing: [],
   image_variants: [],
+  refresh_tv_source: [['tv_source', 'sourceId']],
+  fetch_tv_logos: [['tv_source', 'sourceId']],
 }
 
 export const jobTargetOf = (type: JobType, payload: unknown): JobTargetRef | undefined => {

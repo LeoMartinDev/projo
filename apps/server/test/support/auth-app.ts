@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 
+import type { DataPaths } from '../../src/core/data-paths.ts'
 import type { EventBus } from '../../src/core/events.ts'
 import type { PlaybackScope } from '../../src/core/playback/session.ts'
 import { type ApiRoutes, createApi } from '../../src/entrypoints/http/api.ts'
@@ -9,6 +10,7 @@ import { buildAuthModule } from '../../src/entrypoints/modules/auth.ts'
 import { buildEventsModule } from '../../src/entrypoints/modules/events.ts'
 import { buildLogsModule } from '../../src/entrypoints/modules/logs.ts'
 import { buildOperationsModule } from '../../src/entrypoints/modules/operations.ts'
+import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import {
   buildProfilesModule,
   buildVisibilityScopes,
@@ -43,10 +45,24 @@ const mediaProbeRoutes = () =>
 
 const unwired = <K extends keyof ApiRoutes>() => new Hono<AppEnv>() as unknown as ApiRoutes[K]
 
+/**
+ * The HTTP app with real auth (setup, sessions, profiles, media key, §20). `routes` wires more
+ * route groups from modules built on the same platform; `jobs: 'queue'` keeps the platform's
+ * SQLite job queue (jobs claimed through `platform.jobRepository`) instead of a recording one.
+ */
 export const createAuthTestApp = ({
   trustProxy = false,
   keepAliveMs,
-}: { trustProxy?: boolean; keepAliveMs?: number } = {}) => {
+  paths,
+  jobs = 'recording',
+  routes,
+}: {
+  trustProxy?: boolean
+  keepAliveMs?: number
+  paths?: DataPaths
+  jobs?: 'recording' | 'queue'
+  routes?: (platform: Platform) => Partial<Pick<ApiRoutes, 'tv' | 'adminTv'>>
+} = {}) => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-05-01T12:00:00.000Z'))
   const recording = createRecordingEventBus({ afterCommit: createTestAfterCommit(db) })
@@ -64,12 +80,14 @@ export const createAuthTestApp = ({
     },
   }
   const platform = createTestPlatform({
-    config: { port: 0, dataDir: '/nonexistent', trustProxy, logLevel: 'error' },
+    config: { port: 0, dataDir: paths?.root ?? '/nonexistent', trustProxy, logLevel: 'error' },
     clock,
     eventBus,
     db,
-    jobQueue: createRecordingJobQueue().queue,
+    ...(paths === undefined ? {} : { paths }),
+    ...(jobs === 'recording' ? { jobQueue: createRecordingJobQueue().queue } : {}),
   })
+  const extraRoutes = routes?.(platform) ?? {}
   const { ids } = platform
 
   const endedPlayback: PlaybackScope[] = []
@@ -125,6 +143,8 @@ export const createAuthTestApp = ({
       adminNotifications: operations.routes.notifications,
       adminSystem: operations.routes.system,
       adminUpdates: unwired<'adminUpdates'>(),
+      tv: extraRoutes.tv ?? unwired<'tv'>(),
+      adminTv: extraRoutes.adminTv ?? unwired<'adminTv'>(),
       adminAssistants: unwired<'adminAssistants'>(),
       oauthConsent: unwired<'oauthConsent'>(),
     },
@@ -203,6 +223,7 @@ export const createAuthTestApp = ({
   return {
     app,
     db,
+    platform,
     clock,
     eventBus,
     events: recording.events,

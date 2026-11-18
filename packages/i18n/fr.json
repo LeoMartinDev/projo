@@ -933,6 +933,57 @@
       "stop": "Arrêter",
       "stopNamed": "Arrêter la lecture de {{title}} par {{profile}}"
     },
+    "tv": {
+      "title": "TV",
+      "list": "Sources TV",
+      "summary_one": "{{count}} source · {{channels}} chaînes actives",
+      "summary_other": "{{count}} sources · {{channels}} chaînes actives",
+      "add": "Ajouter une source",
+      "addTitle": "Ajouter une source TV",
+      "empty": "Aucune source TV",
+      "columns": {
+        "name": "Nom",
+        "kind": "Type",
+        "channels": "Chaînes actives",
+        "lastRefresh": "Dernière actualisation",
+        "state": "État"
+      },
+      "kind": {
+        "m3u": "M3U"
+      },
+      "state": {
+        "pending": "En attente",
+        "refreshing": "Actualisation…",
+        "ready": "Prête",
+        "error": "Échec"
+      },
+      "enabledOf": "{{enabled}} / {{total}}",
+      "form": {
+        "name": "Nom",
+        "kind": "Type",
+        "playlistUrl": "URL de la liste M3U",
+        "guideUrl": "URL du guide XMLTV",
+        "userAgent": "User-Agent",
+        "maxConnections": "Connexions simultanées",
+        "noLimit": "Sans limite",
+        "removeGuide": "Retirer le guide",
+        "create": "Ajouter"
+      },
+      "tabs": {
+        "channels": "Chaînes",
+        "settings": "Réglages"
+      },
+      "search": "Rechercher une chaîne",
+      "groups": "Groupes",
+      "otherChannels": "Autres chaînes",
+      "openGroup": "Chaînes du groupe {{name}}",
+      "noChannels": "Aucune chaîne",
+      "noMatch": "Aucune chaîne ne correspond",
+      "refresh": "Actualiser maintenant",
+      "delete": "Supprimer",
+      "deleteTitle": "Supprimer {{name}} ?",
+      "deleteText": "Ses chaînes, leurs logos et les favoris qui les visent seront supprimés."
+    },
     "settings": {
       "title": "Réglages",
       "metadata": "Métadonnées",
@@ -1050,7 +1101,8 @@
       "update/failed": "La mise à jour a échoué",
       "update/rolled_back": "Mise à jour annulée : retour à la version précédente",
       "cache/disk_low": "Espace disque faible",
-      "playback/hw_accel_failed": "Transcodage matériel indisponible, le processeur prend le relais"
+      "playback/hw_accel_failed": "Transcodage matériel indisponible, le processeur prend le relais",
+      "tv/source_unreachable": "Source TV injoignable"
     },
     "dashboard": {
       "title": "Tableau de bord",
@@ -1196,7 +1248,9 @@
         "apply_update": "Mise à jour",
         "cleanup_cache": "Nettoyage du cache",
         "purge_missing": "Purge des manquants",
-        "image_variants": "Optimisation des images"
+        "image_variants": "Optimisation des images",
+        "refresh_tv_source": "Actualisation d’une source TV",
+        "fetch_tv_logos": "Logos des chaînes"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Prévu {{date}}",
@@ -1595,6 +1649,14 @@
     "segment/contribution_requires_key": "La contribution demande une clé TheIntroDB.",
     "segment/submission_failed": "La base de génériques a refusé le marqueur.",
     "segment/fingerprint_failed": "Le fingerprinting a échoué (ffmpeg ou fpcalc).",
+    "tv/source_not_found": "Source TV introuvable.",
+    "tv/source_unreachable": "Le fournisseur ne répond pas.",
+    "tv/source_invalid": "Le fournisseur ne renvoie pas de liste de chaînes utilisable.",
+    "tv/group_not_found": "Groupe de chaînes introuvable.",
+    "tv/channel_not_found": "Chaîne introuvable.",
+    "tv/logo_unavailable": "Logo de la chaîne indisponible.",
+    "tv/connection_limit_reached": "Toutes les connexions du fournisseur sont utilisées.",
+    "tv/stream_unavailable": "La chaîne ne diffuse pas pour le moment.",
     "setup/already_completed": "Le serveur est déjà configuré.",
     "source/not_found": "Fichier introuvable.",
     "source/file_missing": "Le fichier a disparu du disque.",

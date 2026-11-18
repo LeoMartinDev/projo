@@ -80,6 +80,10 @@ const EditLibraryPage = lazyRouteComponent(
   () => import('../features/admin/LibraryPages.tsx'),
   'EditLibraryPage',
 )
+const TvSourcesPage = lazyRouteComponent(
+  () => import('../features/admin/tv/TvSourcesPage.tsx'),
+  'TvSourcesPage',
+)
 const AccountsPage = lazyRouteComponent(
   () => import('../features/admin/accounts/AccountsPage.tsx'),
   'AccountsPage',
@@ -450,6 +454,12 @@ const adminLibraryRoute = createRoute({
   },
 })
 
+const adminTvRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/tv',
+  component: TvSourcesPage,
+})
+
 const adminAccountsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/accounts',
@@ -603,6 +613,7 @@ export const routeTree = rootRoute.addChildren([
       adminLibrariesRoute,
       adminNewLibraryRoute,
       adminLibraryRoute,
+      adminTvRoute,
       adminAccountsRoute,
       adminNewAccountRoute,
       adminAccountRoute,

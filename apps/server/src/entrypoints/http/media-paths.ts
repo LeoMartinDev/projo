@@ -2,10 +2,12 @@ const apiPrefix = '/api/v1'
 
 /**
  * Routes under `/api/v1` serving what a page loads by itself, without a header (§20): artwork,
- * TMDB posters, trickplay sprites, the home preview `<video>`. They accept the media key (GET and
- * HEAD) and, outside a cookie session, answer `Cross-Origin-Resource-Policy: cross-origin`.
+ * TMDB posters, trickplay sprites, the home preview `<video>`, channel logos (§29.7). They
+ * accept the media key (GET and HEAD) and, outside a cookie session, answer
+ * `Cross-Origin-Resource-Policy: cross-origin`.
  */
-const mediaPath = /^\/(?:images|previews|trickplay)\/|^\/admin\/tmdb\/posters\//
+const mediaPath =
+  /^\/(?:images|previews|trickplay)\/|^\/admin\/tmdb\/posters\/|^\/tv\/channels\/[^/]+\/logo$/
 
 /** Stream capability URLs (§20): `/stream/:sessionId/:secret/…`. */
 const streamPath = /^\/stream\//

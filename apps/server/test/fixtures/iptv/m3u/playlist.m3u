@@ -1,0 +1,35 @@
+#EXTM3U url-tvg="{{base}}/xmltv/guide.xml.gz,{{base}}/xmltv/other.xml" tvg-shift="0"
+#EXTINF:-1 tvg-id="news.one" tvg-name="News One" tvg-logo="{{base}}/logos/news-one.png" tvg-chno="1" group-title="News",News One HD
+{{base}}/live/news-one.ts
+#EXTINF:-1 tvg-id="news.one" tvg-name="News One" tvg-logo="{{base}}/logos/news-one.png" tvg-chno="2" group-title="News",News One FHD
+{{base}}/live/news-one-fhd.ts
+#EXTINF:-1 tvg-id="news.two" tvg-logo="{{base}}/logos/news-two.svg" group-title="News",News Two
+#EXTVLCOPT:http-user-agent=ProviderPlayer/2.0
+#EXTVLCOPT:http-referrer={{base}}/portal
+{{base}}/live/news-two.m3u8
+#EXTINF:-1 tvg-id="sport.one" tvg-logo="{{base}}/logos/sport-one.png" tvg-chno="10" group-title="Sports, Live",Sport One
+{{base}}/live/sport-one.ts
+#EXTINF:-1 tvg-id="" tvg-logo="{{base}}/logos/missing.png" group-title="Sports, Live",Sport Two
+rtsp://127.0.0.1:8554/sport-two
+#EXTINF:-1 tvg-id="kids.one" tvg-chno="20" group-title="Kids",Kids One
+udp://@239.0.0.1:1234
+#EXTINF:-1,Local Channel
+#EXTGRP:Local
+http://192.168.1.10:8080/stream/local
+#EXTINF:-1 tvg-name="Bare Name"
+{{base}}/live/bare.ts
+#EXTINF:-1 tvg-id="film.one" group-title="Movies",A Film (2020)
+{{base}}/files/a-film.mkv
+#EXTINF:-1 group-title="Movies",Another Film
+{{base}}/movie/user/pass/123.ts
+#EXTINF:-1 group-title="Series",An Episode S01E01
+{{base}}/series/user/pass/456.mp4
+#EXTINF:-1 tvg-id="radio.one" radio="true" group-title="Radio",Radio One
+{{base}}/live/radio-one.ts
+#EXTINF:-1 group-title="Radio",Radio Two
+{{base}}/radio/two.mp3
+#EXTINF:-1 group-title="News",Flash Channel
+rtmp://127.0.0.1/live/flash
+#EXTINF:-1 tvg-id="news.one" tvg-name="News One" group-title="All channels",News One HD
+{{base}}/live/news-one-copy.ts
+{{base}}/live/orphan.ts

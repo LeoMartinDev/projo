@@ -29,3 +29,13 @@ test('failures of one job type with one error code share a notification key', ()
   expect(new Set(keys).size).toBe(3)
   expect(keys[0]).toBe(keys[1])
 })
+
+test('a failed TV source refresh is left to the notification of the source (§29.2)', () => {
+  const kinds: string[] = []
+  const notify = notifyJobFailureFactory({
+    notifier: { notify: ({ kind }) => kinds.push(kind), resolve: () => {} },
+  })
+  notify(failed('job-1', 'refresh_tv_source', 'tv/source_unreachable'))
+  notify(failed('job-2', 'refresh_tv_source', 'job/invalid_payload'))
+  expect(kinds).toEqual(['job/failed'])
+})

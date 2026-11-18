@@ -22,6 +22,8 @@ export const jobTypes = [
   'cleanup_cache',
   'purge_missing',
   'image_variants',
+  'refresh_tv_source',
+  'fetch_tv_logos',
 ] as const
 export const jobTypeSchema = z.enum(jobTypes)
 export type JobTypeDto = z.infer<typeof jobTypeSchema>
@@ -46,7 +48,7 @@ export const jobTargetItemDtoSchema = z.object({
 export type JobTargetItemDto = z.infer<typeof jobTargetItemDtoSchema>
 
 export const jobTargetDtoSchema = z.object({
-  kind: z.enum(['library', 'source', 'item', 'season', 'version']),
+  kind: z.enum(['library', 'source', 'item', 'season', 'version', 'tv_source']),
   id: z.string(),
   label: z.string().optional(),
   item: jobTargetItemDtoSchema.optional(),

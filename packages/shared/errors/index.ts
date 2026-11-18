@@ -21,6 +21,7 @@ import { scanErrorCodes } from './scan.ts'
 import { segmentErrorCodes } from './segment.ts'
 import { setupErrorCodes } from './setup.ts'
 import { sourceErrorCodes } from './source.ts'
+import { tvErrorCodes } from './tv.ts'
 import { updateErrorCodes } from './update.ts'
 
 export * from './account.ts'
@@ -47,6 +48,7 @@ export * from './scan.ts'
 export * from './segment.ts'
 export * from './setup.ts'
 export * from './source.ts'
+export * from './tv.ts'
 export * from './update.ts'
 
 export const errorCodes = [
@@ -73,6 +75,7 @@ export const errorCodes = [
   ...segmentErrorCodes,
   ...setupErrorCodes,
   ...sourceErrorCodes,
+  ...tvErrorCodes,
   ...updateErrorCodes,
 ] as const
 

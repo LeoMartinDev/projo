@@ -19,6 +19,7 @@ import type {
   AdminSourcesRoutes,
 } from './routes/admin-sources.ts'
 import type { AdminSystemRoutes } from './routes/admin-system.ts'
+import type { AdminTvRoutes } from './routes/admin-tv.ts'
 import type { AdminUpdatesRoutes } from './routes/admin-updates.ts'
 import type { AuthRoutes } from './routes/auth.ts'
 import type { OAuthConsentRoutes } from './routes/oauth-consent.ts'
@@ -37,6 +38,7 @@ import type { SetupRoutes } from './routes/setup.ts'
 import type { StreamRoutes } from './routes/stream.ts'
 import type { SubtitlesRoutes } from './routes/subtitles.ts'
 import type { TrickplayRoutes } from './routes/trickplay.ts'
+import type { TvRoutes } from './routes/tv.ts'
 import type { WatchlistRoutes } from './routes/watchlist.ts'
 
 export type ApiRoutes = {
@@ -57,6 +59,7 @@ export type ApiRoutes = {
   previews: PreviewsRoutes
   segments: SegmentsRoutes
   images: ImagesRoutes
+  tv: TvRoutes
   adminLibraries: AdminLibrariesRoutes
   adminFs: AdminFsRoutes
   adminSources: AdminSourcesRoutes
@@ -74,6 +77,7 @@ export type ApiRoutes = {
   adminSystem: AdminSystemRoutes
   adminUpdates: AdminUpdatesRoutes
   adminAssistants: AdminAssistantsRoutes
+  adminTv: AdminTvRoutes
   oauthConsent: OAuthConsentRoutes
 }
 
@@ -109,6 +113,7 @@ export const createApi = ({
     .route('/', routes.previews)
     .route('/', routes.segments)
     .route('/', routes.images)
+    .route('/', routes.tv)
     .route('/', routes.oauthConsent)
     .route('/admin', routes.adminLibraries)
     .route('/admin', routes.adminFs)
@@ -127,5 +132,6 @@ export const createApi = ({
     .route('/admin', routes.adminSystem)
     .route('/admin', routes.adminUpdates)
     .route('/admin', routes.adminAssistants)
+    .route('/admin', routes.adminTv)
 
 export type Api = ReturnType<typeof createApi>

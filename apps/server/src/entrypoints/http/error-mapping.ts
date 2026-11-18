@@ -23,6 +23,7 @@ import { scanErrorStatus } from './error-mapping/scan.ts'
 import { segmentErrorStatus } from './error-mapping/segment.ts'
 import { setupErrorStatus } from './error-mapping/setup.ts'
 import { sourceErrorStatus } from './error-mapping/source.ts'
+import { tvErrorStatus } from './error-mapping/tv.ts'
 import type { ErrorStatusCode } from './error-mapping/types.ts'
 import { updateErrorStatus } from './error-mapping/update.ts'
 
@@ -50,6 +51,7 @@ export const errorStatusByCode: Record<ErrorCode, ErrorStatusCode> = {
   ...segmentErrorStatus,
   ...setupErrorStatus,
   ...sourceErrorStatus,
+  ...tvErrorStatus,
   ...updateErrorStatus,
 }
 

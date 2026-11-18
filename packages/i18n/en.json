@@ -933,6 +933,57 @@
       "stop": "Stop",
       "stopNamed": "Stop {{profile}} watching {{title}}"
     },
+    "tv": {
+      "title": "TV",
+      "list": "TV sources",
+      "summary_one": "{{count}} source · {{channels}} enabled channels",
+      "summary_other": "{{count}} sources · {{channels}} enabled channels",
+      "add": "Add a source",
+      "addTitle": "Add a TV source",
+      "empty": "No TV source",
+      "columns": {
+        "name": "Name",
+        "kind": "Kind",
+        "channels": "Enabled channels",
+        "lastRefresh": "Last refresh",
+        "state": "State"
+      },
+      "kind": {
+        "m3u": "M3U"
+      },
+      "state": {
+        "pending": "Pending",
+        "refreshing": "Refreshing…",
+        "ready": "Ready",
+        "error": "Failed"
+      },
+      "enabledOf": "{{enabled}} / {{total}}",
+      "form": {
+        "name": "Name",
+        "kind": "Kind",
+        "playlistUrl": "M3U playlist URL",
+        "guideUrl": "XMLTV guide URL",
+        "userAgent": "User-Agent",
+        "maxConnections": "Simultaneous connections",
+        "noLimit": "No limit",
+        "removeGuide": "Remove the guide",
+        "create": "Add"
+      },
+      "tabs": {
+        "channels": "Channels",
+        "settings": "Settings"
+      },
+      "search": "Search a channel",
+      "groups": "Groups",
+      "otherChannels": "Other channels",
+      "openGroup": "Channels of the {{name}} group",
+      "noChannels": "No channels",
+      "noMatch": "No channel matches",
+      "refresh": "Refresh now",
+      "delete": "Delete",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteText": "Its channels, their logos and the favourites pointing at them will be deleted."
+    },
     "settings": {
       "title": "Settings",
       "metadata": "Metadata",
@@ -1050,7 +1101,8 @@
       "update/failed": "Update failed",
       "update/rolled_back": "Update rolled back to the previous version",
       "cache/disk_low": "Low disk space",
-      "playback/hw_accel_failed": "Hardware transcoding unavailable, using the CPU"
+      "playback/hw_accel_failed": "Hardware transcoding unavailable, using the CPU",
+      "tv/source_unreachable": "TV source unreachable"
     },
     "dashboard": {
       "title": "Dashboard",
@@ -1196,7 +1248,9 @@
         "apply_update": "Update",
         "cleanup_cache": "Cache cleanup",
         "purge_missing": "Missing files purge",
-        "image_variants": "Image optimization"
+        "image_variants": "Image optimization",
+        "refresh_tv_source": "TV source refresh",
+        "fetch_tv_logos": "Channel logos"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Due {{date}}",
@@ -1595,6 +1649,14 @@
     "segment/contribution_requires_key": "Contributing requires a TheIntroDB key.",
     "segment/submission_failed": "The intro database rejected the marker.",
     "segment/fingerprint_failed": "Fingerprinting failed (ffmpeg or fpcalc).",
+    "tv/source_not_found": "TV source not found.",
+    "tv/source_unreachable": "The provider does not answer.",
+    "tv/source_invalid": "The provider does not return a usable channel list.",
+    "tv/group_not_found": "Channel group not found.",
+    "tv/channel_not_found": "Channel not found.",
+    "tv/logo_unavailable": "Channel logo unavailable.",
+    "tv/connection_limit_reached": "All the provider’s connections are in use.",
+    "tv/stream_unavailable": "The channel is not broadcasting right now.",
     "setup/already_completed": "The server is already set up.",
     "source/not_found": "File not found.",
     "source/file_missing": "The file is gone from the disk.",

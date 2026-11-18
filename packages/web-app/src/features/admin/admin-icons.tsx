@@ -152,6 +152,13 @@ export const TagIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
+export const LiveTvIcon = ({ size }: IconProps) => (
+  <Icon size={size ?? 18}>
+    <rect x="3" y="7.5" width="18" height="12.5" rx="2" />
+    <path d="M8 3l4 4.5L16 3" />
+  </Icon>
+)
+
 export const ServerIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="4.5" width="16" height="6.5" rx="1.5" />

@@ -155,6 +155,13 @@
       "when": 1794554278612,
       "tag": "0021_oauth_token_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1794993299514,
+      "tag": "0022_live_tv",
+      "breakpoints": true
     }
   ]
 }

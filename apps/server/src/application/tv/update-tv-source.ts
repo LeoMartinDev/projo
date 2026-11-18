@@ -1,0 +1,77 @@
+import { type AppError, appError, err, ok, type Result } from '@projo/shared'
+
+import type { JobQueue } from '../../core/jobs/ports.ts'
+import type { Logger } from '../../core/logger.ts'
+import type { TvChannelRepository } from '../../core/tv/channel.ts'
+import {
+  applySettingsPatch,
+  listingSettingsChanged,
+  type TvRefreshActivity,
+  type TvSource,
+  type TvSourceRepository,
+  type TvSourceSettingsPatch,
+} from '../../core/tv/source.ts'
+import { queueTvSourceRefresh } from './shared/tv-jobs.ts'
+import { type TvSourceView, toTvSourceView } from './shared/tv-source-view.ts'
+
+type Deps = {
+  tvSources: Pick<TvSourceRepository, 'findById' | 'save'>
+  tvChannels: Pick<TvChannelRepository, 'countsBySource'>
+  refreshActivity: TvRefreshActivity
+  jobQueue: JobQueue
+  logger: Logger
+}
+
+export type UpdateTvSourceError = AppError<'tv/source_not_found' | 'tv/source_invalid'>
+
+/**
+ * Changes a source's name, settings or connection limit (§29.7); a change that reaches the
+ * channel listing (playlist URL, `User-Agent`) queues a refresh.
+ */
+export const updateTvSourceFactory =
+  ({ tvSources, tvChannels, refreshActivity, jobQueue, logger }: Deps) =>
+  (input: {
+    id: string
+    name?: string
+    settings?: TvSourceSettingsPatch
+    /** `'none'` removes the limit. */
+    maxConnections?: number | 'none'
+  }): Result<TvSourceView, UpdateTvSourceError> => {
+    const source = tvSources.findById(input.id)
+    if (source === undefined)
+      return err(
+        appError('tv/source_not_found', 'tv source not found', { context: { id: input.id } }),
+      )
+    const settings =
+      input.settings === undefined
+        ? source.settings
+        : applySettingsPatch(source.settings, input.settings)
+    if (settings === undefined)
+      return err(
+        appError('tv/source_invalid', 'the kind of a tv source cannot change', {
+          context: { id: input.id, kind: source.settings.kind },
+        }),
+      )
+    const { maxConnections: _previous, ...rest } = source
+    const maxConnections =
+      input.maxConnections === undefined ? source.maxConnections : input.maxConnections
+    const updated: TvSource = {
+      ...rest,
+      name: input.name ?? source.name,
+      settings,
+      ...(maxConnections === undefined || maxConnections === 'none' ? {} : { maxConnections }),
+    }
+    tvSources.save(updated)
+    const refresh = listingSettingsChanged(source.settings, settings)
+    if (refresh) queueTvSourceRefresh(jobQueue, source.id)
+    logger.info('tv source updated', { tvSourceId: source.id, refresh })
+    return ok(
+      toTvSourceView({
+        source: updated,
+        counts: tvChannels.countsBySource().get(source.id),
+        refreshing: refresh || refreshActivity.refreshingSourceIds().has(source.id),
+      }),
+    )
+  }
+
+export type UpdateTvSource = ReturnType<typeof updateTvSourceFactory>
