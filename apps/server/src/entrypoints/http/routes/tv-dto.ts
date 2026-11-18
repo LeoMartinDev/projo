@@ -19,6 +19,7 @@ import {
   type TvSourceSettingsInput,
   type TvSourceSettingsPatch as TvSourceSettingsPatchInput,
 } from '@projo/shared/api/tv'
+import type { SearchChannelDto, SearchResults } from '@projo/shared/api/search'
 
 import type {
   TvSourceDetailView,
@@ -28,9 +29,11 @@ import type { CreatedLiveSession } from '../../../application/tv/create-live-ses
 import type { TvProgrammeView } from '../../../application/tv/get-tv-programme.ts'
 import type { TvChannelsView } from '../../../application/tv/list-tv-channels.ts'
 import type { TvScheduleEntry } from '../../../application/tv/list-tv-schedule.ts'
+import type { TvSearchResults } from '../../../application/tv/search-tv.ts'
 import type { TvChannel, TvGroupSummary } from '../../../core/tv/channel.ts'
 import type { TvEpisode, TvGuideChannel, TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
 import type { ActiveLiveSessionView } from '../../../core/tv/live-session.ts'
+import type { TvSearchChannel } from '../../../core/tv/search.ts'
 import type { TvSourceSettings, TvSourceSettingsPatch } from '../../../core/tv/source.ts'
 
 /**
@@ -224,6 +227,12 @@ export const toTvProgrammeDetailDto = ({
   }
 }
 
+/** A channel's logo URL (§29.7), when a logo is stored. */
+const logoUrlField = (channel: { id: string; logoPath?: string }): { logoUrl?: string } =>
+  channel.logoPath === undefined
+    ? {}
+    : { logoUrl: `${apiPrefix}/tv/channels/${encodeURIComponent(channel.id)}/logo` }
+
 const nowNextFields = (entry: TvNowNext | undefined) => ({
   ...(entry?.now === undefined ? {} : { now: toTvProgrammeDto(entry.now) }),
   ...(entry?.next === undefined ? {} : { next: toTvProgrammeDto(entry.next) }),
@@ -261,9 +270,7 @@ export const toTvChannelsResponse = (
       name: channel.name,
       ...(channel.number === undefined ? {} : { number: channel.number }),
       groupId: channel.groupId,
-      ...(channel.logoPath === undefined
-        ? {}
-        : { logoUrl: `${apiPrefix}/tv/channels/${encodeURIComponent(channel.id)}/logo` }),
+      ...logoUrlField(channel),
       kind: view.kinds.get(channel.id) ?? 'other',
       favorite: favorites.has(channel.id),
       ...nowNextFields(view.guide.get(channel.id)),
@@ -301,6 +308,35 @@ export const toTvScheduleResponse = (entries: readonly TvScheduleEntry[]): TvSch
       }
     }),
   })),
+})
+
+/** A channel of the search (§29.7). */
+const toSearchChannelDto = (channel: TvSearchChannel): SearchChannelDto => ({
+  id: channel.id,
+  name: channel.name,
+  ...(channel.number === undefined ? {} : { number: channel.number }),
+  ...logoUrlField(channel),
+})
+
+/** The search's TV sections (§29.7): channels, and programmes with their channel. */
+export const toSearchTvDto = ({
+  channels,
+  programmes,
+}: TvSearchResults): Required<Pick<SearchResults, 'channels' | 'programmes'>> => ({
+  channels: channels.map(toSearchChannelDto),
+  programmes: programmes.map(({ programme, channel }) => {
+    const episode = toTvEpisodeDto(programme.episode)
+    return {
+      id: programme.id,
+      title: programme.title,
+      ...(programme.subtitle === undefined ? {} : { subtitle: programme.subtitle }),
+      ...(episode === undefined ? {} : { episode }),
+      kind: programme.kind,
+      startAt: programme.startAt.toISOString(),
+      endAt: programme.endAt.toISOString(),
+      channel: toSearchChannelDto(channel),
+    }
+  }),
 })
 
 /** The live playlist's capability URL (§20, §29.4). */

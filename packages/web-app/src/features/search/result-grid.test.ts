@@ -39,6 +39,17 @@ describe('moveInGrid', () => {
     expect(move(0, 'up', 1)).toBe(6)
   })
 
+  test('a group may have its own column count (the programmes, §29.6)', () => {
+    const moveIn = (current: number, direction: 'up' | 'down') =>
+      moveInGrid({ sizes: [5, 4], columns: [3, 2], current, direction })
+    expect(moveIn(3, 'down')).toBe(5)
+    expect(moveIn(4, 'down')).toBe(6)
+    expect(moveIn(5, 'down')).toBe(7)
+    expect(moveIn(8, 'down')).toBe(1)
+    expect(moveIn(6, 'up')).toBe(4)
+    expect(moveIn(2, 'up')).toBe(8)
+  })
+
   test('an empty group is skipped', () => {
     expect(moveInGrid({ sizes: [0, 4], columns: 2, current: 3, direction: 'down' })).toBe(1)
     expect(moveInGrid({ sizes: [0, 0], columns: 2, current: 0, direction: 'down' })).toBe(0)

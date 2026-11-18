@@ -12,10 +12,13 @@ import {
   tvGuideResponseSchema,
   tvScheduleResponseSchema,
 } from '@projo/shared/api/tv'
+import { type SearchResults, searchResultsSchema } from '@projo/shared/api/search'
 
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
+import { allVisible } from '../../src/entrypoints/modules/catalog.ts'
+import { buildSearchModule } from '../../src/entrypoints/modules/search.ts'
 import { buildTvModule } from '../../src/entrypoints/modules/tv.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
@@ -59,7 +62,13 @@ beforeEach(async () => {
           programmeImageDownloader: createTvLogoDownloader({ allowLoopback: true }),
         },
       )
-      return { tv: module.routes, adminTv: module.adminRoutes }
+      // The site search with no title: its TV sections (§29.6).
+      const search = buildSearchModule({
+        searchCatalog: async () => ({ movies: [], series: [] }),
+        searchTv: module.searchTv,
+        visibilityScope: allVisible,
+      })
+      return { tv: module.routes, adminTv: module.adminRoutes, search: search.routes }
     },
   })
   platform = t.platform
@@ -625,5 +634,69 @@ describe('a Freebox source (§29.2, §29.3) on SQLite against a replayed box', (
     })
     expect(await runJobs(['refresh_tv_source'])).toEqual(['refresh_tv_source done'])
     expect(iptv.requests.map((r) => r.path)).toContain('/api_version')
+  })
+})
+
+describe('the search (§29.6)', () => {
+  const search = async (q: string): Promise<SearchResults> =>
+    searchResultsSchema.parse(
+      await (await request('GET', `/search?q=${encodeURIComponent(q)}`)).json(),
+    )
+
+  test('the channels and programmes the profile sees; nothing without Live TV access', async () => {
+    await guidedSource()
+    expect(await runJobs(['refresh_tv_guide', 'fetch_tv_logos'])).toContain('refresh_tv_guide done')
+    const listed = await channels()
+    const now = t.clock.now().getTime()
+    const at = (minutes: number) => new Date(now + minutes * minute).toISOString()
+    const channelOf = (name: string) => {
+      const { id, number, logoUrl } = byName(listed, name)
+      return {
+        id,
+        name,
+        ...(number === undefined ? {} : { number }),
+        ...(logoUrl === undefined ? {} : { logoUrl }),
+      }
+    }
+
+    const news = await search('news')
+    expect(news.channels).toEqual([
+      channelOf('News One HD'),
+      channelOf('News One FHD'),
+      channelOf('News Two'),
+    ])
+    expect(news.channels?.[0]?.logoUrl).toBeString()
+    // A channel number typed alone, one digit included; never a disabled channel (Sport One, 10).
+    expect((await search('2')).channels).toEqual([channelOf('News One FHD')])
+    expect((await search('10')).channels).toEqual([])
+
+    expect(await search('METEO')).toMatchObject({
+      channels: [],
+      programmes: [
+        { title: 'La météo', startAt: at(30), endAt: at(90), channel: channelOf('News One HD') },
+        { title: 'La météo', startAt: at(30), endAt: at(90), channel: channelOf('News One FHD') },
+      ],
+    })
+    // On now; with its episode. What ended (Matinale) is not found.
+    expect((await search('journal')).programmes?.map((p) => p.channel.name)).toEqual([
+      'News One HD',
+      'News One FHD',
+    ])
+    expect((await search('talk')).programmes).toEqual([
+      {
+        id: expect.any(String),
+        title: 'Talk show',
+        episode: { season: 3, episode: 5 },
+        kind: 'entertainment',
+        startAt: at(-10),
+        endAt: at(50),
+        channel: channelOf('News Two'),
+      },
+    ])
+    expect((await search('matinale')).programmes).toEqual([])
+
+    await request('PATCH', '/profiles/profile-zoe', { liveTv: false }, 'admin')
+    expect(await search('news')).toEqual({ movies: [], series: [], channels: [], programmes: [] })
+    expect(await search('2')).toEqual({ movies: [], series: [], channels: [], programmes: [] })
   })
 })

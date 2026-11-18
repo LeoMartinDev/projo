@@ -16,7 +16,6 @@ import { createSqliteProgressRepository } from '../../infrastructure/sqlite/prog
 import { createSqliteWatchlistRepository } from '../../infrastructure/sqlite/watchlist-repository.ts'
 import { catalogRoutes } from '../http/routes/catalog.ts'
 import { type HomePreviewPort, type HomeResumeFramePort, homeRoutes } from '../http/routes/home.ts'
-import { searchRoutes } from '../http/routes/search.ts'
 import type { Platform } from './platform.ts'
 import { defineModule } from './types.ts'
 
@@ -77,10 +76,8 @@ export const buildCatalogModule = (
         ...(homePreviews === undefined ? {} : { previews: homePreviews }),
         ...(homeResumeFrames === undefined ? {} : { resumeFrames: homeResumeFrames }),
       }),
-      searchRoutes: searchRoutes({
-        searchCatalog: searchCatalogFactory({ catalogReadModel: catalog, catalogEntries }),
-        scopeFor: visibilityScope,
-      }),
+      /** Served by the search module, with the TV's sections (§29.6). */
+      searchCatalog: searchCatalogFactory({ catalogReadModel: catalog, catalogEntries }),
       imageAccess: {
         canView: ({ imageId, profileId }: { imageId: string; profileId: string }): boolean =>
           catalog.isImageVisible({ imageId, scope: visibilityScope(profileId) }),

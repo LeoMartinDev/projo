@@ -13,6 +13,7 @@ import { listLiveSessionsFactory } from '../../application/tv/list-live-sessions
 import { listTvChannelsFactory } from '../../application/tv/list-tv-channels.ts'
 import { listTvGuideFactory } from '../../application/tv/list-tv-guide.ts'
 import { listTvScheduleFactory } from '../../application/tv/list-tv-schedule.ts'
+import { searchTvFactory } from '../../application/tv/search-tv.ts'
 import { purgeEndedTvProgrammesFactory } from '../../application/tv/purge-ended-tv-programmes.ts'
 import { queueDueTvGuideRefreshesFactory } from '../../application/tv/queue-due-tv-guide-refreshes.ts'
 import { refreshTvGuideFactory } from '../../application/tv/refresh-tv-guide.ts'
@@ -74,6 +75,7 @@ import { createSqliteTvGuideRepository } from '../../infrastructure/sqlite/tv-gu
 import { createSqliteTvProgrammeImageRepository } from '../../infrastructure/sqlite/tv-programme-image-repository.ts'
 import { createSqliteTvProfileAccess } from '../../infrastructure/sqlite/tv-profile-access.ts'
 import { createSqliteTvSnapshotRepository } from '../../infrastructure/sqlite/tv-snapshot-repository.ts'
+import { createSqliteTvSearchReadModel } from '../../infrastructure/sqlite/tv-search-read-model.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
 import { createLiveRelay } from '../../infrastructure/tv/live-relay.ts'
@@ -400,6 +402,12 @@ export const buildTvModule = (
       liveStreams: streams,
       snapshotGrabs,
       streamSnapshots,
+      /** The search's TV sections (§29.6), served by the search module. */
+      searchTv: searchTvFactory({
+        tvSearch: createSqliteTvSearchReadModel({ db }),
+        tvAccess,
+        clock,
+      }),
     },
     jobHandlers: defineJobHandlers({
       refresh_tv_source: {

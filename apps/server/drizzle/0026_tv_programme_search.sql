@@ -1,0 +1,1 @@
+ALTER TABLE `tv_programmes` ADD `search_text` text DEFAULT '' NOT NULL;

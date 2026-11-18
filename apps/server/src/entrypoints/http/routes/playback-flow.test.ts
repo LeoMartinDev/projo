@@ -139,7 +139,7 @@ beforeEach(() => {
       events: unwired<'events'>(),
       catalog: catalog.routes,
       home: catalog.homeRoutes,
-      search: catalog.searchRoutes,
+      search: unwired<'search'>(),
       progress: progress.routes,
       watchlist: progress.watchlistRoutes,
       playback: playback.routes,

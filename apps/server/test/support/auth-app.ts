@@ -61,7 +61,7 @@ export const createAuthTestApp = ({
   keepAliveMs?: number
   paths?: DataPaths
   jobs?: 'recording' | 'queue'
-  routes?: (platform: Platform) => Partial<Pick<ApiRoutes, 'tv' | 'adminTv'>>
+  routes?: (platform: Platform) => Partial<Pick<ApiRoutes, 'tv' | 'adminTv' | 'search'>>
 } = {}) => {
   const db = createTestDatabase()
   const clock = createManualClock(new Date('2026-05-01T12:00:00.000Z'))
@@ -117,7 +117,7 @@ export const createAuthTestApp = ({
       events: events.routes,
       catalog: probeRoutes() as unknown as ApiRoutes['catalog'],
       home: unwired<'home'>(),
-      search: unwired<'search'>(),
+      search: extraRoutes.search ?? unwired<'search'>(),
       progress: unwired<'progress'>(),
       watchlist: unwired<'watchlist'>(),
       playback: unwired<'playback'>(),

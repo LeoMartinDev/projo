@@ -118,6 +118,8 @@ export const tvProgrammes = sqliteTable(
     imageUrl: text(),
     /** SHA-256 of `imageUrl`: the key of `tv_programme_images`. */
     imageKey: text(),
+    /** The words of the title and subtitle, each after a space (`tvSearchTextOf`, §29.6). */
+    searchText: text().notNull().default(''),
   },
   (t) => [
     index('tv_programmes_channel_end_idx').on(t.channelId, t.endAt),

@@ -422,6 +422,16 @@ describe('GET /search', () => {
     })
     expect((await app.call('/search?q=a')).status).toBe(400)
   })
+
+  test('a single digit is a channel number (§29.6): no title, no error', async () => {
+    expect(await get<SearchResults>('/search?q=6')).toEqual({
+      movies: [],
+      series: [],
+      channels: [],
+      programmes: [],
+    })
+    expect((await app.call('/search?q=%20')).status).toBe(400)
+  })
 })
 
 describe('Ma liste', () => {

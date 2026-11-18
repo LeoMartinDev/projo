@@ -22,12 +22,15 @@ export const ProgrammeDialog = ({
   programmeId,
   channel,
   watch = true,
+  onWatch,
   onClose,
 }: {
   programmeId: string
   /** The programme's channel as the page lists it (name, number, favourite flag). */
-  channel: TvChannelDto | undefined
+  channel: Pick<TvChannelDto, 'id' | 'name' | 'number' | 'favorite'> | undefined
   watch?: boolean
+  /** Called as "Watch" plays the channel (the search closes, §29.6). */
+  onWatch?: () => void
   onClose: () => void
 }) => {
   const { t } = useTranslation()
@@ -65,6 +68,7 @@ export const ProgrammeDialog = ({
                 to="/watch/tv/$channelId"
                 params={{ channelId: channel.id }}
                 className="button button--primary"
+                onClick={onWatch}
               >
                 {t('tv.watch')}
               </Link>

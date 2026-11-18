@@ -307,7 +307,13 @@
   },
   "search": {
     "label": "Rechercher des films et des séries",
+    "labelTv": "Rechercher des films, des séries, des chaînes et des programmes",
     "placeholder": "Films, séries…",
+    "placeholderTv": "Films, séries, chaînes…",
+    "channels": "Chaînes",
+    "programmes": "Programmes",
+    "channelNumber": "Chaîne {{number}}",
+    "onNow": "En ce moment",
     "results": "Résultats",
     "hint": "Tapez au moins deux lettres.",
     "empty": "Aucun résultat pour « {{query}} »"

@@ -14,6 +14,7 @@ import {
   type TvNowNext,
   type TvProgramme,
 } from '../../core/tv/guide.ts'
+import { tvSearchTextOf } from '../../core/tv/search.ts'
 import type { IdGenerator } from '../../core/ids.ts'
 import type { Db } from './database.ts'
 import { chunks, fromIso, toIso, toNullable } from './rows.ts'
@@ -60,7 +61,8 @@ const toCategories = (value: string | null): TvGuideText[] => {
     : []
 }
 
-const toEpisode = (
+/** A stored episode (§29.3): absent when it has no part. */
+export const toEpisode = (
   row: Pick<ProgrammeRow, 'episode_season' | 'episode_number' | 'episode_label'>,
 ): TvEpisode | undefined => {
   const episode: TvEpisode = {
@@ -179,6 +181,7 @@ export const createSqliteTvGuideRepository = ({
               imageUrl: toNullable(programme.imageUrl),
               imageKey:
                 programme.imageUrl === undefined ? null : tvProgrammeImageKeyOf(programme.imageUrl),
+              searchText: tvSearchTextOf(programme),
             }
           })
         for (const part of chunks(rows, 100)) tx.insert(tvProgrammes).values(part).run()

@@ -7,6 +7,7 @@ import type { AppEnv } from '../../src/entrypoints/http/context.ts'
 import type { HomeResumeFramePort } from '../../src/entrypoints/http/routes/home.ts'
 import { buildCatalogModule } from '../../src/entrypoints/modules/catalog.ts'
 import { buildProgressModule } from '../../src/entrypoints/modules/progress.ts'
+import { buildSearchModule } from '../../src/entrypoints/modules/search.ts'
 import { createManualClock } from './clock.ts'
 import { createTestDatabase } from './database.ts'
 import {
@@ -67,7 +68,12 @@ export const createCatalogTestApp = ({
       events: unwired<'events'>(),
       catalog: catalog.routes,
       home: catalog.homeRoutes,
-      search: catalog.searchRoutes,
+      search: buildSearchModule({
+        searchCatalog: catalog.searchCatalog,
+        // No TV here: the TV's sections are tested with the tv module (tv-guide.test.ts).
+        searchTv: () => ({ channels: [], programmes: [] }),
+        visibilityScope,
+      }).routes,
       progress: progress.routes,
       watchlist: progress.watchlistRoutes,
       playback: unwired<'playback'>(),

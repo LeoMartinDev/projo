@@ -2,6 +2,7 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query'
 
 import { type CatalogQueryState, catalogListParams } from '@projo/shared/api/catalog-state'
 import type { HomeCategorySlug } from '@projo/shared/api/home'
+import { isSearchable } from '@projo/shared/api/search'
 
 import { api, request } from '../../shared/api/client.ts'
 
@@ -92,6 +93,6 @@ export const searchQuery = (q: string) =>
   queryOptions({
     queryKey: ['catalog', 'search', q],
     queryFn: () => request(() => api.search.$get({ query: { q } })),
-    enabled: q.trim().length >= 2,
+    enabled: isSearchable(q),
     staleTime: 60_000,
   })

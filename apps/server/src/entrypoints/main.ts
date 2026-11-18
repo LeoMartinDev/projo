@@ -34,6 +34,7 @@ import { buildPlaybackModule } from './modules/playback.ts'
 import { buildProfilesModule, buildVisibilityScopes } from './modules/profiles.ts'
 import { buildProgressModule } from './modules/progress.ts'
 import { buildScannerModule } from './modules/scanner.ts'
+import { buildSearchModule } from './modules/search.ts'
 import { buildSegmentsModule } from './modules/segments.ts'
 import { buildSettingsModule } from './modules/settings.ts'
 import { buildSetupModule } from './modules/setup.ts'
@@ -151,6 +152,11 @@ export const startProjo = ({
     transcodeSlots: playback.transcodeSlots,
     metadataLanguage: metadata.metadataLanguage,
   })
+  const search = buildSearchModule({
+    searchCatalog: catalog.searchCatalog,
+    searchTv: tv.searchTv,
+    visibilityScope,
+  })
 
   const modules: ModuleContribution[] = [
     auth,
@@ -164,6 +170,7 @@ export const startProjo = ({
     metadata,
     settings,
     catalog,
+    search,
     progress,
     playback,
     mediaAssets,
@@ -188,7 +195,7 @@ export const startProjo = ({
       events: events.routes,
       catalog: catalog.routes,
       home: catalog.homeRoutes,
-      search: catalog.searchRoutes,
+      search: search.routes,
       progress: progress.routes,
       watchlist: progress.watchlistRoutes,
       playback: playback.routes,
