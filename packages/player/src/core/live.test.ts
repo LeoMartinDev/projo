@@ -7,6 +7,7 @@ import {
   heartbeatFailureReaction,
   isAtLive,
   liveBoundsAt,
+  steadyLiveBounds,
   liveDelayMs,
   liveEdgePoint,
   liveGapsOf,
@@ -110,13 +111,22 @@ describe('timeshift rules (§29.5)', () => {
     expect(parseLiveWindow('')).toBeUndefined()
   })
 
-  test('the edge moves with the clock between two reads, 15 s at most', () => {
+  test('the edge moves with the clock between two reads, one target duration at most', () => {
     expect(liveBoundsAt(window, t0 + 24_000, t0 + 24_000)).toEqual({
       startMs: t0,
       edgeMs: t0 + 24_000,
     })
     expect(liveBoundsAt(window, t0 + 24_000, t0 + 27_000).edgeMs).toBe(t0 + 27_000)
-    expect(liveBoundsAt(window, t0 + 24_000, t0 + 90_000).edgeMs).toBe(t0 + 39_000)
+    expect(liveBoundsAt(window, t0 + 24_000, t0 + 90_000).edgeMs).toBe(
+      t0 + 24_000 + window.targetS * 1000,
+    )
+  })
+
+  test('the edge shown never moves back while a stream plays', () => {
+    const read = liveBoundsAt(window, t0 + 24_000, t0 + 24_000)
+    expect(steadyLiveBounds(read, undefined)).toEqual(read)
+    expect(steadyLiveBounds(read, t0 + 26_000)).toEqual({ startMs: t0, edgeMs: t0 + 26_000 })
+    expect(steadyLiveBounds(read, t0 + 20_000)).toEqual(read)
   })
 
   test('a point names the segment holding it; a gap goes to the segment after it', () => {

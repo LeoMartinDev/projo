@@ -7,6 +7,7 @@ import {
   heartbeatFailureReaction,
   isAtLive,
   liveBoundsAt,
+  steadyLiveBounds,
   liveDelayMs,
   liveEdgePoint,
   liveGapsOf,
@@ -160,11 +161,20 @@ export const createLiveController = ({
 
   const timeshift = () => engine.capabilities.liveSeek && state().window !== undefined
 
+  // The edge last shown, per session: it never moves back while that stream plays (§29.5).
+  let shownEdge: { sessionId: string; edgeMs: number } | undefined
+
   const boundsNow = () => {
     const known = state().window
-    return known === undefined
-      ? undefined
-      : { window: known.window, bounds: liveBoundsAt(known.window, known.readAtMs, clock.now()) }
+    if (known === undefined) return undefined
+    const sessionId = attached?.session.sessionId
+    const read = liveBoundsAt(known.window, known.readAtMs, clock.now())
+    const bounds = steadyLiveBounds(
+      read,
+      shownEdge !== undefined && shownEdge.sessionId === sessionId ? shownEdge.edgeMs : undefined,
+    )
+    shownEdge = sessionId === undefined ? undefined : { sessionId, edgeMs: bounds.edgeMs }
+    return { window: known.window, bounds }
   }
 
   const notify = (notice: LiveNotice | undefined) => {

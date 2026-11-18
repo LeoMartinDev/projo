@@ -53,9 +53,6 @@ export const liveSyncMs = 6_000
 /** The window is read again this often while a session lasts, paused included. */
 export const liveWindowRefreshMs = 5_000
 
-/** The edge is carried forward with the clock between two reads, this far at most. */
-export const liveEdgeCarryMs = 15_000
-
 /** A seek step of the buttons and the arrow keys. */
 export const liveSeekStepMs = 10_000
 
@@ -107,13 +104,30 @@ export const parseLiveWindow = (text: string): LiveWindow | undefined => {
 /** The window's oldest kept point and its edge, carried forward from its read to `nowMs`. */
 export type LiveBounds = { startMs: number; edgeMs: number }
 
+/**
+ * The edge follows the clock between two reads, one target duration past the newest segment at
+ * most: the next segment is due by then. Carried further, it would run ahead of the stream and
+ * fall back at the next read that brings no new segment (the bar's end jumping back and forth).
+ */
 export const liveBoundsAt = (window: LiveWindow, readAtMs: number, nowMs: number): LiveBounds => {
   const first = window.segments[0]
   const last = window.segments.at(-1)
   if (first === undefined || last === undefined) return { startMs: nowMs, edgeMs: nowMs }
-  const carried = Math.min(Math.max(0, nowMs - readAtMs), liveEdgeCarryMs)
+  const carried = Math.min(Math.max(0, nowMs - readAtMs), window.targetS * 1000)
   return { startMs: first.startMs, edgeMs: last.startMs + last.durationMs + carried }
 }
+
+/**
+ * The edge shown never moves back while one stream plays (§29.5): a read whose newest segment
+ * ends before the edge already carried keeps that edge until the stream catches up with it.
+ */
+export const steadyLiveBounds = (
+  bounds: LiveBounds,
+  shownEdgeMs: number | undefined,
+): LiveBounds =>
+  shownEdgeMs === undefined || shownEdgeMs <= bounds.edgeMs
+    ? bounds
+    : { startMs: bounds.startMs, edgeMs: shownEdgeMs }
 
 /** A restart's gap in the window (§29.4): the time the upstream was lost. */
 export type LiveGap = { fromMs: number; toMs: number }
