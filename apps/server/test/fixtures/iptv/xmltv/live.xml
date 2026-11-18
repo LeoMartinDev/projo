@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tv generator-info-name="projo-test">
+  <programme start="{{at:-20}}" stop="{{at:40}}" channel="live.one">
+    <title lang="fr">Le direct</title>
+    <title lang="en">Live now</title>
+  </programme>
+  <programme start="{{at:40}}" stop="{{at:100}}" channel="live.one">
+    <title lang="fr">La suite</title>
+    <title lang="en">Coming next</title>
+  </programme>
+  <programme start="{{at:-50}}" stop="{{at:10}}" channel="live.mp2">
+    <title>Documentaire</title>
+  </programme>
+  <programme start="{{at:10}}" stop="{{at:70}}" channel="live.mp2">
+    <title>Série</title>
+  </programme>
+</tv>

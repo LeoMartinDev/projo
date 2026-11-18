@@ -61,7 +61,10 @@ const trackLanguages = [
 
 const locales: readonly UiLocale[] = ['fr', 'en']
 
-type Editable = Omit<UpdateProfileBody, 'currentPin' | 'pin' | 'libraryIds' | 'libraryAccess'>
+type Editable = Omit<
+  UpdateProfileBody,
+  'currentPin' | 'pin' | 'libraryIds' | 'libraryAccess' | 'liveTv'
+>
 
 const IdentityPanel = ({ profile, canEditPin }: { profile: ProfileDto; canEditPin: boolean }) => {
   const { t } = useTranslation()
@@ -262,6 +265,15 @@ const ProfileSettings = ({ profile }: { profile: ProfileDto }) => {
               {profile.maxContentRating === undefined
                 ? t('profiles.settings.noLimit')
                 : t(`profiles.settings.ratingTiers.${profile.maxContentRating}`)}
+            </dd>
+          </div>
+          <div className="settings-facts__row">
+            <dt>{t('profiles.settings.liveTv')}</dt>
+            <dd>
+              {/* Absent from servers before the guide slice: on (§29.6). */}
+              {profile.liveTv === false
+                ? t('profiles.settings.liveTvOff')
+                : t('profiles.settings.liveTvOn')}
             </dd>
           </div>
         </dl>

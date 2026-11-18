@@ -1,6 +1,7 @@
 import type { Result } from '@projo/shared'
 
 import type { Profile, ProfileRepository } from '../../core/profile/profile.ts'
+import { mayWiden } from '../../core/profile/restrictions.ts'
 import { actingProfile, restrictedActor } from './shared/acting-profile.ts'
 import type { ProfileActor } from './shared/profile-actor.ts'
 import {
@@ -28,6 +29,12 @@ export const createProfileFactory =
     return createProfileInAccount(deps, {
       accountId: actor.accountId,
       ceiling: acting.effective,
+      // Live TV (§29.6): an admin on an unrestricted profile gives either; anyone else at most
+      // its own, or, without a resolved active profile, the most restricted of the account's.
+      liveTvCeiling:
+        mayWiden({ role: actor.role, activeRestrictions: acting.active }) ||
+        (acting.active?.liveTv ??
+          deps.profileRepository.listByAccount(actor.accountId).every((profile) => profile.liveTv)),
       input,
     })
   }

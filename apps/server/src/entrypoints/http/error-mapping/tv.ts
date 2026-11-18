@@ -13,4 +13,6 @@ export const tvErrorStatus = {
   'tv/stream_unavailable': 502,
   'tv/session_not_found': 404,
   'tv/segment_not_found': 404,
+  'tv/guide_unreachable': 502,
+  'tv/guide_invalid': 422,
 } satisfies ErrorStatusMap<TvErrorCode>

@@ -20,9 +20,9 @@ test('switches one channel and queues its logo when enabled; a missing one is no
     ok: true,
     value: { name: 'One', enabled: true },
   })
-  expect(world.enqueued.map((job) => job.type)).toEqual(['fetch_tv_logos'])
+  expect(world.enqueued.map((job) => job.type)).toEqual(['fetch_tv_logos', 'refresh_tv_guide'])
   world.setTvChannelEnabled({ id: channelId('One'), enabled: false })
-  expect(world.enqueued).toHaveLength(1)
+  expect(world.enqueued).toHaveLength(2)
 
   world.provider.answer({ channels: [one] })
   await world.refreshTvSource({ sourceId })

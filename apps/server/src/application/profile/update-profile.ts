@@ -27,6 +27,8 @@ type Deps = {
   checkPin: CheckPin
   accountRole: (accountId: string) => AccountRole | undefined
   profileChanged: (profileId: string) => void
+  /** The profile lost Live TV access: its live sessions end (§29.6). */
+  liveTvRevoked: (profileId: string) => void
   logger: Logger
 }
 
@@ -39,6 +41,7 @@ export type UpdateProfileInput = Optional<
     libraryAccess: LibraryAccess
     libraryIds: readonly string[]
     maxContentRating: ContentRatingTier | ''
+    liveTv: boolean
   }
 >
 
@@ -53,7 +56,15 @@ export type UpdateProfileError =
   | CheckPinError
 
 export const updateProfileFactory =
-  ({ profileRepository, passwordHasher, checkPin, accountRole, profileChanged, logger }: Deps) =>
+  ({
+    profileRepository,
+    passwordHasher,
+    checkPin,
+    accountRole,
+    profileChanged,
+    liveTvRevoked,
+    logger,
+  }: Deps) =>
   async ({
     actor,
     profileId,
@@ -83,8 +94,10 @@ export const updateProfileFactory =
         libraryAccess === 'all' ? [] : [...new Set(input.libraryIds ?? profile.libraryIds)],
       ...(maxContentRating === undefined ? {} : { maxContentRating }),
     })
+    const liveTv = input.liveTv ?? profile.liveTv
+    // Live TV is not a restriction of §14 but, like library access, an admin's to set (§29.6).
     if (
-      !isWithin(restrictions, profile) &&
+      (!isWithin(restrictions, profile) || liveTv !== profile.liveTv) &&
       !mayWiden({ role: actor.role, activeRestrictions: acting.active })
     ) {
       return adminOnly()
@@ -113,12 +126,14 @@ export const updateProfileFactory =
       autoplayNext: input.autoplayNext ?? profile.autoplayNext,
       autoSkipIntro: input.autoSkipIntro ?? profile.autoSkipIntro,
       autoSkipCredits: input.autoSkipCredits ?? profile.autoSkipCredits,
+      liveTv,
       ...restrictions,
       libraryIds: [...restrictions.libraryIds],
       ...(pinHash === undefined ? {} : { pinHash }),
     }
     profileRepository.update(updated)
     profileChanged(profile.id)
+    if (profile.liveTv && !liveTv) liveTvRevoked(profile.id)
     logger.info('profile updated', { accountId: actor.accountId, profileId: profile.id })
     return ok(updated)
   }

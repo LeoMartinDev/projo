@@ -258,6 +258,8 @@ export const buildMetadataModule = (
   return defineModule({
     exposes: {
       requestMatch,
+      /** The server's metadata language (§9), for what else picks texts in it (the TV guide). */
+      metadataLanguage: settings.language,
       /** The "Metadata" section of the admin settings, served by the settings module. */
       settings: {
         get: getMetadataSettingsFactory({ settings }),

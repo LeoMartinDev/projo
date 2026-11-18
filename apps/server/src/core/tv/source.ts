@@ -39,6 +39,8 @@ export type TvSource = {
   lastError?: TvSourceFailure
   /** Consecutive failed refreshes; `tv/source_unreachable` is raised at 3 (§29.2). */
   failureCount: number
+  /** Last `refresh_tv_guide` attempt (§29.3). */
+  guideAttemptAt?: Date
 }
 
 export const kindOf = (source: Pick<TvSource, 'settings'>): TvSourceKind => source.settings.kind
@@ -89,6 +91,8 @@ export type TvSourceRepository = {
   recordSuccess: (input: { id: string; at: Date; discoveredGuideUrl?: string }) => void
   /** Records the failure and returns the new count of consecutive failures. */
   recordFailure: (input: { id: string; at: Date; error: TvSourceFailure }) => number
+  /** Records a `refresh_tv_guide` attempt, whatever its outcome (§29.3). */
+  recordGuideAttempt: (input: { id: string; at: Date }) => void
 }
 
 /** Sources whose `refresh_tv_source` is queued or running. */

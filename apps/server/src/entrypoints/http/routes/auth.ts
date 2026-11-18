@@ -54,6 +54,7 @@ export const toProfileDto = (profile: Profile): ProfileDto => ({
   libraryAccess: profile.libraryAccess,
   libraryIds: profile.libraryIds,
   ...(profile.maxContentRating === undefined ? {} : { maxContentRating: profile.maxContentRating }),
+  liveTv: profile.liveTv,
   createdAt: profile.createdAt.toISOString(),
 })
 

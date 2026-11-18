@@ -18,6 +18,7 @@ import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
 import { buildTvModule } from '../../src/entrypoints/modules/tv.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
+import { DEFAULT_METADATA_LANGUAGE } from '../../src/infrastructure/sqlite/metadata-settings-repository.ts'
 import { createSqliteJobTargetLabels } from '../../src/infrastructure/sqlite/job-target-labels.ts'
 import { stripNulls } from '../../src/infrastructure/sqlite/rows.ts'
 import { createTvLogoDownloader } from '../../src/infrastructure/tv/logo-downloader.ts'
@@ -55,7 +56,10 @@ beforeEach(async () => {
     routes: (built) => {
       module = buildTvModule(
         { ...built, logger: logs.logger },
-        { transcodeSlots: { acquire: () => ok(), release: () => {} } },
+        {
+          transcodeSlots: { acquire: () => ok(), release: () => {} },
+          metadataLanguage: () => DEFAULT_METADATA_LANGUAGE,
+        },
         // The test provider is on loopback, which logo downloads refuse by default (§29.2).
         { logoDownloader: createTvLogoDownloader({ allowLoopback: true }) },
       )

@@ -52,6 +52,13 @@ test('live TV: the admin adds an M3U source and enables a group, a profile plays
       await expect(page).toHaveURL(/\/tv$/)
       await expect(page.getByRole('heading', { name: 'Live', level: 2 })).toBeVisible()
       await expect(page.getByRole('link', { name: /^\d+ Live / })).toHaveCount(4)
+      // The playlist announces its guide (§29.3), read after the refresh: now and next on the
+      // cards once its job has run.
+      await expect(async () => {
+        await page.reload()
+        await expect(page.getByText('Le direct', { exact: true })).toBeVisible({ timeout: 2_000 })
+      }).toPass({ timeout: 30_000 })
+      await expect(page.getByText(/La suite$/)).toBeVisible()
     })
 
     // The live session requests, in the order the page sends them.

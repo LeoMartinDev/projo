@@ -38,7 +38,7 @@ test('enabling a group enables its channels and queues their logos', () => {
       enabledChannelCount: 2,
     }),
   })
-  expect(world.enqueued.map((job) => job.type)).toEqual(['fetch_tv_logos'])
+  expect(world.enqueued.map((job) => job.type)).toEqual(['fetch_tv_logos', 'refresh_tv_guide'])
   expect(world.channels.repository.findGroup(groupId('Kids'))?.enabledChannelCount).toBe(0)
 })
 

@@ -7,6 +7,8 @@ export const notifyJobFailureFactory =
     if (job.type === 'apply_update' && job.error?.code.startsWith('update/') === true) return
     // A TV source counts its own failures and raises `tv/source_unreachable` (§29.2).
     if (job.type === 'refresh_tv_source' && job.error?.code.startsWith('tv/') === true) return
+    // A provider's guide is often flaky: logged, retried by the next 6-hourly read (§29.3).
+    if (job.type === 'refresh_tv_guide' && job.error?.code.startsWith('tv/') === true) return
     notifier.notify({
       kind: 'job/failed',
       severity: 'error',

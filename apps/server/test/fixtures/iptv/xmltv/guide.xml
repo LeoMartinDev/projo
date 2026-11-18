@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tv SYSTEM "xmltv.dtd">
+<!-- Times are {{at:<minutes from now>[:<offset>]}}, written by the test provider. -->
+<tv generator-info-name="projo-test">
+  <channel id="news.one">
+    <display-name>News One</display-name>
+  </channel>
+  <channel id="NEWS.TWO">
+    <display-name>News Two</display-name>
+  </channel>
+  <channel id="sport.one">
+    <display-name>Sport One</display-name>
+  </channel>
+  <channel id="local.tv">
+    <display-name lang="fr">Chaîne locale</display-name>
+    <display-name>LOCAL  channel</display-name>
+  </channel>
+  <channel id="absent.tv">
+    <display-name>Absent From The Playlist</display-name>
+  </channel>
+  <programme start="{{at:-120:+0200}}" stop="{{at:-30:+0200}}" channel="news.one">
+    <title lang="fr">Matinale</title>
+  </programme>
+  <programme start="{{at:-30:+0200}}" stop="{{at:30:+0200}}" channel="news.one">
+    <title lang="en">The news</title>
+    <title lang="fr">Le journal</title>
+    <sub-title lang="fr">Édition de la mi-journée</sub-title>
+    <desc lang="fr">Les titres du jour &amp; la météo.</desc>
+    <category lang="fr">Information</category>
+  </programme>
+  <programme start="{{at:30:+0200}}" stop="{{at:90:+0200}}" channel="news.one">
+    <title lang="fr">La météo</title>
+    <title lang="en">Weather</title>
+  </programme>
+  <programme start="{{at:30:+0200}}" stop="{{at:60:+0200}}" channel="news.one">
+    <title lang="fr">Doublon</title>
+  </programme>
+  <programme start="{{at:1500:+0200}}" stop="{{at:1560:+0200}}" channel="news.one">
+    <title lang="fr">Trop loin</title>
+  </programme>
+  <programme start="{{at:-10:-0500}}" stop="{{at:50:-0500}}" channel="news.two">
+    <title>Talk show</title>
+  </programme>
+  <programme start="{{at:-45}}" stop="{{at:15}}" channel="sport.one">
+    <title lang="en">Match</title>
+  </programme>
+  <programme start="{{at:15}}" stop="{{at:75}}" channel="sport.one">
+    <title lang="en">After the match</title>
+  </programme>
+  <programme start="{{at:-20:+0100}}" channel="local.tv">
+    <title><![CDATA[Le 12/13 <local>]]></title>
+  </programme>
+  <programme start="{{at:40:+0100}}" channel="local.tv">
+    <title>Sans fin connue</title>
+  </programme>
+  <programme start="{{at:-30}}" stop="{{at:30}}" channel="absent.tv">
+    <title>Nobody watches</title>
+  </programme>
+</tv>

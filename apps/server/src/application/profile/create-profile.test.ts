@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test'
 
 import { sampleProfile } from '../../../test/support/auth.ts'
-import { admin, createProfilesWorld as setup, kid } from '../../../test/support/profiles-world.ts'
+import {
+  admin,
+  createProfilesWorld as setup,
+  kid,
+  user,
+} from '../../../test/support/profiles-world.ts'
 
 describe('create', () => {
   test('defaults: next colour, languages from the interface, unrestricted for an admin', async () => {
@@ -67,6 +72,43 @@ describe('create', () => {
     expect(
       await open.createProfile({ actor: { ...none, role: 'user' }, input: { name: 'X' } }),
     ).toMatchObject({ ok: true, value: { libraryAccess: 'all' } })
+  })
+
+  test("Live TV (§29.6): an admin gives either; anyone else at most the creator's own", async () => {
+    const owners = () => [sampleProfile({ liveTv: false }), sampleProfile({ id: 'p2' })]
+    // An admin on an unrestricted profile: on by default, whatever its own profile's switch.
+    const byAdmin = setup(owners())
+    expect(await byAdmin.createProfile({ actor: admin, input: { name: 'A' } })).toMatchObject({
+      ok: true,
+      value: { liveTv: true },
+    })
+    expect(
+      await byAdmin.createProfile({ actor: admin, input: { name: 'B', liveTv: false } }),
+    ).toMatchObject({ ok: true, value: { liveTv: false } })
+    // A user: its active profile's value, as default and as ceiling.
+    const byUser = setup(owners())
+    expect(await byUser.createProfile({ actor: user, input: { name: 'C' } })).toMatchObject({
+      ok: true,
+      value: { liveTv: false },
+    })
+    expect(
+      await byUser.createProfile({ actor: user, input: { name: 'D', liveTv: true } }),
+    ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
+    expect(
+      await byUser.createProfile({
+        actor: { ...user, activeProfileId: 'p2' },
+        input: { name: 'E' },
+      }),
+    ).toMatchObject({ ok: true, value: { liveTv: true } })
+    // Without a resolved active profile (an admin too): on only if every profile has it.
+    const { activeProfileId: _active, ...none } = admin
+    expect(
+      await setup(owners()).createProfile({ actor: none, input: { name: 'F', liveTv: true } }),
+    ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
+    const other = setup([sampleProfile({ liveTv: false })], { 'account-1': 'admin' })
+    expect(
+      await other.createAccountProfile({ accountId: 'account-1', input: { name: 'G' } }),
+    ).toMatchObject({ ok: true, value: { liveTv: true } })
   })
 
   test('parallel creations stop at 5 profiles', async () => {

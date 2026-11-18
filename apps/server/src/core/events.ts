@@ -20,6 +20,8 @@ export type InternalEventPayloads = {
    * included). The payload is the stored one, unparsed: a subscriber parses what it needs.
    */
   'job.finished': { jobId: string; type: JobType; state: 'done' | 'failed'; payload: unknown }
+  /** A profile lost Live TV access (§29.6): the TV module ends its live sessions. */
+  'profile.live_tv_revoked': { profileId: string }
 }
 
 type MustHold<T extends true> = T

@@ -21,6 +21,7 @@ import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { Setting, SwitchSetting } from '../../../shared/ui/Setting.tsx'
 import { toggleLibrary } from './library-access.ts'
 import { AdminAvatar, ColorPicker, ratingOptions, useRatingLabel } from './parts.tsx'
+import { tvQueryKey } from '../../tv/queries.ts'
 import { accountsQueryKey } from './queries.ts'
 
 type Draft = {
@@ -32,6 +33,7 @@ type Draft = {
   autoplayNext: boolean
   autoSkipIntro: boolean
   autoSkipCredits: boolean
+  liveTv: boolean
   pinOn: boolean
   pin: string
 }
@@ -45,6 +47,8 @@ const draftOf = (profile: AdminProfileDto): Draft => ({
   autoplayNext: profile.autoplayNext,
   autoSkipIntro: profile.autoSkipIntro,
   autoSkipCredits: profile.autoSkipCredits,
+  // Absent from servers before the guide slice: on (§29.6).
+  liveTv: profile.liveTv !== false,
   pinOn: profile.hasPin,
   pin: '',
 })
@@ -76,6 +80,7 @@ const changesOf = (profile: AdminProfileDto, draft: Draft): UpdateProfileBody =>
     ...(draft.autoSkipCredits !== profile.autoSkipCredits
       ? { autoSkipCredits: draft.autoSkipCredits }
       : {}),
+    ...(draft.liveTv !== (profile.liveTv !== false) ? { liveTv: draft.liveTv } : {}),
     ...(!draft.pinOn && profile.hasPin ? { pin: '' } : {}),
     ...(draft.pinOn && draft.pin !== '' ? { pin: draft.pin } : {}),
   }
@@ -178,11 +183,13 @@ export const ProfileCard = ({
           json: pinPattern.test(currentPin) ? { ...body, currentPin } : body,
         }),
       ),
-    onSuccess: async (saved) => {
+    onSuccess: async (saved, body) => {
       setDraft({ ...draftOf({ ...saved, playing: profile.playing }) })
       setChangingPin(false)
       profileUpdated(queryClient, saved)
       await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
+      // The active profile's channels, its "TV" entry with them (§29.6).
+      if (body.liveTv !== undefined) await queryClient.invalidateQueries({ queryKey: tvQueryKey })
     },
   })
 
@@ -377,6 +384,11 @@ export const ProfileCard = ({
               )}
             </div>
           </div>
+          <SwitchSetting
+            label={t('admin.accounts.profile.liveTv')}
+            checked={draft.liveTv}
+            onChange={(liveTv) => set({ liveTv })}
+          />
         </div>
       </div>
 

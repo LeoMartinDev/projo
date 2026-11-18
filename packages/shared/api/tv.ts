@@ -144,7 +144,7 @@ export type AdminTvChannelsPage = z.infer<typeof adminTvChannelsPageSchema>
 export const setTvEnabledBodySchema = z.object({ enabled: z.boolean() })
 export type SetTvEnabledBody = z.infer<typeof setTvEnabledBodySchema>
 
-/** A programme of the guide (§29.3); absent until the guide slice. */
+/** A programme of the guide (§29.3): now or next of a channel. */
 export const tvProgrammeDtoSchema = z.object({
   title: z.string(),
   startAt: isoDateTimeSchema,
@@ -172,8 +172,21 @@ export type TvGroupDto = z.infer<typeof tvGroupDtoSchema>
 export const tvChannelsResponseSchema = z.object({
   groups: z.array(tvGroupDtoSchema),
   items: z.array(tvChannelDtoSchema),
+  /** The profile's favourite channels, in the order they were added (absent before the guide). */
+  favorites: z.array(z.string()).optional(),
 })
 export type TvChannelsResponse = z.infer<typeof tvChannelsResponseSchema>
+
+/** Now and next of a channel (§29.7): what the page and the player read every minute. */
+export const tvGuideEntryDtoSchema = z.object({
+  channelId: z.string(),
+  now: tvProgrammeDtoSchema.optional(),
+  next: tvProgrammeDtoSchema.optional(),
+})
+export type TvGuideEntryDto = z.infer<typeof tvGuideEntryDtoSchema>
+
+export const tvGuideResponseSchema = z.object({ items: z.array(tvGuideEntryDtoSchema) })
+export type TvGuideResponse = z.infer<typeof tvGuideResponseSchema>
 
 /** What a live session plays (§29.4): the relayed stream, or its H.264 transcode (later). */
 export const tvRenditions = ['copy', 'compat'] as const

@@ -42,6 +42,7 @@ export type JobPayloads = {
   image_variants: EmptyPayload
   refresh_tv_source: { sourceId: string }
   fetch_tv_logos: { sourceId: string }
+  refresh_tv_guide: { sourceId: string }
 }
 
 export type JobError = Pick<AppError, 'code' | 'message' | 'context'>
@@ -83,6 +84,7 @@ export const jobDefaults: Record<JobType, { priority: number; maxAttempts: numbe
   image_variants: { priority: 10, maxAttempts: 3 },
   refresh_tv_source: { priority: 40, maxAttempts: 1 },
   fetch_tv_logos: { priority: 30, maxAttempts: 1 },
+  refresh_tv_guide: { priority: 20, maxAttempts: 1 },
 }
 
 const dayMs = 24 * 60 * 60_000

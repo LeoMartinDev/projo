@@ -19,6 +19,7 @@ import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
 import { buildTvModule } from '../../src/entrypoints/modules/tv.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
+import { DEFAULT_METADATA_LANGUAGE } from '../../src/infrastructure/sqlite/metadata-settings-repository.ts'
 import { createSqlitePlaybackSessionRepository } from '../../src/infrastructure/sqlite/playback-session-repository.ts'
 import {
   createSqlitePlaybackSettings,
@@ -79,7 +80,7 @@ beforeEach(async () => {
       })
       module = buildTvModule(
         { ...built, logger: logs.logger },
-        { transcodeSlots: slots },
+        { transcodeSlots: slots, metadataLanguage: () => DEFAULT_METADATA_LANGUAGE },
         { live: { timings: { retryDelaysMs: [50, 100, 200], idleStopMs: 300 } } },
       )
       return { tv: module.routes, adminTv: module.adminRoutes }
@@ -501,6 +502,32 @@ describe.skipIf(!hasFfmpeg())('live TV relay (§29.4) with real ffmpeg', () => {
     },
     timeout,
   )
+
+  test(
+    "turning a profile's Live TV off ends its live sessions at once (§29.6)",
+    async () => {
+      const { channel } = await liveSource()
+      const session = await startSession(channel('Live One'), 'user')
+      const mine = await startSession(channel('Live One'))
+      const off = await request('PATCH', '/profiles/profile-zoe', { liveTv: false })
+      expect(off.status).toBe(200)
+      expect(t.events).toContainEqual({
+        type: 'playback.session_terminated',
+        payload: expect.objectContaining({ playbackSessionId: session.sessionId, reason: 'ended' }),
+      })
+      const listed = adminTvSessionsResponseSchema.parse(
+        await (await request('GET', '/admin/tv/sessions')).json(),
+      )
+      // Its capability URL is refused at once (§20).
+      expect((await anonymous(session.streamUrl)).status).toBe(404)
+      expect(listed.items.map((item) => item.id)).toEqual([mine.sessionId])
+      const refused = await openSession(channel('Live One'), 'user')
+      expect(refused.response.status).toBe(404)
+      expect(refused.body).toMatchObject({ error: { code: 'tv/channel_not_found' } })
+      await endSession(mine)
+    },
+    timeout,
+  )
 })
 
 /** ffprobe of the served init and newest segment: the video's codec, field order and height. */
@@ -654,7 +681,7 @@ describe('live sessions without a stream', () => {
     const listed = tvChannelsResponseSchema.parse(
       await (await request('GET', '/tv/channels', undefined, 'user')).json(),
     )
-    expect(listed).toEqual({ groups: [], items: [] })
+    expect(listed).toEqual({ groups: [], items: [], favorites: [] })
     const unknown = await openSession('nope')
     expect(unknown.response.status).toBe(404)
     expect(unknown.body).toMatchObject({ error: { code: 'tv/channel_not_found' } })

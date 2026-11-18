@@ -24,7 +24,8 @@ test('serves the logo of an enabled channel, of a disabled one to an admin only'
     path: `tv/${one.id}.jpg`,
   })
 
-  const logo = (channelId: string, admin: boolean) => world.getTvChannelLogo({ channelId, admin })
+  const logo = (channelId: string, admin: boolean) =>
+    world.getTvChannelLogo({ channelId, profileId: 'p', admin })
   expect(logo(one.id, true)).toEqual({
     ok: true,
     value: { path: `/images/tv/${one.id}.jpg`, contentType: 'image/jpeg' },
@@ -33,4 +34,9 @@ test('serves the logo of an enabled channel, of a disabled one to an admin only'
   world.setTvChannelEnabled({ id: one.id, enabled: true })
   expect(logo(one.id, false).ok).toBe(true)
   expect(logo(two.id, true).ok).toBe(false)
+
+  // A profile without Live TV access sees none; its admin's Admin → TV page still does (§29.6).
+  world.withoutLiveTv.add('p')
+  expect(logo(one.id, false)).toMatchObject({ ok: false, error: { code: 'tv/channel_not_found' } })
+  expect(logo(one.id, true).ok).toBe(true)
 })

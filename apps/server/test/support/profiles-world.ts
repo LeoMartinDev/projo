@@ -34,6 +34,7 @@ export const createProfilesWorld = (
   const { hasher } = createFakePasswordHasher()
   const rate = createCountingRateLimiter(5)
   const changed: string[] = []
+  const liveTvRevoked: string[] = []
   const endedPlayback: PlaybackScope[] = []
   const scopes = visibilityScopeFactory({ profileRepository: store.repository, clock })
   const deps = {
@@ -51,6 +52,7 @@ export const createProfilesWorld = (
       changed.push(id)
       scopes.invalidate(id)
     },
+    liveTvRevoked: (id: string) => void liveTvRevoked.push(id),
     clock,
     ids: createSequentialIds('new-profile-'),
     logger: silentLogger,
@@ -61,6 +63,7 @@ export const createProfilesWorld = (
     sessions,
     rate,
     changed,
+    liveTvRevoked,
     endedPlayback,
     scopes,
     listProfiles: listProfilesFactory(deps),

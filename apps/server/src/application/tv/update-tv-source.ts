@@ -11,7 +11,7 @@ import {
   type TvSourceRepository,
   type TvSourceSettingsPatch,
 } from '../../core/tv/source.ts'
-import { queueTvSourceRefresh } from './shared/tv-jobs.ts'
+import { queueTvGuide, queueTvSourceRefresh } from './shared/tv-jobs.ts'
 import { type TvSourceView, toTvSourceView } from './shared/tv-source-view.ts'
 
 type Deps = {
@@ -64,6 +64,8 @@ export const updateTvSourceFactory =
     tvSources.save(updated)
     const refresh = listingSettingsChanged(source.settings, settings)
     if (refresh) queueTvSourceRefresh(jobQueue, source.id)
+    // A refresh queues the guide after it; a new XMLTV URL alone queues it now (§29.3).
+    else if (source.settings.guideUrl !== settings.guideUrl) queueTvGuide(jobQueue, source.id)
     logger.info('tv source updated', { tvSourceId: source.id, refresh })
     return ok(
       toTvSourceView({

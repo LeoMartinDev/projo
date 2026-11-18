@@ -4,6 +4,7 @@ import type { TvRendition } from '@projo/shared/api/tv'
 import { authorizeLiveStreamFactory } from '../../src/application/tv/authorize-live-stream.ts'
 import { createLiveSessionFactory } from '../../src/application/tv/create-live-session.ts'
 import { endLiveSessionFactory } from '../../src/application/tv/end-live-session.ts'
+import { endProfileLiveSessionsFactory } from '../../src/application/tv/end-profile-live-sessions.ts'
 import { getLiveFileFactory } from '../../src/application/tv/get-live-file.ts'
 import { getLivePlaylistFactory } from '../../src/application/tv/get-live-playlist.ts'
 import { listLiveSessionsFactory } from '../../src/application/tv/list-live-sessions.ts'
@@ -400,6 +401,9 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
   })
   const endLiveSession = endLiveSessionFactory({ liveSessions, streams, eventBus, logger })
   const hashSecret = (secret: string) => `hash:${secret}`
+  // Profiles whose Live TV access is off (§29.6).
+  const withoutLiveTv = new Set<string>()
+  const tvAccess = { hasLiveTv: (profileId: string) => !withoutLiveTv.has(profileId) }
   let secrets = 0
   const authorize = authorizeLiveStreamFactory({ liveSessions, endLiveSession, hashSecret, clock })
 
@@ -468,11 +472,13 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     logs,
     streams,
     transcodes,
+    withoutLiveTv,
     addSource,
     addChannel,
     createLiveSession: createLiveSessionFactory({
       tvChannels,
       tvSources,
+      tvAccess,
       provider: { upstreamOf: ({ upstream }) => upstream },
       liveSessions,
       streams,
@@ -490,6 +496,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
     recordLiveHeartbeat: recordLiveHeartbeatFactory({
       liveSessions,
       tvChannels,
+      tvAccess,
       streams,
       endLiveSession,
       clock,
@@ -517,6 +524,7 @@ export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: numbe
       clock,
     }),
     sweepLiveSessions: sweepLiveSessionsFactory({ liveSessions, endLiveSession, clock }),
+    endProfileLiveSessions: endProfileLiveSessionsFactory({ liveSessions, endLiveSession, logger }),
     getLivePlaylist: getLivePlaylistFactory({ authorize, streams, endLiveSession }),
     getLiveFile: getLiveFileFactory({ authorize, streams, endLiveSession }),
   }

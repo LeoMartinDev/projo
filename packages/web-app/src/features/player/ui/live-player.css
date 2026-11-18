@@ -19,6 +19,75 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The channel over its guide lines (§29.5), within the height of the row's play button whatever
+   the guide holds: the lines never reach under the controls, and the controls do not move from a
+   channel to the next. */
+.live-heading__text {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  height: 48px;
+  overflow: hidden;
+}
+
+.live-heading__channel {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  min-width: 0;
+  line-height: 18px;
+}
+
+.live-heading__now,
+.live-heading__next {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.live-heading__now-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+}
+
+.live-heading__next {
+  display: block;
+  color: var(--color-text-secondary);
+}
+
+.live-heading__times {
+  flex: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-heading__progress {
+  flex: 0 0 64px;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fill-3);
+}
+
+.live-heading__progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left center;
+}
+
 .live-channels {
   width: min(380px, calc(100% - 2 * var(--player-gutter)));
 }
@@ -108,12 +177,24 @@
   text-align: right;
 }
 
-.live-channels__name {
+.live-channels__text {
+  display: flex;
   flex: 1 1 auto;
+  flex-direction: column;
   min-width: 0;
+}
+
+.live-channels__name,
+.live-channels__now {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.live-channels__now {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 @media (--compact) {
@@ -133,5 +214,9 @@
   .live-heading__logo {
     width: 40px;
     height: 22px;
+  }
+
+  .live-heading__channel {
+    gap: 8px;
   }
 }

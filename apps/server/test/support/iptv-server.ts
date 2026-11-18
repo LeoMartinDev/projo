@@ -8,10 +8,14 @@ import { join, resolve } from 'node:path'
  * `player_api.php`, the Freebox TV API, the endless MPEG-TS under `/live/`).
  *
  * - `/m3u/<file>`: an M3U playlist of `fixtures/iptv/m3u/` (403 when `requireUserAgent` is set
- *   and the request's `User-Agent` differs);
+ *   and the request's `User-Agent` differs, likewise for the guides);
  * - `/logos/<name>.png|.jpg|.webp|.gif`: a tiny image of that type; `missing*` answers 404, an
  *   `.svg` answers an SVG document, `huge.png` a PNG larger than the logo limit;
  * - `/status/<code>`: an empty answer with that status;
+ * - `/xmltv/<file>`: an XMLTV guide of `fixtures/iptv/xmltv/`, its `{{at:<minutes>[:<±hhmm>]}}`
+ *   written as the XMLTV time that many minutes from the guide's now (`setGuideNow`, else the
+ *   real time) in that offset; `<file>.gz` serves it gzipped as a file (`application/gzip`), and
+ *   `?encoding=gzip` with a `Content-Encoding: gzip`;
  * - `/live/<variant>.ts`: an endless MPEG-TS encoded by ffmpeg in real time (`-re`, 320×180,
  *   1 s GOP), one encoder per request, killed when the client goes: `progressive` (H.264 and
  *   AAC), `interlaced` (H.264 top field first and AAC), `hevc` (HEVC and AAC: needs libx265),
@@ -45,6 +49,22 @@ const images: Record<string, { bytes: Uint8Array<ArrayBuffer>; type: string }> =
 }
 
 export type IptvRequest = { path: string; userAgent?: string; referrer?: string }
+
+const pad = (value: number, width = 2) => String(value).padStart(width, '0')
+
+/** An XMLTV time (§29.3): `YYYYMMDDhhmmss ±hhmm`, the moment written in that offset. */
+export const xmltvTimeOf = (moment: Date, offset = '+0000'): string => {
+  const [, sign = '+', hours = '00', minutes = '00'] = /^([+-])(\d{2})(\d{2})$/u.exec(offset) ?? []
+  const offsetMs = (sign === '-' ? -1 : 1) * (Number(hours) * 60 + Number(minutes)) * 60_000
+  const local = new Date(moment.getTime() + offsetMs)
+  return `${local.getUTCFullYear()}${pad(local.getUTCMonth() + 1)}${pad(local.getUTCDate())}${pad(local.getUTCHours())}${pad(local.getUTCMinutes())}${pad(local.getUTCSeconds())} ${offset}`
+}
+
+/** Writes a guide fixture's `{{at:<minutes>[:<offset>]}}` relative to `now`. */
+export const writeGuideTimes = (text: string, now: Date): string =>
+  text.replaceAll(/\{\{at:(-?\d+)(?::([+-]\d{4}))?\}\}/gu, (_, minutes: string, offset?: string) =>
+    xmltvTimeOf(new Date(now.getTime() + Number(minutes) * 60_000), offset),
+  )
 
 type Override = () => Response
 
@@ -161,6 +181,7 @@ export const startIptvServer = ({
   const overrides = new Map<string, Override>()
   const encoders = new Set<{ stop: () => void }>()
   let liveFailing = false
+  let guideNow = (): Date => new Date()
 
   const live = (request: Request, name: string): Response => {
     const variant = liveVariants[name.replace(/\.ts$/u, '')]
@@ -190,6 +211,24 @@ export const startIptvServer = ({
             'content-type': name.endsWith('.html') ? 'text/html' : 'audio/x-mpegurl',
           },
         })
+  }
+
+  const guide = (request: Request, url: URL, name: string): Response => {
+    if (requireUserAgent !== undefined && request.headers.get('user-agent') !== requireUserAgent)
+      return new Response('forbidden', { status: 403 })
+    const gzipped = name.endsWith('.gz')
+    const body = text(`xmltv/${gzipped ? name.slice(0, -3) : name}`)
+    if (body === undefined) return new Response('not found', { status: 404 })
+    const xml = writeGuideTimes(body, guideNow())
+    if (gzipped)
+      return new Response(Bun.gzipSync(xml), { headers: { 'content-type': 'application/gzip' } })
+    if (url.searchParams.get('encoding') === 'gzip')
+      return new Response(Bun.gzipSync(xml), {
+        headers: { 'content-type': 'application/xml', 'content-encoding': 'gzip' },
+      })
+    return new Response(xml, {
+      headers: { 'content-type': name.endsWith('.html') ? 'text/html' : 'application/xml' },
+    })
   }
 
   const logo = (name: string): Response => {
@@ -227,6 +266,7 @@ export const startIptvServer = ({
       if (root === 'm3u') return playlist(request, name)
       if (root === 'logos') return logo(name)
       if (root === 'live') return live(request, name)
+      if (root === 'xmltv') return guide(request, url, name)
       if (root === 'status') return new Response(undefined, { status: Number(name) || 500 })
       return new Response('not found', { status: 404 })
     },
@@ -259,6 +299,10 @@ export const startIptvServer = ({
     },
     restore: (path: string) => {
       overrides.delete(path)
+    },
+    /** The moment the guide fixtures' times are written from (the tests' clock). */
+    setGuideNow: (now: () => Date) => {
+      guideNow = now
     },
     /** Live upstream requests so far (`/live/…`). */
     liveRequests: () => requests.filter((r) => r.path.startsWith('/live/')),

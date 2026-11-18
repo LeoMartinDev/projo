@@ -7,6 +7,7 @@ import type {
   TvSourceProvider,
 } from '../../../core/tv/provider.ts'
 import { fetchFailureReason } from '../fetch-failure.ts'
+import { readXmltv, type XmltvReaderOptions } from '../xmltv/xmltv-reader.ts'
 import { createM3uParser, type M3uPlaylist } from './m3u-parser.ts'
 
 export const M3U_TIMEOUT_MS = 60_000
@@ -19,6 +20,7 @@ export type M3uProvider = {
     settings: M3uSettings
     signal?: AbortSignal
   }) => Promise<Result<TvChannelListing, TvProviderError>>
+  readGuide: TvSourceProvider['readGuide']
   upstreamOf: TvSourceProvider['upstreamOf']
 }
 
@@ -63,7 +65,14 @@ export const createM3uProvider = ({
   fetch: doFetch = (input, init) => fetch(input, init),
   timeoutMs = M3U_TIMEOUT_MS,
   maxBytes = M3U_MAX_BYTES,
-}: { fetch?: Fetch; timeoutMs?: number; maxBytes?: number } = {}): M3uProvider => ({
+  guide = {},
+}: {
+  fetch?: Fetch
+  timeoutMs?: number
+  maxBytes?: number
+  /** The XMLTV reader's options (test seams: limits and timeout). */
+  guide?: XmltvReaderOptions
+} = {}): M3uProvider => ({
   listChannels: async ({ settings, signal }) => {
     const host = hostOf(settings.playlistUrl)
     // Never the upstream error as `cause` nor its message: Bun's may carry the URL (§20).
@@ -103,6 +112,21 @@ export const createM3uProvider = ({
       channels: playlist.channels,
       ...(playlist.guideUrl === undefined ? {} : { guideUrl: playlist.guideUrl }),
     })
+  },
+  // The XMLTV URL of the settings, else the one the playlist announces (§29.3).
+  readGuide: async ({ source, sink, signal }) => {
+    const url = source.settings.guideUrl ?? source.discoveredGuideUrl
+    if (url === undefined) return ok({ available: false })
+    const { userAgent } = source.settings
+    return readXmltv(
+      {
+        url,
+        sink,
+        ...(userAgent === undefined ? {} : { userAgent }),
+        ...(signal === undefined ? {} : { signal }),
+      },
+      { fetch: doFetch, ...guide },
+    )
   },
   upstreamOf: ({ settings, upstream }) => {
     const userAgent = upstream.userAgent ?? settings.userAgent

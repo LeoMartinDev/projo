@@ -25,6 +25,7 @@
 }
 
 .tv-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -111,6 +112,99 @@
   width: 60%;
 }
 
+/* The guide's two lines keep their space when empty: every card has the same height (§29.6). */
+.tv-card__guide {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  /* Two lines and the bar, also on a skeleton card (empty). */
+  height: calc(18px * 2 + 3px + 4px * 2);
+  margin-top: -4px;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.tv-card__now,
+.tv-card__next {
+  min-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tv-card__now {
+  color: var(--color-text-soft);
+}
+
+.tv-card__next {
+  color: var(--color-text-muted);
+}
+
+.tv-card__next-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.tv-card__progress {
+  display: block;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.tv-card__progress--on {
+  background: var(--fill-2);
+}
+
+.tv-card__progress-bar {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform-origin: left center;
+}
+
+.tv-card__star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  color: var(--color-text-strong);
+  background: var(--material-glass);
+  box-shadow: var(--shadow-glass);
+  backdrop-filter: var(--blur-glass);
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.tv-card__star:hover {
+  background: var(--material-glass-hover);
+}
+
+.tv-card__star[aria-pressed='true'] {
+  color: var(--color-accent);
+}
+
+/* With a mouse, the star of a channel that is not a favourite shows on the card's hover or focus. */
+@media (--fine-pointer) {
+  .tv-card__star:not([aria-pressed='true']) {
+    opacity: 0;
+  }
+
+  .tv-card:hover .tv-card__star,
+  .tv-card:focus-within .tv-card__star {
+    opacity: 1;
+  }
+}
+
 @media (--phone) {
   .tv-grid {
     gap: 16px 12px;
@@ -122,7 +216,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tv-card__tile {
+  .tv-card__tile,
+  .tv-card__star {
     transition: none;
   }
 }

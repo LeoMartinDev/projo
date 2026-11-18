@@ -30,6 +30,11 @@ export const createAccountProfileFactory =
       ? Promise.resolve(
           err(appError('account/not_found', 'account not found', { context: { accountId } })),
         )
-      : createProfileInAccount(deps, { accountId, ceiling: unrestricted, input })
+      : createProfileInAccount(deps, {
+          accountId,
+          ceiling: unrestricted,
+          liveTvCeiling: true,
+          input,
+        })
 
 export type CreateAccountProfile = ReturnType<typeof createAccountProfileFactory>

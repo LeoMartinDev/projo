@@ -23,6 +23,8 @@ export type Profile = {
   autoplayNext: boolean
   autoSkipIntro: boolean
   autoSkipCredits: boolean
+  /** Live TV access (§29.6): not a restriction of §14; set by an admin, like library access. */
+  liveTv: boolean
   createdAt: Date
 }
 
@@ -78,5 +80,6 @@ export const newProfile = ({
   autoplayNext: true,
   autoSkipIntro: false,
   autoSkipCredits: false,
+  liveTv: true,
   createdAt,
 })

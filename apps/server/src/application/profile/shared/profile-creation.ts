@@ -25,6 +25,7 @@ export type CreateProfileInput = Optional<
     libraryAccess: LibraryAccess
     libraryIds: readonly string[]
     maxContentRating: ContentRatingTier
+    liveTv: boolean
   }
 > & { name: string }
 
@@ -46,10 +47,13 @@ export const createProfileInAccount = async (
   {
     accountId,
     ceiling,
+    liveTvCeiling,
     input,
   }: {
     accountId: string
     ceiling: ProfileRestrictions
+    /** Whether the creator may give Live TV access (§29.6): its own, or anything for an admin. */
+    liveTvCeiling: boolean
     input: CreateProfileInput
   },
 ): Promise<Result<Profile, CreateProfileError>> => {
@@ -63,7 +67,8 @@ export const createProfileInAccount = async (
     libraryIds: libraryAccess === 'all' ? [] : [...new Set(input.libraryIds ?? ceiling.libraryIds)],
     ...(maxContentRating === undefined ? {} : { maxContentRating }),
   })
-  if (!isWithin(restrictions, ceiling)) return adminOnly()
+  const liveTv = input.liveTv ?? liveTvCeiling
+  if (!isWithin(restrictions, ceiling) || (liveTv && !liveTvCeiling)) return adminOnly()
   const unknown = unknownLibraries(profileRepository, restrictions)
   if (unknown !== undefined) return err(unknown)
 
@@ -90,6 +95,7 @@ export const createProfileInAccount = async (
     autoplayNext: input.autoplayNext ?? base.autoplayNext,
     autoSkipIntro: input.autoSkipIntro ?? base.autoSkipIntro,
     autoSkipCredits: input.autoSkipCredits ?? base.autoSkipCredits,
+    liveTv,
     ...(pinHash === undefined ? {} : { pinHash }),
   }
   if (!profileRepository.create(profile, { maxPerAccount: maxProfilesPerAccount })) {

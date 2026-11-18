@@ -21,6 +21,7 @@ import type { TvChannelDto, TvChannelsResponse } from '@projo/shared/api/tv'
 import { mediaUrl } from '../../../shared/api/media.ts'
 import { useServerEvent } from '../../../shared/events/events.ts'
 import { useErrorMessage } from '../../../shared/i18n/errors.ts'
+import { useNow } from '../../../shared/ui/use-now.ts'
 import { CloseIcon, MutedIcon, PauseIcon, PlayIcon, VolumeIcon } from '../../../shared/ui/icons.tsx'
 import { isTextEntry } from '../../../shared/ui/focusable.ts'
 import { type Direction } from '../../../shared/ui/spatial-nav/geometry.ts'
@@ -34,7 +35,17 @@ import {
 import { activateFocus, moveFocus } from '../../../shared/ui/spatial-nav/spatial-nav.ts'
 import { useElement } from '../../../shared/ui/use-element.ts'
 import { ChannelLogo } from '../../tv/ChannelLogo.tsx'
-import { channelOrder, channelSections, tvChannelsQuery } from '../../tv/queries.ts'
+import { clockTime } from '../../tv/guide-format.ts'
+import {
+  channelOrder,
+  channelSections,
+  elapsedOf,
+  type OnAir,
+  onAirAt,
+  tvChannelsQuery,
+  tvGuideQuery,
+  withGuide,
+} from '../../tv/queries.ts'
 import {
   toggleFullscreen,
   useIsFullscreen,
@@ -101,15 +112,46 @@ const focusedControl = (target: EventTarget | undefined, keyboardFocused: boolea
 const channelLabel = (channel: Pick<TvChannelDto, 'name' | 'number'>) =>
   channel.number === undefined ? channel.name : `${channel.number} ${channel.name}`
 
+/** The programme on now and the next one under the channel (§29.5); nothing without a guide. */
+const LiveGuide = ({ onAir, at }: { onAir: OnAir; at: number }) => {
+  const { now, next } = onAir
+  if (now === undefined && next === undefined) return undefined
+  return (
+    <>
+      {now === undefined ? undefined : (
+        <span className="live-heading__now">
+          <span className="live-heading__now-title">{now.title}</span>
+          <span className="live-heading__times">
+            {clockTime(now.startAt)} – {clockTime(now.endAt)}
+          </span>
+          <span className="live-heading__progress" aria-hidden="true">
+            <span
+              className="live-heading__progress-bar"
+              style={{ transform: `scaleX(${elapsedOf(now, at)})` }}
+            />
+          </span>
+        </span>
+      )}
+      {next === undefined ? undefined : (
+        <span className="live-heading__next">
+          <span className="live-heading__times">{clockTime(next.startAt)}</span> {next.title}
+        </span>
+      )}
+    </>
+  )
+}
+
 /** The channel list over the picture (§29.5): page order, the current channel marked. */
 const ChannelList = ({
   channels,
   currentId,
+  at,
   onPick,
   onClose,
 }: {
   channels: TvChannelsResponse | undefined
   currentId: string
+  at: number
   onPick: (channelId: string) => void
   onClose: () => void
 }) => {
@@ -129,14 +171,19 @@ const ChannelList = ({
         </button>
       </div>
       <div className="episodes-panel__list live-channels__list" data-arrow-list>
-        {sections.map(({ group, channels: items }) => (
-          <section key={group.id} className="live-channels__section">
+        {sections.map(({ id, group, channels: items }) => (
+          <section key={id} className="live-channels__section">
             <h3 className="live-channels__group">
-              {group.name === '' ? t('tv.otherChannels') : group.name}
+              {group === undefined
+                ? t('tv.favorites')
+                : group.name === ''
+                  ? t('tv.otherChannels')
+                  : group.name}
             </h3>
             <ol className="live-channels__items">
               {items.map((channel) => {
                 const current = channel.id === currentId
+                const now = onAirAt(channel, at).now
                 return (
                   <li key={channel.id}>
                     <button
@@ -152,8 +199,11 @@ const ChannelList = ({
                       <span className="live-channels__number" aria-hidden="true">
                         {channel.number}
                       </span>
-                      <span className="live-channels__name" aria-hidden="true">
-                        {channel.name}
+                      <span className="live-channels__text" aria-hidden="true">
+                        <span className="live-channels__name">{channel.name}</span>
+                        {now === undefined ? undefined : (
+                          <span className="live-channels__now">{now.title}</span>
+                        )}
                       </span>
                     </button>
                   </li>
@@ -183,7 +233,15 @@ export const LivePlayerPage = ({
   const navigate = useNavigate()
   const router = useRouter()
   const canGoBack = useCanGoBack()
-  const channels = useQuery(tvChannelsQuery)
+  const listed = useQuery(tvChannelsQuery)
+  const guide = useQuery(tvGuideQuery)
+  const at = useNow().getTime()
+  const channels = useMemo(
+    () => ({
+      data: listed.data === undefined ? undefined : withGuide(listed.data, guide.data),
+    }),
+    [listed.data, guide.data],
+  )
   const order = useMemo(
     () => (channels.data === undefined ? [] : channelOrder(channels.data)),
     [channels.data],
@@ -226,6 +284,7 @@ export const LivePlayerPage = ({
   const { failure, networkLost, blocked, loading, playing } = liveView(state, media)
   const interruption = state.interruption
   const channel = channels.data?.items.find((item) => item.id === state.channelId)
+  const onAir = channel === undefined ? {} : onAirAt(channel, at)
 
   // The URL names the channel (zapping replaces it): the controller follows it.
   useEffect(() => controller.zap(channelId), [controller, channelId])
@@ -298,16 +357,20 @@ export const LivePlayerPage = ({
       })
   }
 
+  // The title on now as subtitle when the guide knows it (§29.5).
+  const nowTitle = onAir.now?.title
+  const channelName = channel?.name
+  const channelLogo = channel?.logoUrl
   const nowPlaying = useMemo(
     () =>
-      channel === undefined
+      channelName === undefined
         ? undefined
         : {
-            title: channel.name,
-            subtitle: t('player.live.nowPlaying'),
-            ...(channel.logoUrl === undefined ? {} : { artworkUrl: mediaUrl(channel.logoUrl) }),
+            title: channelName,
+            subtitle: nowTitle ?? t('player.live.nowPlaying'),
+            ...(channelLogo === undefined ? {} : { artworkUrl: mediaUrl(channelLogo) }),
           },
-    [channel, t],
+    [channelName, channelLogo, nowTitle, t],
   )
   useMediaSession({
     engine,
@@ -578,6 +641,7 @@ export const LivePlayerPage = ({
           <ChannelList
             channels={channels.data}
             currentId={state.channelId}
+            at={at}
             onPick={(id) => {
               zapTo(id)
               closeList()
@@ -633,10 +697,15 @@ export const LivePlayerPage = ({
             {channel === undefined ? undefined : (
               <ChannelLogo channel={channel} className="live-heading__logo" />
             )}
-            {channel?.number === undefined ? undefined : (
-              <span className="live-heading__number">{channel.number}</span>
-            )}
-            <span className="player__title">{channel?.name ?? ''}</span>
+            <span className="live-heading__text">
+              <span className="live-heading__channel">
+                {channel?.number === undefined ? undefined : (
+                  <span className="live-heading__number">{channel.number}</span>
+                )}
+                <span className="player__title">{channel?.name ?? ''}</span>
+              </span>
+              <LiveGuide onAir={onAir} at={at} />
+            </span>
           </div>
 
           <button

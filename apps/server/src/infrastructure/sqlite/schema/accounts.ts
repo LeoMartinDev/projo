@@ -57,6 +57,8 @@ export const profiles = sqliteTable(
     autoplayNext: integer({ mode: 'boolean' }).notNull().default(true),
     autoSkipIntro: integer({ mode: 'boolean' }).notNull().default(false),
     autoSkipCredits: integer({ mode: 'boolean' }).notNull().default(false),
+    /** Live TV access (§29.6): not a restriction of §14. */
+    liveTv: integer({ mode: 'boolean' }).notNull().default(true),
     createdAt: text().notNull(),
   },
   (t) => [index('profiles_account_id_idx').on(t.accountId)],

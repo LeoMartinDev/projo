@@ -1,3 +1,4 @@
+import type { TvGuideTarget } from './guide.ts'
 import type { TvChannelProbe } from './live.ts'
 
 /** Where a channel's stream is read; never leaves the server (§29.2). */
@@ -108,6 +109,8 @@ export type TvChannelRepository = {
    * channel position, with their groups in the same order.
    */
   listViewable: () => { groups: TvGroup[]; channels: TvChannel[] }
+  /** The enabled, present channels of a source, which its guide fills (§29.3). */
+  guideTargetsOf: (sourceId: string) => TvGuideTarget[]
   /** The channel's cached probe (§29.4). */
   probeOf: (id: string) => TvChannelProbe | undefined
   /** Caches a probe, or drops the cached one without `probe`. */

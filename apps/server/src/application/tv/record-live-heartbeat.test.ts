@@ -40,6 +40,16 @@ describe('recordLiveHeartbeat (§29.4)', () => {
     expect(world.sessions.rows.size).toBe(0)
   })
 
+  test('a profile that lost Live TV access ends its sessions (§29.6)', async () => {
+    const { world, session } = await createWorldWithSession()
+    world.withoutLiveTv.add('leo-profile')
+    expect(world.recordLiveHeartbeat({ sessionId: session.id, accountId: 'leo' })).toMatchObject({
+      ok: false,
+      error: { code: 'tv/channel_not_found' },
+    })
+    expect(world.sessions.rows.size).toBe(0)
+  })
+
   test('a session whose stream failed is told so, then ended', async () => {
     const { world, session } = await createWorldWithSession()
     world.prober.fail('http://provider.test/live/a.ts?token=secret')

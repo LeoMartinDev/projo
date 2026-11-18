@@ -41,6 +41,7 @@ export const toProfileRow = (profile: Profile): ProfileRow => ({
   autoplayNext: profile.autoplayNext,
   autoSkipIntro: profile.autoSkipIntro,
   autoSkipCredits: profile.autoSkipCredits,
+  liveTv: profile.liveTv,
   createdAt: toIso(profile.createdAt),
 })
 

@@ -10,11 +10,13 @@ import type { LiveSession, LiveSessionRepository } from '../../core/tv/live-sess
 import type { TvSourceProvider } from '../../core/tv/provider.ts'
 import { liveRenditionOf } from '../../core/tv/rendition.ts'
 import type { TvSourceRepository } from '../../core/tv/source.ts'
+import type { TvProfileAccess } from '../../core/tv/viewer.ts'
 import type { LiveStreams } from './live-streams.ts'
 
 type Deps = {
   tvChannels: Pick<TvChannelRepository, 'findChannel' | 'probeOf'>
   tvSources: Pick<TvSourceRepository, 'findById'>
+  tvAccess: TvProfileAccess
   provider: Pick<TvSourceProvider, 'upstreamOf'>
   liveSessions: Pick<LiveSessionRepository, 'insert' | 'findById' | 'remove' | 'setRendition'>
   streams: Pick<LiveStreams, 'join' | 'ready' | 'leave' | 'probeOf'>
@@ -44,6 +46,7 @@ export const createLiveSessionFactory =
   ({
     tvChannels,
     tvSources,
+    tvAccess,
     provider,
     liveSessions,
     streams,
@@ -74,7 +77,8 @@ export const createLiveSessionFactory =
       channel === undefined ||
       source === undefined ||
       !channel.enabled ||
-      channel.missingSince !== undefined
+      channel.missingSince !== undefined ||
+      !tvAccess.hasLiveTv(profileId)
     ) {
       return err(
         appError('tv/channel_not_found', 'tv channel not found', { context: { channelId } }),

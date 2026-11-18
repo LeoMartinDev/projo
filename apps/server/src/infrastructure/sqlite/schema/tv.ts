@@ -16,6 +16,8 @@ export const tvSources = sqliteTable('tv_sources', {
   lastRefreshAt: text(),
   lastError: text({ mode: 'json' }).$type<unknown>(),
   failureCount: integer().notNull().default(0),
+  /** Last `refresh_tv_guide` attempt: the hourly task reads guides 6 hours old (§29.3). */
+  guideAttemptAt: text(),
 })
 
 /** A group of a source's channels, matched by name; `name` is empty for the unnamed group. */

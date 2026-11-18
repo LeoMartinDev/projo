@@ -146,3 +146,51 @@ describe('last unrestricted profile of an admin (§14)', () => {
     ).toBe(true)
   })
 })
+
+describe('Live TV access (§29.6)', () => {
+  test('set by an admin on an unrestricted profile only, either way', async () => {
+    const t = setup([sampleProfile(), kid])
+    // Neither the profile itself (restricted or not) nor a user turns it off or on.
+    for (const actor of [{ ...user, activeProfileId: 'kid' }, user]) {
+      expect(
+        await t.updateProfile({ actor, profileId: 'kid', input: { liveTv: false } }),
+      ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
+    }
+    // Sending the value it already has is no change.
+    expect(
+      await t.updateProfile({ actor: user, profileId: 'profile-1', input: { liveTv: true } }),
+    ).toMatchObject({ ok: true, value: { liveTv: true } })
+    // An admin on a restricted profile does not either.
+    expect(
+      await t.updateProfile({
+        actor: { ...admin, activeProfileId: 'kid' },
+        profileId: 'kid',
+        input: { liveTv: false },
+      }),
+    ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
+    expect(t.liveTvRevoked).toEqual([])
+    expect(
+      await t.updateProfile({ actor: admin, profileId: 'kid', input: { liveTv: false } }),
+    ).toMatchObject({ ok: true, value: { liveTv: false } })
+    expect(t.liveTvRevoked).toEqual(['kid'])
+    expect(
+      await t.updateProfile({ actor: user, profileId: 'kid', input: { liveTv: true } }),
+    ).toMatchObject({ ok: false, error: { code: 'profile/admin_only' } })
+    expect(
+      await t.updateProfile({ actor: admin, profileId: 'kid', input: { liveTv: true } }),
+    ).toMatchObject({ ok: true, value: { liveTv: true } })
+    expect(t.liveTvRevoked).toEqual(['kid'])
+  })
+
+  test("off is not a restriction: an admin's own profile keeps its account actions", async () => {
+    const t = setup([sampleProfile({ liveTv: false }), sampleProfile({ id: 'p2', name: 'Bis' })])
+    expect(
+      await t.updateProfile({ actor: admin, profileId: 'p2', input: { liveTv: false } }),
+    ).toMatchObject({ ok: true, value: { liveTv: false } })
+    expect(
+      await t.updateProfile({ actor: admin, profileId: 'p2', input: { liveTv: true } }),
+    ).toMatchObject({ ok: true, value: { liveTv: true } })
+    // Unchanged or already off: nothing to end.
+    expect(t.liveTvRevoked).toEqual(['p2'])
+  })
+})

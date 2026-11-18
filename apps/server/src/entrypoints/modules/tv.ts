@@ -2,13 +2,20 @@ import { z } from 'zod'
 
 import { ok } from '@projo/shared'
 
+import { addTvFavoriteFactory } from '../../application/tv/add-tv-favorite.ts'
 import { authorizeLiveStreamFactory } from '../../application/tv/authorize-live-stream.ts'
 import { createLiveSessionFactory } from '../../application/tv/create-live-session.ts'
 import { endLiveSessionFactory } from '../../application/tv/end-live-session.ts'
+import { endProfileLiveSessionsFactory } from '../../application/tv/end-profile-live-sessions.ts'
 import { getLiveFileFactory } from '../../application/tv/get-live-file.ts'
 import { getLivePlaylistFactory } from '../../application/tv/get-live-playlist.ts'
 import { listLiveSessionsFactory } from '../../application/tv/list-live-sessions.ts'
 import { listTvChannelsFactory } from '../../application/tv/list-tv-channels.ts'
+import { listTvGuideFactory } from '../../application/tv/list-tv-guide.ts'
+import { purgeEndedTvProgrammesFactory } from '../../application/tv/purge-ended-tv-programmes.ts'
+import { queueDueTvGuideRefreshesFactory } from '../../application/tv/queue-due-tv-guide-refreshes.ts'
+import { refreshTvGuideFactory } from '../../application/tv/refresh-tv-guide.ts'
+import { removeTvFavoriteFactory } from '../../application/tv/remove-tv-favorite.ts'
 import { liveStreamsFactory } from '../../application/tv/live-streams.ts'
 import { recordLiveHeartbeatFactory } from '../../application/tv/record-live-heartbeat.ts'
 import { stopLiveSessionAsAdminFactory } from '../../application/tv/stop-live-session-as-admin.ts'
@@ -41,6 +48,9 @@ import {
   createSqliteTvSourceRepository,
 } from '../../infrastructure/sqlite/tv-source-repository.ts'
 import { createSqliteLiveSessionDirectory } from '../../infrastructure/sqlite/live-session-directory.ts'
+import { createSqliteTvFavoriteRepository } from '../../infrastructure/sqlite/tv-favorite-repository.ts'
+import { createSqliteTvGuideRepository } from '../../infrastructure/sqlite/tv-guide-repository.ts'
+import { createSqliteTvProfileAccess } from '../../infrastructure/sqlite/tv-profile-access.ts'
 import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
 import { createLiveRelay } from '../../infrastructure/tv/live-relay.ts'
@@ -76,9 +86,12 @@ export const buildTvModule = (
   platform: Platform,
   {
     transcodeSlots,
+    metadataLanguage,
   }: {
     /** The playback module's slots of `max_concurrent_transcodes`: one per compat stream. */
     transcodeSlots: Pick<TranscodeSlots, 'acquire' | 'release'>
+    /** The metadata module's server language (§9): the guide's texts are picked in it (§29.3). */
+    metadataLanguage: () => string
   },
   { provider, logoDownloader, live = {} }: TvModuleOptions = {},
 ) => {
@@ -89,6 +102,20 @@ export const buildTvModule = (
   const refreshActivity = createSqliteTvRefreshActivity({ db })
   const logoFiles = createTvLogoFiles({ imagesDir: paths.images.dir })
   const sourceProvider = provider ?? createTvSourceProvider({ m3u: createM3uProvider() })
+  const tvAccess = createSqliteTvProfileAccess({ db })
+  const favorites = createSqliteTvFavoriteRepository({ db })
+  const guide = createSqliteTvGuideRepository({ db, ids })
+  const refreshTvGuide = refreshTvGuideFactory({
+    tvSources,
+    tvChannels,
+    guide,
+    provider: sourceProvider,
+    guideLanguage: metadataLanguage,
+    clock,
+    logger: moduleLogger,
+  })
+  const queueDueGuideRefreshes = queueDueTvGuideRefreshesFactory({ tvSources, jobQueue, clock })
+  const purgeEndedProgrammes = purgeEndedTvProgrammesFactory({ guide, clock })
 
   const refreshTvSource = refreshTvSourceFactory({
     tvSources,
@@ -146,16 +173,29 @@ export const buildTvModule = (
     clock,
   })
   const sweepLiveSessions = sweepLiveSessionsFactory({ liveSessions, endLiveSession, clock })
+  const endProfileLiveSessions = endProfileLiveSessionsFactory({
+    liveSessions,
+    endLiveSession,
+    logger: moduleLogger,
+  })
+  // A profile whose Live TV access is turned off loses its live sessions at once (§29.6).
+  const unsubscribeAccess = eventBus.on('profile.live_tv_revoked', ({ profileId }) => {
+    endProfileLiveSessions({ profileId })
+  })
 
   return defineModule({
     exposes: {
       routes: tvRoutes({
-        getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, logoFiles }),
+        getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, tvAccess, logoFiles }),
         open: (path) => Bun.file(path),
-        listTvChannels: listTvChannelsFactory({ tvChannels }),
+        listTvChannels: listTvChannelsFactory({ tvChannels, tvAccess, favorites, guide, clock }),
+        listTvGuide: listTvGuideFactory({ tvAccess, guide, clock }),
+        addTvFavorite: addTvFavoriteFactory({ tvChannels, tvAccess, favorites, clock }),
+        removeTvFavorite: removeTvFavoriteFactory({ tvChannels, tvAccess, favorites }),
         createLiveSession: createLiveSessionFactory({
           tvChannels,
           tvSources,
+          tvAccess,
           provider: sourceProvider,
           liveSessions,
           streams,
@@ -167,6 +207,7 @@ export const buildTvModule = (
         recordLiveHeartbeat: recordLiveHeartbeatFactory({
           liveSessions,
           tvChannels,
+          tvAccess,
           streams,
           endLiveSession,
           clock,
@@ -245,6 +286,14 @@ export const buildTvModule = (
           return result.ok ? ok() : result
         },
       },
+      refresh_tv_guide: {
+        payload: sourcePayload,
+        concurrency: 1,
+        run: async ({ sourceId }, { signal }) => {
+          const result = await refreshTvGuide({ sourceId, signal })
+          return result.ok ? ok() : result
+        },
+      },
     }),
     scheduledTasks: [
       {
@@ -257,6 +306,17 @@ export const buildTvModule = (
         },
       },
       {
+        name: 'tv-guide-refresh',
+        initialDelayMs: 3 * 60_000,
+        intervalMs: hour,
+        run: () => {
+          const purged = purgeEndedProgrammes()
+          const queued = queueDueGuideRefreshes()
+          if (queued > 0 || purged > 0)
+            moduleLogger.info('tv guide refreshes queued', { queued, purged })
+        },
+      },
+      {
         name: 'tv-live-sessions-sweep',
         intervalMs: liveSessionTimings.heartbeatIntervalMs,
         run: () => {
@@ -264,7 +324,10 @@ export const buildTvModule = (
         },
       },
     ],
-    stop: () => streams.stopAll(),
+    stop: () => {
+      unsubscribeAccess()
+      return streams.stopAll()
+    },
   })
 }
 

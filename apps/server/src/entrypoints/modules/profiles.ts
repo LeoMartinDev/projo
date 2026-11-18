@@ -68,6 +68,8 @@ export const buildProfilesModule = (
           checkPin,
           accountRole,
           profileChanged: scopes.invalidate,
+          liveTvRevoked: (profileId) =>
+            platform.eventBus.publish('profile.live_tv_revoked', { profileId }),
           logger,
         }),
         deleteProfile: deleteProfileFactory({

@@ -56,6 +56,7 @@ describe('refreshTvSource', () => {
     expect(world.enqueued.map((job) => [job.type, job.dedupeKey])).toEqual([
       ['refresh_tv_source', `tv_source:${sourceId}`],
       ['fetch_tv_logos', `tv_logos:${sourceId}`],
+      ['refresh_tv_guide', `tv_guide:${sourceId}`],
     ])
   })
 

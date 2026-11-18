@@ -38,6 +38,8 @@ export const profileDtoSchema = z.object({
   libraryAccess: libraryAccessSchema,
   libraryIds: z.array(z.string()),
   maxContentRating: contentRatingTierSchema.optional(),
+  /** Live TV access (§29.6); absent from servers before it: on. */
+  liveTv: z.boolean().optional(),
   createdAt: z.string(),
 })
 export type ProfileDto = z.infer<typeof profileDtoSchema>
@@ -60,6 +62,7 @@ export const createProfileBodySchema = z.object({
   libraryAccess: libraryAccessSchema.optional(),
   libraryIds: z.array(z.string().min(1)).max(500).optional(),
   maxContentRating: contentRatingTierSchema.optional(),
+  liveTv: z.boolean().optional(),
 })
 export type CreateProfileBody = z.infer<typeof createProfileBodySchema>
 
@@ -79,6 +82,7 @@ export const updateProfileBodySchema = z.object({
   libraryAccess: libraryAccessSchema.optional(),
   libraryIds: z.array(z.string().min(1)).max(500).optional(),
   maxContentRating: z.union([contentRatingTierSchema, z.literal('')]).optional(),
+  liveTv: z.boolean().optional(),
 })
 export type UpdateProfileBody = z.infer<typeof updateProfileBodySchema>
 

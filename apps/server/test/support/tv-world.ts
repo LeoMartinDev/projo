@@ -1,14 +1,21 @@
 import { appError, err, ok, type Result } from '@projo/shared'
 
+import { addTvFavoriteFactory } from '../../src/application/tv/add-tv-favorite.ts'
 import { createTvSourceFactory } from '../../src/application/tv/create-tv-source.ts'
 import { deleteTvSourceFactory } from '../../src/application/tv/delete-tv-source.ts'
 import { fetchTvLogosFactory } from '../../src/application/tv/fetch-tv-logos.ts'
 import { getTvChannelLogoFactory } from '../../src/application/tv/get-tv-channel-logo.ts'
 import { getTvSourceFactory } from '../../src/application/tv/get-tv-source.ts'
+import { listTvChannelsFactory } from '../../src/application/tv/list-tv-channels.ts'
+import { listTvGuideFactory } from '../../src/application/tv/list-tv-guide.ts'
 import { listTvSourceChannelsFactory } from '../../src/application/tv/list-tv-source-channels.ts'
 import { listTvSourcesFactory } from '../../src/application/tv/list-tv-sources.ts'
+import { purgeEndedTvProgrammesFactory } from '../../src/application/tv/purge-ended-tv-programmes.ts'
+import { queueDueTvGuideRefreshesFactory } from '../../src/application/tv/queue-due-tv-guide-refreshes.ts'
 import { queueDueTvSourceRefreshesFactory } from '../../src/application/tv/queue-due-tv-source-refreshes.ts'
+import { refreshTvGuideFactory } from '../../src/application/tv/refresh-tv-guide.ts'
 import { refreshTvSourceFactory } from '../../src/application/tv/refresh-tv-source.ts'
+import { removeTvFavoriteFactory } from '../../src/application/tv/remove-tv-favorite.ts'
 import { requestTvSourceRefreshFactory } from '../../src/application/tv/request-tv-source-refresh.ts'
 import { setTvChannelEnabledFactory } from '../../src/application/tv/set-tv-channel-enabled.ts'
 import { setTvGroupEnabledFactory } from '../../src/application/tv/set-tv-group-enabled.ts'
@@ -19,6 +26,15 @@ import {
   type TvChannelRepository,
   type TvGroup,
 } from '../../src/core/tv/channel.ts'
+import {
+  nowAndNextOf,
+  type TvGuideChannel,
+  type TvGuideError,
+  type TvGuideProgramme,
+  type TvGuideRepository,
+  type TvNowNext,
+  type TvProgramme,
+} from '../../src/core/tv/guide.ts'
 import type { TvChannelProbe } from '../../src/core/tv/live.ts'
 import type { TvLogo, TvLogoDownloader, TvLogoFiles } from '../../src/core/tv/logo.ts'
 import type {
@@ -27,6 +43,7 @@ import type {
   TvSourceProvider,
 } from '../../src/core/tv/provider.ts'
 import type { TvSource, TvSourceRepository } from '../../src/core/tv/source.ts'
+import type { TvFavoriteRepository } from '../../src/core/tv/viewer.ts'
 import { createManualClock } from './clock.ts'
 import { createRecordingJobQueue, createSequentialIds } from './fakes.ts'
 import { silentLogger } from './logger.ts'
@@ -40,7 +57,8 @@ export const inMemoryTvSources = () => {
     findById: (id) => rows.get(id),
     save: (source) => {
       const stored = rows.get(source.id)
-      const { lastAttemptAt, lastRefreshAt, lastError, discoveredGuideUrl } = stored ?? source
+      const { lastAttemptAt, lastRefreshAt, lastError, discoveredGuideUrl, guideAttemptAt } =
+        stored ?? source
       rows.set(source.id, {
         ...source,
         failureCount: stored?.failureCount ?? source.failureCount,
@@ -48,6 +66,7 @@ export const inMemoryTvSources = () => {
         ...(lastRefreshAt === undefined ? {} : { lastRefreshAt }),
         ...(lastError === undefined ? {} : { lastError }),
         ...(discoveredGuideUrl === undefined ? {} : { discoveredGuideUrl }),
+        ...(guideAttemptAt === undefined ? {} : { guideAttemptAt }),
       })
     },
     delete: (id) => {
@@ -71,6 +90,10 @@ export const inMemoryTvSources = () => {
       const failureCount = source.failureCount + 1
       rows.set(id, { ...source, lastAttemptAt: at, lastError: error, failureCount })
       return failureCount
+    },
+    recordGuideAttempt: ({ id, at }) => {
+      const source = rows.get(id)
+      if (source !== undefined) rows.set(id, { ...source, guideAttemptAt: at })
     },
   }
   return { repository, rows }
@@ -226,6 +249,14 @@ export const inMemoryTvChannels = () => {
       }
       return { groups: [...seen.values()], channels: listed }
     },
+    guideTargetsOf: (sourceId) =>
+      [...channels.values()]
+        .filter((c) => c.sourceId === sourceId && c.enabled && present(c))
+        .map(({ id, name, guideKey }) => ({
+          id,
+          name,
+          ...(guideKey === undefined ? {} : { guideKey }),
+        })),
     probeOf: (id) => probes.get(id),
     recordProbe: ({ id, probe }) => {
       if (probe === undefined) probes.delete(id)
@@ -235,20 +266,93 @@ export const inMemoryTvChannels = () => {
   return { repository, groups, channels, probes }
 }
 
-/** A provider answering what the test scripts: a listing or a failure. */
+/** The guide's programmes in memory, like `createSqliteTvGuideRepository`. */
+export const inMemoryTvGuide = (channels: ReturnType<typeof inMemoryTvChannels>['channels']) => {
+  let programmes: TvProgramme[] = []
+  const repository: TvGuideRepository = {
+    replaceForSource: ({ sourceId, programmes: replacement, now }) => {
+      const own = new Set(
+        [...channels.values()].filter((c) => c.sourceId === sourceId).map((c) => c.id),
+      )
+      programmes = [
+        ...programmes.filter((p) => !own.has(p.channelId)),
+        ...replacement.filter((p) => own.has(p.channelId)),
+      ].filter((p) => p.endAt.getTime() > now.getTime())
+    },
+    deleteEnded: (now) => {
+      const before = programmes.length
+      programmes = programmes.filter((p) => p.endAt.getTime() > now.getTime())
+      return before - programmes.length
+    },
+    nowAndNext: (at) => {
+      const guide = new Map<string, TvNowNext>()
+      for (const channel of channels.values()) {
+        if (!channel.enabled || channel.missingSince !== undefined) continue
+        const own = programmes
+          .filter((p) => p.channelId === channel.id && p.endAt.getTime() > at.getTime())
+          .sort((a, b) => a.startAt.getTime() - b.startAt.getTime())
+          .slice(0, 2)
+        const entry = nowAndNextOf(own, at)
+        if (entry.now !== undefined || entry.next !== undefined) guide.set(channel.id, entry)
+      }
+      return guide
+    },
+  }
+  return { repository, programmes: () => programmes }
+}
+
+/** Favourites in memory, like `createSqliteTvFavoriteRepository`. */
+export const inMemoryTvFavorites = () => {
+  const rows: { profileId: string; channelId: string }[] = []
+  const repository: TvFavoriteRepository = {
+    listOf: (profileId) => rows.filter((r) => r.profileId === profileId).map((r) => r.channelId),
+    add: ({ profileId, channelId }) => {
+      if (!rows.some((r) => r.profileId === profileId && r.channelId === channelId))
+        rows.push({ profileId, channelId })
+    },
+    remove: ({ profileId, channelId }) => {
+      const index = rows.findIndex((r) => r.profileId === profileId && r.channelId === channelId)
+      if (index !== -1) rows.splice(index, 1)
+    },
+  }
+  return { repository, rows }
+}
+
+/** What a scripted guide hands its sink: XMLTV channels, then programmes. */
+export type ScriptedGuide = { channels?: TvGuideChannel[]; programmes: TvGuideProgramme[] }
+
+/** A provider answering what the test scripts: a listing or a failure, a guide or a failure. */
 export const scriptedTvProvider = () => {
   let answer: Result<TvChannelListing, TvProviderError> = ok({ channels: [] })
+  let guide: Result<ScriptedGuide | undefined, TvGuideError> = ok(undefined)
   const calls: string[] = []
+  const guideReads: string[] = []
   const provider: TvSourceProvider = {
     listChannels: async ({ settings }) => {
       calls.push(settings.playlistUrl)
       return answer
+    },
+    readGuide: async ({ source, sink }) => {
+      guideReads.push(source.settings.guideUrl ?? source.discoveredGuideUrl ?? '')
+      if (!guide.ok) return guide
+      if (guide.value === undefined) return ok({ available: false })
+      for (const channel of guide.value.channels ?? []) sink.channel(channel)
+      for (const programme of guide.value.programmes) sink.programme(programme)
+      return ok({ available: true })
     },
     upstreamOf: ({ upstream }) => upstream,
   }
   return {
     provider,
     calls,
+    guideReads,
+    /** The guide the next reads hand out; `undefined`: the source has none. */
+    guide: (value: ScriptedGuide | undefined) => {
+      guide = ok(value)
+    },
+    failGuide: (code: TvGuideError['code'] = 'tv/guide_unreachable') => {
+      guide = err(appError(code, 'scripted guide failure'))
+    },
     answer: (listing: TvChannelListing) => {
       answer = ok(listing)
     },
@@ -309,6 +413,12 @@ export const createTvWorld = () => {
   const tvChannels = channels.repository
   const refreshActivity = { refreshingSourceIds: () => refreshing }
   const logger = silentLogger
+  const guide = inMemoryTvGuide(channels.channels)
+  const favorites = inMemoryTvFavorites()
+  // Profiles whose Live TV access is off (§29.6).
+  const withoutLiveTv = new Set<string>()
+  const tvAccess = { hasLiveTv: (profileId: string) => !withoutLiveTv.has(profileId) }
+  let guideLanguage = 'fr-FR'
 
   return {
     clock,
@@ -319,6 +429,12 @@ export const createTvWorld = () => {
     notifications,
     enqueued,
     refreshing,
+    guide,
+    favorites,
+    withoutLiveTv,
+    setGuideLanguage: (language: string) => {
+      guideLanguage = language
+    },
     createTvSource: createTvSourceFactory({ tvSources, jobQueue, ids, clock, logger }),
     updateTvSource: updateTvSourceFactory({
       tvSources,
@@ -359,7 +475,41 @@ export const createTvWorld = () => {
       clock,
       logger,
     }),
-    getTvChannelLogo: getTvChannelLogoFactory({ tvChannels, logoFiles: logos.logoFiles }),
+    getTvChannelLogo: getTvChannelLogoFactory({
+      tvChannels,
+      tvAccess,
+      logoFiles: logos.logoFiles,
+    }),
+    refreshTvGuide: refreshTvGuideFactory({
+      tvSources,
+      tvChannels,
+      guide: guide.repository,
+      provider: provider.provider,
+      guideLanguage: () => guideLanguage,
+      clock,
+      logger,
+    }),
+    queueDueTvGuideRefreshes: queueDueTvGuideRefreshesFactory({ tvSources, jobQueue, clock }),
+    purgeEndedTvProgrammes: purgeEndedTvProgrammesFactory({ guide: guide.repository, clock }),
+    listTvChannels: listTvChannelsFactory({
+      tvChannels,
+      tvAccess,
+      favorites: favorites.repository,
+      guide: guide.repository,
+      clock,
+    }),
+    listTvGuide: listTvGuideFactory({ tvAccess, guide: guide.repository, clock }),
+    addTvFavorite: addTvFavoriteFactory({
+      tvChannels,
+      tvAccess,
+      favorites: favorites.repository,
+      clock,
+    }),
+    removeTvFavorite: removeTvFavoriteFactory({
+      tvChannels,
+      tvAccess,
+      favorites: favorites.repository,
+    }),
   }
 }
 

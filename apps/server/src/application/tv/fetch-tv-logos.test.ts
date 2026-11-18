@@ -49,7 +49,9 @@ test('downloads the logos of enabled channels only, with the channel or source U
   ])
   expect(channel('A').logoPath).toBe(`tv/${channel('A').id}.png`)
   expect(world.logos.files.has(`tv/${channel('A').id}.png`)).toBe(true)
-  expect(world.getTvChannelLogo({ channelId: channel('A').id, admin: false })).toMatchObject({
+  expect(
+    world.getTvChannelLogo({ channelId: channel('A').id, profileId: 'p', admin: false }),
+  ).toMatchObject({
     ok: true,
     value: { contentType: 'image/png' },
   })
@@ -84,7 +86,9 @@ test('a changed logo URL that fails keeps the previous logo, tried again a day l
   expect(await fetchLogos()).toEqual({ fetched: 0, failed: 1, dropped: 0 })
   expect(world.logos.downloads.map((d) => d.url)).toEqual(['http://l/a2.png'])
   expect(channel('A').logoPath).toBe(before)
-  expect(world.getTvChannelLogo({ channelId: channel('A').id, admin: false }).ok).toBe(true)
+  expect(
+    world.getTvChannelLogo({ channelId: channel('A').id, profileId: 'p', admin: false }).ok,
+  ).toBe(true)
 
   world.logos.downloads.length = 0
   world.clock.advance(23 * hour)

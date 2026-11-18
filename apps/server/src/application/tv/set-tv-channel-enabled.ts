@@ -2,7 +2,7 @@ import { type AppError, appError, err, ok, type Result } from '@projo/shared'
 
 import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { TvChannel, TvChannelRepository } from '../../core/tv/channel.ts'
-import { queueTvLogos } from './shared/tv-jobs.ts'
+import { queueTvGuide, queueTvLogos } from './shared/tv-jobs.ts'
 
 type Deps = {
   tvChannels: Pick<TvChannelRepository, 'findChannel' | 'setChannelEnabled'>
@@ -25,7 +25,10 @@ export const setTvChannelEnabledFactory =
     if (channel === undefined || channel.missingSince !== undefined)
       return err(appError('tv/channel_not_found', 'tv channel not found', { context: { id } }))
     tvChannels.setChannelEnabled({ id, enabled })
-    if (enabled) queueTvLogos(jobQueue, channel.sourceId)
+    if (enabled) {
+      queueTvLogos(jobQueue, channel.sourceId)
+      queueTvGuide(jobQueue, channel.sourceId)
+    }
     return ok({ ...channel, enabled })
   }
 

@@ -3,6 +3,7 @@ import { appError, type AppError, err, ok, type Result } from '@projo/shared'
 import type { Clock } from '../../core/clock.ts'
 import type { TvChannelRepository } from '../../core/tv/channel.ts'
 import { isLiveSessionExpired, type LiveSessionRepository } from '../../core/tv/live-session.ts'
+import type { TvProfileAccess } from '../../core/tv/viewer.ts'
 import type { EndLiveSession } from './end-live-session.ts'
 import type { LiveStreams } from './live-streams.ts'
 import { liveSessionNotFound } from './shared/live-session-errors.ts'
@@ -12,19 +13,21 @@ export type RecordLiveHeartbeatError = AppError<
 >
 
 /**
- * Keeps a live session open (§29.4); a session whose stream failed, or whose channel was disabled
- * or is gone, is ended and told so.
+ * Keeps a live session open (§29.4); a session whose stream failed, whose channel was disabled
+ * or is gone, or whose profile lost Live TV access (§29.6), is ended and told so.
  */
 export const recordLiveHeartbeatFactory =
   ({
     liveSessions,
     tvChannels,
+    tvAccess,
     streams,
     endLiveSession,
     clock,
   }: {
     liveSessions: Pick<LiveSessionRepository, 'findById' | 'heartbeat'>
     tvChannels: Pick<TvChannelRepository, 'findChannel'>
+    tvAccess: TvProfileAccess
     streams: Pick<LiveStreams, 'isAvailable'>
     endLiveSession: EndLiveSession
     clock: Clock
@@ -46,7 +49,12 @@ export const recordLiveHeartbeatFactory =
       return liveSessionNotFound(sessionId)
     }
     const channel = tvChannels.findChannel(session.channelId)
-    if (channel === undefined || !channel.enabled || channel.missingSince !== undefined) {
+    if (
+      channel === undefined ||
+      !channel.enabled ||
+      channel.missingSince !== undefined ||
+      !tvAccess.hasLiveTv(session.profileId)
+    ) {
       endLiveSession({ session, reason: 'ended' })
       return err(
         appError('tv/channel_not_found', 'the channel is no longer offered', {

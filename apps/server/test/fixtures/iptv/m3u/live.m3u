@@ -1,4 +1,4 @@
-#EXTM3U
+#EXTM3U url-tvg="{{base}}/xmltv/live.xml"
 #EXTINF:-1 tvg-id="live.one" tvg-chno="1" group-title="Live",Live One
 {{base}}/live/progressive.ts?token=secret
 #EXTINF:-1 tvg-id="live.mp2" tvg-chno="2" group-title="Live",Live MP2

@@ -10,7 +10,7 @@ import type { TvLogoFiles } from '../../core/tv/logo.ts'
 import type { TvProviderError, TvSourceProvider } from '../../core/tv/provider.ts'
 import { planTvRefresh } from '../../core/tv/refresh-plan.ts'
 import { TV_SOURCE_FAILURES_BEFORE_NOTICE, type TvSourceRepository } from '../../core/tv/source.ts'
-import { queueTvLogos } from './shared/tv-jobs.ts'
+import { queueTvGuide, queueTvLogos } from './shared/tv-jobs.ts'
 
 type Deps = {
   tvSources: Pick<TvSourceRepository, 'findById' | 'recordSuccess' | 'recordFailure'>
@@ -115,6 +115,7 @@ export const refreshTvSourceFactory =
     )
     await Promise.all(logos.map((path) => logoFiles.remove(path)))
     queueTvLogos(jobQueue, sourceId)
+    queueTvGuide(jobQueue, sourceId)
 
     const summary: TvRefreshSummary = {
       listed: listing.value.channels.length,

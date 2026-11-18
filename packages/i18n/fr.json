@@ -318,7 +318,10 @@
   },
   "tv": {
     "empty": "Aucune chaîne",
-    "otherChannels": "Autres chaînes"
+    "otherChannels": "Autres chaînes",
+    "favorites": "Favoris",
+    "addFavorite": "Ajouter aux favoris",
+    "removeFavorite": "Retirer des favoris"
   },
   "category": {
     "empty": "Aucun titre dans cette catégorie"
@@ -391,7 +394,10 @@
         "16": "16 ans et plus",
         "18": "18 ans et plus"
       },
-      "noProfile": "Aucun profil actif"
+      "noProfile": "Aucun profil actif",
+      "liveTv": "TV en direct",
+      "liveTvOn": "Autorisée",
+      "liveTvOff": "Non autorisée"
     }
   },
   "account": {
@@ -840,7 +846,8 @@
         "currentPin": "Code PIN actuel",
         "delete": "Supprimer le profil",
         "deleteTitle": "Supprimer le profil « {{name}} » ?",
-        "deleteText": "Sa progression et sa liste sont perdues."
+        "deleteText": "Sa progression et sa liste sont perdues.",
+        "liveTv": "TV en direct"
       },
       "account": {
         "disable": "Désactiver le compte",
@@ -1264,7 +1271,8 @@
         "purge_missing": "Purge des manquants",
         "image_variants": "Optimisation des images",
         "refresh_tv_source": "Actualisation d’une source TV",
-        "fetch_tv_logos": "Logos des chaînes"
+        "fetch_tv_logos": "Logos des chaînes",
+        "refresh_tv_guide": "Guide des programmes TV"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Prévu {{date}}",
@@ -1688,6 +1696,8 @@
     "update/install_failed": "L’installation de la mise à jour a échoué.",
     "update/not_found": "Cette version n’est pas disponible.",
     "update/already_current": "Cette version est déjà celle en service.",
-    "update/in_progress": "Une mise à jour est déjà en cours."
+    "update/in_progress": "Une mise à jour est déjà en cours.",
+    "tv/guide_unreachable": "Le guide des programmes ne répond pas.",
+    "tv/guide_invalid": "Le guide des programmes est illisible."
   }
 }

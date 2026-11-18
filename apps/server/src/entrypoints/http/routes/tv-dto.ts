@@ -5,6 +5,8 @@ import type {
   AdminTvSourceDetailDto,
   AdminTvSourceDto,
   TvChannelsResponse,
+  TvGuideResponse,
+  TvProgrammeDto,
   TvSessionDto,
   TvSourceSettingsDto,
 } from '@projo/shared/api/tv'
@@ -16,6 +18,7 @@ import type {
 import type { CreatedLiveSession } from '../../../application/tv/create-live-session.ts'
 import type { TvChannelsView } from '../../../application/tv/list-tv-channels.ts'
 import type { TvChannel, TvGroupSummary } from '../../../core/tv/channel.ts'
+import type { TvNowNext, TvProgramme } from '../../../core/tv/guide.ts'
 import type { ActiveLiveSessionView } from '../../../core/tv/live-session.ts'
 import type { TvSourceSettings } from '../../../core/tv/source.ts'
 
@@ -76,17 +79,42 @@ export const toAdminTvChannelDto = (channel: TvChannel): AdminTvChannelDto => ({
 
 const apiPrefix = '/api/v1'
 
-/** The channels a viewer sees (§29.7); guide and favourite fields come with the guide slice. */
-export const toTvChannelsResponse = (view: TvChannelsView): TvChannelsResponse => ({
-  groups: view.groups.map((group) => ({ id: group.id, name: group.name })),
-  items: view.channels.map((channel) => ({
-    id: channel.id,
-    name: channel.name,
-    ...(channel.number === undefined ? {} : { number: channel.number }),
-    groupId: channel.groupId,
-    ...(channel.logoPath === undefined
-      ? {}
-      : { logoUrl: `${apiPrefix}/tv/channels/${encodeURIComponent(channel.id)}/logo` }),
+const toTvProgrammeDto = (programme: TvProgramme): TvProgrammeDto => ({
+  title: programme.title,
+  startAt: programme.startAt.toISOString(),
+  endAt: programme.endAt.toISOString(),
+})
+
+const nowNextFields = (entry: TvNowNext | undefined) => ({
+  ...(entry?.now === undefined ? {} : { now: toTvProgrammeDto(entry.now) }),
+  ...(entry?.next === undefined ? {} : { next: toTvProgrammeDto(entry.next) }),
+})
+
+/** The channels a viewer sees (§29.7), with favourites and the guide's now and next. */
+export const toTvChannelsResponse = (view: TvChannelsView): TvChannelsResponse => {
+  const favorites = new Set(view.favorites)
+  return {
+    groups: view.groups.map((group) => ({ id: group.id, name: group.name })),
+    items: view.channels.map((channel) => ({
+      id: channel.id,
+      name: channel.name,
+      ...(channel.number === undefined ? {} : { number: channel.number }),
+      groupId: channel.groupId,
+      ...(channel.logoPath === undefined
+        ? {}
+        : { logoUrl: `${apiPrefix}/tv/channels/${encodeURIComponent(channel.id)}/logo` }),
+      favorite: favorites.has(channel.id),
+      ...nowNextFields(view.guide.get(channel.id)),
+    })),
+    favorites: view.favorites,
+  }
+}
+
+/** Now and next of the listed channels (§29.7). */
+export const toTvGuideResponse = (guide: ReadonlyMap<string, TvNowNext>): TvGuideResponse => ({
+  items: [...guide.entries()].map(([channelId, entry]) => ({
+    channelId,
+    ...nowNextFields(entry),
   })),
 })
 

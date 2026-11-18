@@ -4,12 +4,15 @@ import { fromPromise } from '@projo/shared'
 import { createTvSessionBodySchema } from '@projo/shared/api/tv'
 
 import type { LiveStreamAccess } from '../../../application/tv/authorize-live-stream.ts'
+import type { AddTvFavorite } from '../../../application/tv/add-tv-favorite.ts'
 import type { CreateLiveSession } from '../../../application/tv/create-live-session.ts'
 import type { GetLiveFile } from '../../../application/tv/get-live-file.ts'
 import type { GetLivePlaylist } from '../../../application/tv/get-live-playlist.ts'
 import type { GetTvChannelLogo } from '../../../application/tv/get-tv-channel-logo.ts'
 import type { ListTvChannels } from '../../../application/tv/list-tv-channels.ts'
+import type { ListTvGuide } from '../../../application/tv/list-tv-guide.ts'
 import type { RecordLiveHeartbeat } from '../../../application/tv/record-live-heartbeat.ts'
+import type { RemoveTvFavorite } from '../../../application/tv/remove-tv-favorite.ts'
 import type { StopLiveSession } from '../../../application/tv/stop-live-session.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -17,7 +20,7 @@ import { currentPrincipal, currentProfileId } from '../principal.ts'
 import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
 import type { ImageFileOpener } from './images.ts'
-import { toTvChannelsResponse, toTvSessionDto } from './tv-dto.ts'
+import { toTvChannelsResponse, toTvGuideResponse, toTvSessionDto } from './tv-dto.ts'
 
 const liveAccess = (c: Context<AppEnv>): LiveStreamAccess => ({
   sessionId: c.req.param('sessionId') ?? '',
@@ -33,6 +36,9 @@ export const tvRoutes = ({
   getTvChannelLogo,
   open,
   listTvChannels,
+  listTvGuide,
+  addTvFavorite,
+  removeTvFavorite,
   createLiveSession,
   recordLiveHeartbeat,
   stopLiveSession,
@@ -42,6 +48,9 @@ export const tvRoutes = ({
   getTvChannelLogo: GetTvChannelLogo
   open: ImageFileOpener
   listTvChannels: ListTvChannels
+  listTvGuide: ListTvGuide
+  addTvFavorite: AddTvFavorite
+  removeTvFavorite: RemoveTvFavorite
   createLiveSession: CreateLiveSession
   recordLiveHeartbeat: RecordLiveHeartbeat
   stopLiveSession: StopLiveSession
@@ -52,7 +61,24 @@ export const tvRoutes = ({
     .get('/tv/channels', (c) => {
       const profileId = currentProfileId(c)
       if (!profileId.ok) return respondError(c, profileId.error)
-      return c.json(toTvChannelsResponse(listTvChannels()), 200)
+      return c.json(toTvChannelsResponse(listTvChannels({ profileId: profileId.value })), 200)
+    })
+    .get('/tv/guide', (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      return c.json(toTvGuideResponse(listTvGuide({ profileId: profileId.value })), 200)
+    })
+    .put('/tv/channels/:id/favorite', (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const added = addTvFavorite({ profileId: profileId.value, channelId: c.req.param('id') })
+      return added.ok ? noContent(c) : respondError(c, added.error)
+    })
+    .delete('/tv/channels/:id/favorite', (c) => {
+      const profileId = currentProfileId(c)
+      if (!profileId.ok) return respondError(c, profileId.error)
+      const removed = removeTvFavorite({ profileId: profileId.value, channelId: c.req.param('id') })
+      return removed.ok ? noContent(c) : respondError(c, removed.error)
     })
     .get('/tv/channels/:id/logo', async (c) => {
       const profileId = currentProfileId(c)
@@ -60,6 +86,7 @@ export const tvRoutes = ({
       const id = c.req.param('id')
       const found = getTvChannelLogo({
         channelId: id,
+        profileId: profileId.value,
         admin: currentPrincipal(c).account.role === 'admin',
       })
       if (!found.ok) return respondError(c, found.error)

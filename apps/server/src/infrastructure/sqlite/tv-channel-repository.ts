@@ -401,6 +401,18 @@ export const createSqliteTvChannelRepository = ({ db }: { db: Db }): TvChannelRe
       }
     },
 
+    guideTargetsOf: (sourceId) =>
+      db
+        .select({ id: tvChannels.id, name: tvChannels.name, guideKey: tvChannels.guideKey })
+        .from(tvChannels)
+        .where(and(eq(tvChannels.sourceId, sourceId), eq(tvChannels.enabled, true), present))
+        .all()
+        .map(({ id, name, guideKey }) => ({
+          id,
+          name,
+          ...(guideKey === null ? {} : { guideKey }),
+        })),
+
     probeOf: (id) => {
       const row = db
         .select({ probe: tvChannels.probe })

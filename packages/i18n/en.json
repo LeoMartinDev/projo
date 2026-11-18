@@ -318,7 +318,10 @@
   },
   "tv": {
     "empty": "No channels",
-    "otherChannels": "Other channels"
+    "otherChannels": "Other channels",
+    "favorites": "Favorites",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites"
   },
   "category": {
     "empty": "Nothing in this category"
@@ -391,7 +394,10 @@
         "16": "16 and over",
         "18": "18 and over"
       },
-      "noProfile": "No active profile"
+      "noProfile": "No active profile",
+      "liveTv": "Live TV",
+      "liveTvOn": "Allowed",
+      "liveTvOff": "Not allowed"
     }
   },
   "account": {
@@ -840,7 +846,8 @@
         "currentPin": "Current PIN",
         "delete": "Delete profile",
         "deleteTitle": "Delete the profile “{{name}}”?",
-        "deleteText": "Its progress and list are lost."
+        "deleteText": "Its progress and list are lost.",
+        "liveTv": "Live TV"
       },
       "account": {
         "disable": "Disable the account",
@@ -1264,7 +1271,8 @@
         "purge_missing": "Missing files purge",
         "image_variants": "Image optimization",
         "refresh_tv_source": "TV source refresh",
-        "fetch_tv_logos": "Channel logos"
+        "fetch_tv_logos": "Channel logos",
+        "refresh_tv_guide": "TV guide"
       },
       "attemptsOf": "{{attempts}} / {{max}}",
       "due": "Due {{date}}",
@@ -1688,6 +1696,8 @@
     "update/install_failed": "Installing the update failed.",
     "update/not_found": "This version is not available.",
     "update/already_current": "This version is the one running.",
-    "update/in_progress": "An update is already in progress."
+    "update/in_progress": "An update is already in progress.",
+    "tv/guide_unreachable": "The TV guide does not answer.",
+    "tv/guide_invalid": "The TV guide cannot be read."
   }
 }

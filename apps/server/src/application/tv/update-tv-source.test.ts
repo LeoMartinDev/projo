@@ -25,12 +25,17 @@ test('renames and changes the limit without a refresh', () => {
   expect(world.enqueued).toEqual([])
 })
 
-test('a new User-Agent or playlist URL queues a refresh, the guide URL alone does not', () => {
+test('a new User-Agent or playlist URL queues a refresh, the guide URL alone the guide', () => {
   world.updateTvSource({ id, settings: { kind: 'm3u', guideUrl: '' } })
   expect(world.sources.rows.get(id)?.settings).toEqual({
     kind: 'm3u',
     playlistUrl: 'http://p/get.php?password=secret',
   })
+  expect(world.enqueued.map((job) => [job.type, job.dedupeKey])).toEqual([
+    ['refresh_tv_guide', `tv_guide:${id}`],
+  ])
+  world.enqueued.length = 0
+  world.updateTvSource({ id, settings: { kind: 'm3u', guideUrl: '' } })
   expect(world.enqueued).toEqual([])
 
   const result = world.updateTvSource({ id, settings: { kind: 'm3u', userAgent: 'Box/1' } })

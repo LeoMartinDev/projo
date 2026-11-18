@@ -4,7 +4,7 @@ import type { JobQueue } from '../../core/jobs/ports.ts'
 import type { Logger } from '../../core/logger.ts'
 import type { TvChannelRepository, TvGroupSummary } from '../../core/tv/channel.ts'
 import type { TvSourceRepository } from '../../core/tv/source.ts'
-import { queueTvLogos } from './shared/tv-jobs.ts'
+import { queueTvGuide, queueTvLogos } from './shared/tv-jobs.ts'
 
 type Deps = {
   tvSources: Pick<TvSourceRepository, 'findById'>
@@ -37,7 +37,10 @@ export const setTvGroupEnabledFactory =
     if (tvChannels.findGroup(groupId)?.sourceId !== sourceId)
       return err(appError('tv/group_not_found', 'tv group not found', { context: { id: groupId } }))
     tvChannels.setGroupEnabled({ id: groupId, enabled })
-    if (enabled) queueTvLogos(jobQueue, sourceId)
+    if (enabled) {
+      queueTvLogos(jobQueue, sourceId)
+      queueTvGuide(jobQueue, sourceId)
+    }
     logger.info('tv group switched', { tvSourceId: sourceId, tvGroupId: groupId, enabled })
     const updated = tvChannels.findGroup(groupId)
     if (updated === undefined) throw new Error(`tv group vanished: ${groupId}`)
