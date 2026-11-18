@@ -7,7 +7,10 @@ import type { LiveSessionNotFound } from './shared/live-session-errors.ts'
 
 export type GetLivePlaylistError = LiveSessionNotFound | LiveStreamError
 
-/** The live playlist under a session's capability URL; a failed stream ends the session. */
+/**
+ * The live playlist of the session's rendition under its capability URL; a failed stream ends
+ * the session.
+ */
 export const getLivePlaylistFactory =
   ({
     authorize,
@@ -21,8 +24,9 @@ export const getLivePlaylistFactory =
   (access: LiveStreamAccess): Result<string, GetLivePlaylistError> => {
     const session = authorize(access)
     if (!session.ok) return session
-    const playlist = streams.playlist(session.value.channelId)
-    if (!playlist.ok && !streams.isAvailable(session.value.channelId)) {
+    const { channelId, rendition } = session.value
+    const playlist = streams.playlist({ channelId, rendition })
+    if (!playlist.ok && !streams.isAvailable({ channelId, rendition })) {
       endLiveSession({ session: session.value, reason: 'ended' })
     }
     return playlist

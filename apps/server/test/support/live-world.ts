@@ -1,4 +1,5 @@
 import { appError, err, ok, type Result } from '@projo/shared'
+import type { TvRendition } from '@projo/shared/api/tv'
 
 import { authorizeLiveStreamFactory } from '../../src/application/tv/authorize-live-stream.ts'
 import { createLiveSessionFactory } from '../../src/application/tv/create-live-session.ts'
@@ -13,17 +14,24 @@ import { stopLiveSessionFactory } from '../../src/application/tv/stop-live-sessi
 import { sweepLiveSessionsFactory } from '../../src/application/tv/sweep-live-sessions.ts'
 import type { TvChannel } from '../../src/core/tv/channel.ts'
 import type {
+  LiveCompatSpec,
   LiveProbeError,
   LiveProber,
   LiveRelay,
   LiveRunExit,
   LiveRunSpec,
   LiveSegmentFile,
+  LiveStreamKey,
   LiveTimers,
   TvChannelProbe,
 } from '../../src/core/tv/live.ts'
 import type { LiveSession, LiveSessionRepository } from '../../src/core/tv/live-session.ts'
 import type { TvSource } from '../../src/core/tv/source.ts'
+import { transcodeSlotsFactory } from '../../src/application/playback/transcode-slots.ts'
+import type { Clock } from '../../src/core/clock.ts'
+import type { Logger } from '../../src/core/logger.ts'
+import type { TranscodeSlots } from '../../src/core/playback/transcode-slots.ts'
+import { defaultPlaybackSettings } from '../../src/core/settings/settings.ts'
 import { createManualClock } from './clock.ts'
 import { createRecordingEventBus, createSequentialIds } from './fakes.ts'
 import { createCapturingLogger } from './logger.ts'
@@ -77,8 +85,9 @@ export const sampleProbe = (overrides: Partial<TvChannelProbe> = {}): TvChannelP
   ...overrides,
 })
 
-type ScriptedRun = {
-  spec: LiveRunSpec
+type ScriptedRunState = {
+  /** Its run number in its stream. */
+  number: number
   segments: LiveSegmentFile[]
   /** Its stop was asked. */
   stopped: boolean
@@ -88,91 +97,140 @@ type ScriptedRun = {
   exit: (exitCode?: number) => void
 }
 
+type ScriptedRun = ScriptedRunState & { spec: LiveRunSpec }
+
+type ScriptedCompatRun = ScriptedRunState & {
+  spec: LiveCompatSpec
+  /** The copy segments fed to it, in order (its init is implied by `spec.copyRun`). */
+  fed: string[]
+  /** Segments fed that ffmpeg has not taken yet (set by the test; 0 by default). */
+  backlog: number
+}
+
+/** `a` for channel a's copy stream, `a/compat` for its compat stream. */
+const streamNameOf = ({ channelId, rendition }: LiveStreamKey): string =>
+  rendition === 'copy' ? channelId : `${channelId}/compat`
+
 /**
  * ffmpeg runs the test drives: it writes their segments and ends them. `holdStops()` makes a
  * stop wait until the test ends the run (`exit()`): a process slow to die. `journal` lists the
- * starts, exits and folder removals in order.
+ * starts, exits and folder removals in order. Copy runs are named by their channel (`a:1`),
+ * compat runs by their stream (`a/compat:1`).
  */
 export const scriptedLiveRelay = () => {
   const runs: ScriptedRun[] = []
+  const compatRuns: ScriptedCompatRun[] = []
   const removedRuns: string[] = []
   const removedStreams: string[] = []
   const journal: string[] = []
   let holding = false
   const runsOf = (channelId: string) => runs.filter((run) => run.spec.channelId === channelId)
+  const compatRunsOf = (channelId: string) =>
+    compatRuns.filter((run) => run.spec.channelId === channelId)
+  const runsOfKey = (key: LiveStreamKey): ScriptedRunState[] =>
+    key.rendition === 'copy' ? runsOf(key.channelId) : compatRunsOf(key.channelId)
+
+  /** A scripted process named `name` (`a:1`): its exit, and a stop held while `holdStops()`. */
+  const scripted = (name: string, number: number) => {
+    let finish: (exit: LiveRunExit) => void = () => {}
+    const exited = new Promise<LiveRunExit>((resolve) => {
+      finish = resolve
+    })
+    const state: ScriptedRunState = {
+      number,
+      segments: [],
+      stopped: false,
+      gone: false,
+      exit: (exitCode = 1) => {
+        if (state.gone) return
+        state.gone = true
+        journal.push(`exit ${name}`)
+        finish({ exitCode, errorLines: '' })
+      },
+    }
+    journal.push(`start ${name}`)
+    const handle = {
+      exited,
+      stop: async () => {
+        state.stopped = true
+        if (!holding) state.exit(255)
+        await exited
+      },
+    }
+    return { state, handle }
+  }
+
   const relay: LiveRelay = {
     start: (spec) => {
-      let finish: (exit: LiveRunExit) => void = () => {}
-      const exited = new Promise<LiveRunExit>((resolve) => {
-        finish = resolve
-      })
-      const run: ScriptedRun = {
-        spec,
-        segments: [],
-        stopped: false,
-        gone: false,
-        exit: (exitCode = 1) => {
-          if (run.gone) return
-          run.gone = true
-          journal.push(`exit ${spec.channelId}:${spec.run}`)
-          finish({ exitCode, errorLines: '' })
-        },
-      }
+      const { state, handle } = scripted(`${spec.channelId}:${spec.run}`, spec.run)
+      const run: ScriptedRun = Object.assign(state, { spec })
       runs.push(run)
-      journal.push(`start ${spec.channelId}:${spec.run}`)
+      return handle
+    },
+    startCompat: (spec) => {
+      const { state, handle } = scripted(`${spec.channelId}/compat:${spec.run}`, spec.run)
+      const run: ScriptedCompatRun = Object.assign(state, { spec, fed: [] as string[], backlog: 0 })
+      compatRuns.push(run)
       return {
-        exited,
-        stop: async () => {
-          run.stopped = true
-          if (!holding) run.exit(255)
-          await exited
-        },
+        ...handle,
+        feed: (name: string) => void run.fed.push(name),
+        backlog: () => run.backlog,
       }
     },
-    segmentsOf: ({ channelId, run }) =>
-      runsOf(channelId).find((r) => r.spec.run === run)?.segments ?? [],
-    removeRun: ({ channelId, run }) => {
-      removedRuns.push(`${channelId}:${run}`)
+    segmentsOf: ({ run, ...key }) => runsOfKey(key).find((r) => r.number === run)?.segments ?? [],
+    removeRun: ({ run, ...key }) => {
+      removedRuns.push(`${streamNameOf(key)}:${run}`)
     },
-    removeStream: (channelId) => {
-      removedStreams.push(channelId)
-      journal.push(`remove ${channelId}`)
+    removeStream: (key) => {
+      removedStreams.push(streamNameOf(key))
+      journal.push(`remove ${streamNameOf(key)}`)
     },
     removeAll: () => {},
-    fileOf: ({ channelId, name }) =>
-      runsOf(channelId).some(
+    fileOf: ({ name, ...key }) =>
+      runsOfKey(key).some(
         (run) =>
-          name === `init-${run.spec.run}.mp4` ||
+          name === `init-${run.number}.mp4` ||
           run.segments.some((segment) => segment.name === name),
       )
-        ? `/live/${channelId}/${name}`
+        ? `/live/${streamNameOf(key)}/${name}`
         : undefined,
+  }
+  const latest = <T>(list: T[], name: string): T => {
+    const run = list.at(-1)
+    if (run === undefined) throw new Error(`no run of ${name}`)
+    return run
+  }
+  const writeTo = (run: ScriptedRunState, count: number, durationS: number) => {
+    for (let i = 0; i < count; i += 1) {
+      const index = String(run.segments.length).padStart(5, '0')
+      run.segments.push({ name: `seg-${run.number}-${index}.m4s`, durationS })
+    }
   }
   return {
     relay,
     runs,
+    compatRuns,
     removedRuns,
     removedStreams,
     journal,
     runsOf,
+    compatRunsOf,
     /** Stops wait for the test to end the run (`exit()`) from now on. */
     holdStops: () => {
       holding = true
     },
-    /** The channel's latest run. */
-    current: (channelId: string): ScriptedRun => {
-      const run = runsOf(channelId).at(-1)
-      if (run === undefined) throw new Error(`no run of ${channelId}`)
-      return run
-    },
-    /** The channel's latest run writes `count` segments of `durationS`. */
+    /** The channel's latest copy run. */
+    current: (channelId: string): ScriptedRun => latest(runsOf(channelId), channelId),
+    /** The channel's latest compat run. */
+    currentCompat: (channelId: string): ScriptedCompatRun =>
+      latest(compatRunsOf(channelId), `${channelId}/compat`),
+    /** The channel's latest copy run writes `count` segments of `durationS`. */
     write: (channelId: string, count = 1, durationS = 2) => {
-      const run = runsOf(channelId).at(-1)
-      if (run === undefined) throw new Error(`no run of ${channelId}`)
-      for (let i = 0; i < count; i += 1) {
-        const index = String(run.segments.length).padStart(5, '0')
-        run.segments.push({ name: `seg-${run.spec.run}-${index}.m4s`, durationS })
-      }
+      writeTo(latest(runsOf(channelId), channelId), count, durationS)
+    },
+    /** The channel's latest compat run writes `count` segments of `durationS`. */
+    writeCompat: (channelId: string, count = 1, durationS = 2) => {
+      writeTo(latest(compatRunsOf(channelId), `${channelId}/compat`), count, durationS)
     },
   }
 }
@@ -242,6 +300,10 @@ export const inMemoryLiveSessions = () => {
       const session = rows.get(id)
       if (session !== undefined) rows.set(id, { ...session, lastHeartbeatAt: at })
     },
+    setRendition: ({ id, rendition }) => {
+      const session = rows.get(id)
+      if (session !== undefined) rows.set(id, { ...session, rendition })
+    },
     remove: (id) => {
       rows.delete(id)
     },
@@ -260,10 +322,57 @@ const sourceAt = (id: string, maxConnections?: number): TvSource => ({
 })
 
 /**
- * The relay and the live sessions (§29.4) over a scripted relay and prober, manual timers and
- * clock, sources and channels in memory. `addChannel` adds an enabled channel of a source.
+ * The playback module's transcode slots (§29.4, §10.3) with a settable `limit`, no playback
+ * transcode running; `holders` lists the compat streams holding one, `evicted` those evicted.
  */
-export const createLiveWorld = () => {
+export const observedTranscodeSlots = ({
+  limit,
+  clock,
+  logger,
+}: {
+  limit: number
+  clock: Clock
+  logger: Logger
+}) => {
+  const state = { limit }
+  const slots = transcodeSlotsFactory({
+    sessionRepository: { listActive: () => [] },
+    playbackSettings: {
+      read: () => ({ ...defaultPlaybackSettings, maxConcurrentTranscodes: state.limit }),
+    },
+    clock,
+    logger,
+  })
+  const holders = new Set<string>()
+  const evicted: string[] = []
+  const observed: TranscodeSlots = {
+    acquire: (id, holder) => {
+      const acquired = slots.acquire(id, {
+        idleOrder: holder.idleOrder,
+        evict: () => {
+          evicted.push(id)
+          holders.delete(id)
+          holder.evict()
+        },
+      })
+      if (acquired.ok) holders.add(id)
+      return acquired
+    },
+    release: (id) => {
+      holders.delete(id)
+      slots.release(id)
+    },
+    admitPlayback: (playing) => slots.admitPlayback(playing),
+  }
+  return { slots: observed, holders, evicted, state }
+}
+
+/**
+ * The relay and the live sessions (§29.4) over a scripted relay and prober, manual timers and
+ * clock, sources and channels in memory, transcode slots in memory (`transcodeLimit`).
+ * `addChannel` adds an enabled channel of a source.
+ */
+export const createLiveWorld = ({ transcodeLimit = 2 }: { transcodeLimit?: number } = {}) => {
   const clock = createManualClock(new Date('2026-06-10T20:00:00.000Z'))
   const { timers, advance, pending } = createManualTimers(clock)
   const relay = scriptedLiveRelay()
@@ -278,11 +387,13 @@ export const createLiveWorld = () => {
   const tvSources = sources.repository
   const liveSessions = sessions.repository
   const logger = logs.logger
+  const transcodes = observedTranscodeSlots({ limit: transcodeLimit, clock, logger })
 
   const streams = liveStreamsFactory({
     relay: relay.relay,
     prober: prober.prober,
     probeCache: tvChannels,
+    transcodeSlots: transcodes.slots,
     timers,
     clock,
     logger,
@@ -330,7 +441,7 @@ export const createLiveWorld = () => {
     }
   }
 
-  const join = (sessionId: string, channelId: string) => {
+  const join = (sessionId: string, channelId: string, rendition: TvRendition = 'copy') => {
     const channel = channels.channels.get(channelId)
     if (channel === undefined) throw new Error(`no channel ${channelId}`)
     return streams.join({
@@ -338,6 +449,7 @@ export const createLiveWorld = () => {
       channel: { id: channel.id, sourceId: channel.sourceId },
       upstream: channel.upstream,
       maxConnections: tvSources.findById(channel.sourceId)?.maxConnections,
+      rendition,
     })
   }
 
@@ -355,6 +467,7 @@ export const createLiveWorld = () => {
     events,
     logs,
     streams,
+    transcodes,
     addSource,
     addChannel,
     createLiveSession: createLiveSessionFactory({

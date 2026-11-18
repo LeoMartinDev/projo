@@ -23,6 +23,7 @@ import {
 import type { ItemVisibility } from '../../application/playback/shared/session-access.ts'
 import { stopPlaybackSessionFactory } from '../../application/playback/stop-playback-session.ts'
 import { sweepPlaybackSessionsFactory } from '../../application/playback/sweep-playback-sessions.ts'
+import { transcodeSlotsFactory } from '../../application/playback/transcode-slots.ts'
 import { getTrickplayUrlFactory } from '../../application/playback/get-trickplay-url.ts'
 import { type PlaybackSessionTerminator, sessionTimings } from '../../core/playback/session.ts'
 import { sessionTokens } from '../../infrastructure/auth/session-tokens.ts'
@@ -141,6 +142,13 @@ export const buildPlaybackModule = (
     playbackSettings,
     logger,
   })
+  // Slots of `max_concurrent_transcodes` held by live compat streams (§29.4), handed to tv.
+  const transcodeSlots = transcodeSlotsFactory({
+    sessionRepository,
+    playbackSettings,
+    clock,
+    logger,
+  })
   const playbackSessions: PlaybackSessionTerminator = {
     endWithin: endPlaybackSessionsWithinFactory({ sessionRepository, endSession }),
   }
@@ -154,6 +162,7 @@ export const buildPlaybackModule = (
       authorizeStream,
       playbackSessions,
       endSession,
+      transcodeSlots,
       routes: playbackRoutes({
         createPlaybackSession: createPlaybackSessionFactory({
           visibleItems: catalog,
@@ -176,6 +185,7 @@ export const buildPlaybackModule = (
             )
           },
           playbackSettings,
+          transcodeSlots,
           mediaProber: ffprobe,
           keyframeStore,
           jobQueue,

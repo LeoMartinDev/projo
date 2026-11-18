@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import type { ClientCapabilities } from '@projo/shared/api/playback'
 import {
   adminTvSessionsResponseSchema,
   type AdminTvSourceDetailDto,
@@ -11,28 +12,37 @@ import {
   tvSessionDtoSchema,
 } from '@projo/shared/api/tv'
 
+import { transcodeSlotsFactory } from '../../src/application/playback/transcode-slots.ts'
 import { dataPathsFor } from '../../src/core/data-paths.ts'
 import type { JobType } from '../../src/core/jobs/job.ts'
 import type { JobHandler } from '../../src/entrypoints/jobs/handler.ts'
 import { buildTvModule } from '../../src/entrypoints/modules/tv.ts'
 import type { Platform } from '../../src/entrypoints/modules/platform.ts'
 import { ensureDataLayout } from '../../src/infrastructure/fs/data-layout.ts'
+import { createSqlitePlaybackSessionRepository } from '../../src/infrastructure/sqlite/playback-session-repository.ts'
+import {
+  createSqlitePlaybackSettings,
+  createSqlitePlaybackSettingsWriter,
+} from '../../src/infrastructure/sqlite/playback-settings.ts'
 import { createAuthTestApp, sessionCookieOf } from '../support/auth-app.ts'
 import { createTempDir } from '../support/database.ts'
 import { type IptvServer, startIptvServer } from '../support/iptv-server.ts'
 import { createCapturingLogger, silentLogger } from '../support/logger.ts'
-import { hasFfmpeg } from '../support/media.ts'
+import { hasFfmpeg, hasFfmpegEncoder } from '../support/media.ts'
 
 /**
  * The relay of §29.4 with real ffmpeg against the test provider's endless MPEG-TS: sessions,
  * sharing, idle stop, restarts, the connection limit and the capability URL.
  */
 
-const capabilities = {
+const capabilities: ClientCapabilities = {
   videoCodecs: ['avc1'],
   audioCodecs: ['mp4a.40.2'],
   hls: 'mse',
-} as const
+}
+
+/** The desktop app: libmpv plays the copy whatever it carries (§29.4). */
+const desktop: ClientCapabilities = { ...capabilities, hls: 'native', engine: 'mpv' }
 
 const timeout = 60_000
 
@@ -46,6 +56,7 @@ let temp: ReturnType<typeof createTempDir>
 let t: ReturnType<typeof createAuthTestApp>
 let platform: Platform
 let module: ReturnType<typeof buildTvModule>
+let slots: ReturnType<typeof transcodeSlotsFactory>
 let logs: ReturnType<typeof createCapturingLogger>
 let liveDir: string
 let cookies: { admin: string; user: string }
@@ -60,8 +71,15 @@ beforeEach(async () => {
     paths,
     jobs: 'queue',
     routes: (built) => {
+      slots = transcodeSlotsFactory({
+        sessionRepository: createSqlitePlaybackSessionRepository({ db: built.db }),
+        playbackSettings: createSqlitePlaybackSettings({ db: built.db }),
+        clock: built.clock,
+        logger: logs.logger,
+      })
       module = buildTvModule(
         { ...built, logger: logs.logger },
+        { transcodeSlots: slots },
         { live: { timings: { retryDelaysMs: [50, 100, 200], idleStopMs: 300 } } },
       )
       return { tv: module.routes, adminTv: module.adminRoutes }
@@ -102,11 +120,11 @@ const runJobs = async (types: readonly JobType[]) => {
   }
 }
 
-/** A source of `live.m3u` with every group enabled; its channels by name. */
-const liveSource = async (maxConnections?: number) => {
+/** A source of `live.m3u` (or `playlist`) with every group enabled; its channels by name. */
+const liveSource = async (maxConnections?: number, playlist = 'live.m3u') => {
   const created = await request('POST', '/admin/tv/sources', {
     name: 'Provider',
-    settings: { kind: 'm3u', playlistUrl: iptv.at('/m3u/live.m3u?token=secret') },
+    settings: { kind: 'm3u', playlistUrl: iptv.at(`/m3u/${playlist}?token=secret`) },
     ...(maxConnections === undefined ? {} : { maxConnections }),
   })
   const { id } = (await created.json()) as { id: string }
@@ -128,13 +146,26 @@ const liveSource = async (maxConnections?: number) => {
   return { id, listed, channel }
 }
 
-const openSession = async (channelId: string, as: 'admin' | 'user' = 'admin') => {
-  const response = await request('POST', `/tv/channels/${channelId}/sessions`, { capabilities }, as)
+const openSession = async (
+  channelId: string,
+  as: 'admin' | 'user' = 'admin',
+  client: ClientCapabilities = capabilities,
+) => {
+  const response = await request(
+    'POST',
+    `/tv/channels/${channelId}/sessions`,
+    { capabilities: client },
+    as,
+  )
   return { response, body: (await response.json()) as unknown }
 }
 
-const startSession = async (channelId: string, as: 'admin' | 'user' = 'admin') => {
-  const { response, body } = await openSession(channelId, as)
+const startSession = async (
+  channelId: string,
+  as: 'admin' | 'user' = 'admin',
+  client: ClientCapabilities = capabilities,
+) => {
+  const { response, body } = await openSession(channelId, as, client)
   if (response.status !== 201) throw new Error(`session refused: ${JSON.stringify(body)}`)
   return tvSessionDtoSchema.parse(body)
 }
@@ -467,6 +498,146 @@ describe.skipIf(!hasFfmpeg())('live TV relay (§29.4) with real ffmpeg', () => {
       expect(beat.status).toBe(404)
       expect(await beat.json()).toMatchObject({ error: { code: 'tv/session_not_found' } })
       expect((await request('DELETE', `/admin/tv/sessions/${session.sessionId}`)).status).toBe(404)
+    },
+    timeout,
+  )
+})
+
+/** ffprobe of the served init and newest segment: the video's codec, field order and height. */
+const probeCompat = async (session: TvSessionDto) => {
+  const playlist = await playlistOf(session)
+  const init = /#EXT-X-MAP:URI="([^"]+)"/u.exec(playlist)?.[1] ?? ''
+  const segment = segmentsOf(playlist).at(-1) ?? ''
+  const file = join(temp.path, 'compat.mp4')
+  writeFileSync(
+    file,
+    Buffer.concat([await fetchFile(session, init), await fetchFile(session, segment)]),
+  )
+  const probed = Bun.spawnSync([
+    'ffprobe',
+    '-v',
+    'error',
+    '-print_format',
+    'json',
+    '-show_streams',
+    '-show_frames',
+    '-read_intervals',
+    '%+#10',
+    file,
+  ])
+  const { streams, frames } = JSON.parse(probed.stdout.toString()) as {
+    streams: { codec_type: string; codec_name: string; height?: number; field_order?: string }[]
+    frames: { media_type: string; interlaced_frame?: number }[]
+  }
+  return {
+    streams: streams.map((s) => [s.codec_type, s.codec_name]),
+    video: streams.find((s) => s.codec_type === 'video'),
+    interlacedFrames: frames.filter((f) => f.media_type === 'video' && f.interlaced_frame === 1)
+      .length,
+    videoFrames: frames.filter((f) => f.media_type === 'video').length,
+  }
+}
+
+const endSession = async (session: TvSessionDto, as: 'admin' | 'user' = 'admin') => {
+  expect((await request('DELETE', `/tv/sessions/${session.sessionId}`, undefined, as)).status).toBe(
+    204,
+  )
+}
+
+describe.skipIf(!hasFfmpeg())('compat rendition (§29.4) with real ffmpeg', () => {
+  test(
+    'an interlaced channel reaches a browser as progressive H.264; mpv shares its upstream',
+    async () => {
+      const { channel } = await liveSource(undefined, 'compat.m3u')
+      const interlaced = channel('Compat Interlaced')
+      const copy = await startSession(interlaced, 'admin', desktop)
+      expect(copy.rendition).toBe('copy')
+      const compat = await startSession(interlaced, 'user')
+      expect(compat.rendition).toBe('compat')
+      expect(compat.streamUrl).toMatch(/\/live\/index\.m3u8$/u)
+      expect(slots.held()).toBe(1)
+
+      const served = await probeCompat(compat)
+      expect(served.streams).toEqual([
+        ['video', 'h264'],
+        ['audio', 'aac'],
+      ])
+      expect(served.video?.field_order).toBe('progressive')
+      expect(served.video?.height).toBeLessThanOrEqual(1080)
+      expect(served.videoFrames).toBeGreaterThan(0)
+      expect(served.interlacedFrames).toBe(0)
+      // The copy still carries the interlaced picture, for libmpv.
+      expect((await probeCompat(copy)).interlacedFrames).toBeGreaterThan(0)
+
+      // One upstream connection for both renditions.
+      await until(() => iptv.liveConnections() === 1)
+      expect(iptv.liveRequests().filter((r) => r.path.startsWith('/live/interlaced'))).toHaveLength(
+        // The probe's request, then the copy run's.
+        2,
+      )
+      expect(module.liveStreams.snapshot()).toMatchObject([
+        { rendition: 'copy', viewers: 2 },
+        { rendition: 'compat', viewers: 1 },
+      ])
+      const admin = adminTvSessionsResponseSchema.parse(
+        await (await request('GET', '/admin/tv/sessions')).json(),
+      )
+      expect(admin.items.map((item) => item.rendition).sort()).toEqual(['compat', 'copy'])
+      expect(existsSync(`${liveDir}/${interlaced}-compat`)).toBe(true)
+
+      await endSession(compat, 'user')
+      await endSession(copy)
+      await until(() => module.liveStreams.snapshot().length === 0 && slots.held() === 0)
+      await until(() => iptv.liveConnections() === 0)
+      expect(existsSync(`${liveDir}/${interlaced}-compat`)).toBe(false)
+      expect(existsSync(`${liveDir}/${interlaced}`)).toBe(false)
+    },
+    timeout,
+  )
+
+  test.skipIf(!hasFfmpegEncoder('libx265'))(
+    'an HEVC channel reaches a browser without HEVC as H.264 and AAC',
+    async () => {
+      const { channel } = await liveSource(undefined, 'compat.m3u')
+      const session = await startSession(channel('Compat HEVC'), 'user')
+      expect(session.rendition).toBe('compat')
+      const served = await probeCompat(session)
+      expect(served.streams).toEqual([
+        ['video', 'h264'],
+        ['audio', 'aac'],
+      ])
+      expect(served.video?.height).toBeLessThanOrEqual(1080)
+      // A client that decodes HEVC gets the copy.
+      const hevc = await startSession(channel('Compat HEVC'), 'admin', {
+        ...capabilities,
+        videoCodecs: ['avc1', 'hvc1'],
+      })
+      expect(hevc.rendition).toBe('copy')
+      expect((await probeServed(hevc)).map((s) => s.codec_name)).toEqual(['hevc', 'aac'])
+      await until(() => iptv.liveConnections() === 1)
+    },
+    timeout,
+  )
+
+  test(
+    'no transcode slot free: the session is refused before the provider is reached',
+    async () => {
+      const { channel } = await liveSource(undefined, 'compat.m3u')
+      const interlaced = channel('Compat Interlaced')
+      // Probed by a first (copy) session, so the next browser session knows it needs compat.
+      const copy = await startSession(interlaced, 'admin', desktop)
+      await endSession(copy)
+      await until(() => module.liveStreams.snapshot().length === 0)
+      createSqlitePlaybackSettingsWriter({ db: platform.db }).write({
+        values: { maxConcurrentTranscodes: 0 },
+        at: t.clock.now(),
+      })
+      const before = iptv.liveRequests().length
+      const refused = await openSession(interlaced, 'user')
+      expect(refused.response.status).toBe(503)
+      expect(refused.body).toMatchObject({ error: { code: 'playback/transcode_limit_reached' } })
+      expect(iptv.liveRequests().length).toBe(before)
+      expect(module.liveStreams.snapshot()).toEqual([])
     },
     timeout,
   )

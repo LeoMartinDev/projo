@@ -18,6 +18,8 @@ const streamSchema = z.object({
   index: z.number().int(),
   codec_type: z.string().optional(),
   codec_name: z.string().optional(),
+  profile: z.string().optional(),
+  pix_fmt: z.string().optional(),
   width: z.number().int().optional(),
   height: z.number().int().optional(),
   field_order: z.string().optional(),
@@ -98,10 +100,12 @@ export const createLiveProber = ({
       (stream) => stream.codec_type === 'video' && stream.codec_name !== undefined,
     )
     if (video?.codec_name === undefined) return failure(upstream, 'no_video')
-    const { width, height, field_order: fieldOrder } = video
+    const { width, height, field_order: fieldOrder, profile, pix_fmt: pixelFormat } = video
     return ok({
       video: {
         codec: video.codec_name,
+        ...(profile === undefined ? {} : { profile }),
+        ...(pixelFormat === undefined ? {} : { pixelFormat }),
         ...(width === undefined ? {} : { width }),
         ...(height === undefined ? {} : { height }),
         ...(fieldOrder === undefined ? {} : { fieldOrder }),

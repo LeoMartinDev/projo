@@ -1,7 +1,9 @@
 import { appError, type AppError, err, ok, type Result } from '@projo/shared'
+import type { TvRendition } from '@projo/shared/api/tv'
 
 import type { Clock } from '../../core/clock.ts'
 import type { Logger } from '../../core/logger.ts'
+import type { TranscodeLimitReached, TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import type { TvUpstream } from '../../core/tv/channel.ts'
 import { type LiveConnectionError, planLiveConnection } from '../../core/tv/live-connections.ts'
 import {
@@ -18,13 +20,17 @@ import {
   type LiveRelay,
   type LiveRun,
   type LiveSegmentFile,
+  type LiveStreamKey,
   type LiveTimers,
   liveTimings,
+  type TvChannelProbe,
   upstreamHostOf,
 } from '../../core/tv/live.ts'
+import { isInterlaced } from '../../core/tv/rendition.ts'
 
 export type LiveStreamError = AppError<'tv/stream_unavailable'>
 export type LiveFileError = AppError<'tv/stream_unavailable' | 'tv/segment_not_found'>
+export type LiveJoinError = LiveConnectionError | TranscodeLimitReached
 
 type Timings = {
   pollMs: number
@@ -34,12 +40,14 @@ type Timings = {
   readyTimeoutMs: number
   readySegments: number
   windowS: number
+  compatBacklogSegments: number
 }
 
 type Deps = {
   relay: LiveRelay
   prober: LiveProber
   probeCache: LiveProbeCache
+  transcodeSlots: Pick<TranscodeSlots, 'acquire' | 'release'>
   timers: LiveTimers
   clock: Clock
   logger: Logger
@@ -53,12 +61,17 @@ type ActiveRun = {
   lastIndex: number
   sawSegment: boolean
   quietPolls: number
-  /** Stopped on purpose (idle, eviction, shutdown): its exit is no failure. */
+  /** Stopped on purpose (idle, eviction, shutdown, a new copy run): its exit is no failure. */
   stopping: boolean
+  /** A compat run: the copy run it is fed, and how far behind that input it is. */
+  input?: { copyRun: number; feed: (name: string) => void; backlog: () => number }
 }
 
 type Stream = {
+  /** `<channel>` for the copy, `<channel>/compat` for the compat stream. */
+  key: string
   channelId: string
+  rendition: TvRendition
   sourceId: string
   upstream: TvUpstream
   host: string
@@ -69,6 +82,8 @@ type Stream = {
   runs: number
   failures: number
   run?: ActiveRun
+  /** A copy stream: the probe its runs were started from (what its compat stream decodes). */
+  probe?: TvChannelProbe
   window: LiveWindowSegment[]
   nextSequence: number
   /** `#EXT-X-TARGETDURATION`, pinned by the stream's first segment: it never changes. */
@@ -81,18 +96,38 @@ type Stream = {
   runsOnDisk: Set<number>
   /** The probe under way: a stop aborts it and waits for ffprobe to be gone. */
   probing?: { controller: AbortController; settled: Promise<unknown> }
-  /** Stops to wait for before the next attempt: every stop of the source under way. */
+  /**
+   * Stops to wait for before the next attempt: a copy's, every stop of its source under way; a
+   * compat's, the earlier compat stream of its channel (whose folder it reuses).
+   */
   before: Promise<unknown>
   cancelPoll?: () => void
   cancelIdle?: () => void
   cancelRetry?: () => void
   listeners: Set<() => void>
+  /** A compat stream: the copy stream it reads. */
+  copy?: Stream
+  /** A compat stream is a viewer of its copy while it has viewers of its own. */
+  holdsCopy: boolean
+  /** A compat stream holds a transcode slot from its start to its stop or failure. */
+  holdsSlot: boolean
 }
+
+type StreamState = 'ready' | 'closed' | 'failed'
 
 const segmentIndexOf = (name: string): number => {
   const index = /-(\d+)\.m4s$/u.exec(name)?.[1]
   return index === undefined ? -1 : Number(index)
 }
+
+const keyOf = ({ channelId, rendition }: LiveStreamKey): string =>
+  rendition === 'copy' ? channelId : `${channelId}/compat`
+
+/** The viewer a compat stream is of its copy stream. */
+const compatViewerOf = (channelId: string): string => `compat:${channelId}`
+
+/** The holder of a compat stream's transcode slot. */
+const slotHolderOf = (channelId: string): string => `live:${channelId}`
 
 const unavailable = (channelId: string, reason: string): Result<never, LiveStreamError> =>
   err(
@@ -102,14 +137,16 @@ const unavailable = (channelId: string, reason: string): Result<never, LiveStrea
   )
 
 /**
- * The channel streams (§29.4): one ffmpeg run at a time per channel, shared by its viewers,
+ * The channel streams (§29.4): one ffmpeg run at a time per stream, shared by its viewers,
  * probed, restarted after a failure, stopped once idle, within its source's connection limit.
- * Holds every stream in memory, with its timers.
+ * A channel's `compat` stream reads its `copy` stream, of which it is a viewer, and holds a
+ * transcode slot. Holds every stream in memory, with its timers.
  */
 export const liveStreamsFactory = ({
   relay,
   prober,
   probeCache,
+  transcodeSlots,
   timers,
   clock,
   logger,
@@ -117,15 +154,24 @@ export const liveStreamsFactory = ({
 }: Deps) => {
   const timings: Timings = { ...liveTimings, ...overrides }
   const streams = new Map<string, Stream>()
-  /** Stops under way: their ffmpeg or ffprobe may still hold an upstream connection. */
-  const stopping = new Set<{ sourceId: string; done: Promise<void> }>()
+  /** Stops under way; those of copy streams may still hold an upstream connection. */
+  const stopping = new Set<{
+    key: string
+    sourceId: string
+    connection: boolean
+    done: Promise<void>
+  }>()
   let idleCounter = 0
 
   const notify = (stream: Stream): void => {
     for (const listener of [...stream.listeners]) listener()
   }
 
-  const fields = (stream: Stream) => ({ channelId: stream.channelId, upstream: stream.host })
+  const fields = (stream: Stream) => ({
+    channelId: stream.channelId,
+    rendition: stream.rendition,
+    upstream: stream.host,
+  })
 
   const cancelTimers = (stream: Stream): void => {
     stream.cancelPoll?.()
@@ -137,18 +183,72 @@ export const liveStreamsFactory = ({
   }
 
   const stopsOf = (sourceId: string): Promise<void>[] =>
-    [...stopping].filter((stop) => stop.sourceId === sourceId).map((stop) => stop.done)
+    [...stopping]
+      .filter((stop) => stop.connection && stop.sourceId === sourceId)
+      .map((stop) => stop.done)
+
+  const stopsOfKey = (key: string): Promise<void>[] =>
+    [...stopping].filter((stop) => stop.key === key).map((stop) => stop.done)
+
+  const compatOf = (copy: Stream): Stream | undefined => {
+    const compat = streams.get(keyOf({ channelId: copy.channelId, rendition: 'compat' }))
+    return compat?.copy === copy ? compat : undefined
+  }
+
+  /** Whether the stream is ready, closed or failed; `undefined` while it starts. */
+  const stateOf = (stream: Stream): StreamState | undefined => {
+    if (stream.closed) return 'closed'
+    if (stream.failed) return 'failed'
+    return stream.window.length >= timings.readySegments ? 'ready' : undefined
+  }
+
+  /** Settles once the stream is ready, closed or failed. */
+  const settledOf = (stream: Stream): Promise<StreamState> =>
+    new Promise((resolve) => {
+      const now = stateOf(stream)
+      if (now !== undefined) {
+        resolve(now)
+        return
+      }
+      const listener = () => {
+        const state = stateOf(stream)
+        if (state === undefined) return
+        stream.listeners.delete(listener)
+        resolve(state)
+      }
+      stream.listeners.add(listener)
+    })
+
+  const keepWatched = (stream: Stream, viewerId: string): void => {
+    stream.viewers.add(viewerId)
+    stream.cancelIdle?.()
+    delete stream.cancelIdle
+    delete stream.idleOrder
+    const copy = stream.copy
+    if (copy !== undefined && !stream.holdsCopy && !copy.closed && !copy.failed) {
+      stream.holdsCopy = true
+      keepWatched(copy, compatViewerOf(stream.channelId))
+    }
+  }
+
+  /** A compat stream lets its copy go (no viewer left, stopped or failed). */
+  const releaseCopy = (stream: Stream): void => {
+    if (!stream.holdsCopy || stream.copy === undefined) return
+    stream.holdsCopy = false
+    leaveViewer(stream.copy, compatViewerOf(stream.channelId))
+  }
+
+  const releaseSlot = (stream: Stream): void => {
+    if (!stream.holdsSlot) return
+    stream.holdsSlot = false
+    transcodeSlots.release(slotHolderOf(stream.channelId))
+  }
 
   /**
-   * Stops a stream: its run killed or its probe aborted, then its folder deleted. Settles once
-   * neither process holds the upstream any more.
+   * Kills the stream's run or aborts its probe, then deletes its folder. Settles once neither
+   * process is left; the stream's next start waits for it.
    */
-  const stopStream = (stream: Stream, reason: string): Promise<void> => {
-    if (streams.get(stream.channelId) === stream) streams.delete(stream.channelId)
-    if (stream.closed) return Promise.all(stopsOf(stream.sourceId)).then(() => {})
-    stream.closed = true
-    cancelTimers(stream)
-    notify(stream)
+  const halt = (stream: Stream): Promise<void> => {
     const run = stream.run
     delete stream.run
     const probing = stream.probing
@@ -160,29 +260,65 @@ export const liveStreamsFactory = ({
         await run.handle.stop()
       }
       await probing?.settled
-      relay.removeStream(stream.channelId)
+      relay.removeStream(stream)
     })()
-    const entry = { sourceId: stream.sourceId, done }
+    const entry = {
+      key: stream.key,
+      sourceId: stream.sourceId,
+      connection: stream.rendition === 'copy',
+      done,
+    }
     stopping.add(entry)
     void done.then(() => stopping.delete(entry))
+    return done
+  }
+
+  /** Stops a stream (and a copy's compat stream). Settles once its processes are gone. */
+  const stopStream = (stream: Stream, reason: string): Promise<void> => {
+    if (streams.get(stream.key) === stream) streams.delete(stream.key)
+    if (stream.closed) return Promise.all(stopsOf(stream.sourceId)).then(() => {})
+    stream.closed = true
+    cancelTimers(stream)
+    notify(stream)
+    const compat = stream.rendition === 'copy' ? compatOf(stream) : undefined
+    if (compat !== undefined) void stopStream(compat, reason)
+    releaseSlot(stream)
+    releaseCopy(stream)
+    const done = halt(stream)
     logger.info('live stream stopped', { ...fields(stream), reason })
     return done
   }
 
-  const markFailed = (stream: Stream): void => {
+  /**
+   * Ends the stream as failed: its sessions are answered `tv/stream_unavailable`, and it stays
+   * known (failed) while it has viewers, so that a new start counts them again. A copy's
+   * failure fails its compat stream the same way.
+   */
+  const markFailed = (stream: Stream, reason?: string): void => {
     stream.failed = true
     cancelTimers(stream)
     stream.window = []
     stream.runsOnDisk.clear()
-    relay.removeStream(stream.channelId)
+    void halt(stream)
     logger.warn('live stream unavailable', {
       ...fields(stream),
       code: 'tv/stream_unavailable',
       attempts: stream.failures,
+      ...(reason === undefined ? {} : { reason }),
     })
+    if (stream.rendition === 'copy') {
+      // Its probe may be what failed it: the next start probes again (§29.4).
+      probeCache.recordProbe({ id: stream.channelId, at: clock.now() })
+      const compat = compatOf(stream)
+      if (compat !== undefined && !compat.closed && !compat.failed) {
+        markFailed(compat, 'copy_failed')
+      }
+    }
+    releaseSlot(stream)
+    releaseCopy(stream)
     notify(stream)
-    if (stream.viewers.size === 0 && streams.get(stream.channelId) === stream) {
-      streams.delete(stream.channelId)
+    if (stream.viewers.size === 0 && streams.get(stream.key) === stream) {
+      streams.delete(stream.key)
     }
   }
 
@@ -231,7 +367,97 @@ export const liveStreamsFactory = ({
     for (const run of [...stream.runsOnDisk]) {
       if (run === stream.run?.number || kept.has(run)) continue
       stream.runsOnDisk.delete(run)
-      relay.removeRun({ channelId: stream.channelId, run })
+      relay.removeRun({ channelId: stream.channelId, rendition: stream.rendition, run })
+    }
+  }
+
+  const launch = (
+    stream: Stream,
+    handle: LiveRun,
+    details: Record<string, unknown>,
+    input?: ActiveRun['input'],
+  ): void => {
+    const run: ActiveRun = {
+      number: stream.runs,
+      handle,
+      lastIndex: -1,
+      sawSegment: false,
+      quietPolls: 0,
+      stopping: false,
+      ...(input === undefined ? {} : { input }),
+    }
+    stream.run = run
+    stream.runsOnDisk.add(run.number)
+    logger.info('live stream run started', { ...fields(stream), run: run.number, ...details })
+    stream.cancelPoll = timers.after(timings.pollMs, () => poll(stream, run))
+    void handle.exited.then((exit) => onExit(stream, run, exit))
+  }
+
+  /**
+   * Starts a compat run on the copy's newest run: its init, then its newest segments (a fast
+   * start); later segments are fed as the copy lists them.
+   */
+  const launchCompat = (compat: Stream, copy: Stream): void => {
+    const copyRun = copy.lastRun
+    const probe = copy.probe
+    if (copyRun === undefined || probe === undefined) {
+      failAttempt(compat, 'no_input')
+      return
+    }
+    compat.runs += 1
+    const handle = relay.startCompat({
+      channelId: compat.channelId,
+      run: compat.runs,
+      copyRun,
+      video: probe.video,
+    })
+    launch(
+      compat,
+      handle,
+      { copyRun, interlaced: isInterlaced(probe.video), codec: probe.video.codec },
+      { copyRun, feed: handle.feed, backlog: handle.backlog },
+    )
+    const newest = copy.window
+      .filter((segment) => segment.run === copyRun)
+      .slice(-timings.readySegments)
+    for (const segment of newest) handle.feed(segment.name)
+  }
+
+  /** Stops the compat run and starts a new one at once on the copy's newest segments. */
+  const restartCompat = (compat: Stream, copy: Stream, run: ActiveRun): void => {
+    run.stopping = true
+    delete compat.run
+    compat.cancelPoll?.()
+    delete compat.cancelPoll
+    void run.handle.stop()
+    launchCompat(compat, copy)
+  }
+
+  /**
+   * New copy segments reach the copy's compat run. A new copy run (new timestamps, a new init),
+   * or a compat run too far behind its input once it lists segments (slower than real time: the
+   * copy would delete segments it has not read yet), starts a new compat run at once: not a
+   * failed attempt.
+   */
+  const feedCompat = (copy: Stream, copyRun: number, fresh: readonly LiveSegmentFile[]): void => {
+    const compat = compatOf(copy)
+    const run = compat?.run
+    if (compat === undefined || compat.closed || compat.failed || run === undefined) return
+    if (run.stopping || run.input === undefined) return
+    if (run.input.copyRun !== copyRun) {
+      restartCompat(compat, copy, run)
+      return
+    }
+    for (const segment of fresh) run.input.feed(segment.name)
+    const behind = run.input.backlog()
+    // A run that lists nothing yet is left to the stall rule: a failed attempt.
+    if (run.sawSegment && behind > timings.compatBacklogSegments) {
+      logger.warn('live compat stream behind its input, starting it again', {
+        ...fields(compat),
+        run: run.number,
+        segments: behind,
+      })
+      restartCompat(compat, copy, run)
     }
   }
 
@@ -239,7 +465,7 @@ export const liveStreamsFactory = ({
     delete stream.cancelPoll
     if (stream.closed || stream.failed || stream.run !== run || run.stopping) return
     const fresh = relay
-      .segmentsOf({ channelId: stream.channelId, run: run.number })
+      .segmentsOf({ channelId: stream.channelId, rendition: stream.rendition, run: run.number })
       .filter(
         (segment) => isLiveFileName(segment.name) && segmentIndexOf(segment.name) > run.lastIndex,
       )
@@ -254,6 +480,7 @@ export const liveStreamsFactory = ({
       if (!wasReady && stream.window.length >= timings.readySegments) {
         logger.info('live stream ready', fields(stream))
       }
+      if (stream.rendition === 'copy') feedCompat(stream, run.number, fresh)
       notify(stream)
     } else {
       run.quietPolls += 1
@@ -283,12 +510,32 @@ export const liveStreamsFactory = ({
       exitCode: exit.exitCode,
       ...(exit.errorLines === '' ? {} : { stderr: exit.errorLines }),
     })
-    // A run that listed nothing may have been started from a stale probe: probe again.
-    if (!run.sawSegment) probeCache.recordProbe({ id: stream.channelId, at: clock.now() })
+    // A copy run that listed nothing may have been started from a stale probe: probe again.
+    if (!run.sawSegment && stream.rendition === 'copy') {
+      probeCache.recordProbe({ id: stream.channelId, at: clock.now() })
+    }
     failAttempt(stream, 'run_ended')
   }
 
+  /**
+   * A compat attempt starts once the channel's earlier compat stream is gone (its folder is
+   * this one's) and its copy is ready; the copy's stop or failure stops it.
+   */
+  const attemptCompat = async (stream: Stream): Promise<void> => {
+    await stream.before
+    stream.before = Promise.resolve()
+    const copy = stream.copy
+    if (copy === undefined || stream.closed || stream.failed) return
+    const state = await settledOf(copy)
+    if (stream.closed || stream.failed || state !== 'ready') return
+    launchCompat(stream, copy)
+  }
+
   const attempt = async (stream: Stream): Promise<void> => {
+    if (stream.rendition === 'compat') {
+      await attemptCompat(stream)
+      return
+    }
     await stream.before
     stream.before = Promise.resolve()
     if (stream.closed || stream.failed) return
@@ -312,6 +559,7 @@ export const liveStreamsFactory = ({
       probe = probed.value
       probeCache.recordProbe({ id: stream.channelId, probe, at: clock.now() })
     }
+    stream.probe = probe
     stream.runs += 1
     const audio = liveAudioOf(probe)
     const handle = relay.start({
@@ -322,141 +570,218 @@ export const liveStreamsFactory = ({
       ...(probe.transport === undefined ? {} : { transport: probe.transport }),
       ...(audio === undefined ? {} : { audio }),
     })
-    const run: ActiveRun = {
-      number: stream.runs,
-      handle,
-      lastIndex: -1,
-      sawSegment: false,
-      quietPolls: 0,
-      stopping: false,
-    }
-    stream.run = run
-    stream.runsOnDisk.add(run.number)
-    logger.info('live stream run started', {
-      ...fields(stream),
-      run: run.number,
-      audio: audio === undefined ? 'none' : audio.copy ? 'copy' : 'aac',
-    })
-    stream.cancelPoll = timers.after(timings.pollMs, () => poll(stream, run))
-    void handle.exited.then((exit) => onExit(stream, run, exit))
+    launch(stream, handle, { audio: audio === undefined ? 'none' : audio.copy ? 'copy' : 'aac' })
   }
 
   const connectionsOf = (sourceId: string, channelId: string) =>
     [...streams.values()]
-      .filter((s) => s.sourceId === sourceId && !s.failed && s.channelId !== channelId)
+      .filter(
+        (s) =>
+          s.rendition === 'copy' &&
+          s.sourceId === sourceId &&
+          !s.failed &&
+          s.channelId !== channelId,
+      )
       .map((s) => ({
         channelId: s.channelId,
         viewers: s.viewers.size,
         ...(s.idleOrder === undefined ? {} : { idleOrder: s.idleOrder }),
       }))
 
-  const keepWatched = (stream: Stream, sessionId: string): void => {
-    stream.viewers.add(sessionId)
-    stream.cancelIdle?.()
-    delete stream.cancelIdle
-    delete stream.idleOrder
+  /** Removes a viewer; a stream left without any stops after the idle delay. */
+  const leaveViewer = (stream: Stream, viewerId: string): void => {
+    if (!stream.viewers.delete(viewerId) || stream.viewers.size > 0 || stream.closed) return
+    if (stream.failed) {
+      if (streams.get(stream.key) === stream) streams.delete(stream.key)
+      return
+    }
+    idleCounter += 1
+    stream.idleOrder = idleCounter
+    stream.cancelIdle = timers.after(timings.idleStopMs, () => {
+      delete stream.cancelIdle
+      if (stream.viewers.size === 0) void stopStream(stream, 'idle')
+    })
+    // An idle compat stream lets its copy go idle too: both delays run together.
+    releaseCopy(stream)
+  }
+
+  const newStream = (
+    key: LiveStreamKey,
+    sourceId: string,
+    upstream: TvUpstream,
+    existing: Stream | undefined,
+  ): Stream => {
+    const stream: Stream = existing ?? {
+      key: keyOf(key),
+      channelId: key.channelId,
+      rendition: key.rendition,
+      sourceId,
+      upstream,
+      host: upstreamHostOf(upstream.url),
+      viewers: new Set(),
+      failed: false,
+      closed: false,
+      runs: 0,
+      failures: 0,
+      window: [],
+      nextSequence: 0,
+      overlongLogged: false,
+      discontinuity: 0,
+      runsOnDisk: new Set(),
+      before: Promise.resolve(),
+      listeners: new Set(),
+      holdsCopy: false,
+      holdsSlot: false,
+    }
+    stream.failed = false
+    stream.failures = 0
+    stream.upstream = upstream
+    stream.host = upstreamHostOf(upstream.url)
+    return stream
+  }
+
+  type JoinInput = {
+    channel: { id: string; sourceId: string }
+    upstream: TvUpstream
+    maxConnections: number | undefined
+  }
+
+  /**
+   * Adds a viewer to the channel's copy stream, starting it when it has none (or it failed):
+   * the source's idle streams are stopped first when its connections are all in use.
+   */
+  const joinCopy = (
+    viewerId: string,
+    { channel, upstream, maxConnections }: JoinInput,
+  ): Result<Stream, LiveConnectionError> => {
+    const existing = streams.get(channel.id)
+    if (existing !== undefined && !existing.failed) {
+      keepWatched(existing, viewerId)
+      return ok(existing)
+    }
+    const plan = planLiveConnection({
+      connections: connectionsOf(channel.sourceId, channel.id),
+      maxConnections,
+      sourceId: channel.sourceId,
+    })
+    if (!plan.ok) {
+      logger.info('live stream refused: connection limit', {
+        channelId: channel.id,
+        sourceId: channel.sourceId,
+        code: plan.error.code,
+      })
+      return plan
+    }
+    for (const channelId of plan.value.evict) {
+      const evicted = streams.get(channelId)
+      if (evicted !== undefined) void stopStream(evicted, 'connection_limit')
+    }
+    const stream = newStream(
+      { channelId: channel.id, rendition: 'copy' },
+      channel.sourceId,
+      upstream,
+      existing,
+    )
+    // A channel never holds two connections, nor a source more than its limit: the first
+    // attempt waits for every stop of the source under way (evicted streams, this channel's).
+    stream.before = Promise.all(stopsOf(channel.sourceId))
+    keepWatched(stream, viewerId)
+    streams.set(stream.key, stream)
+    logger.info('live stream starting', fields(stream))
+    void attempt(stream)
+    return ok(stream)
+  }
+
+  /**
+   * Adds a viewer to the channel's compat stream, starting it when it has none (or it failed):
+   * it takes a transcode slot, then joins the copy stream as its viewer.
+   */
+  const joinCompat = (viewerId: string, input: JoinInput): Result<void, LiveJoinError> => {
+    const { channel } = input
+    const key = keyOf({ channelId: channel.id, rendition: 'compat' })
+    const existing = streams.get(key)
+    if (existing !== undefined && !existing.failed) {
+      keepWatched(existing, viewerId)
+      return ok()
+    }
+    const holder = slotHolderOf(channel.id)
+    // Idle (no viewer, in its idle delay), the stream gives its slot up to a new transcode.
+    const slot = transcodeSlots.acquire(holder, {
+      idleOrder: () => streams.get(key)?.idleOrder,
+      evict: () => {
+        const idle = streams.get(key)
+        if (idle !== undefined) void stopStream(idle, 'transcode_limit')
+      },
+    })
+    if (!slot.ok) {
+      logger.info('live compat stream refused: transcode limit', {
+        channelId: channel.id,
+        code: slot.error.code,
+      })
+      return slot
+    }
+    const copy = joinCopy(compatViewerOf(channel.id), input)
+    if (!copy.ok) {
+      transcodeSlots.release(holder)
+      return copy
+    }
+    const stream = newStream(
+      { channelId: channel.id, rendition: 'compat' },
+      channel.sourceId,
+      input.upstream,
+      existing,
+    )
+    stream.copy = copy.value
+    stream.holdsCopy = true
+    stream.holdsSlot = true
+    // The channel's previous compat stream may still be stopping: its folder is this one's.
+    stream.before = Promise.all(stopsOfKey(key))
+    keepWatched(stream, viewerId)
+    streams.set(key, stream)
+    logger.info('live stream starting', fields(stream))
+    void attempt(stream)
+    return ok()
   }
 
   return {
     /**
-     * Adds a viewer to the channel's stream, starting it when it has none (or it failed): the
-     * source's idle streams are stopped first when its connections are all in use.
+     * Adds a viewer to the channel's stream of `rendition`, starting it when it has none (or it
+     * failed). A compat stream needs a transcode slot and the copy stream (§29.4).
      */
     join: ({
       sessionId,
-      channel,
-      upstream,
-      maxConnections,
-    }: {
-      sessionId: string
-      channel: { id: string; sourceId: string }
-      upstream: TvUpstream
-      maxConnections: number | undefined
-    }): Result<void, LiveConnectionError> => {
-      const existing = streams.get(channel.id)
-      if (existing !== undefined && !existing.failed) {
-        keepWatched(existing, sessionId)
-        return ok()
-      }
-      const plan = planLiveConnection({
-        connections: connectionsOf(channel.sourceId, channel.id),
-        maxConnections,
-        sourceId: channel.sourceId,
-      })
-      if (!plan.ok) {
-        logger.info('live stream refused: connection limit', {
-          channelId: channel.id,
-          sourceId: channel.sourceId,
-          code: plan.error.code,
-        })
-        return plan
-      }
-      for (const channelId of plan.value.evict) {
-        const evicted = streams.get(channelId)
-        if (evicted !== undefined) void stopStream(evicted, 'connection_limit')
-      }
-      const stream: Stream = existing ?? {
-        channelId: channel.id,
-        sourceId: channel.sourceId,
-        upstream,
-        host: upstreamHostOf(upstream.url),
-        viewers: new Set(),
-        failed: false,
-        closed: false,
-        runs: 0,
-        failures: 0,
-        window: [],
-        nextSequence: 0,
-        overlongLogged: false,
-        discontinuity: 0,
-        runsOnDisk: new Set(),
-        before: Promise.resolve(),
-        listeners: new Set(),
-      }
-      stream.failed = false
-      stream.failures = 0
-      stream.upstream = upstream
-      stream.host = upstreamHostOf(upstream.url)
-      // A channel never holds two connections, nor a source more than its limit: the first
-      // attempt waits for every stop of the source under way (evicted streams, this channel's).
-      stream.before = Promise.all(stopsOf(channel.sourceId))
-      keepWatched(stream, sessionId)
-      streams.set(channel.id, stream)
-      logger.info('live stream starting', fields(stream))
-      void attempt(stream)
-      return ok()
+      rendition,
+      ...input
+    }: JoinInput & { sessionId: string; rendition: TvRendition }): Result<void, LiveJoinError> => {
+      if (rendition === 'compat') return joinCompat(sessionId, input)
+      const joined = joinCopy(sessionId, input)
+      return joined.ok ? ok() : joined
     },
 
     /** Removes a viewer; a stream left without any stops after the idle delay. */
-    leave: ({ sessionId, channelId }: { sessionId: string; channelId: string }): void => {
-      const stream = streams.get(channelId)
-      if (stream === undefined || !stream.viewers.delete(sessionId)) return
-      if (stream.viewers.size > 0) return
-      if (stream.failed) {
-        streams.delete(channelId)
-        return
-      }
-      idleCounter += 1
-      stream.idleOrder = idleCounter
-      stream.cancelIdle = timers.after(timings.idleStopMs, () => {
-        delete stream.cancelIdle
-        if (stream.viewers.size === 0) void stopStream(stream, 'idle')
-      })
+    leave: ({ sessionId, ...key }: LiveStreamKey & { sessionId: string }): void => {
+      const stream = streams.get(keyOf(key))
+      if (stream !== undefined) leaveViewer(stream, sessionId)
     },
 
     /**
-     * Resolves once the channel's stream lists its first segments (a player starts fed), fails,
-     * the wait times out, or `signal` aborts (the client gave up).
+     * Resolves once the stream lists its first segments (a player starts fed), fails, the wait
+     * (counted from `since`, else now) times out, or `signal` aborts (the client gave up).
      */
-    ready: (channelId: string, signal?: AbortSignal): Promise<Result<void, LiveStreamError>> => {
-      const stream = streams.get(channelId)
+    ready: (
+      key: LiveStreamKey,
+      { signal, since }: { signal?: AbortSignal; since?: Date } = {},
+    ): Promise<Result<void, LiveStreamError>> => {
+      const { channelId } = key
+      const stream = streams.get(keyOf(key))
       if (stream === undefined) return Promise.resolve(unavailable(channelId, 'not_started'))
       return new Promise((resolve) => {
         const state = (): Result<void, LiveStreamError> | undefined => {
           if (signal?.aborted === true) return unavailable(channelId, 'aborted')
-          if (stream.closed) return unavailable(channelId, 'stopped')
-          if (stream.failed) return unavailable(channelId, 'failed')
-          return stream.window.length >= timings.readySegments ? ok() : undefined
+          const now = stateOf(stream)
+          if (now === 'closed') return unavailable(channelId, 'stopped')
+          if (now === 'failed') return unavailable(channelId, 'failed')
+          return now === 'ready' ? ok() : undefined
         }
         const settled = state()
         if (settled !== undefined) {
@@ -475,42 +800,46 @@ export const liveStreamsFactory = ({
         }
         stream.listeners.add(listener)
         signal?.addEventListener('abort', listener, { once: true })
-        const cancel = timers.after(timings.readyTimeoutMs, () =>
+        const waited = since === undefined ? 0 : clock.now().getTime() - since.getTime()
+        const cancel = timers.after(Math.max(0, timings.readyTimeoutMs - waited), () =>
           finish(unavailable(channelId, 'timeout')),
         )
       })
     },
 
-    /** Whether the channel's stream is up (starting, running or retrying). */
-    isAvailable: (channelId: string): boolean => {
-      const stream = streams.get(channelId)
+    /**
+     * The probe the channel's copy stream runs from: what chooses a rendition (§29.4), even when
+     * the cached one was dropped meanwhile.
+     */
+    probeOf: (channelId: string): TvChannelProbe | undefined => {
+      const copy = streams.get(keyOf({ channelId, rendition: 'copy' }))
+      return copy === undefined || copy.failed || copy.closed ? undefined : copy.probe
+    },
+
+    /** Whether the stream is up (starting, running or retrying). */
+    isAvailable: (key: LiveStreamKey): boolean => {
+      const stream = streams.get(keyOf(key))
       return stream !== undefined && !stream.failed && !stream.closed
     },
 
-    playlist: (channelId: string): Result<string, LiveStreamError> => {
-      const stream = streams.get(channelId)
-      if (stream === undefined || stream.failed) return unavailable(channelId, 'not_running')
+    playlist: (key: LiveStreamKey): Result<string, LiveStreamError> => {
+      const stream = streams.get(keyOf(key))
+      if (stream === undefined || stream.failed) return unavailable(key.channelId, 'not_running')
       const playlist =
         stream.targetS === undefined
           ? undefined
           : renderLivePlaylist(servedWindow(stream.window, timings.windowS), stream.targetS)
-      return playlist === undefined ? unavailable(channelId, 'not_ready') : ok(playlist)
+      return playlist === undefined ? unavailable(key.channelId, 'not_ready') : ok(playlist)
     },
 
-    file: ({
-      channelId,
-      name,
-    }: {
-      channelId: string
-      name: string
-    }): Result<string, LiveFileError> => {
-      const stream = streams.get(channelId)
-      if (stream === undefined || stream.failed) return unavailable(channelId, 'not_running')
-      const path = isLiveFileName(name) ? relay.fileOf({ channelId, name }) : undefined
+    file: ({ name, ...key }: LiveStreamKey & { name: string }): Result<string, LiveFileError> => {
+      const stream = streams.get(keyOf(key))
+      if (stream === undefined || stream.failed) return unavailable(key.channelId, 'not_running')
+      const path = isLiveFileName(name) ? relay.fileOf({ ...key, name }) : undefined
       return path === undefined
         ? err(
             appError('tv/segment_not_found', 'no such live segment', {
-              context: { channelId, name },
+              context: { channelId: key.channelId, name },
             }),
           )
         : ok(path)
@@ -520,6 +849,7 @@ export const liveStreamsFactory = ({
     snapshot: () =>
       [...streams.values()].map((stream) => ({
         channelId: stream.channelId,
+        rendition: stream.rendition,
         sourceId: stream.sourceId,
         viewers: stream.viewers.size,
         failed: stream.failed,

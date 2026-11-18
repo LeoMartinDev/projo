@@ -8,15 +8,8 @@ import { generateVideo, hasFfmpeg } from '../../../test/support/media.ts'
 import { planFixedSegments, segmentFileName } from '../../core/playback/hls-playlist.ts'
 import type { HlsJob, HlsSegmenter } from '../../core/playback/ports.ts'
 import { createFfprobe } from './ffprobe.ts'
-import {
-  afterEarlyFailure,
-  createHlsSegmenter,
-  fallsBack,
-  firstAcceleration,
-  nextPreset,
-  presetKey,
-  wantsVaapi,
-} from './hls-segmenter.ts'
+import { createHlsSegmenter, nextPreset, presetKey, wantsVaapi } from './hls-segmenter.ts'
+import { afterEarlyFailure, fallsBack, firstAcceleration } from './vaapi-fallback.ts'
 
 const media = createTempDir('projo-segmenter-media-')
 const files: Record<string, string> = {}

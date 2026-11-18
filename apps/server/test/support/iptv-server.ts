@@ -14,8 +14,9 @@ import { join, resolve } from 'node:path'
  * - `/status/<code>`: an empty answer with that status;
  * - `/live/<variant>.ts`: an endless MPEG-TS encoded by ffmpeg in real time (`-re`, 320×180,
  *   1 s GOP), one encoder per request, killed when the client goes: `progressive` (H.264 and
- *   AAC), `interlaced` (H.264 top field first and AAC), `mp2` (H.264 and MP2 audio),
- *   `described` (H.264, an AAC audio description first, then the main track in MP2);
+ *   AAC), `interlaced` (H.264 top field first and AAC), `hevc` (HEVC and AAC: needs libx265),
+ *   `mp2` (H.264 and MP2 audio), `described` (H.264, an AAC audio description first, then the
+ *   main track in MP2);
  *   `failLive()` answers 503 to them and cuts the running ones until `restoreLive()`;
  * - `override(path, response)`: replaces the answer of one path (a changed playlist, a failure).
  */
@@ -47,8 +48,27 @@ export type IptvRequest = { path: string; userAgent?: string; referrer?: string 
 
 type Override = () => Response
 
+const h264 = ['-c:v', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency']
+
+/** Each variant's maps, filters and codecs; the encoder adds the 1 s GOP and 4:2:0. */
 const liveVariants: Record<string, string[]> = {
-  progressive: ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '96k'],
+  progressive: ['-map', '0:v', '-map', '1:a', '-c:a', 'aac', '-b:a', '96k', ...h264],
+  hevc: [
+    '-map',
+    '0:v',
+    '-map',
+    '1:a',
+    '-c:a',
+    'aac',
+    '-b:a',
+    '96k',
+    '-c:v',
+    'libx265',
+    '-preset',
+    'ultrafast',
+    '-x265-params',
+    'log-level=error',
+  ],
   interlaced: [
     '-map',
     '0:v',
@@ -62,8 +82,9 @@ const liveVariants: Record<string, string[]> = {
     'aac',
     '-b:a',
     '96k',
+    ...h264,
   ],
-  mp2: ['-map', '0:v', '-map', '1:a', '-c:a', 'mp2', '-b:a', '128k'],
+  mp2: ['-map', '0:v', '-map', '1:a', '-c:a', 'mp2', '-b:a', '128k', ...h264],
   described: [
     '-map',
     '0:v',
@@ -81,6 +102,7 @@ const liveVariants: Record<string, string[]> = {
     'mp2',
     '-b:a:1',
     '128k',
+    ...h264,
   ],
 }
 
@@ -102,12 +124,6 @@ const liveEncoder = (variant: string[]) => {
       '-i',
       'sine=frequency=440:sample_rate=48000',
       ...variant,
-      '-c:v',
-      'libx264',
-      '-preset',
-      'ultrafast',
-      '-tune',
-      'zerolatency',
       '-g',
       '25',
       '-pix_fmt',

@@ -26,6 +26,8 @@ export type LiveSessionRepository = {
   insert: (session: LiveSession) => void
   findById: (id: string) => LiveSession | undefined
   heartbeat: (input: { id: string; at: Date }) => void
+  /** A session whose channel had to be probed first moves to the rendition its probe chose. */
+  setRendition: (input: { id: string; rendition: TvRendition }) => void
   remove: (id: string) => void
   /** Newest first. */
   list: () => LiveSession[]

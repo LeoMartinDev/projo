@@ -154,6 +154,11 @@ const LiveSessionRow = ({
           <span className="acc-pill" data-mode="live">
             {t('admin.sessions.mode.live')}
           </span>
+          {session.rendition === 'compat' ? (
+            <span className="acc-pill" data-mode="hls_transcode">
+              {t('admin.sessions.mode.hls_transcode')}
+            </span>
+          ) : undefined}
         </span>
       </div>
       <div className="ses-tr__cell ses-tr__position" role="cell">

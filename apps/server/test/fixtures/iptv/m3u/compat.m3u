@@ -1,0 +1,5 @@
+#EXTM3U
+#EXTINF:-1 tvg-id="compat.interlaced" tvg-chno="1" group-title="Compat",Compat Interlaced
+{{base}}/live/interlaced.ts?token=secret
+#EXTINF:-1 tvg-id="compat.hevc" tvg-chno="2" group-title="Compat",Compat HEVC
+{{base}}/live/hevc.ts?token=secret

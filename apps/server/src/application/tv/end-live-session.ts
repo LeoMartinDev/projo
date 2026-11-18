@@ -21,9 +21,15 @@ export const endLiveSessionFactory =
     logger: Logger
   }) =>
   ({ session, reason }: { session: LiveSession; reason: TerminationReason }): void => {
-    if (liveSessions.findById(session.id) === undefined) return
+    // The stored session: its rendition may have changed since `session` was read.
+    const stored = liveSessions.findById(session.id)
+    if (stored === undefined) return
     liveSessions.remove(session.id)
-    streams.leave({ sessionId: session.id, channelId: session.channelId })
+    streams.leave({
+      sessionId: session.id,
+      channelId: stored.channelId,
+      rendition: stored.rendition,
+    })
     eventBus.publish('playback.session_terminated', {
       playbackSessionId: session.id,
       sessionId: session.authSessionId,

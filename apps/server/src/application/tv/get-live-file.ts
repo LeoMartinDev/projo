@@ -24,8 +24,9 @@ export const getLiveFileFactory =
   ({ name, ...access }: LiveStreamAccess & { name: string }): Result<string, GetLiveFileError> => {
     const session = authorize(access)
     if (!session.ok) return session
-    const file = streams.file({ channelId: session.value.channelId, name })
-    if (!file.ok && !streams.isAvailable(session.value.channelId)) {
+    const { channelId, rendition } = session.value
+    const file = streams.file({ channelId, rendition, name })
+    if (!file.ok && !streams.isAvailable({ channelId, rendition })) {
       endLiveSession({ session: session.value, reason: 'ended' })
     }
     return file

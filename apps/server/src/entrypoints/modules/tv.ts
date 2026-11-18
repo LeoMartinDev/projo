@@ -27,6 +27,7 @@ import { requestTvSourceRefreshFactory } from '../../application/tv/request-tv-s
 import { setTvChannelEnabledFactory } from '../../application/tv/set-tv-channel-enabled.ts'
 import { setTvGroupEnabledFactory } from '../../application/tv/set-tv-group-enabled.ts'
 import { updateTvSourceFactory } from '../../application/tv/update-tv-source.ts'
+import type { TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import type { LiveProber, LiveRelay, LiveTimers } from '../../core/tv/live.ts'
 import { liveSessionTimings } from '../../core/tv/live-session.ts'
 import type { TvLogoDownloader } from '../../core/tv/logo.ts'
@@ -40,6 +41,7 @@ import {
   createSqliteTvSourceRepository,
 } from '../../infrastructure/sqlite/tv-source-repository.ts'
 import { createSqliteLiveSessionDirectory } from '../../infrastructure/sqlite/live-session-directory.ts'
+import { createSqlitePlaybackSettings } from '../../infrastructure/sqlite/playback-settings.ts'
 import { createLiveProber } from '../../infrastructure/tv/live-prober.ts'
 import { createLiveRelay } from '../../infrastructure/tv/live-relay.ts'
 import { createLiveSessionStore } from '../../infrastructure/tv/live-session-store.ts'
@@ -69,9 +71,15 @@ export type TvModuleOptions = {
   }
 }
 
-/** Live TV (§29): sources, channels, logos, the relay and live sessions (slice 1). */
+/** Live TV (§29): sources, channels, logos, the relay (`copy` and `compat`) and live sessions. */
 export const buildTvModule = (
   platform: Platform,
+  {
+    transcodeSlots,
+  }: {
+    /** The playback module's slots of `max_concurrent_transcodes`: one per compat stream. */
+    transcodeSlots: Pick<TranscodeSlots, 'acquire' | 'release'>
+  },
   { provider, logoDownloader, live = {} }: TvModuleOptions = {},
 ) => {
   const { db, ids, clock, logger, notifier, jobQueue, paths, eventBus } = platform
@@ -103,13 +111,22 @@ export const buildTvModule = (
   })
   const queueDueRefreshes = queueDueTvSourceRefreshesFactory({ tvSources, jobQueue, clock })
 
-  const relay = live.relay ?? createLiveRelay({ liveDir: paths.cache.live, logger: moduleLogger })
+  const playbackSettings = createSqlitePlaybackSettings({ db })
+  const relay =
+    live.relay ??
+    createLiveRelay({
+      liveDir: paths.cache.live,
+      logger: moduleLogger,
+      hwAccel: () => playbackSettings.read().hwAccel,
+      notifier,
+    })
   // No stream survives a restart (§29.4).
   relay.removeAll()
   const streams = liveStreamsFactory({
     relay,
     prober: live.prober ?? createLiveProber(),
     probeCache: tvChannels,
+    transcodeSlots,
     timers: live.timers ?? systemTimers,
     clock,
     logger: moduleLogger,

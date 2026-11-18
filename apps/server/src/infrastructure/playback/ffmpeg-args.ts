@@ -103,7 +103,8 @@ const tonemapChain = [
   'zscale=t=bt709:m=bt709:r=tv',
 ]
 
-const scaleSize = (quality: PlaybackQuality): string => {
+/** The `scale` size of a quality: at most its box, aspect ratio kept, even dimensions. */
+export const scaleSize = (quality: PlaybackQuality): string => {
   if (quality === 'original') return 'trunc(iw/2)*2:trunc(ih/2)*2'
   const { maxWidth, maxHeight } = qualityTargets[quality]
   return `'min(iw,${maxWidth})':'min(ih,${maxHeight})':force_original_aspect_ratio=decrease:force_divisible_by=2`
@@ -141,7 +142,8 @@ const forcedKeyframes = (cuts: readonly number[] | undefined, seekS: number): st
         .map((cut) => (cut - seekS - 0.001).toFixed(3))
         .join(',') || '0'
 
-const vaapiInput = (device: string, decode: boolean): string[] => [
+/** The render node as ffmpeg's VAAPI device; `decode`: frames decoded on the GPU too. */
+export const vaapiInput = (device: string, decode: boolean): string[] => [
   '-init_hw_device',
   `vaapi=va:${device}`,
   '-filter_hw_device',
@@ -149,6 +151,51 @@ const vaapiInput = (device: string, decode: boolean): string[] => [
   ...(decode
     ? ['-hwaccel', 'vaapi', '-hwaccel_device', 'va', '-hwaccel_output_format', 'vaapi']
     : []),
+]
+
+/**
+ * The rate of a transcode (§10.3): constant quality 21 at `original` (CRF, or CQP on VAAPI),
+ * otherwise the quality's bitrate.
+ */
+export const rateArgs = (quality: PlaybackQuality, vaapi: boolean): string[] =>
+  quality === 'original'
+    ? vaapi
+      ? ['-rc_mode', 'CQP', '-qp', '21']
+      : ['-crf', '21']
+    : [
+        '-b:v',
+        `${qualityTargets[quality].bitrateKbps}k`,
+        '-maxrate',
+        `${qualityTargets[quality].bitrateKbps}k`,
+        '-bufsize',
+        `${qualityTargets[quality].bitrateKbps * 2}k`,
+      ]
+
+/**
+ * The H.264 encoder of a transcode (§10.3), libx264 or `h264_vaapi`, High profile: `rate`,
+ * then an IDR at each forced keyframe (`keyframes`, `-force_key_frames`) and no other.
+ */
+export const h264EncodeArgs = ({
+  vaapi,
+  preset = 'veryfast',
+  rate,
+  keyframes,
+}: {
+  vaapi: boolean
+  preset?: X264Preset
+  rate: string[]
+  keyframes: string
+}): string[] => [
+  '-c:v',
+  ...(vaapi ? ['h264_vaapi'] : ['libx264', '-preset', preset]),
+  '-profile:v',
+  'high',
+  ...rate,
+  '-force_key_frames',
+  keyframes,
+  ...(vaapi
+    ? ['-g', '1000']
+    : ['-forced-idr', '1', '-sc_threshold', '0', '-x264-params', 'keyint=infinite']),
 ]
 
 export const transcodeArgs = ({
@@ -220,19 +267,6 @@ export const transcodeArgs = ({
             `${burnIn.origin === 'embedded' ? `[0:${burnIn.streamIndex}]` : '[1:0]'}[base]scale2ref=w=main_w:h=main_h[subs][video]`,
             '[video][subs]overlay=eof_action=pass,format=yuv420p[v]',
           ].join(';')
-  const rate =
-    quality === 'original'
-      ? vaapi === undefined
-        ? ['-crf', '21']
-        : ['-rc_mode', 'CQP', '-qp', '21']
-      : [
-          '-b:v',
-          `${qualityTargets[quality].bitrateKbps}k`,
-          '-maxrate',
-          `${qualityTargets[quality].bitrateKbps}k`,
-          '-bufsize',
-          `${qualityTargets[quality].bitrateKbps * 2}k`,
-        ]
   return [
     ...head,
     ...(vaapi === undefined ? [] : vaapiInput(vaapi, vaapiDecode)),
@@ -257,16 +291,12 @@ export const transcodeArgs = ({
     '-map',
     '[v]',
     ...(audio === undefined ? [] : ['-map', audioMap]),
-    '-c:v',
-    ...(vaapi === undefined ? ['libx264', '-preset', preset] : ['h264_vaapi']),
-    '-profile:v',
-    'high',
-    ...rate,
-    '-force_key_frames',
-    forcedKeyframes(cuts, timelineStartS),
-    ...(vaapi === undefined
-      ? ['-forced-idr', '1', '-sc_threshold', '0', '-x264-params', 'keyint=infinite']
-      : ['-g', '1000']),
+    ...h264EncodeArgs({
+      vaapi: vaapi !== undefined,
+      preset,
+      rate: rateArgs(quality, vaapi !== undefined),
+      keyframes: forcedKeyframes(cuts, timelineStartS),
+    }),
     ...(tonemap
       ? ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
       : []),

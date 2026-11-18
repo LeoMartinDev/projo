@@ -1,6 +1,4 @@
 import {
-  accessSync,
-  constants,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -50,6 +48,14 @@ import {
   setSequenceNumber,
   type TrackInfo,
 } from './fmp4.ts'
+import {
+  type Acceleration,
+  afterEarlyFailure,
+  decodeKeyOf,
+  fallsBack,
+  firstAcceleration,
+  renderNodeUsable,
+} from './vaapi-fallback.ts'
 
 type Deps = {
   transcodeDir: string
@@ -154,47 +160,6 @@ export const detectFfmpegFilters = (ffmpegBinary = 'ffmpeg'): FfmpegFilters => {
 
 export const wantsVaapi = (job: HlsJob): boolean =>
   job.mode === 'hls_transcode' && job.hwAccel === 'vaapi' && job.transcode.burnIn === undefined
-
-/**
- * Where a transcode runs (§10.3): `gpu` decodes, scales and encodes on the render node;
- * `gpu_encode` decodes on the CPU (a codec or profile the GPU cannot decode) and uploads the
- * frames to scale and encode them on the GPU; `software` is libx264.
- */
-export type Acceleration = 'gpu' | 'gpu_encode' | 'software'
-
-export const firstAcceleration = ({
-  wanted,
-  nodeUsable,
-  gpuDecodes,
-}: {
-  wanted: boolean
-  nodeUsable: boolean
-  gpuDecodes: boolean
-}): Acceleration => (!wanted || !nodeUsable ? 'software' : gpuDecodes ? 'gpu' : 'gpu_encode')
-
-/** A GPU run that failed before the session's init: one step down, never back up. */
-export const afterEarlyFailure = (acceleration: Acceleration): Acceleration =>
-  acceleration === 'gpu' ? 'gpu_encode' : 'software'
-
-export const fallsBack = (run: {
-  acceleration: Acceleration
-  exitCode: number
-  killed: boolean
-  initExists: boolean
-}): boolean =>
-  run.acceleration !== 'software' && !run.killed && run.exitCode !== 0 && !run.initExists
-
-const decodeKey = (job: HlsJob): string =>
-  `${job.video.codec}:${job.video.pixelFormat ?? 'unknown'}`
-
-const usable = (path: string): boolean => {
-  try {
-    accessSync(path, constants.R_OK | constants.W_OK)
-    return true
-  } catch {
-    return false
-  }
-}
 
 const forcedKeyframeToleranceS = 0.005
 
@@ -381,7 +346,7 @@ export const createHlsSegmenter = ({
               if (run.acceleration !== 'software') {
                 notifier?.resolve({ kind: 'playback/hw_accel_failed', key: 'vaapi' })
               }
-              if (run.acceleration === 'gpu_encode') cpuDecoded.add(decodeKey(job))
+              if (run.acceleration === 'gpu_encode') cpuDecoded.add(decodeKeyOf(job.video))
               wakeAll(state)
             }
           }
@@ -540,12 +505,12 @@ export const createHlsSegmenter = ({
     const { job } = state
     if (state.acceleration === undefined) {
       const wanted = wantsVaapi(job)
-      const nodeUsable = wanted && usable(renderNode)
+      const nodeUsable = wanted && renderNodeUsable(renderNode)
       if (wanted && !nodeUsable) vaapiFailed(job, 'render_node_unavailable')
       state.acceleration = firstAcceleration({
         wanted,
         nodeUsable,
-        gpuDecodes: !cpuDecoded.has(decodeKey(job)),
+        gpuDecodes: !cpuDecoded.has(decodeKeyOf(job.video)),
       })
     }
     const acceleration = state.acceleration

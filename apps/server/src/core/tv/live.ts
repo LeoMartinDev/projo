@@ -1,4 +1,5 @@
 import type { AppError, Result } from '@projo/shared'
+import type { TvRendition } from '@projo/shared/api/tv'
 
 import type { TvUpstream } from './channel.ts'
 
@@ -17,7 +18,14 @@ export type LiveAudioTrack = {
 
 /** What a channel's upstream carries, cached on the channel (§29.4). */
 export type TvChannelProbe = {
-  video: { codec: string; width?: number; height?: number; fieldOrder?: string }
+  video: {
+    codec: string
+    profile?: string
+    pixelFormat?: string
+    width?: number
+    height?: number
+    fieldOrder?: string
+  }
   audio: LiveAudioTrack[]
   /** The RTSP transport that answered; absent for the other schemes. */
   transport?: LiveTransport
@@ -32,6 +40,13 @@ export const liveAudioOf = (probe: TvChannelProbe): LiveAudio | undefined => {
   return track === undefined ? undefined : { index: track.index, copy: track.codec === 'aac' }
 }
 
+/**
+ * One stream of a channel (§29.4): its `copy` (folder `<channel>/`) or its `compat` rendition
+ * (folder `<channel>-compat/`).
+ */
+export type LiveStreamKey = { channelId: string; rendition: TvRendition }
+
+/** A `copy` run: the upstream remuxed. */
 export type LiveRunSpec = {
   channelId: string
   /** Counted from 1 per stream: names the run's playlist, init and segments. */
@@ -51,22 +66,43 @@ export type LiveRun = {
   stop: () => Promise<void>
 }
 
+/**
+ * A `compat` run (§29.4): H.264 and AAC from the copy stream's run `copyRun`, whose init the
+ * run reads first and whose segments it is then fed, never the provider.
+ */
+export type LiveCompatSpec = {
+  channelId: string
+  /** Counted from 1 per compat stream. */
+  run: number
+  copyRun: number
+  /** The copy's video, as probed: codec, pixel format (VAAPI decoding) and interlacing. */
+  video: TvChannelProbe['video']
+}
+
+export type LiveCompatRun = LiveRun & {
+  /** Feeds the copy run's segment `name` (a file of the copy folder), after those fed before. */
+  feed: (name: string) => void
+  /** Segments fed whose bytes ffmpeg has not taken yet: how far the run is behind its input. */
+  backlog: () => number
+}
+
 /** A segment a run's own playlist lists, in its order. */
 export type LiveSegmentFile = { name: string; durationS: number }
 
-/** The ffmpeg runs of the channel streams and their folders (`/data/cache/live/<channel>/`). */
+/** The ffmpeg runs of the channel streams and their folders (`/data/cache/live/`). */
 export type LiveRelay = {
   start: (spec: LiveRunSpec) => LiveRun
+  startCompat: (spec: LiveCompatSpec) => LiveCompatRun
   /** The segments the run's playlist lists now (none before its first). */
-  segmentsOf: (input: { channelId: string; run: number }) => LiveSegmentFile[]
+  segmentsOf: (input: LiveStreamKey & { run: number }) => LiveSegmentFile[]
   /** Deletes a finished run's playlist, init and segments. */
-  removeRun: (input: { channelId: string; run: number }) => void
+  removeRun: (input: LiveStreamKey & { run: number }) => void
   /** Deletes the stream's folder. */
-  removeStream: (channelId: string) => void
+  removeStream: (key: LiveStreamKey) => void
   /** Empties every stream folder (startup: no stream survives a restart). */
   removeAll: () => void
   /** The path of a file of the stream's folder, if it exists. */
-  fileOf: (input: { channelId: string; name: string }) => string | undefined
+  fileOf: (input: LiveStreamKey & { name: string }) => string | undefined
 }
 
 export type LiveProbeError = AppError<'tv/stream_unavailable'>
@@ -108,6 +144,8 @@ export const liveTimings = {
   readySegments: 2,
   /** Served sliding window. */
   windowS: 30,
+  /** A compat run further behind its input than this many segments starts again (§29.4). */
+  compatBacklogSegments: 3,
 } as const
 
 /** File names a stream serves: a run's init and segments (`init-2.mp4`, `seg-2-00041.m4s`). */

@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test'
 
 import { createWorldWithSession } from '../../../test/support/live-world.ts'
 
+const copyOf = (channelId: string) => ({ channelId, rendition: 'copy' as const })
+
 describe('recordLiveHeartbeat (§29.4)', () => {
   test('keeps the session open; only its account can', async () => {
     const { world, session } = await createWorldWithSession()
@@ -43,7 +45,7 @@ describe('recordLiveHeartbeat (§29.4)', () => {
     world.prober.fail('http://provider.test/live/a.ts?token=secret')
     world.relay.current('a').exit()
     await world.advance(10_000)
-    expect(world.streams.isAvailable('a')).toBe(true)
+    expect(world.streams.isAvailable(copyOf('a'))).toBe(true)
     world.relay.current('a').exit()
     await world.advance(10_000)
     expect(world.recordLiveHeartbeat({ sessionId: session.id, accountId: 'leo' })).toMatchObject({

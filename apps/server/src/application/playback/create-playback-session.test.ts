@@ -16,12 +16,13 @@ import type {
 } from '../../core/catalog/catalog.ts'
 import type { MediaInfo, SubtitleStreamInfo } from '../../core/playback/media-info.ts'
 import type { ProfileTrackDefaults } from '../../core/playback/resolve-tracks.ts'
-import type { PlaybackSession } from '../../core/playback/session.ts'
+import type { NewPlaybackSession, PlaybackSession } from '../../core/playback/session.ts'
 import type { SubtitleTrack } from '../../core/playback/subtitles.ts'
 import type { TrackPreferences } from '../../core/playback/track-preferences.ts'
 import type { ItemProgress, ProgressRepository } from '../../core/progress/progress.ts'
 import { defaultPlaybackSettings, type PlaybackSettings } from '../../core/settings/settings.ts'
 import { createPlaybackSessionFactory } from './create-playback-session.ts'
+import { transcodeSlotsFactory } from './transcode-slots.ts'
 
 const oldChrome: ClientCapabilities = {
   videoCodecs: ['avc1'],
@@ -110,6 +111,8 @@ type World = {
   progress?: ItemProgress[]
   segments?: Record<string, MediaSegment[]>
   keyframes?: Record<string, number[]>
+  /** Live compat streams holding a transcode slot (§29.4): `idle` ones may be evicted. */
+  liveCompat?: { id: string; idle: boolean }[]
 }
 
 const build = (world: World) => {
@@ -136,19 +139,38 @@ const build = (world: World) => {
     save: (entry: ItemProgress) => void progress.set(`${entry.profileId}|${entry.itemId}`, entry),
     showAncestorsAgain: () => {},
   } as unknown as ProgressRepository
+  const sessionRepository = {
+    insert: (session: NewPlaybackSession) =>
+      void sessions.push({ ...session, accountId: 'account-1' }),
+    findById: (id: string) => sessions.find((session) => session.id === id),
+    heartbeat: () => {},
+    end: () => {},
+    listStale: () => [],
+    listActive: () => sessions.filter((session) => session.endedAt === undefined),
+    listActiveWithin: () => [],
+  }
+  const playbackSettings = { read: () => ({ ...defaultPlaybackSettings, ...world.settings }) }
+  const transcodeSlots = transcodeSlotsFactory({
+    sessionRepository,
+    playbackSettings,
+    clock,
+    logger: silentLogger,
+  })
+  const evicted: string[] = []
+  for (const [order, { id, idle }] of (world.liveCompat ?? []).entries()) {
+    transcodeSlots.acquire(id, {
+      idleOrder: () => (idle ? order : undefined),
+      evict: () => {
+        evicted.push(id)
+        transcodeSlots.release(id)
+      },
+    })
+  }
   const create = createPlaybackSessionFactory({
     visibleItems,
     playableSources,
     progressRepository,
-    sessionRepository: {
-      insert: (session) => void sessions.push({ ...session, accountId: 'account-1' }),
-      findById: (id) => sessions.find((session) => session.id === id),
-      heartbeat: () => {},
-      end: () => {},
-      listStale: () => [],
-      listActive: () => sessions.filter((session) => session.endedAt === undefined),
-      listActiveWithin: () => [],
-    },
+    sessionRepository,
     subtitleTrackRepository: {
       listForSource: (sourceId) => subtitles[sourceId] ?? [],
       findById: (id) =>
@@ -163,7 +185,8 @@ const build = (world: World) => {
       delete: () => false,
     },
     profileTracks: () => french,
-    playbackSettings: { read: () => ({ ...defaultPlaybackSettings, ...world.settings }) },
+    playbackSettings,
+    transcodeSlots,
     mediaProber: {
       probe: async () => {
         throw new Error('every source has a stored probe')
@@ -210,7 +233,7 @@ const build = (world: World) => {
       ...rest,
     })
   }
-  return { play, sessions, progress, clock }
+  return { play, sessions, progress, clock, evicted, transcodeSlots }
 }
 
 describe('createPlaybackSession: version choice (§7.7)', () => {
@@ -370,6 +393,33 @@ describe('createPlaybackSession: transcode limit (§10.3)', () => {
       error: { code: 'playback/transcode_limit_reached', context: { limit: 2 } },
     })
     expect(sessions).toHaveLength(2)
+  })
+
+  test('slots held by live compat streams in use count against the limit (§29.4)', async () => {
+    const { play, sessions, evicted } = build({
+      sources: [hevc4k],
+      sessions: [transcoding('t1')],
+      liveCompat: [{ id: 'live:a', idle: false }],
+    })
+    expect(await play()).toMatchObject({
+      ok: false,
+      error: { code: 'playback/transcode_limit_reached', context: { limit: 2 } },
+    })
+    expect(sessions).toHaveLength(1)
+    expect(evicted).toEqual([])
+  })
+
+  test('an idle live compat stream gives its slot up, the one idle the longest first', async () => {
+    const { play, evicted, transcodeSlots } = build({
+      sources: [hevc4k],
+      liveCompat: [
+        { id: 'live:a', idle: true },
+        { id: 'live:b', idle: true },
+      ],
+    })
+    expect(await play()).toMatchObject({ ok: true, value: { plan: { mode: 'hls_transcode' } } })
+    expect(evicted).toEqual(['live:a'])
+    expect(transcodeSlots.held()).toBe(1)
   })
 
   test('remux and direct sessions do not count, nor ended or expired transcodes', async () => {

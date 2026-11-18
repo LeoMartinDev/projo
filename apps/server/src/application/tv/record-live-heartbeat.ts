@@ -54,7 +54,7 @@ export const recordLiveHeartbeatFactory =
         }),
       )
     }
-    if (!streams.isAvailable(session.channelId)) {
+    if (!streams.isAvailable({ channelId: session.channelId, rendition: session.rendition })) {
       endLiveSession({ session, reason: 'ended' })
       return err(
         appError('tv/stream_unavailable', 'the channel stream is unavailable', {

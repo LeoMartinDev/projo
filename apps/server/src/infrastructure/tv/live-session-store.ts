@@ -12,6 +12,10 @@ export const createLiveSessionStore = (): LiveSessionRepository => {
       const session = sessions.get(id)
       if (session !== undefined) sessions.set(id, { ...session, lastHeartbeatAt: at })
     },
+    setRendition: ({ id, rendition }) => {
+      const session = sessions.get(id)
+      if (session !== undefined) sessions.set(id, { ...session, rendition })
+    },
     remove: (id) => {
       sessions.delete(id)
     },

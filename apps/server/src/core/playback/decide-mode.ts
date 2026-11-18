@@ -9,7 +9,9 @@ import type {
 
 import type { AudioStreamInfo, MediaInfo, VideoStreamInfo } from './media-info.ts'
 
-const isBrowserH264 = (stream: VideoStreamInfo): boolean => {
+type VideoCodecFields = Pick<VideoStreamInfo, 'codec' | 'profile' | 'pixelFormat'>
+
+const isBrowserH264 = (stream: VideoCodecFields): boolean => {
   const profile = stream.profile?.toLowerCase() ?? ''
   const pixelFormat = stream.pixelFormat ?? 'yuv420p'
   return (
@@ -18,7 +20,8 @@ const isBrowserH264 = (stream: VideoStreamInfo): boolean => {
   )
 }
 
-export const videoCodecId = (stream: VideoStreamInfo): VideoCodecId | undefined => {
+/** The client codec id of a video stream (§10.2); none for a codec no client is asked about. */
+export const videoCodecId = (stream: VideoCodecFields): VideoCodecId | undefined => {
   switch (stream.codec) {
     case 'h264':
       return isBrowserH264(stream) ? 'avc1' : undefined

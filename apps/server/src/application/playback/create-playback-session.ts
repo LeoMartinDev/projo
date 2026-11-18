@@ -37,12 +37,9 @@ import {
   type ResolvedTracks,
   resolveTracks,
 } from '../../core/playback/resolve-tracks.ts'
-import {
-  isExpired,
-  type PlaybackSession,
-  type PlaybackSessionRepository,
-} from '../../core/playback/session.ts'
+import type { PlaybackSession, PlaybackSessionRepository } from '../../core/playback/session.ts'
 import { sessionSubtitleDelivery } from '../../core/playback/subtitle-delivery.ts'
+import type { TranscodeSlots } from '../../core/playback/transcode-slots.ts'
 import {
   engineSubtitleDelivery,
   type SubtitleTrack,
@@ -69,6 +66,7 @@ import { itemTimeline, segmentsForVersion } from '../../core/segments/chapters.t
 import type { PlaybackSettingsReader } from '../../core/settings/settings.ts'
 import { keyframePriority, requestKeyframes } from './shared/keyframe-requests.ts'
 import { memoryTargetOf } from './shared/memory-target.ts'
+import { runningTranscodes } from './shared/running-transcodes.ts'
 
 type Deps = {
   visibleItems: Pick<VisibleItems, 'findVisible'>
@@ -82,6 +80,8 @@ type Deps = {
   trackPreferenceRepository: TrackPreferenceRepository
   profileTracks: (profileId: string) => ProfileTrackDefaults | undefined
   playbackSettings: PlaybackSettingsReader
+  /** The limit, shared with live `compat` streams (§29.4): idle ones are evicted first. */
+  transcodeSlots: Pick<TranscodeSlots, 'admitPlayback'>
   mediaProber: MediaProber
   keyframeStore: KeyframeStore
   jobQueue: JobQueue
@@ -172,6 +172,7 @@ export const createPlaybackSessionFactory = ({
   trackPreferenceRepository,
   profileTracks,
   playbackSettings,
+  transcodeSlots,
   mediaProber,
   keyframeStore,
   jobQueue,
@@ -386,9 +387,7 @@ export const createPlaybackSessionFactory = ({
       plan: PlaybackPlan,
     ): Result<PlaybackPlan, CreatePlaybackSessionError> => {
       if (plan.mode !== 'hls_transcode') return ok(plan)
-      const active = sessionRepository
-        .listActive()
-        .filter((other) => other.mode === 'hls_transcode' && !isExpired(other, now))
+      const active = runningTranscodes(sessionRepository.listActive(), now)
       const replaced = active
         .filter((other) => other.authSessionId === input.authSessionId && other.itemId === itemId)
         .reduce<PlaybackSession | undefined>(
@@ -398,14 +397,11 @@ export const createPlaybackSessionFactory = ({
               : latest,
           undefined,
         )
-      const running = active.filter((other) => other.id !== replaced?.id)
-      return running.length >= settings.maxConcurrentTranscodes
-        ? err(
-            appError('playback/transcode_limit_reached', 'too many transcodes running', {
-              context: { limit: settings.maxConcurrentTranscodes },
-            }),
-          )
-        : ok(plan)
+      // Idle live compat streams give their slot up first (§29.4).
+      const admitted = transcodeSlots.admitPlayback(
+        active.filter((other) => other.id !== replaced?.id).length,
+      )
+      return admitted.ok ? ok(plan) : admitted
     }
     const planFor = (
       candidate: ResolvedTracks,

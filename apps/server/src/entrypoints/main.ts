@@ -147,7 +147,7 @@ export const startProjo = ({
     assistantPorts: metadata.assistantPorts,
     listLogs: logs.listLogs,
   })
-  const tv = buildTvModule(platform)
+  const tv = buildTvModule(platform, { transcodeSlots: playback.transcodeSlots })
 
   const modules: ModuleContribution[] = [
     auth,

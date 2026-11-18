@@ -49,6 +49,8 @@ const toUpstream = (value: unknown): TvChannel['upstream'] => {
 const probeSchema = z.object({
   video: z.object({
     codec: z.string(),
+    profile: z.string().optional(),
+    pixelFormat: z.string().optional(),
     width: z.number().int().optional(),
     height: z.number().int().optional(),
     fieldOrder: z.string().optional(),
@@ -66,10 +68,12 @@ const probeSchema = z.object({
 })
 
 const toProbe = (value: z.infer<typeof probeSchema>): TvChannelProbe => {
-  const { width, height, fieldOrder } = value.video
+  const { profile, pixelFormat, width, height, fieldOrder } = value.video
   return {
     video: {
       codec: value.video.codec,
+      ...(profile === undefined ? {} : { profile }),
+      ...(pixelFormat === undefined ? {} : { pixelFormat }),
       ...(width === undefined ? {} : { width }),
       ...(height === undefined ? {} : { height }),
       ...(fieldOrder === undefined ? {} : { fieldOrder }),

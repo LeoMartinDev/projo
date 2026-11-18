@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 import { existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { ok } from '@projo/shared'
 import {
   type AdminTvChannelsPage,
   type AdminTvSourceDetailDto,
@@ -54,6 +55,7 @@ beforeEach(async () => {
     routes: (built) => {
       module = buildTvModule(
         { ...built, logger: logs.logger },
+        { transcodeSlots: { acquire: () => ok(), release: () => {} } },
         // The test provider is on loopback, which logo downloads refuse by default (§29.2).
         { logoDownloader: createTvLogoDownloader({ allowLoopback: true }) },
       )
