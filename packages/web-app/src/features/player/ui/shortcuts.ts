@@ -1,19 +1,8 @@
 import { backKeys } from '../../../shared/ui/spatial-nav/keys.ts'
 
-export type PlayerCommand =
-  | 'toggle_play'
-  | 'seek_back'
-  | 'seek_forward'
-  | 'volume_up'
-  | 'volume_down'
-  | 'toggle_mute'
+// What both players do with Escape, Enter and the arrows over their controls.
+type ChromeCommand =
   | 'toggle_fullscreen'
-  | 'skip_segment'
-  | 'next_episode'
-  | 'toggle_subtitles'
-  | 'toggle_info'
-  | 'speed_down'
-  | 'speed_up'
   | 'close_overlay'
   | 'exit'
   // Couch navigation (§10.7, §19): focus between the controls, the chrome's
@@ -25,6 +14,32 @@ export type PlayerCommand =
   | 'focus_controls'
   | 'activate_prompt'
   | 'release_focus'
+
+export type PlayerCommand =
+  | ChromeCommand
+  | 'toggle_play'
+  | 'seek_back'
+  | 'seek_forward'
+  | 'volume_up'
+  | 'volume_down'
+  | 'toggle_mute'
+  | 'skip_segment'
+  | 'next_episode'
+  | 'toggle_subtitles'
+  | 'toggle_info'
+  | 'speed_down'
+  | 'speed_up'
+
+// The live player's (§29.5): no seek, speed, tracks nor prompts; channels instead.
+export type LiveCommand =
+  | ChromeCommand
+  | 'toggle_play'
+  | 'volume_up'
+  | 'volume_down'
+  | 'toggle_mute'
+  | 'previous_channel'
+  | 'next_channel'
+  | 'toggle_channels'
 
 export type KeyInput = {
   key: string
@@ -76,6 +91,8 @@ export const focusedControlOf = (element: {
   return tag === 'button' || tag === 'a' ? 'activatable' : undefined
 }
 
+type Bindings<C extends string> = { keys: Record<string, C>; letters: Record<string, C> }
+
 const letters: Record<string, PlayerCommand> = {
   k: 'toggle_play',
   m: 'toggle_mute',
@@ -108,14 +125,27 @@ const keys: Record<string, PlayerCommand> = {
   '>': 'speed_up',
 }
 
-const focusMoves: Record<string, PlayerCommand> = {
+const playerBindings: Bindings<PlayerCommand> = { keys, letters }
+
+const liveBindings: Bindings<LiveCommand> = {
+  keys: {
+    ' ': 'toggle_play',
+    ArrowUp: 'volume_up',
+    ArrowDown: 'volume_down',
+    PageUp: 'previous_channel',
+    PageDown: 'next_channel',
+  },
+  letters: { k: 'toggle_play', m: 'toggle_mute', f: 'toggle_fullscreen', l: 'toggle_channels' },
+}
+
+const focusMoves: Record<string, ChromeCommand> = {
   ArrowUp: 'focus_up',
   ArrowDown: 'focus_down',
   ArrowLeft: 'focus_left',
   ArrowRight: 'focus_right',
 }
 
-const escapeCommand = (context: KeyContext, back: boolean): PlayerCommand | undefined => {
+const escapeCommand = (context: KeyContext, back: boolean): ChromeCommand | undefined => {
   if (context.overlayOpen) return 'close_overlay'
   if (context.focusedControl !== undefined) return 'release_focus'
   if (!context.fullscreen) return 'exit'
@@ -123,7 +153,11 @@ const escapeCommand = (context: KeyContext, back: boolean): PlayerCommand | unde
   return context.ownFullscreen === true || back ? 'toggle_fullscreen' : undefined
 }
 
-export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand | undefined => {
+const resolveKey = <C extends string>(
+  input: KeyInput,
+  context: KeyContext,
+  bindings: Bindings<C>,
+): C | ChromeCommand | undefined => {
   if (input.altKey || input.ctrlKey || input.metaKey || context.editing) return undefined
   // Backspace and the back keys of keyboards and remotes act as Escape (§10.7).
   const back = backKeys.includes(input.key)
@@ -141,8 +175,15 @@ export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand 
     // The timeline keeps ←/→ to seek; ↑/↓ leave it.
     if (control !== 'slider' || move === 'focus_up' || move === 'focus_down') return move
   }
-  return keys[input.key] ?? letters[input.key.toLowerCase()]
+  return bindings.keys[input.key] ?? bindings.letters[input.key.toLowerCase()]
 }
+
+export const commandFor = (input: KeyInput, context: KeyContext): PlayerCommand | undefined =>
+  resolveKey(input, context, playerBindings)
+
+/** The live player's keys (§29.5): `←`/`→` only move focus between controls. */
+export const liveCommandFor = (input: KeyInput, context: KeyContext): LiveCommand | undefined =>
+  resolveKey(input, context, liveBindings)
 
 export type TapZone = 'left' | 'center' | 'right'
 

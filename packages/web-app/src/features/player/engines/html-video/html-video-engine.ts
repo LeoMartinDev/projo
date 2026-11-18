@@ -21,7 +21,13 @@ import {
 import { resolveServerUrl } from '../../../../shared/api/media-url.ts'
 import { playerVideo } from './player-element.ts'
 import { attachSidecarTracks, type SidecarTracks } from './sidecar-tracks.ts'
-import { type AttachedStream, attachStream, createStreamReloader, loadHls } from './stream.ts'
+import {
+  type AttachedStream,
+  attachStream,
+  createStreamReloader,
+  type HlsLoader,
+  loadHls,
+} from './stream.ts'
 
 // Kept equal to the class player.css styles the native cues with.
 const nativeCuesClass = 'player__video--native-cues'
@@ -126,6 +132,8 @@ const pipEvents = [
 export const createHtmlVideoEngine = (
   video: HTMLVideoElement,
   serverOrigin = '',
+  // Where hls.js comes from (tests hand a scripted one).
+  hls: HlsLoader = loadHls,
 ): WebPlayerEngine => {
   // A page that is not the server's (the desktop app's fallback, §28): stream URLs resolve
   // against the server and load through CORS, without credentials (they are capability URLs).
@@ -150,7 +158,7 @@ export const createHtmlVideoEngine = (
   let detected: Promise<ClientCapabilities> | undefined
   let resolved: ClientCapabilities | undefined
   const clientCapabilities = () => {
-    detected ??= loadHls()
+    detected ??= hls()
       .then((Hls) => detectCapabilities(browserMediaEnvironment(Hls.isSupported())))
       .then((capabilities) => {
         resolved = capabilities
@@ -263,6 +271,7 @@ export const createHtmlVideoEngine = (
         onFatal: onFailure,
         ...(onOpened === undefined ? {} : { onOpened }),
         withCredentials: serverOrigin === '',
+        hls,
       })
       attached = attachedStream
       return () => {
@@ -275,6 +284,32 @@ export const createHtmlVideoEngine = (
         reloader.cancel()
         attachedStream.detach()
         sessionTracks?.detach()
+      }
+    },
+    // A live playlist (§29.5): no subtitles, no start position, normal speed (the `<video>` is
+    // shared with titles), hls.js tuned for live.
+    loadLive: (load, onFailure, onOpened) => {
+      video.classList.remove(nativeCuesClass)
+      current = undefined
+      sidecar = undefined
+      video.defaultPlaybackRate = 1
+      video.playbackRate = 1
+      const attachedStream = attachStream({
+        video,
+        stream: { type: 'hls', url: resolveStream(load.streamUrl) },
+        hlsMode: resolved?.hls === 'native' ? 'native' : 'mse',
+        startSeconds: 0,
+        autoplay: load.autoplay,
+        onFatal: onFailure,
+        ...(onOpened === undefined ? {} : { onOpened }),
+        withCredentials: serverOrigin === '',
+        hls,
+        live: true,
+      })
+      attached = attachedStream
+      return () => {
+        if (attached === attachedStream) attached = undefined
+        attachedStream.detach()
       }
     },
     selectAudio: () => {},

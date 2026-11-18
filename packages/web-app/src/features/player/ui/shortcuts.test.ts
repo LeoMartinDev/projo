@@ -5,6 +5,7 @@ import {
   focusedControlOf,
   isVerticalDrag,
   type KeyContext,
+  liveCommandFor,
   tapZone,
   volumeAfterDrag,
 } from './shortcuts.ts'
@@ -138,6 +139,30 @@ describe('a control with keyboard focus', () => {
     const control = focusedControlOf({ tagName: 'BUTTON', keyboardFocused: false })
     expect(control).toBeUndefined()
     expect(commandFor(key(' '), { ...idle, focusedControl: control })).toBe('toggle_play')
+  })
+})
+
+describe('liveCommandFor (§29.5)', () => {
+  test('channels and playback, no seeking', () => {
+    expect(liveCommandFor(key(' '), idle)).toBe('toggle_play')
+    expect(liveCommandFor(key('K'), idle)).toBe('toggle_play')
+    expect(liveCommandFor(key('PageUp'), idle)).toBe('previous_channel')
+    expect(liveCommandFor(key('PageDown'), idle)).toBe('next_channel')
+    expect(liveCommandFor(key('l'), idle)).toBe('toggle_channels')
+    expect(liveCommandFor(key('ArrowUp'), idle)).toBe('volume_up')
+    expect(liveCommandFor(key('m'), idle)).toBe('toggle_mute')
+    expect(liveCommandFor(key('f'), idle)).toBe('toggle_fullscreen')
+    expect(liveCommandFor(key('ArrowLeft'), idle)).toBeUndefined()
+    expect(liveCommandFor(key('s'), idle)).toBeUndefined()
+    expect(liveCommandFor(key('<'), idle)).toBeUndefined()
+  })
+
+  test('Escape closes the channel list first, and the list keeps its own keys', () => {
+    expect(liveCommandFor(key('Escape'), { ...idle, overlayOpen: true })).toBe('close_overlay')
+    expect(liveCommandFor(key('PageDown'), { ...idle, inOverlay: true })).toBeUndefined()
+    expect(liveCommandFor(key('ArrowRight'), { ...idle, focusedControl: 'activatable' })).toBe(
+      'focus_right',
+    )
   })
 })
 

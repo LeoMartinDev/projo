@@ -6,6 +6,7 @@ import { resolveMediaUrl } from '../../../shared/api/media-url.ts'
 import {
   nowPlayingOf,
   positionStateOf,
+  liveSystemMediaPositionOf,
   systemMediaActions,
   systemMediaPositionOf,
 } from './media-session.ts'
@@ -37,6 +38,7 @@ describe('Now Playing (§10.7)', () => {
       'seekforward',
       'seekto',
     ])
+    expect(systemMediaActions(true, false)).toEqual(['play', 'pause', 'nexttrack'])
     expect(systemMediaActions(true)).toEqual([
       'play',
       'pause',
@@ -76,5 +78,27 @@ describe('Now Playing (§10.7)', () => {
       durationMs: 100_000,
       rate: 1,
     })
+  })
+
+  test('live: the play state on an empty timeline (§29.5)', () => {
+    const media = {
+      paused: false,
+      ended: false,
+      seeking: false,
+      currentTime: 812,
+      duration: 830,
+      bufferedEnd: 818,
+      volume: 1,
+      muted: false,
+      ready: true,
+      playbackRate: 1,
+    }
+    expect(liveSystemMediaPositionOf(media)).toEqual({
+      playing: true,
+      positionMs: 0,
+      durationMs: 0,
+      rate: 1,
+    })
+    expect(liveSystemMediaPositionOf({ ...media, paused: true }).playing).toBe(false)
   })
 })

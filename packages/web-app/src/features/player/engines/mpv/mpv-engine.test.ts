@@ -169,6 +169,60 @@ describe('mpv engine', () => {
     expect(mpv.calls).toEqual(['get track-list', 'set aid=2', 'set sid=2', 'set pause=no'])
   })
 
+  test('a live playlist loads from its live edge, plays without touching the tracks (§29.5)', async () => {
+    const mpv = scriptedBridge(trackList)
+    const engine = engineOn(mpv.bridge)
+    engine.loadLive(
+      { streamUrl: '/api/v1/stream/l1/secret/live/index.m3u8', autoplay: true },
+      () => {},
+    )
+    await mpv.settle()
+    expect(mpv.calls).toEqual([
+      'init {"pause":"yes","speed":"1","sub-delay":"0"}',
+      'observe',
+      'set pause=yes',
+      'set aid=auto',
+      'set sid=no',
+      'set start=none',
+      'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8 replace',
+    ])
+    mpv.calls.splice(0)
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    expect(mpv.calls).toEqual(['set pause=no'])
+  })
+
+  test('a live playlist after a title keeps none of its speed, delay, tracks or position', async () => {
+    const mpv = scriptedBridge(trackList)
+    const engine = engineOn(mpv.bridge)
+    const unload = engine.load(contractLoad({ session, startSeconds: 42 }), () => {})
+    await mpv.settle()
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    engine.setRate(1.5)
+    engine.setSubtitleDelay(-500)
+    await mpv.settle()
+    unload()
+    await mpv.settle()
+    mpv.calls.splice(0)
+    engine.loadLive(
+      { streamUrl: '/api/v1/stream/l1/secret/live/index.m3u8', autoplay: true },
+      () => {},
+    )
+    await mpv.settle()
+    expect(mpv.calls).toEqual([
+      'set sub-delay=0',
+      'set speed=1',
+      'set pause=yes',
+      'set aid=auto',
+      'set sid=no',
+      'set start=none',
+      'loadfile http://nas.local:8080/api/v1/stream/l1/secret/live/index.m3u8 replace',
+    ])
+    expect(engine.read()).toMatchObject({ duration: 0, currentTime: 0 })
+    mpv.calls.splice(0)
+    await mpv.emit({ kind: 'event', event: 'file-loaded' })
+    expect(mpv.calls).toEqual(['set pause=no'])
+  })
+
   test('changes audio and subtitles in place, by stream index or WebVTT URL', async () => {
     const mpv = scriptedBridge(trackList)
     const engine = engineOn(mpv.bridge)

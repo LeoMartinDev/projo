@@ -111,7 +111,9 @@ export const pictureMargins = (
 const seconds = (ms: number) => String(Math.round(ms) / 1000)
 
 type Entry = {
-  load: EngineLoad
+  // Undefined for a live playlist (§29.5): no tracks to apply.
+  load: EngineLoad | undefined
+  autoplay: boolean
   onFailure: (failure: StreamFailure) => void
   active: boolean
   wanted: { audioIndex: number | undefined; subtitle: SubtitleTrackDto | undefined }
@@ -287,7 +289,7 @@ export const createMpvEngine = ({
 
   // Inside `run` only: the wanted tracks, never libmpv's own choice (§10.4).
   const applyTracks = async (entry: Entry, kinds: { audio: boolean; subtitle: boolean }) => {
-    if (!entry.active || current !== entry) return
+    if (!entry.active || current !== entry || entry.load === undefined) return
     const { audioIndex, subtitle } = entry.wanted
     const { mode } = entry.load.session
     const audio = kinds.audio && mode === 'direct' && audioIndex !== undefined
@@ -306,7 +308,7 @@ export const createMpvEngine = ({
   const onFileLoaded = (entry: Entry) =>
     void run(async () => {
       await applyTracks(entry, { audio: true, subtitle: true })
-      if (entry.active && current === entry && entry.load.autoplay)
+      if (entry.active && current === entry && entry.autoplay)
         await bridge.setProperty('pause', 'no')
     }).catch((error: unknown) => fail(entry, error))
 
@@ -328,6 +330,40 @@ export const createMpvEngine = ({
     void run(async () => {
       if (live.alive && instance === live && current === undefined) await bridge.command(['stop'])
     }).catch(() => undefined)
+  }
+
+  // Loads a stream in libmpv, paused until its tracks are applied; returns what unloads it.
+  const open = (
+    entry: Entry,
+    stream: {
+      url: string
+      startSeconds: number | undefined
+      subtitleDelayMs: number | undefined
+      // A live playlist: libmpv picks the audio, shows no subtitles.
+      live: boolean
+    },
+  ) => {
+    if (current !== undefined) current.active = false
+    current = entry
+    playback = loadingPlayback(playback.media, stream.startSeconds ?? 0)
+    emit('emptied')
+    if (stream.subtitleDelayMs !== undefined)
+      setDesired('sub-delay', seconds(stream.subtitleDelayMs))
+    void run(async () => {
+      await ensureInstance()
+      if (!entry.active || current !== entry) return
+      await bridge.setProperty('pause', 'yes')
+      if (stream.live) {
+        await bridge.setProperty('aid', 'auto')
+        await bridge.setProperty('sid', 'no')
+      }
+      await bridge.setProperty(
+        'start',
+        stream.startSeconds === undefined ? 'none' : String(Math.max(0, stream.startSeconds)),
+      )
+      await bridge.command(['loadfile', resolveUrl(stream.url), 'replace'])
+    }).catch((error: unknown) => fail(entry, error))
+    return () => unload(entry)
   }
 
   const command = (args: string[]) => {
@@ -374,21 +410,38 @@ export const createMpvEngine = ({
       setDesired('mute', muted ? 'yes' : 'no')
     },
     setRate: (rate) => setDesired('speed', String(rate)),
-    load: (load, onFailure) => {
-      const entry: Entry = { load, onFailure, active: true, wanted: sessionTracks(load.session) }
-      if (current !== undefined) current.active = false
-      current = entry
-      playback = loadingPlayback(playback.media, load.startSeconds)
-      emit('emptied')
-      setDesired('sub-delay', seconds(load.subtitleDelayMs))
-      void run(async () => {
-        await ensureInstance()
-        if (!entry.active || current !== entry) return
-        await bridge.setProperty('pause', 'yes')
-        await bridge.setProperty('start', String(Math.max(0, load.startSeconds)))
-        await bridge.command(['loadfile', resolveUrl(load.session.stream.url), 'replace'])
-      }).catch((error: unknown) => fail(entry, error))
-      return () => unload(entry)
+    load: (load, onFailure) =>
+      open(
+        {
+          load,
+          autoplay: load.autoplay,
+          onFailure,
+          active: true,
+          wanted: sessionTracks(load.session),
+        },
+        {
+          url: load.session.stream.url,
+          startSeconds: load.startSeconds,
+          subtitleDelayMs: load.subtitleDelayMs,
+          live: false,
+        },
+      ),
+    // A live playlist (§29.5): ffmpeg's HLS demuxer starts it near its live edge (`start=none`).
+    // Nothing a title set carries over: normal speed, no subtitle delay, libmpv's own audio
+    // track and no subtitles (`aid`/`sid` set at runtime outlive their file).
+    loadLive: (load, onFailure) => {
+      setDesired('speed', '1')
+      setDesired('sub-delay', '0')
+      return open(
+        {
+          load: undefined,
+          autoplay: load.autoplay,
+          onFailure,
+          active: true,
+          wanted: { audioIndex: undefined, subtitle: undefined },
+        },
+        { url: load.streamUrl, startSeconds: undefined, subtitleDelayMs: undefined, live: true },
+      )
     },
     selectAudio: (track) => {
       if (current === undefined) return

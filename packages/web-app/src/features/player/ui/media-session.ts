@@ -21,13 +21,17 @@ export const nowPlayingOf = ({
   ...(posterUrl === undefined ? {} : { artworkUrl: resolve(`${posterUrl}?w=500`) }),
 })
 
-/** What the system's controls offer: every action, the next track only with a next episode. */
-export const systemMediaActions = (hasNext: boolean): readonly SystemMediaAction[] => [
+/**
+ * What the system's controls offer: play and pause, seeking unless live (§29.5), the next track
+ * only with a next episode or channel.
+ */
+export const systemMediaActions = (
+  hasNext: boolean,
+  seekable = true,
+): readonly SystemMediaAction[] => [
   'play',
   'pause',
-  'seekbackward',
-  'seekforward',
-  'seekto',
+  ...(seekable ? (['seekbackward', 'seekforward', 'seekto'] as const) : []),
   ...(hasNext ? (['nexttrack'] as const) : []),
 ]
 
@@ -56,3 +60,11 @@ export const systemMediaPositionOf = (media: MediaSnapshot): SystemMediaPosition
         rate: state.playbackRate,
       }
 }
+
+/** Live (§29.5): the play state only, on an empty timeline (no duration, no position). */
+export const liveSystemMediaPositionOf = (media: MediaSnapshot): SystemMediaPosition => ({
+  playing: !media.paused && !media.ended,
+  positionMs: 0,
+  durationMs: 0,
+  rate: 1,
+})

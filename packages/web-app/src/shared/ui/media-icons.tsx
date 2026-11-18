@@ -40,6 +40,13 @@ export const HomeIcon = ({ size = 22 }: IconProps) => (
   </Icon>
 )
 
+export const LiveTvIcon = ({ size = 22 }: IconProps) => (
+  <Icon size={size}>
+    <rect x="3" y="7.5" width="18" height="12.5" rx="2" />
+    <path d="M8.5 3.5 12 7l3.5-3.5" />
+  </Icon>
+)
+
 export const BookmarkIcon = ({ size = 22 }: IconProps) => (
   <Icon size={size}>
     <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z" />

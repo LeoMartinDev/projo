@@ -18,6 +18,11 @@ export const port = 4801
 
 export const baseUrl = `http://127.0.0.1:${port}`
 
+// The IPTV provider the server reads its test playlist and live streams from (§29.8).
+export const iptvPort = 4802
+
+export const iptvBaseUrl = `http://127.0.0.1:${iptvPort}`
+
 export const dataDir: string = join(e2eRoot, 'data')
 
 export const libraryDir: string = join(e2eRoot, 'library')

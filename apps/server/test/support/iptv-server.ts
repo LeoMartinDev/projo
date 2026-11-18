@@ -36,7 +36,7 @@ const WEBP_BYTES = Uint8Array.from([
 ])
 const GIF_BYTES = Uint8Array.from([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00])
 
-const images: Record<string, { bytes: Uint8Array; type: string }> = {
+const images: Record<string, { bytes: Uint8Array<ArrayBuffer>; type: string }> = {
   png: { bytes: PNG_BYTES, type: 'image/png' },
   jpg: { bytes: JPEG_BYTES, type: 'image/jpeg' },
   webp: { bytes: WEBP_BYTES, type: 'image/webp' },
@@ -133,7 +133,14 @@ const liveEncoder = (variant: string[]) => {
   return { body, stop, exited: proc.exited }
 }
 
-export const startIptvServer = ({ requireUserAgent }: { requireUserAgent?: string } = {}) => {
+export const startIptvServer = ({
+  requireUserAgent,
+  port = 0,
+}: {
+  requireUserAgent?: string
+  // A fixed port (the e2e's provider); 0: any free one.
+  port?: number
+} = {}) => {
   const requests: IptvRequest[] = []
   const overrides = new Map<string, Override>()
   const encoders = new Set<{ stop: () => void }>()
@@ -187,7 +194,7 @@ export const startIptvServer = ({ requireUserAgent }: { requireUserAgent?: strin
   }
 
   const server = Bun.serve({
-    port: 0,
+    port,
     fetch: (request) => {
       const url = new URL(request.url)
       const path = url.pathname

@@ -56,6 +56,11 @@ const PlayerRoute = lazyRouteComponent(
   () => import('../features/player/player-route.tsx'),
   'PlayerRoute',
 )
+const LivePlayerRoute = lazyRouteComponent(
+  () => import('../features/player/live-player-route.tsx'),
+  'LivePlayerRoute',
+)
+const TvPage = lazyRouteComponent(() => import('../features/tv/TvPage.tsx'), 'TvPage')
 const AccountPage = lazyRouteComponent(
   () => import('../features/account/AccountPage.tsx'),
   'AccountPage',
@@ -348,6 +353,13 @@ const watchlistRoute = createRoute({
   component: KeptTab,
 })
 
+const tvRoute = createRoute({
+  getParentRoute: () => shellRoute,
+  path: '/tv',
+  loader: () => TvPage.preload?.(),
+  component: TvPage,
+})
+
 const shellNotFoundRoute = createRoute({
   getParentRoute: () => shellRoute,
   path: '$',
@@ -408,6 +420,16 @@ const watchRoute = createRoute({
     const { itemId } = watchRoute.useParams()
     const { from } = watchRoute.useSearch()
     return <PlayerRoute key={itemId} itemId={itemId} fromStart={from === 'start'} />
+  },
+})
+
+const watchTvRoute = createRoute({
+  getParentRoute: () => authedRoute,
+  path: '/watch/tv/$channelId',
+  loader: () => LivePlayerRoute.preload?.(),
+  component: function WatchTv() {
+    const { channelId } = watchTvRoute.useParams()
+    return <LivePlayerRoute channelId={channelId} />
   },
 })
 
@@ -600,6 +622,7 @@ export const routeTree = rootRoute.addChildren([
       seriesRoute,
       categoryRoute,
       watchlistRoute,
+      tvRoute,
       itemRoute,
       profileSettingsRoute,
       accountRoute,
@@ -607,6 +630,7 @@ export const routeTree = rootRoute.addChildren([
     ]),
     profilesRoute,
     watchRoute,
+    watchTvRoute,
     oauthAuthorizeRoute,
     adminRoute.addChildren([
       adminIndexRoute,

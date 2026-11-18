@@ -34,7 +34,8 @@
     "movies": "Movies",
     "series": "Series",
     "watchlist": "My list",
-    "search": "Search"
+    "search": "Search",
+    "tv": "TV"
   },
   "shell": {
     "accountMenu": "{{name}}’s account menu",
@@ -315,6 +316,10 @@
     "empty": "My list is empty",
     "emptyText": "Add movies and series with + to find them here."
   },
+  "tv": {
+    "empty": "No channels",
+    "otherChannels": "Other channels"
+  },
   "category": {
     "empty": "Nothing in this category"
   },
@@ -593,6 +598,13 @@
       "buffer": "Buffer",
       "seconds": "{{value}} s",
       "toggle": "Show playback info"
+    },
+    "live": {
+      "channels": "Channels",
+      "previous": "Previous channel",
+      "next": "Next channel",
+      "nowPlaying": "Live TV",
+      "sessionEnded": "Session ended"
     }
   },
   "admin": {

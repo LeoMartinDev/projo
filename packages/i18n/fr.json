@@ -34,7 +34,8 @@
     "movies": "Films",
     "series": "Séries",
     "watchlist": "Ma liste",
-    "search": "Recherche"
+    "search": "Recherche",
+    "tv": "TV"
   },
   "shell": {
     "accountMenu": "Menu du compte de {{name}}",
@@ -315,6 +316,10 @@
     "empty": "Ma liste est vide",
     "emptyText": "Ajoutez des films et des séries avec + pour les retrouver ici."
   },
+  "tv": {
+    "empty": "Aucune chaîne",
+    "otherChannels": "Autres chaînes"
+  },
   "category": {
     "empty": "Aucun titre dans cette catégorie"
   },
@@ -593,6 +598,13 @@
       "buffer": "Tampon",
       "seconds": "{{value}} s",
       "toggle": "Afficher les infos de lecture"
+    },
+    "live": {
+      "channels": "Chaînes",
+      "previous": "Chaîne précédente",
+      "next": "Chaîne suivante",
+      "nowPlaying": "TV en direct",
+      "sessionEnded": "Session terminée"
     }
   },
   "admin": {

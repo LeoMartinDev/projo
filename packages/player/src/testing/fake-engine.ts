@@ -4,6 +4,7 @@ import type {
   EngineCapabilities,
   EngineLoad,
   EngineStats,
+  LiveLoad,
   PlayerEngine,
   StreamFailure,
 } from '../core/engine.ts'
@@ -41,6 +42,12 @@ export type FakeLoad = {
   open: () => void
 }
 
+export type FakeLiveLoad = {
+  load: LiveLoad
+  active: boolean
+  fail: (failure: StreamFailure) => void
+}
+
 export type FakeEngine = {
   engine: PlayerEngine
   // The media right now; `emit` changes it and reports the event.
@@ -49,6 +56,9 @@ export type FakeEngine = {
   commands: string[]
   loads: FakeLoad[]
   current: () => FakeLoad | undefined
+  // Live playlists loaded (`loadLive`), and the one playing.
+  liveLoads: FakeLiveLoad[]
+  currentLive: () => FakeLiveLoad | undefined
   emit: (type: MediaEventType, patch?: Partial<MediaSnapshot>) => void
   // The current stream's metadata arrives: the start seek, then autoplay.
   loaded: (durationS: number) => void
@@ -90,6 +100,14 @@ export const createFakeEngine = ({
   const commands: string[] = []
   const loads: FakeLoad[] = []
   const current = () => loads.findLast((load) => load.active)
+  const liveLoads: FakeLiveLoad[] = []
+  const currentLive = () => liveLoads.findLast((load) => load.active)
+  // What `loaded` starts: the stream loaded last, of either kind.
+  let playing: { active: () => boolean; startSeconds: number; autoplay: boolean } | undefined
+  const unloaded = (id: string) => {
+    commands.push(`unload ${id}`)
+    emit('emptied', emptyMedia(media))
+  }
 
   const emit = (type: MediaEventType, patch: Partial<MediaSnapshot> = {}) => {
     media = { ...media, ...patch }
@@ -158,11 +176,32 @@ export const createFakeEngine = ({
         },
       }
       loads.push(entry)
+      playing = {
+        active: () => entry.active,
+        startSeconds: load.startSeconds,
+        autoplay: load.autoplay,
+      }
       return () => {
         if (!entry.active) return
         entry.active = false
-        commands.push(`unload ${load.session.id}`)
-        emit('emptied', emptyMedia(media))
+        unloaded(load.session.id)
+      }
+    },
+    loadLive: (load, onFailure) => {
+      commands.push(`live ${load.streamUrl}${load.autoplay ? '' : ' paused'}`)
+      const entry: FakeLiveLoad = {
+        load,
+        active: true,
+        fail: (failure) => {
+          if (entry.active) onFailure(failure)
+        },
+      }
+      liveLoads.push(entry)
+      playing = { active: () => entry.active, startSeconds: 0, autoplay: load.autoplay }
+      return () => {
+        if (!entry.active) return
+        entry.active = false
+        unloaded(load.streamUrl)
       }
     },
     selectAudio: (track) => void commands.push(`audio ${track.index}`),
@@ -183,9 +222,11 @@ export const createFakeEngine = ({
     commands,
     loads,
     current,
+    liveLoads,
+    currentLive,
     emit,
     loaded: (durationS) => {
-      const load = current()?.load
+      const load = playing?.active() === true ? playing : current()?.load
       emit('durationchange', { duration: durationS })
       emit('loadedmetadata', { ready: true })
       if (load !== undefined && load.startSeconds > 0) seek(load.startSeconds)

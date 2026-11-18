@@ -4,7 +4,12 @@ import type { MediaEventType } from '@projo/player/core/media-state'
 
 import { type NowPlaying, type SystemMediaRequest, useHost } from '../../../host.ts'
 import type { WebPlayerEngine } from '../web-engine.ts'
-import { mediaSessionSkipS, systemMediaActions, systemMediaPositionOf } from './media-session.ts'
+import {
+  liveSystemMediaPositionOf,
+  mediaSessionSkipS,
+  systemMediaActions,
+  systemMediaPositionOf,
+} from './media-session.ts'
 
 const positionEvents: ReadonlySet<MediaEventType> = new Set([
   'loadedmetadata',
@@ -16,7 +21,10 @@ const positionEvents: ReadonlySet<MediaEventType> = new Set([
   'ended',
 ])
 
-/** Drives the system's media controls (`AppHost.systemMedia`) while the player shows a title. */
+/**
+ * Drives the system's media controls (`AppHost.systemMedia`) while the player shows a title or a
+ * channel; without `seekBy` (live, §29.5) no seeking, and only the play state.
+ */
 export const useMediaSession = ({
   engine,
   metadata,
@@ -25,17 +33,18 @@ export const useMediaSession = ({
 }: {
   engine: WebPlayerEngine
   metadata: Omit<NowPlaying, 'actions'> | undefined
-  seekBy: (deltaMs: number) => void
+  seekBy: ((deltaMs: number) => void) | undefined
   next: (() => void) | undefined
 }) => {
   const { systemMedia } = useHost()
-  const onSeekBy = useEffectEvent(seekBy)
+  const onSeekBy = useEffectEvent((deltaMs: number) => seekBy?.(deltaMs))
   const onNext = useEffectEvent(() => next?.())
   const hasNext = next !== undefined
+  const seekable = seekBy !== undefined
 
   useEffect(() => {
     if (metadata === undefined) return
-    systemMedia.set({ ...metadata, actions: systemMediaActions(hasNext) })
+    systemMedia.set({ ...metadata, actions: systemMediaActions(hasNext, seekable) })
     const stopActions = systemMedia.onAction((request: SystemMediaRequest) => {
       switch (request.action) {
         case 'play':
@@ -47,13 +56,14 @@ export const useMediaSession = ({
         case 'seekforward':
           return onSeekBy(mediaSessionSkipS * 1000)
         case 'seekto':
-          return engine.seek(request.seekTimeMs / 1000)
+          return seekable ? engine.seek(request.seekTimeMs / 1000) : undefined
         case 'nexttrack':
           return hasNext ? onNext() : undefined
       }
     })
     const position = () => {
-      const state = systemMediaPositionOf(engine.read())
+      const media = engine.read()
+      const state = seekable ? systemMediaPositionOf(media) : liveSystemMediaPositionOf(media)
       if (state !== undefined) systemMedia.position(state)
     }
     position()
@@ -65,5 +75,5 @@ export const useMediaSession = ({
       stopActions()
       systemMedia.clear()
     }
-  }, [systemMedia, engine, metadata, hasNext])
+  }, [systemMedia, engine, metadata, hasNext, seekable])
 }

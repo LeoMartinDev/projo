@@ -63,6 +63,7 @@ import {
   playerView,
 } from './player-view.ts'
 import type { Clock, KeyValueStorage, PageLifecycle, PlaybackApi, Timers } from './ports.ts'
+import { keyedEffect } from './keyed-effect.ts'
 import { type SessionLifecycle, startSessionLifecycle } from './session-lifecycle.ts'
 import { loadVolume, saveVolume } from './volume.ts'
 
@@ -127,31 +128,6 @@ const initialState = (fromStart: boolean): PlayerState => ({
   creditsDismissed: false,
   countdown: undefined,
 })
-
-const unset = Symbol('unset')
-
-// A side effect keyed by a value, like a React effect: started when the key
-// changes, the previous one cleaned up first.
-const keyedEffect = () => {
-  let key: unknown = unset
-  let cleanup: (() => void) | undefined
-  return {
-    sync: (next: unknown, start: () => (() => void) | undefined) => {
-      if (Object.is(next, key)) return
-      key = next
-      const previous = cleanup
-      cleanup = undefined
-      previous?.()
-      cleanup = start()
-    },
-    reset: () => {
-      key = unset
-      const previous = cleanup
-      cleanup = undefined
-      previous?.()
-    },
-  }
-}
 
 export type PlayerController = ReadableStore<PlayerState> & {
   // Starts (or resumes, after `stop`) the playback of the item; `stop` ends it.

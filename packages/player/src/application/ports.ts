@@ -6,6 +6,7 @@ import type {
   TranscodeStatusDto,
 } from '@projo/shared/api/playback'
 import type { UpdateProfileBody } from '@projo/shared/api/profiles'
+import type { CreateTvSessionBody, TvSessionDto } from '@projo/shared/api/tv'
 
 /**
  * The server calls of the player. Rejections carry the client's API failure
@@ -22,6 +23,16 @@ export type PlaybackApi = {
   putTrackPreferences: (itemId: string, body: TrackPreferencesBody) => Promise<unknown>
   deleteTrackPreferences: (itemId: string) => Promise<unknown>
   updateProfile: (profileId: string, body: UpdateProfileBody) => Promise<unknown>
+}
+
+/**
+ * The server calls of the live player (§29.4, §29.5). Rejections carry the client's API failure.
+ */
+export type LiveTvApi = {
+  createSession: (channelId: string, body: CreateTvSessionBody) => Promise<TvSessionDto>
+  heartbeat: (sessionId: string) => Promise<unknown>
+  // A `keepalive` request: it also ends the session when the page goes away.
+  endSession: (sessionId: string) => Promise<unknown>
 }
 
 export type TimerHandle = unknown

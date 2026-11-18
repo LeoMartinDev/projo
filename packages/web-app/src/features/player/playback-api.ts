@@ -2,6 +2,7 @@ import type { z } from 'zod'
 
 import type {
   KeyValueStorage,
+  LiveTvApi,
   PageLifecycle,
   PlaybackApi,
   Timers,
@@ -47,6 +48,28 @@ export const playbackApi: PlaybackApi = {
 // created once the previous ones are ended.
 export const sessionEnds = createSessionEnds({
   end: (sessionId, last) => endPlaybackSession(playbackApi, sessionId, last),
+  defer: (callback) => {
+    const timer = setTimeout(callback, 0)
+    return () => clearTimeout(timer)
+  },
+})
+
+// The live player's server calls (§29.4, §29.5).
+export const liveTvApi: LiveTvApi = {
+  createSession: (channelId, body) =>
+    request(() => api.tv.channels[':id'].sessions.$post({ param: { id: channelId }, json: body })),
+  heartbeat: (sessionId) =>
+    request(() => api.tv.sessions[':id'].heartbeat.$post({ param: { id: sessionId } })),
+  endSession: (sessionId) =>
+    request(() =>
+      api.tv.sessions[':id'].$delete({ param: { id: sessionId } }, { init: { keepalive: true } }),
+    ),
+}
+
+// The tab's live sessions: one ended before the next is created, so a source with a single
+// connection can zap (§29.5).
+export const liveSessionEnds = createSessionEnds({
+  end: (sessionId) => liveTvApi.endSession(sessionId).then(() => undefined),
   defer: (callback) => {
     const timer = setTimeout(callback, 0)
     return () => clearTimeout(timer)

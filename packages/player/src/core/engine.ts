@@ -60,6 +60,9 @@ export type EngineStats = {
   bandwidth?: number
 }
 
+/** A live playlist (§29.5), played from its live edge. */
+export type LiveLoad = { streamUrl: string; autoplay: boolean }
+
 export type EngineLoad = {
   session: PlaybackSessionDto
   // Where the stream starts, in seconds of the stream (not of the item).
@@ -94,6 +97,13 @@ export type PlayerEngine = {
   // play (mpv) never calls it.
   load: (
     load: EngineLoad,
+    onFailure: (failure: StreamFailure) => void,
+    onOpened?: () => void,
+  ) => () => void
+  // Starts a live playlist at its live edge (§29.5); never seeks. Returns what stops it, like
+  // `load`; `onFailure` and `onOpened` as for `load`.
+  loadLive: (
+    load: LiveLoad,
     onFailure: (failure: StreamFailure) => void,
     onOpened?: () => void,
   ) => () => void

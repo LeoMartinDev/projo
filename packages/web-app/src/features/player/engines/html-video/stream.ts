@@ -9,7 +9,21 @@ import { watchSeekStalls } from './seek-stall.ts'
 
 export const loadHls = () => import('hls.js').then((module) => module.default)
 
+export type HlsLoader = typeof loadHls
+
 export type HlsMode = 'native' | 'mse'
+
+/**
+ * hls.js on a live playlist (§29.5): segments of about 2 s, a stream ready at two. Playback
+ * starts at the first and settles three behind the newest; a player more than 20 s behind
+ * jumps forward before its segments leave the 30 s window. No catch-up speed-up.
+ */
+export const liveHlsConfig = {
+  liveSyncDuration: 6,
+  liveMaxLatencyDuration: 20,
+  maxLiveSyncPlaybackRate: 1,
+  backBufferLength: 10,
+} satisfies Partial<HlsConfig>
 
 // What hls.js knows of the stream (playback info): nothing for a direct file or native HLS.
 export type AttachedStream = {
@@ -41,6 +55,8 @@ export const attachStream = ({
   onFatal,
   onOpened = () => {},
   withCredentials = true,
+  live = false,
+  hls: hlsLoader = loadHls,
 }: {
   video: HTMLVideoElement
   stream: { type: 'direct' | 'hls'; url: string }
@@ -53,6 +69,10 @@ export const attachStream = ({
   onOpened?: () => void
   // hls.js sends the session cookie: only on the server's own page (CORS never allows credentials).
   withCredentials?: boolean
+  // A live playlist (§29.5): played from its live edge, ready as soon as it is handed over.
+  live?: boolean
+  // Where hls.js comes from (tests hand a scripted one).
+  hls?: HlsLoader
 }): AttachedStream => {
   let disposed = false
   const report = (failure: StreamFailure) => {
@@ -77,7 +97,7 @@ export const attachStream = ({
       })
     video.addEventListener('error', failed)
     video.addEventListener('loadedmetadata', play, { once: true })
-    if (stream.type === 'direct') {
+    if (stream.type === 'direct' || live) {
       video.src = stream.url
       onOpened()
     } else
@@ -116,12 +136,13 @@ export const attachStream = ({
 
   let destroy = () => {}
   let hlsStats: AttachedStream['stats'] = () => ({})
-  void loadHls().then((Hls) => {
+  void hlsLoader().then((Hls) => {
     if (disposed) return
     const config: Partial<HlsConfig> = {
-      startPosition: startSeconds,
+      ...(live
+        ? liveHlsConfig
+        : { startPosition: startSeconds, playlistLoadPolicy: keyframeWaitLoadPolicy }),
       maxBufferLength: 30,
-      playlistLoadPolicy: keyframeWaitLoadPolicy,
       xhrSetup: (xhr) => {
         xhr.withCredentials = withCredentials
       },
@@ -133,7 +154,8 @@ export const attachStream = ({
       if (!data.fatal) return
       if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !recoveredNetwork) {
         recoveredNetwork = true
-        hls.startLoad(video.currentTime > 0 ? video.currentTime : startSeconds)
+        // Live: from the live edge again (-1), the segments it stopped at may be gone.
+        hls.startLoad(live ? -1 : video.currentTime > 0 ? video.currentTime : startSeconds)
         return
       }
       if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !recoveredMedia) {

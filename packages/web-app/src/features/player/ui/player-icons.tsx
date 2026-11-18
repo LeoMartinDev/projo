@@ -25,6 +25,26 @@ export const NextEpisodeIcon = ({ size = 22 }: IconProps) => (
   </svg>
 )
 
+export const ChannelStepIcon = ({
+  size = 22,
+  direction,
+}: IconProps & { direction: 'previous' | 'next' }) => (
+  <svg {...svg(size)}>
+    <g transform={direction === 'previous' ? 'matrix(-1 0 0 1 24 0)' : undefined}>
+      <path d="M5.5 5v14l10-7z" fill="currentColor" stroke="none" />
+      <path d="M18.5 5v14" strokeWidth={2} />
+    </g>
+  </svg>
+)
+
+export const ChannelListIcon = ({ size = 22 }: IconProps) => (
+  <svg {...svg(size)} strokeWidth={1.6}>
+    <rect x="3" y="4.5" width="6" height="4.5" rx="1" />
+    <rect x="3" y="15" width="6" height="4.5" rx="1" />
+    <path d="M12.5 6.75H21M12.5 17.25H21M3 12h18" />
+  </svg>
+)
+
 export const EpisodesIcon = ({ size = 22 }: IconProps) => (
   <svg {...svg(size)} strokeWidth={1.6}>
     <rect x="3" y="7" width="14" height="12" rx="2" />

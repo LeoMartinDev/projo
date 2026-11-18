@@ -22,12 +22,14 @@ import {
   BookmarkIcon,
   DevicesIcon,
   HomeIcon,
+  LiveTvIcon,
   SearchIcon,
   SlidersIcon,
   SwitchProfileIcon,
 } from '../../shared/ui/media-icons.tsx'
 import { unreadNotificationsQuery } from '../admin/operations/unread.ts'
 import { SearchOverlay } from '../search/SearchOverlay.tsx'
+import { tvChannelsQuery } from '../tv/queries.ts'
 import { Avatar } from './Avatar.tsx'
 import { KeptTabs } from './KeptTabs.tsx'
 import { Logo } from './Logo.tsx'
@@ -177,6 +179,8 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
   const headerRef = usePillMerge(scrolled)
   const [searching, setSearching] = useState(false)
   const backToTop = useBackToTop()
+  // "TV" while the profile sees at least one channel (§29.6).
+  const hasChannels = (useQuery(tvChannelsQuery).data?.items.length ?? 0) > 0
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -281,6 +285,19 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
               </span>
               {t('nav.movies')}
             </Link>
+            {hasChannels ? (
+              <Link
+                to="/tv"
+                className="pill-nav__link"
+                activeProps={{ 'aria-current': 'page' }}
+                onClick={backToTop('/tv')}
+              >
+                <span className="pill-nav__icon" aria-hidden="true">
+                  <LiveTvIcon />
+                </span>
+                {t('nav.tv')}
+              </Link>
+            ) : undefined}
             <Link
               to="/watchlist"
               className="pill-nav__link"
