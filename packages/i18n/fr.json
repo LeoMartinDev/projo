@@ -548,8 +548,8 @@
       "recapSkipped": "Récap passé"
     },
     "next": {
-      "in": "Épisode suivant dans {{seconds}} s",
-      "watchCredits": "Regarder le générique",
+      "in": "Suivant dans {{seconds}} s",
+      "play": "Lire",
       "playIn": "Lecture dans {{seconds}} s",
       "starting": "Lancement…",
       "cast": "Avec",
@@ -557,10 +557,10 @@
       "writer": "Scénario"
     },
     "memory": {
-      "series": "Appliqué à toute la série",
-      "movie": "Appliqué au film",
-      "setDefault": "Définir comme défaut pour mon profil",
-      "defaulted": "Défini comme défaut pour votre profil",
+      "series": "Mémorisé pour la série",
+      "movie": "Mémorisé pour le film",
+      "setDefault": "Par défaut",
+      "defaulted": "Défini par défaut",
       "undone": "Choix non mémorisé",
       "failed": "Le choix n’a pas pu être mémorisé"
     },

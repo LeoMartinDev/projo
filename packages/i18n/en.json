@@ -548,8 +548,8 @@
       "recapSkipped": "Recap skipped"
     },
     "next": {
-      "in": "Next episode in {{seconds}} s",
-      "watchCredits": "Watch the credits",
+      "in": "Up next in {{seconds}} s",
+      "play": "Play",
       "playIn": "Playing in {{seconds}} s",
       "starting": "Starting…",
       "cast": "With",
@@ -557,10 +557,10 @@
       "writer": "Writer"
     },
     "memory": {
-      "series": "Applied to the whole series",
-      "movie": "Applied to the movie",
-      "setDefault": "Set as default for my profile",
-      "defaulted": "Set as default for your profile",
+      "series": "Saved for the series",
+      "movie": "Saved for the movie",
+      "setDefault": "Make default",
+      "defaulted": "Made default",
       "undone": "Choice not remembered",
       "failed": "The choice could not be remembered"
     },

@@ -4,7 +4,7 @@ import { episodeCode, itemTitle } from '@projo/i18n/item-titles'
 import type { ItemDetailDto, ItemSummaryDto, PersonDto } from '@projo/shared/api/catalog'
 
 import { formatDuration } from '../../../shared/format/format.ts'
-import { CloseIcon, PlayIcon } from '../../../shared/ui/icons.tsx'
+import { PlayIcon } from '../../../shared/ui/icons.tsx'
 import { Artwork } from '../../../shared/ui/Artwork.tsx'
 import { durationMsOf, toneOf } from '../../media/media.ts'
 import '../../media/media.css'
@@ -123,40 +123,45 @@ export const NextUpCard = ({
 }
 
 /**
- * The bubble over the playing video in the credits (§12.4): starts the next
- * episode now, or closes ("Watch the credits") for the rest of the episode.
+ * The toast over the playing video in the credits (§12.4), drawn like "Intro
+ * skipped", with one action: "Cancel" while the countdown runs (for the rest of
+ * the episode), "Play" when there is none (autoplay off).
  */
-export const NextUpBubble = ({
+export const NextUpToast = ({
   countdown,
   onPlay,
-  onWatchCredits,
+  onCancel,
 }: {
   countdown: NextUpCountdownView
   onPlay: () => void
-  onWatchCredits: () => void
+  onCancel: () => void
 }) => {
   const { t } = useTranslation()
   return (
-    <div className="next-bubble">
-      <button type="button" className="next-bubble__play" data-player-prompt onClick={onPlay}>
-        <CountdownRing countdown={countdown} />
-        <span className="next-bubble__label">
-          {countdown === undefined
-            ? t('player.nextEpisode')
-            : countdown.seconds > 0
-              ? t('player.next.in', { seconds: countdown.seconds })
-              : t('player.next.starting')}
-        </span>
-      </button>
-      <button
-        type="button"
-        className="next-bubble__close"
-        aria-label={t('player.next.watchCredits')}
-        title={t('player.next.watchCredits')}
-        onClick={onWatchCredits}
-      >
-        <CloseIcon size={16} />
-      </button>
+    <div className="player-toast player-toast--end" role="status">
+      <span className="player-toast__text next-toast__text">
+        {countdown === undefined
+          ? t('player.nextEpisode')
+          : countdown.seconds > 0
+            ? t('player.next.in', { seconds: countdown.seconds })
+            : t('player.next.starting')}
+      </span>
+      <span className="player-toast__actions">
+        {countdown === undefined ? (
+          <button
+            type="button"
+            className="player-toast__action"
+            data-player-prompt
+            onClick={onPlay}
+          >
+            {t('player.next.play')}
+          </button>
+        ) : (
+          <button type="button" className="player-toast__action" onClick={onCancel}>
+            {t('common.cancel')}
+          </button>
+        )}
+      </span>
     </div>
   )
 }

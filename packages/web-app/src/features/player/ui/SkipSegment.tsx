@@ -60,7 +60,7 @@ export const SkippedToast = ({
 }) => {
   const { t } = useTranslation()
   return (
-    <div className="player-toast" role="status">
+    <div className="player-toast player-toast--end" role="status">
       <span className="player-toast__text">
         {segment.type === 'intro' ? t('player.skip.introSkipped') : t('player.skip.recapSkipped')}
       </span>

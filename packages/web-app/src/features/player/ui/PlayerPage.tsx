@@ -83,7 +83,7 @@ import type { WebPlayerEngine } from '../web-engine.ts'
 import { EpisodesPanel } from './EpisodesPanel.tsx'
 import { onMenuKeyDown, useMenuFocus } from './menu-focus.ts'
 import { nowPlayingOf } from './media-session.ts'
-import { NextUpBubble, NextUpCard, type NextUpCountdownView } from './NextUpCard.tsx'
+import { NextUpCard, NextUpToast, type NextUpCountdownView } from './NextUpCard.tsx'
 import {
   AirPlayIcon,
   ChaptersIcon,
@@ -1092,10 +1092,10 @@ export const PlayerPage = ({
       ) : undefined}
 
       {nextUpView === 'bubble' && nextEpisode !== undefined ? (
-        <NextUpBubble
+        <NextUpToast
           countdown={countdownView}
           onPlay={() => playEpisode(nextEpisode)}
-          onWatchCredits={controller.watchCredits}
+          onCancel={controller.watchCredits}
         />
       ) : undefined}
 
