@@ -240,7 +240,7 @@ export const fr = {
       step2: 'Dans <code>docker-compose.yml</code>, ajoutez :',
       number: "le numéro trouvé à l'étape 1",
       step3:
-        '<code>docker compose up -d</code>, puis activez <strong>Administration › Lecture › Transcodage matériel (VAAPI)</strong>.',
+        '<code>docker compose up -d</code>, puis activez <strong>Administration › Réglages › Lecture › Transcodage matériel (VAAPI)</strong>.',
     },
     proxy: {
       text: "Pour un accès depuis l'extérieur en HTTPS avec un nom de domaine, placez projo derrière un reverse proxy (Caddy, Traefik, Nginx Proxy Manager…) et passez <strong><code>TRUST_PROXY=true</code></strong>. projo connaît alors la vraie IP de chaque visiteur et son adresse publique, nécessaires à la connexion.",
@@ -258,7 +258,7 @@ export const fr = {
       then: "Ensuite, depuis l'avatar → <strong>Administration</strong> : ajoutez d'autres bibliothèques, invitez votre famille (<strong>Comptes</strong> → lien d'invitation à usage unique, valable 7 jours), réglez la lecture.",
     },
     tmdb: {
-      key: "<strong>Administration → Métadonnées → Clé API TMDB</strong> : collez la clé API ou le jeton d'accès en lecture. projo la vérifie, puis relance l'identification de tous les fichiers en attente.",
+      key: "<strong>Administration → Réglages → Métadonnées → Clé API TMDB</strong> : collez la clé API ou le jeton d'accès en lecture. projo la vérifie, puis relance l'identification de tous les fichiers en attente.",
       review:
         "Les fichiers que projo ne peut pas identifier avec certitude vont dans <strong>À vérifier</strong>. Un titre mal reconnu se corrige depuis sa fiche (menu ⋮ → Corriger l'identification), et projo s'en souvient.",
     },
@@ -289,22 +289,22 @@ export const fr = {
         'Si un disque ne répond plus (mergerfs, Unraid, un montage par disque), ses fichiers passent en <strong>Manquants</strong> et les notifications le signalent. Ils reviennent tels quels avec le disque. Après 30 jours ils sont purgés, mais ce que vos profils ont vu, commencé ou ajouté à Ma liste est conservé et retrouvé au retour des fichiers.',
       paths: 'Changer un chemin',
       pathsText:
-        "Si vos vidéos changent de place sur l'hôte, ne changez que la partie gauche du volume et gardez le même chemin sous <code>/media</code>. Sinon, remplacez le dossier dans <strong>Administration → Bibliothèques</strong> : les titres identifiés gardent leur progression, et les corrections suivent les fichiers dont le chemin sous le dossier ne change pas.",
+        "Si vos vidéos changent de place sur l'hôte, ne changez que la partie gauche du volume et gardez le même chemin sous <code>/media</code>. Sinon, remplacez le dossier dans <strong>Administration → Médias → Bibliothèques</strong> : les titres identifiés gardent leur progression, et les corrections suivent les fichiers dont le chemin sous le dossier ne change pas.",
     },
     live: {
-      text: "<strong>Administration → TV</strong> : ajoutez votre source (une playlist M3U, un compte Xtream Codes ou une Freebox), puis activez les groupes de chaînes à proposer. projo ne fournit aucune chaîne. Le serveur relaie chaque chaîne : les navigateurs ne contactent jamais le fournisseur. L'accès à la TV se règle par profil.",
+      text: "<strong>Administration → Médias → TV en direct</strong> : ajoutez votre source (une playlist M3U, un compte Xtream Codes ou une Freebox), puis activez les groupes de chaînes à proposer. projo ne fournit aucune chaîne. Le serveur relaie chaque chaîne : les navigateurs ne contactent jamais le fournisseur. L'accès à la TV se règle par profil.",
       freebox: 'Freebox',
       freeboxText:
         'La box ne répond et ne diffuse ses chaînes que sur son réseau local. Le conteneur doit être sur ce réseau : remplacez <code>ports:</code> par <code>network_mode: host</code>.',
       host: 'à la place de ports:',
       cache: 'Pause et retour en arrière',
       cacheText:
-        'Le serveur garde les 30 dernières minutes de chaque chaîne regardée dans <code>cache/</code> : environ 0,5 à 2 Go par chaîne, 20 Go au plus en tout. Les deux se règlent dans <strong>Administration → Lecture</strong>.',
+        'Le serveur garde les 30 dernières minutes de chaque chaîne regardée dans <code>cache/</code> : environ 0,5 à 2 Go par chaîne, 20 Go au plus en tout. Les deux se règlent dans <strong>Administration → Réglages → Lecture</strong>.',
     },
     updates: {
       app: "L'application",
       appText:
-        "<strong>Administration → Mises à jour.</strong> projo vérifie chaque jour, affiche les notes de version et s'installe en un clic. La base est sauvegardée avant ; si la nouvelle version ne démarre pas en 60 s, projo revient seul à la précédente.",
+        "<strong>Administration → Réglages → Mises à jour.</strong> projo vérifie chaque jour, affiche les notes de version et s'installe en un clic. La base est sauvegardée avant ; si la nouvelle version ne démarre pas en 60 s, projo revient seul à la précédente.",
       image: "L'image Docker",
       imageText:
         'Rarement nécessaire : la page Mises à jour le signale quand une version demande une image plus récente.',
@@ -318,7 +318,7 @@ export const fr = {
       cache: 'régénéré, inutile de le sauvegarder',
       save: 'Sauvegarder',
       save1:
-        '<strong>Administration → Serveur → Exporter la base</strong> : une copie cohérente, sans arrêter projo.',
+        '<strong>Administration → Réglages → Général → Exporter la base</strong> : une copie cohérente, sans arrêter projo.',
       save2:
         'Copiez <code>projo-data</code> sans <code>cache/</code> : <code>rsync -a --exclude cache/ projo-data/ /backup/projo-data/</code>.',
       restore: 'Restaurer',
@@ -586,7 +586,7 @@ export const en: Messages = {
       step2: 'In <code>docker-compose.yml</code>, add:',
       number: 'the number found in step 1',
       step3:
-        '<code>docker compose up -d</code>, then turn on <strong>Administration › Playback › Hardware transcoding (VAAPI)</strong>.',
+        '<code>docker compose up -d</code>, then turn on <strong>Administration › Settings › Playback › Hardware transcoding (VAAPI)</strong>.',
     },
     proxy: {
       text: 'For access from outside with HTTPS and a domain name, put projo behind a reverse proxy (Caddy, Traefik, Nginx Proxy Manager…) and set <strong><code>TRUST_PROXY=true</code></strong>. projo then knows the real IP of each visitor and its public address, both needed to sign in.',
@@ -604,7 +604,7 @@ export const en: Messages = {
       then: 'Then, from the avatar → <strong>Administration</strong>: add more libraries, invite your family (<strong>Accounts</strong> → single-use invitation link, valid for 7 days), tune playback.',
     },
     tmdb: {
-      key: '<strong>Administration → Metadata → TMDB API key</strong>: paste the API key or the read access token. projo checks it, then retries identification of every waiting file.',
+      key: '<strong>Administration → Settings → Metadata → TMDB API key</strong>: paste the API key or the read access token. projo checks it, then retries identification of every waiting file.',
       review:
         'Files projo cannot identify with certainty go to <strong>To review</strong>. A wrongly identified title is fixed from its page (⋮ menu → Fix the match), and projo remembers it.',
     },
@@ -635,22 +635,22 @@ export const en: Messages = {
         'If a disk stops answering (mergerfs, Unraid, one mount per disk), its files move to <strong>Missing</strong> and the notifications say so. They come back as they were with the disk. After 30 days they are purged, but what your profiles watched, started or added to My list is kept and found again when the files return.',
       paths: 'Changing a path',
       pathsText:
-        'If your videos move on the host, change only the left side of the volume and keep the same path under <code>/media</code>. Otherwise, replace the folder in <strong>Administration → Libraries</strong>: identified titles keep their progress, and corrections follow the files whose path under the folder does not change.',
+        'If your videos move on the host, change only the left side of the volume and keep the same path under <code>/media</code>. Otherwise, replace the folder in <strong>Administration → Media → Libraries</strong>: identified titles keep their progress, and corrections follow the files whose path under the folder does not change.',
     },
     live: {
-      text: '<strong>Administration → TV</strong>: add your source (an M3U playlist, an Xtream Codes account or a Freebox), then turn on the channel groups to offer. projo ships no channels. The server relays every channel: browsers never contact the provider. Access to live TV is set per profile.',
+      text: '<strong>Administration → Media → Live TV</strong>: add your source (an M3U playlist, an Xtream Codes account or a Freebox), then turn on the channel groups to offer. projo ships no channels. The server relays every channel: browsers never contact the provider. Access to live TV is set per profile.',
       freebox: 'Freebox',
       freeboxText:
         'The box answers and streams its channels on its local network only. The container must be on that network: replace <code>ports:</code> with <code>network_mode: host</code>.',
       host: 'instead of ports:',
       cache: 'Pause and rewind',
       cacheText:
-        'The server keeps the last 30 minutes of each channel being watched in <code>cache/</code>: about 0.5 to 2 GB per channel, 20 GB at most in all. Both are set in <strong>Administration → Playback</strong>.',
+        'The server keeps the last 30 minutes of each channel being watched in <code>cache/</code>: about 0.5 to 2 GB per channel, 20 GB at most in all. Both are set in <strong>Administration → Settings → Playback</strong>.',
     },
     updates: {
       app: 'The application',
       appText:
-        '<strong>Administration → Updates.</strong> projo checks every day, shows the release notes and installs in one click. The database is backed up first; if the new version does not start within 60 s, projo goes back to the previous one on its own.',
+        '<strong>Administration → Settings → Updates.</strong> projo checks every day, shows the release notes and installs in one click. The database is backed up first; if the new version does not start within 60 s, projo goes back to the previous one on its own.',
       image: 'The Docker image',
       imageText: 'Rarely needed: the Updates page says so when a version needs a newer image.',
     },
@@ -663,7 +663,7 @@ export const en: Messages = {
       cache: 'regenerated, no need to back it up',
       save: 'Back up',
       save1:
-        '<strong>Administration → Server → Export the database</strong>: a consistent copy, without stopping projo.',
+        '<strong>Administration → Settings → General → Export the database</strong>: a consistent copy, without stopping projo.',
       save2:
         'Copy <code>projo-data</code> without <code>cache/</code>: <code>rsync -a --exclude cache/ projo-data/ /backup/projo-data/</code>.',
       restore: 'Restore',

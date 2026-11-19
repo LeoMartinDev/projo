@@ -4,7 +4,7 @@
 
 Only the latest release is supported: the latest `vX.Y.Z` of the server (Docker image
 `ghcr.io/leomartindev/projo:latest`) and the latest `desktop-vX.Y.Z` of the desktop app. A fix
-ships as a new release, which the server installs from **Administration → Updates** and the desktop
+ships as a new release, which the server installs from **Administration → Settings → Updates** and the desktop
 app installs by itself.
 
 ## Reporting a vulnerability

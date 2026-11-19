@@ -17,7 +17,7 @@ bun run dev     # server on :8080 (data in .data/), web app on :5173
 ```
 
 Open `http://localhost:5173`, create the administrator account and add a TMDB key in
-**Administration → Metadata**.
+**Administration → Settings → Metadata**.
 
 ## Before a pull request
 
