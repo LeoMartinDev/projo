@@ -1,22 +1,17 @@
-import { type FormEvent, useId, useState } from 'react'
+import { type FormEvent, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { SegmentProviderIdDto, SegmentSettingsDto } from '@projo/shared/api/segments'
 
 import { Field, Switch } from '../../../shared/ui/controls.tsx'
 import { ChevronDownIcon, ChevronUpIcon } from '../../../shared/ui/icons.tsx'
-import { ErrorAlert } from '../../../shared/ui/states.tsx'
 import { SwitchSetting } from '../../../shared/ui/Setting.tsx'
-import {
-  changedThresholds,
-  checkThresholds,
-  thresholdBounds,
-  thresholdFields,
-  thresholdsDraftOf,
-} from './fingerprint.ts'
-import { moveProvider, providerRows, setProviderEnabled } from './providers.ts'
 import { ApiKeySetting } from './ApiKeySetting.tsx'
-import { useUpdateSettings } from './queries.ts'
+import { thresholdBounds, thresholdFields } from './fingerprint.ts'
+import { moveProvider, providerRows, setProviderEnabled } from './providers.ts'
+import { SaveBar } from './SaveBar.tsx'
+import { segmentsChanges, type SegmentsDraft, segmentsDraftOf } from './segments-form.ts'
+import { type SettingsForm, useSettingsForm } from './use-settings-form.ts'
 
 const providerNames: Record<SegmentProviderIdDto, string> = {
   theintrodb: 'TheIntroDB',
@@ -24,11 +19,13 @@ const providerNames: Record<SegmentProviderIdDto, string> = {
   skipdb: 'SkipDB',
 }
 
-const Providers = ({ enabled }: { enabled: readonly SegmentProviderIdDto[] }) => {
+type Form = SettingsForm<SegmentsDraft>
+
+const Providers = ({ form }: { form: Form }) => {
   const { t } = useTranslation()
   const id = useId()
-  const update = useUpdateSettings()
-  const save = (providers: SegmentProviderIdDto[]) => update.mutate({ segments: { providers } })
+  const enabled = form.draft.providers
+  const set = (providers: SegmentProviderIdDto[]) => form.set('providers', providers)
   return (
     <div className="settings-block">
       <div
@@ -56,8 +53,8 @@ const Providers = ({ enabled }: { enabled: readonly SegmentProviderIdDto[] }) =>
                 type="button"
                 className="icon-button"
                 aria-label={t('admin.settings.segments.moveUp', { name: providerNames[row.id] })}
-                disabled={!row.enabled || index === 0 || update.isPending}
-                onClick={() => save(moveProvider(enabled, row.id, -1))}
+                disabled={!row.enabled || index === 0}
+                onClick={() => set(moveProvider(enabled, row.id, -1))}
               >
                 <ChevronUpIcon />
               </button>
@@ -65,8 +62,8 @@ const Providers = ({ enabled }: { enabled: readonly SegmentProviderIdDto[] }) =>
                 type="button"
                 className="icon-button"
                 aria-label={t('admin.settings.segments.moveDown', { name: providerNames[row.id] })}
-                disabled={!row.enabled || index === enabled.length - 1 || update.isPending}
-                onClick={() => save(moveProvider(enabled, row.id, 1))}
+                disabled={!row.enabled || index === enabled.length - 1}
+                onClick={() => set(moveProvider(enabled, row.id, 1))}
               >
                 <ChevronDownIcon />
               </button>
@@ -75,15 +72,12 @@ const Providers = ({ enabled }: { enabled: readonly SegmentProviderIdDto[] }) =>
               <Switch
                 checked={row.enabled}
                 labelId={`${id}-${row.id}`}
-                onChange={(on) => {
-                  if (!update.isPending) save(setProviderEnabled(enabled, row.id, on))
-                }}
+                onChange={(on) => set(setProviderEnabled(enabled, row.id, on))}
               />
             </span>
           </div>
         ))}
       </div>
-      {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </div>
   )
 }
@@ -96,36 +90,24 @@ const thresholdLabelKeys = {
   similarity: 'admin.settings.segments.similarity',
 } as const
 
-const Fingerprint = ({ fingerprint }: { fingerprint: SegmentSettingsDto['fingerprint'] }) => {
+const Fingerprint = ({ form }: { form: Form }) => {
   const { t } = useTranslation()
   const id = useId()
-  const toggle = useUpdateSettings()
-  const update = useUpdateSettings()
-  const { enabled, ...stored } = fingerprint
-  const [draft, setDraft] = useState(() => thresholdsDraftOf(stored))
-  const checked = checkThresholds(draft)
-  const changes = checked.ok ? changedThresholds(stored, checked.value) : {}
-  const dirty = Object.keys(changes).length > 0
-
+  const enabled = form.draft.fingerprintEnabled
   const submit = (event: FormEvent) => {
     event.preventDefault()
-    if (!dirty || update.isPending) return
-    update.mutate({ segments: { fingerprint: changes } })
+    form.save()
   }
-
   return (
     <div className="settings-block">
       <SwitchSetting
         label={t('admin.settings.segments.fingerprint')}
         checked={enabled}
-        onChange={(on) => {
-          if (!toggle.isPending) toggle.mutate({ segments: { fingerprint: { enabled: on } } })
-        }}
+        onChange={(on) => form.set('fingerprintEnabled', on)}
       />
-      {toggle.isError ? <ErrorAlert error={toggle.error} /> : undefined}
       <form className="seg-thresholds" onSubmit={submit} noValidate data-disabled={!enabled}>
         {thresholdFields.map((field) => {
-          const invalid = !checked.ok && checked.invalid.includes(field)
+          const invalid = form.invalid.includes(field)
           const { min, max } = thresholdBounds[field]
           return (
             <Field
@@ -142,42 +124,21 @@ const Fingerprint = ({ fingerprint }: { fingerprint: SegmentSettingsDto['fingerp
                 min={min}
                 max={max}
                 step={1}
-                value={draft[field]}
+                value={form.draft[field]}
                 aria-invalid={invalid}
-                onChange={(event) => {
-                  setDraft({ ...draft, [field]: event.target.value })
-                  if (update.isError || update.isSuccess) update.reset()
-                }}
+                onChange={(event) => form.set(field, event.target.value)}
               />
             </Field>
           )
         })}
-        <div className="seg-thresholds__actions">
-          <button
-            type="submit"
-            className="button button--primary"
-            disabled={!dirty || update.isPending}
-          >
-            {update.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('common.save')}
-          </button>
-        </div>
       </form>
-      {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </div>
   )
 }
 
-const Contribution = ({
-  contribution,
-  keyConfigured,
-}: {
-  contribution: SegmentSettingsDto['contribution']
-  keyConfigured: boolean
-}) => {
+const Contribution = ({ form, keyConfigured }: { form: Form; keyConfigured: boolean }) => {
   const { t } = useTranslation()
-  const update = useUpdateSettings()
-  const on = contribution === 'manual_only'
+  const on = form.draft.contribution
   return (
     <div className="settings-block">
       <SwitchSetting
@@ -188,37 +149,42 @@ const Contribution = ({
         checked={on}
         disabled={!keyConfigured && !on}
         onChange={(next) => {
-          if (update.isPending || (next && !keyConfigured)) return
-          update.mutate({ segments: { contribution: next ? 'manual_only' : 'off' } })
+          if (next && !keyConfigured) return
+          form.set('contribution', next)
         }}
       />
-      {update.isError ? <ErrorAlert error={update.error} /> : undefined}
     </div>
   )
 }
 
+/**
+ * Settings › Intros and credits (§12, §15): the providers and their order, TheIntroDB's key
+ * (replaced at once through its own "Validate"), fingerprinting, contribution; the rest saved by
+ * the save bar.
+ */
 export const SegmentSettings = ({ segments }: { segments: SegmentSettingsDto }) => {
   const { t } = useTranslation()
+  const form = useSettingsForm({ saved: segmentsDraftOf(segments), changes: segmentsChanges })
   const key = segments.theintrodbApiKey
   return (
     <>
-      <Providers enabled={segments.providers} />
-      <ApiKeySetting
-        label={t('admin.settings.segments.theintrodbKey')}
-        status={{
-          configured: key.configured,
-          ...(key.last4 === undefined ? {} : { last4: key.last4 }),
-        }}
-        minLength={8}
-        toBody={(theintrodbApiKey) => ({ segments: { theintrodbApiKey } })}
-        removeTitle={t('admin.settings.segments.removeKeyTitle')}
-        removeText={t('admin.settings.segments.removeKeyText')}
-      />
-      <Fingerprint
-        key={JSON.stringify({ ...segments.fingerprint, enabled: undefined })}
-        fingerprint={segments.fingerprint}
-      />
-      <Contribution contribution={segments.contribution} keyConfigured={key.configured} />
+      <section className="settings-section" aria-label={t('admin.tabs.segments')}>
+        <Providers form={form} />
+        <ApiKeySetting
+          label={t('admin.settings.segments.theintrodbKey')}
+          status={{
+            configured: key.configured,
+            ...(key.last4 === undefined ? {} : { last4: key.last4 }),
+          }}
+          minLength={8}
+          toBody={(theintrodbApiKey) => ({ segments: { theintrodbApiKey } })}
+          removeTitle={t('admin.settings.segments.removeKeyTitle')}
+          removeText={t('admin.settings.segments.removeKeyText')}
+        />
+        <Fingerprint form={form} />
+        <Contribution form={form} keyConfigured={key.configured} />
+      </section>
+      <SaveBar form={form} />
     </>
   )
 }

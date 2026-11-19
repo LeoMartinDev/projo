@@ -19,6 +19,7 @@ import {
 import { EmptyState, ErrorAlert, ErrorState } from '../../shared/ui/states.tsx'
 import { useNow } from '../../shared/ui/use-now.ts'
 import { DeleteLibraryDialog } from './DeleteLibraryDialog.tsx'
+import { LibraryDialog, NewLibraryDialog } from './LibraryDialog.tsx'
 import { type ActivityEntry, useLiveScans } from './live-scans.ts'
 import {
   hasAnalysisInProgress,
@@ -28,7 +29,7 @@ import {
   useScanLibrary,
 } from './library-status.tsx'
 import { librariesQuery } from './queries.ts'
-import { AdminPageHeader } from './AdminPageHeader.tsx'
+import { MediaSection } from './admin-sections.tsx'
 import './admin.css'
 
 const HintIcon = ({ hint }: { hint: LibraryDto['hint'] }) =>
@@ -138,7 +139,17 @@ const SkeletonRows = () => (
   </>
 )
 
-export const LibrariesPage = () => {
+/**
+ * The libraries (§15): a table whose row opens the library's dialog. `opened` is the `library`
+ * search parameter (an id, or `new`); `onClose` removes it.
+ */
+export const LibrariesPage = ({
+  opened,
+  onClose,
+}: {
+  opened: string | undefined
+  onClose: () => void
+}) => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const now = useNow()
@@ -151,58 +162,42 @@ export const LibrariesPage = () => {
   const [deleting, setDeleting] = useState<LibraryDto>()
 
   const feed = activityFeed(activity, items)
-  const totalReady = items.reduce((total, library) => total + library.sourceCounts.ready, 0)
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.libraries.title')}
-        summary={
-          libraries.isSuccess && items.length > 0
-            ? t('admin.libraries.summary', {
-                count: items.length,
-                files: formatNumber(totalReady, locale),
-              })
-            : undefined
-        }
-        actions={
-          <>
-            {items.length > 0 ? (
-              <button
-                type="button"
-                className="button button--glass button--small"
-                disabled={scan.isPending}
-                onClick={() => {
-                  for (const library of items) scan.mutate({ id: library.id, mode: 'quick' })
-                }}
-              >
-                <SyncIcon />
-                {t('admin.libraries.syncAll')}
-              </button>
-            ) : undefined}
-            <Link to="/admin/libraries/new" className="button button--primary button--small">
-              <PlusIcon />
-              {t('admin.libraries.add')}
-            </Link>
-          </>
-        }
-      />
-
+    <MediaSection
+      actions={
+        <>
+          {items.length > 0 ? (
+            <button
+              type="button"
+              className="button button--glass button--small admin-action--squeeze"
+              title={t('admin.libraries.syncAll')}
+              disabled={scan.isPending}
+              onClick={() => {
+                for (const library of items) scan.mutate({ id: library.id, mode: 'quick' })
+              }}
+            >
+              <SyncIcon />
+              <span className="admin-action__label">{t('admin.libraries.syncAll')}</span>
+            </button>
+          ) : undefined}
+          <Link
+            to="/admin/libraries"
+            search={{ library: 'new' }}
+            className="button button--primary button--small"
+          >
+            <PlusIcon />
+            {t('admin.libraries.add')}
+          </Link>
+        </>
+      }
+    >
       {scan.isError ? <ErrorAlert error={scan.error} /> : undefined}
 
       {libraries.isError ? (
         <ErrorState error={libraries.error} onRetry={() => void libraries.refetch()} />
       ) : libraries.isSuccess && items.length === 0 ? (
-        <EmptyState
-          title={t('admin.libraries.emptyTitle')}
-          text={t('admin.libraries.emptyText')}
-          action={
-            <Link to="/admin/libraries/new" className="button button--primary">
-              <PlusIcon />
-              {t('admin.libraries.add')}
-            </Link>
-          }
-        />
+        <EmptyState compact title={t('admin.libraries.emptyTitle')} />
       ) : (
         <div className="lib-table" role="table" aria-label={t('admin.libraries.title')}>
           <div className="lib-row lib-row--head" role="row">
@@ -227,8 +222,8 @@ export const LibrariesPage = () => {
                   </span>
                   <div className="lib-row__text">
                     <Link
-                      to="/admin/libraries/$libraryId"
-                      params={{ libraryId: library.id }}
+                      to="/admin/libraries"
+                      search={{ library: library.id }}
                       className="lib-row__title"
                     >
                       {library.name}
@@ -287,8 +282,8 @@ export const LibrariesPage = () => {
                       {t('admin.libraries.fullScan')}
                     </button>
                     <Link
-                      to="/admin/libraries/$libraryId"
-                      params={{ libraryId: library.id }}
+                      to="/admin/libraries"
+                      search={{ library: library.id }}
                       className="menu__item"
                     >
                       {t('admin.libraries.edit')}
@@ -324,6 +319,18 @@ export const LibrariesPage = () => {
         </section>
       ) : undefined}
 
+      {opened === 'new' ? (
+        <NewLibraryDialog onClose={onClose} />
+      ) : opened === undefined ? undefined : (
+        <LibraryDialog
+          key={opened}
+          libraryId={opened}
+          live={scans.get(opened)}
+          scan={scan}
+          onClose={onClose}
+        />
+      )}
+
       {deleting === undefined ? undefined : (
         <DeleteLibraryDialog
           library={deleting}
@@ -331,6 +338,6 @@ export const LibrariesPage = () => {
           onDeleted={() => setDeleting(undefined)}
         />
       )}
-    </div>
+    </MediaSection>
   )
 }

@@ -678,13 +678,10 @@
     "backToCatalog": "Retour au catalogue",
     "libraries": {
       "title": "Bibliothèques",
-      "summary_one": "{{count}} bibliothèque · {{files}} fichiers prêts",
-      "summary_other": "{{count}} bibliothèques · {{files}} fichiers prêts",
       "syncAll": "Tout resynchroniser",
       "add": "Ajouter une bibliothèque",
       "addTitle": "Ajouter une bibliothèque",
       "emptyTitle": "Aucune bibliothèque",
-      "emptyText": "Choisissez un dossier du serveur : projo y trouve films et séries, même en vrac.",
       "columns": {
         "name": "Nom",
         "content": "Contenu",
@@ -698,7 +695,11 @@
       "quickScan": "Scanner",
       "fullScan": "Scan complet",
       "edit": "Modifier",
-      "delete": "Supprimer la bibliothèque"
+      "delete": "Supprimer la bibliothèque",
+      "tabs": {
+        "settings": "Réglages",
+        "history": "Historique"
+      }
     },
     "counts": {
       "ready_one": "{{formatted}} fichier",
@@ -843,10 +844,6 @@
     },
     "accounts": {
       "title": "Comptes",
-      "summaryAccounts_one": "{{count}} compte",
-      "summaryAccounts_other": "{{count}} comptes",
-      "summaryProfiles_one": "{{count}} profil",
-      "summaryProfiles_other": "{{count}} profils",
       "invite": "Inviter",
       "create": "Créer un compte",
       "list": "Comptes et profils",
@@ -859,6 +856,13 @@
       "addProfileTitle": "Nouveau profil pour {{username}}",
       "profilesOf": "Profils de {{username}}",
       "empty": "Aucun compte",
+      "notFound": "Ce compte n’existe plus.",
+      "details": {
+        "lastSeen": "Dernière activité",
+        "sessions": "Sessions",
+        "created": "Créé le",
+        "disabled": "Désactivé le"
+      },
       "roleLabel": "Rôle",
       "role": {
         "admin": "Administrateur",
@@ -951,8 +955,6 @@
       "title": "À vérifier",
       "count_one": "{{count}} fichier à vérifier",
       "count_other": "{{count}} fichiers à vérifier",
-      "summary_one": "{{formatted}} fichier",
-      "summary_other": "{{formatted}} fichiers",
       "empty": "Rien à vérifier",
       "identify": "Identifier",
       "identifyTitle": "Identifier le fichier",
@@ -988,10 +990,7 @@
       }
     },
     "sessions": {
-      "title": "Sessions actives",
       "list": "Lectures en cours",
-      "summary_one": "{{count}} lecture en cours",
-      "summary_other": "{{count}} lectures en cours",
       "empty": "Personne ne regarde en ce moment",
       "columns": {
         "profile": "Profil",
@@ -1017,8 +1016,6 @@
     "tv": {
       "title": "TV",
       "list": "Sources TV",
-      "summary_one": "{{count}} source · {{channels}} chaînes actives",
-      "summary_other": "{{count}} sources · {{channels}} chaînes actives",
       "add": "Ajouter une source",
       "addTitle": "Ajouter une source TV",
       "empty": "Aucune source TV",
@@ -1081,8 +1078,6 @@
       "guideNoMatch": "Aucune chaîne du guide ne correspond"
     },
     "settings": {
-      "title": "Réglages",
-      "metadata": "Métadonnées",
       "tmdbKey": "Clé API TMDB",
       "configured": "Configurée",
       "configuredWith": "Configurée · ••••{{last4}}",
@@ -1094,9 +1089,7 @@
       "removeText": "Les nouveaux fichiers ne seront plus identifiés.",
       "createKey": "Créer une clé API sur TMDB",
       "language": "Langue des métadonnées",
-      "saved": "Enregistré",
       "segments": {
-        "title": "Génériques",
         "providers": "Fournisseurs de marqueurs",
         "provider": "Fournisseur",
         "order": "Ordre",
@@ -1122,7 +1115,6 @@
       "configure": "Configurer"
     },
     "updates": {
-      "title": "Mises à jour",
       "check": "Vérifier maintenant",
       "current": "Version en service",
       "runtime": "Image {{version}}",
@@ -1200,18 +1192,59 @@
       "playback/hw_accel_failed": "Transcodage matériel indisponible, le processeur prend le relais",
       "tv/source_unreachable": "Source TV injoignable"
     },
-    "dashboard": {
-      "title": "Tableau de bord",
-      "counters": "Compteurs",
-      "movies": "Films",
-      "series": "Séries",
-      "episodes": "Épisodes",
-      "unread": "Notifications non lues",
-      "failedJobs": "Jobs en échec (24 h)",
+    "nav": {
+      "overview": "Vue d’ensemble",
+      "media": "Médias",
+      "files": "Fichiers",
+      "accounts": "Comptes",
+      "activity": "Activité",
+      "settings": "Réglages"
+    },
+    "tabs": {
+      "libraries": "Bibliothèques",
+      "tv": "TV en direct",
+      "review": "À vérifier",
+      "pending": "En attente",
+      "missing": "Manquants",
+      "hidden": "Masqués",
+      "notifications": "Notifications",
+      "jobs": "Tâches",
+      "logs": "Journaux",
+      "general": "Général",
+      "playback": "Lecture",
+      "metadata": "Métadonnées",
+      "segments": "Intros et génériques",
+      "assistants": "Assistants IA",
+      "updates": "Mises à jour"
+    },
+    "saveBar": {
+      "unsaved": "Modifications non enregistrées"
+    },
+    "overview": {
+      "todo": "À faire",
+      "nothingToDo": "Rien à faire",
+      "now": "En cours",
       "scans": "Analyses en cours",
       "noScan": "Aucune analyse en cours",
-      "version": "Version",
-      "updateReady": "Prête à installer"
+      "open": "Ouvrir",
+      "ignore": "Ignorer",
+      "ignoreNamed": "Ignorer « {{title}} »",
+      "times": "×{{formatted}}",
+      "review_one": "{{formatted}} fichier à vérifier",
+      "review_other": "{{formatted}} fichiers à vérifier",
+      "missing_one": "{{formatted}} fichier manquant",
+      "missing_other": "{{formatted}} fichiers manquants",
+      "failedJobs_one": "{{formatted}} tâche en échec ces dernières 24 h",
+      "failedJobs_other": "{{formatted}} tâches en échec ces dernières 24 h",
+      "update": "projo {{version}} est disponible",
+      "updateRuntime": "projo {{version}} demande une image Docker plus récente",
+      "movies_one": "{{formatted}} film",
+      "movies_other": "{{formatted}} films",
+      "series_one": "{{formatted}} série",
+      "series_other": "{{formatted}} séries",
+      "episodes_one": "{{formatted}} épisode",
+      "episodes_other": "{{formatted}} épisodes",
+      "version": "projo {{version}}"
     },
     "pending": {
       "title": "Fichiers en attente",
@@ -1381,6 +1414,7 @@
       "empty": "Aucune notification",
       "markRead": "Marquer comme lue",
       "markReadNamed": "Marquer « {{title}} » comme lue",
+      "markAllRead": "Tout marquer comme lu",
       "open": "Ouvrir",
       "subject": "Concerne",
       "createdAt": "Reçue le",
@@ -1404,7 +1438,6 @@
       }
     },
     "playbackSettings": {
-      "title": "Lecture",
       "maxTranscodes": "Transcodages simultanés",
       "cacheSize": "Cache de transcodage (Go)",
       "downmix": "Réduire le son multicanal en stéréo",
@@ -1415,7 +1448,6 @@
       "liveCacheSize": "Cache de la TV en direct (Go)"
     },
     "server": {
-      "title": "Serveur",
       "name": "Nom du serveur",
       "port": "Port",
       "trustProxy": "TRUST_PROXY",
@@ -1443,8 +1475,6 @@
       "exported": "{{file}} · {{size}}",
       "maintenance": "Maintenance",
       "assistants": {
-        "title": "Assistants IA",
-        "add": "Ajouter",
         "addTitle": "Ajouter un assistant",
         "name": "Nom",
         "create": "Créer",
@@ -1500,9 +1530,7 @@
       "refreshQueued": "Rafraîchissement lancé"
     },
     "metadataRefresh": {
-      "title": "Rafraîchir toute la librairie",
       "action": "Rafraîchir les métadonnées",
-      "actionOf": "Rafraîchir les métadonnées de {{name}}",
       "queued": "Rafraîchissement lancé"
     },
     "imageOptimize": {

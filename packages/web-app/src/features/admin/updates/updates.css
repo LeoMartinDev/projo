@@ -228,15 +228,6 @@
 .upd-table__body {
   display: flex;
   flex-direction: column;
-  min-height: 168px;
-}
-
-.upd-table__body--versions {
-  min-height: 112px;
-}
-
-.upd-table__body > .state {
-  flex: 1;
 }
 
 .upd-tr {
@@ -339,6 +330,13 @@
   }
 
   .upd-tr--runs > :nth-child(2) {
+    display: none;
+  }
+}
+
+/* On a phone both actions fit one line under the title: their labels say enough. */
+@media (--compact) {
+  .upd-action > svg {
     display: none;
   }
 }

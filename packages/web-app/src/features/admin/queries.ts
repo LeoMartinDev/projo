@@ -15,11 +15,17 @@ export const libraryQuery = (id: string) =>
     queryFn: () => request(() => api.admin.libraries[':id'].$get({ param: { id } })),
   })
 
-export const scanRunsQuery = (id: string) =>
+export const scanRunsPageSize = 10
+
+/** A page of a library's scans, newest first; `cursor` '' for the first page. */
+export const scanRunsQuery = (id: string, cursor: string) =>
   queryOptions({
-    queryKey: [...librariesQueryKey, id, 'scans'],
+    queryKey: [...librariesQueryKey, id, 'scans', cursor],
     queryFn: () =>
       request(() =>
-        api.admin.libraries[':id'].scans.$get({ param: { id }, query: { limit: '20' } }),
+        api.admin.libraries[':id'].scans.$get({
+          param: { id },
+          query: { limit: String(scanRunsPageSize), ...(cursor === '' ? {} : { cursor }) },
+        }),
       ),
   })

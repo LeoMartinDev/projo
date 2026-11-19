@@ -21,7 +21,7 @@ import { JobsIcon } from '../admin-icons.tsx'
 import { jobTargetLabel } from './job-types.ts'
 import { jobsQuery, jobsQueryKey, statsQueryKey, useLiveJobs } from './queries.ts'
 import { formatContext, useStoredError } from './stored-error.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { ActivitySection } from '../admin-sections.tsx'
 import { PagedTable } from '../PagedTable.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
 import { useCursorPages } from '../use-cursor-pages.ts'
@@ -281,9 +281,7 @@ ${type ?? 'all'}`)
     opened === undefined ? undefined : (jobs.find((job) => job.id === opened.id) ?? opened)
 
   return (
-    <div className="admin-page admin-page--fill">
-      <AdminPageHeader title={t('admin.jobs.title')} />
-
+    <ActivitySection fill>
       <div className="adm-toolbar">
         <Segmented
           role="toggle"
@@ -336,7 +334,7 @@ ${type ?? 'all'}`)
           <ErrorState error={list.error} onRetry={() => void list.refetch()} />
         ) : undefined}
         {list.isSuccess && jobs.length === 0 ? (
-          <EmptyState title={t('admin.jobs.empty')} />
+          <EmptyState compact title={t('admin.jobs.empty')} />
         ) : undefined}
         {jobs.map((job) => (
           <JobRow
@@ -353,6 +351,6 @@ ${type ?? 'all'}`)
       {current === undefined ? undefined : (
         <JobDetails key={current.id} job={current} onClose={() => setOpened(undefined)} />
       )}
-    </div>
+    </ActivitySection>
   )
 }

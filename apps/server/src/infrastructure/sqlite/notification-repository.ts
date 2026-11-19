@@ -93,6 +93,21 @@ export const createSqliteNotificationRepository = ({
     const row = db.select().from(notifications).where(eq(notifications.id, id)).get()
     return row === undefined ? undefined : toNotification(row)
   },
+
+  markAllRead: ({ kind, at }) =>
+    db
+      .update(notifications)
+      .set({ readAt: toIso(at) })
+      .where(
+        and(
+          isNull(notifications.readAt),
+          isNull(notifications.resolvedAt),
+          kind === undefined ? undefined : eq(notifications.kind, kind),
+        ),
+      )
+      .returning({ id: notifications.id })
+      .all().length,
+
   purgeResolvedBefore: (before) =>
     db
       .delete(notifications)

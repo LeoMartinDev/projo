@@ -21,12 +21,16 @@ import { useNow } from '../../../shared/ui/use-now.ts'
 import { useServerAddress } from '../../../host.ts'
 import { isLocalHostname } from '../../account/local-address.ts'
 import { CopyIcon, KeyIcon } from '../admin-icons.tsx'
+import { SettingsSection } from '../admin-sections.tsx'
 import { claudeCodeCommand, claudeDesktopConfig } from './assistant-config.ts'
 import {
   assistantTokensQuery,
   useCreateAssistantToken,
   useRevokeAssistantToken,
 } from './queries.ts'
+import '../admin.css'
+import '../admin-table.css'
+import './settings.css'
 
 const CopyBlock = ({
   label,
@@ -260,7 +264,8 @@ const AssistantRow = ({
   )
 }
 
-export const AssistantTokens = () => {
+/** Settings › AI assistants (§27.3): the MCP server's tokens and OAuth connections. */
+export const AssistantsSettingsPage = () => {
   const { t } = useTranslation()
   const tokens = useQuery(assistantTokensQuery)
   const [adding, setAdding] = useState(false)
@@ -268,26 +273,19 @@ export const AssistantTokens = () => {
   const items = tokens.data?.items ?? []
 
   return (
-    <section className="settings-section" aria-labelledby="server-assistants">
-      <div className="assistants__head">
-        <h2 id="server-assistants" className="admin-section__title">
-          {t('admin.server.assistants.title')}
-        </h2>
+    <SettingsSection
+      actions={
         <button
           type="button"
           className="button button--glass button--small"
           onClick={() => setAdding(true)}
         >
           <PlusIcon />
-          {t('admin.server.assistants.add')}
+          {t('admin.server.assistants.addTitle')}
         </button>
-      </div>
-
-      <div
-        className="adm-table assistants"
-        role="table"
-        aria-label={t('admin.server.assistants.title')}
-      >
+      }
+    >
+      <div className="adm-table assistants" role="table" aria-label={t('admin.tabs.assistants')}>
         <div className="adm-tr assistant-tr adm-tr--head" role="row">
           <span role="columnheader">{t('admin.server.assistants.columns.name')}</span>
           <span role="columnheader" className="adm-optional">
@@ -308,7 +306,7 @@ export const AssistantTokens = () => {
             <ErrorState error={tokens.error} onRetry={() => void tokens.refetch()} />
           ) : undefined}
           {tokens.isSuccess && items.length === 0 ? (
-            <EmptyState title={t('admin.server.assistants.empty')} />
+            <EmptyState compact title={t('admin.server.assistants.empty')} />
           ) : undefined}
           {items.map((assistant) => (
             <AssistantRow
@@ -328,6 +326,6 @@ export const AssistantTokens = () => {
           onClose={() => setRevoking(undefined)}
         />
       )}
-    </section>
+    </SettingsSection>
   )
 }

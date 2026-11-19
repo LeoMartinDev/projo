@@ -35,6 +35,7 @@ const operationsRoutes: [string, string][] = [
   ['GET', '/api/v1/admin/logs/export'],
   ['GET', '/api/v1/admin/notifications'],
   ['POST', `/api/v1/admin/notifications/${uuid(1)}/read`],
+  ['POST', '/api/v1/admin/notifications/read'],
   ['GET', '/api/v1/admin/stats'],
   ['GET', '/api/v1/admin/storage'],
   ['POST', '/api/v1/admin/db/export'],
@@ -46,7 +47,8 @@ describe('operations admin routes (§15, §17.2)', () => {
   test('admins only: 401 without a session, 403 for a user', async () => {
     const { t, zoe } = await household()
     for (const [method, path] of operationsRoutes) {
-      const body = path.endsWith('purge-missing') ? {} : undefined
+      const body =
+        path.endsWith('purge-missing') || path.endsWith('notifications/read') ? {} : undefined
       const anonymous = await t.request(path, {
         method,
         headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -168,6 +170,43 @@ describe('operations admin routes (§15, §17.2)', () => {
 
     const missing = await admin.send('POST', `/api/v1/admin/notifications/${uuid(9)}/read`)
     expect([missing.status, await errorCode(missing)]).toEqual([404, 'notification/not_found'])
+  })
+
+  test('notifications: mark every unread read, or those of one kind', async () => {
+    const { t, admin } = await household()
+    const notification = (n: number, kind: string) => ({
+      id: uuid(n),
+      kind,
+      severity: 'warning' as const,
+      titleKey: kind,
+      context: { key: `k${n}` },
+      createdAt: at,
+    })
+    t.db
+      .insert(notifications)
+      .values([
+        notification(1, 'job/failed'),
+        notification(2, 'job/failed'),
+        notification(3, 'cache/disk_low'),
+      ])
+      .run()
+    const unreadKinds = async () =>
+      notificationsPageSchema
+        .parse(await (await admin.get('/api/v1/admin/notifications?status=unread')).json())
+        .items.map((item) => item.kind)
+
+    const byKind = await admin.send('POST', '/api/v1/admin/notifications/read', {
+      kind: 'job/failed',
+    })
+    expect(byKind.status).toBe(204)
+    expect(await unreadKinds()).toEqual(['cache/disk_low'])
+
+    const unknown = await admin.send('POST', '/api/v1/admin/notifications/read', { kind: 'nope' })
+    expect(unknown.status).toBe(400)
+
+    const all = await admin.send('POST', '/api/v1/admin/notifications/read', {})
+    expect(all.status).toBe(204)
+    expect(await unreadKinds()).toEqual([])
   })
 
   test('stats: the dashboard counters and versions; storage on its own route', async () => {

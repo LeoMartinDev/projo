@@ -678,13 +678,10 @@
     "backToCatalog": "Back to the catalog",
     "libraries": {
       "title": "Libraries",
-      "summary_one": "{{count}} library · {{files}} ready files",
-      "summary_other": "{{count}} libraries · {{files}} ready files",
       "syncAll": "Resync all",
       "add": "Add a library",
       "addTitle": "Add a library",
       "emptyTitle": "No libraries",
-      "emptyText": "Pick a folder on the server: projo finds movies and series in it, even unsorted.",
       "columns": {
         "name": "Name",
         "content": "Content",
@@ -698,7 +695,11 @@
       "quickScan": "Scan",
       "fullScan": "Full scan",
       "edit": "Edit",
-      "delete": "Delete library"
+      "delete": "Delete library",
+      "tabs": {
+        "settings": "Settings",
+        "history": "History"
+      }
     },
     "counts": {
       "ready_one": "{{formatted}} file",
@@ -843,10 +844,6 @@
     },
     "accounts": {
       "title": "Accounts",
-      "summaryAccounts_one": "{{count}} account",
-      "summaryAccounts_other": "{{count}} accounts",
-      "summaryProfiles_one": "{{count}} profile",
-      "summaryProfiles_other": "{{count}} profiles",
       "invite": "Invite",
       "create": "Create an account",
       "list": "Accounts and profiles",
@@ -859,6 +856,13 @@
       "addProfileTitle": "New profile for {{username}}",
       "profilesOf": "Profiles of {{username}}",
       "empty": "No accounts",
+      "notFound": "This account no longer exists.",
+      "details": {
+        "lastSeen": "Last activity",
+        "sessions": "Sessions",
+        "created": "Created",
+        "disabled": "Disabled"
+      },
       "roleLabel": "Role",
       "role": {
         "admin": "Administrator",
@@ -951,8 +955,6 @@
       "title": "To review",
       "count_one": "{{count}} file to review",
       "count_other": "{{count}} files to review",
-      "summary_one": "{{formatted}} file",
-      "summary_other": "{{formatted}} files",
       "empty": "Nothing to review",
       "identify": "Identify",
       "identifyTitle": "Identify the file",
@@ -988,10 +990,7 @@
       }
     },
     "sessions": {
-      "title": "Active sessions",
       "list": "Playing now",
-      "summary_one": "{{count}} video playing",
-      "summary_other": "{{count}} videos playing",
       "empty": "Nobody is watching right now",
       "columns": {
         "profile": "Profile",
@@ -1017,8 +1016,6 @@
     "tv": {
       "title": "TV",
       "list": "TV sources",
-      "summary_one": "{{count}} source · {{channels}} enabled channels",
-      "summary_other": "{{count}} sources · {{channels}} enabled channels",
       "add": "Add a source",
       "addTitle": "Add a TV source",
       "empty": "No TV source",
@@ -1081,8 +1078,6 @@
       "guideNoMatch": "No guide channel matches"
     },
     "settings": {
-      "title": "Settings",
-      "metadata": "Metadata",
       "tmdbKey": "TMDB API key",
       "configured": "Configured",
       "configuredWith": "Configured · ••••{{last4}}",
@@ -1094,9 +1089,7 @@
       "removeText": "New files will no longer be identified.",
       "createKey": "Create an API key on TMDB",
       "language": "Metadata language",
-      "saved": "Saved",
       "segments": {
-        "title": "Intros and credits",
         "providers": "Marker providers",
         "provider": "Provider",
         "order": "Order",
@@ -1122,7 +1115,6 @@
       "configure": "Configure"
     },
     "updates": {
-      "title": "Updates",
       "check": "Check now",
       "current": "Running version",
       "runtime": "Image {{version}}",
@@ -1200,18 +1192,59 @@
       "playback/hw_accel_failed": "Hardware transcoding unavailable, using the CPU",
       "tv/source_unreachable": "TV source unreachable"
     },
-    "dashboard": {
-      "title": "Dashboard",
-      "counters": "Counters",
-      "movies": "Movies",
-      "series": "Series",
-      "episodes": "Episodes",
-      "unread": "Unread notifications",
-      "failedJobs": "Failed jobs (24 h)",
+    "nav": {
+      "overview": "Overview",
+      "media": "Media",
+      "files": "Files",
+      "accounts": "Accounts",
+      "activity": "Activity",
+      "settings": "Settings"
+    },
+    "tabs": {
+      "libraries": "Libraries",
+      "tv": "Live TV",
+      "review": "To review",
+      "pending": "Pending",
+      "missing": "Missing",
+      "hidden": "Hidden",
+      "notifications": "Notifications",
+      "jobs": "Jobs",
+      "logs": "Logs",
+      "general": "General",
+      "playback": "Playback",
+      "metadata": "Metadata",
+      "segments": "Intros and credits",
+      "assistants": "AI assistants",
+      "updates": "Updates"
+    },
+    "saveBar": {
+      "unsaved": "Unsaved changes"
+    },
+    "overview": {
+      "todo": "To do",
+      "nothingToDo": "Nothing to do",
+      "now": "Now",
       "scans": "Running scans",
       "noScan": "No scan running",
-      "version": "Version",
-      "updateReady": "Ready to install"
+      "open": "Open",
+      "ignore": "Ignore",
+      "ignoreNamed": "Ignore “{{title}}”",
+      "times": "×{{formatted}}",
+      "review_one": "{{formatted}} file to review",
+      "review_other": "{{formatted}} files to review",
+      "missing_one": "{{formatted}} missing file",
+      "missing_other": "{{formatted}} missing files",
+      "failedJobs_one": "{{formatted}} job failed in the last 24 h",
+      "failedJobs_other": "{{formatted}} jobs failed in the last 24 h",
+      "update": "projo {{version}} is available",
+      "updateRuntime": "projo {{version}} needs a newer Docker image",
+      "movies_one": "{{formatted}} movie",
+      "movies_other": "{{formatted}} movies",
+      "series_one": "{{formatted}} show",
+      "series_other": "{{formatted}} shows",
+      "episodes_one": "{{formatted}} episode",
+      "episodes_other": "{{formatted}} episodes",
+      "version": "projo {{version}}"
     },
     "pending": {
       "title": "Pending files",
@@ -1381,6 +1414,7 @@
       "empty": "No notification",
       "markRead": "Mark as read",
       "markReadNamed": "Mark “{{title}}” as read",
+      "markAllRead": "Mark all as read",
       "open": "Open",
       "subject": "About",
       "createdAt": "Received",
@@ -1404,7 +1438,6 @@
       }
     },
     "playbackSettings": {
-      "title": "Playback",
       "maxTranscodes": "Simultaneous transcodes",
       "cacheSize": "Transcode cache (GB)",
       "downmix": "Downmix multichannel audio to stereo",
@@ -1415,7 +1448,6 @@
       "liveCacheSize": "Live TV cache (GB)"
     },
     "server": {
-      "title": "Server",
       "name": "Server name",
       "port": "Port",
       "trustProxy": "TRUST_PROXY",
@@ -1443,8 +1475,6 @@
       "exported": "{{file}} · {{size}}",
       "maintenance": "Maintenance",
       "assistants": {
-        "title": "AI assistants",
-        "add": "Add",
         "addTitle": "Add an assistant",
         "name": "Name",
         "create": "Create",
@@ -1500,9 +1530,7 @@
       "refreshQueued": "Refresh queued"
     },
     "metadataRefresh": {
-      "title": "Refresh a whole library",
       "action": "Refresh metadata",
-      "actionOf": "Refresh the metadata of {{name}}",
       "queued": "Refresh queued"
     },
     "imageOptimize": {

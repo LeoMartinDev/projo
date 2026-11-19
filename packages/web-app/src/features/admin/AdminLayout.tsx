@@ -5,25 +5,11 @@ import { useTranslation } from 'react-i18next'
 
 import { eventHub } from '../../shared/events/events.ts'
 import { setupStatusQuery } from '../../shared/session/session.ts'
-import { AlertIcon, BackIcon, EyeOffIcon, LayersIcon, TvIcon } from '../../shared/ui/icons.tsx'
+import { AlertIcon, BackIcon, LayersIcon, SettingsIcon } from '../../shared/ui/icons.tsx'
 import { useElement } from '../../shared/ui/use-element.ts'
 import { Logo } from '../shell/Logo.tsx'
-import {
-  BellIcon,
-  DashboardIcon,
-  JobsIcon,
-  LiveTvIcon,
-  LogsIcon,
-  MissingIcon,
-  PendingIcon,
-  PlaybackIcon,
-  ReviewIcon,
-  ServerIcon,
-  SkipIcon,
-  TagIcon,
-  UpdateIcon,
-  UsersIcon,
-} from './admin-icons.tsx'
+import { BellIcon, DashboardIcon, ReviewIcon, UsersIcon } from './admin-icons.tsx'
+import { adminNavEntryOf } from './admin-nav.ts'
 import { reviewQueryKey } from './identify/queries.ts'
 import { unreadNotificationsQuery, useLiveNotifications } from './operations/queries.ts'
 import { reviewCountQuery } from './review/queries.ts'
@@ -75,7 +61,9 @@ const TmdbKeyBanner = () => {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const state = settings.data?.metadata.tmdbApiKey.state
   if (state === undefined || state === 'valid') return undefined
-  if (pathname.startsWith('/admin/settings/metadata')) return undefined
+  // On the overview its "To do" says it; on the metadata settings, the key's own field does.
+  if (adminNavEntryOf(pathname) === 'overview' || pathname.startsWith('/admin/settings/metadata'))
+    return undefined
   return (
     <div className="admin-banner" role="status">
       <AlertIcon />
@@ -122,6 +110,7 @@ export const AdminLayout = () => {
   useLiveNotifications()
   const [nav, navRef] = useElement<HTMLElement>()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const current = adminNavEntryOf(pathname)
   useEffect(() => {
     nav
       ?.querySelector('[aria-current="page"]')
@@ -144,141 +133,59 @@ export const AdminLayout = () => {
             to="/admin"
             className="admin__nav-link"
             activeOptions={{ exact: true }}
-            activeProps={{ 'aria-current': 'page' }}
+            aria-current={current === 'overview' ? 'page' : undefined}
           >
             <DashboardIcon />
-            <span className="admin__nav-label">{t('admin.dashboard.title')}</span>
+            <span className="admin__nav-label">{t('admin.nav.overview')}</span>
           </Link>
           <span className="admin__nav-separator" aria-hidden="true" />
           <Link
             to="/admin/libraries"
             className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
+            activeOptions={{ exact: true }}
+            aria-current={current === 'media' ? 'page' : undefined}
           >
             <LayersIcon />
-            <span className="admin__nav-label">{t('admin.libraries.title')}</span>
-          </Link>
-          <Link
-            to="/admin/pending"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <PendingIcon />
-            <span className="admin__nav-label">{t('admin.pending.title')}</span>
+            <span className="admin__nav-label">{t('admin.nav.media')}</span>
           </Link>
           <Link
             to="/admin/review"
             className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
+            activeOptions={{ exact: true }}
+            aria-current={current === 'files' ? 'page' : undefined}
           >
             <ReviewIcon />
-            <span className="admin__nav-label">{t('admin.review.title')}</span>
+            <span className="admin__nav-label">{t('admin.nav.files')}</span>
             <ReviewCount />
           </Link>
           <Link
-            to="/admin/missing"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <MissingIcon />
-            <span className="admin__nav-label">{t('admin.missing.title')}</span>
-          </Link>
-          <Link
-            to="/admin/hidden"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <EyeOffIcon />
-            <span className="admin__nav-label">{t('admin.hidden.title')}</span>
-          </Link>
-          <Link to="/admin/tv" className="admin__nav-link" activeProps={{ 'aria-current': 'page' }}>
-            <LiveTvIcon />
-            <span className="admin__nav-label">{t('admin.tv.title')}</span>
-          </Link>
-          <span className="admin__nav-separator" aria-hidden="true" />
-          <Link
             to="/admin/accounts"
             className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
+            activeOptions={{ exact: true }}
+            aria-current={current === 'accounts' ? 'page' : undefined}
           >
             <UsersIcon />
-            <span className="admin__nav-label">{t('admin.accounts.title')}</span>
-          </Link>
-          <Link
-            to="/admin/sessions"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <TvIcon />
-            <span className="admin__nav-label">{t('admin.sessions.title')}</span>
-          </Link>
-          <span className="admin__nav-separator" aria-hidden="true" />
-          <Link
-            to="/admin/jobs"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <JobsIcon />
-            <span className="admin__nav-label">{t('admin.jobs.title')}</span>
-          </Link>
-          <Link
-            to="/admin/logs"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <LogsIcon />
-            <span className="admin__nav-label">{t('admin.logs.title')}</span>
+            <span className="admin__nav-label">{t('admin.nav.accounts')}</span>
           </Link>
           <Link
             to="/admin/notifications"
             className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
+            activeOptions={{ exact: true }}
+            aria-current={current === 'activity' ? 'page' : undefined}
           >
             <BellIcon />
-            <span className="admin__nav-label">{t('admin.notificationCenter.title')}</span>
+            <span className="admin__nav-label">{t('admin.nav.activity')}</span>
             <UnreadCount />
           </Link>
-          <span className="admin__nav-separator" aria-hidden="true" />
           <Link
-            to="/admin/settings/playback"
+            to="/admin/settings/general"
             className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
+            activeOptions={{ exact: true }}
+            aria-current={current === 'settings' ? 'page' : undefined}
           >
-            <PlaybackIcon />
-            <span className="admin__nav-label">{t('admin.playbackSettings.title')}</span>
-          </Link>
-          <Link
-            to="/admin/settings/segments"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <SkipIcon />
-            <span className="admin__nav-label">{t('admin.settings.segments.title')}</span>
-          </Link>
-          <Link
-            to="/admin/settings/metadata"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <TagIcon />
-            <span className="admin__nav-label">{t('admin.settings.metadata')}</span>
-          </Link>
-          <Link
-            to="/admin/updates"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <UpdateIcon />
-            <span className="admin__nav-label">{t('admin.updates.title')}</span>
+            <SettingsIcon />
+            <span className="admin__nav-label">{t('admin.nav.settings')}</span>
             <UpdateAvailable />
-          </Link>
-          <Link
-            to="/admin/server"
-            className="admin__nav-link"
-            activeProps={{ 'aria-current': 'page' }}
-          >
-            <ServerIcon />
-            <span className="admin__nav-label">{t('admin.server.title')}</span>
           </Link>
         </nav>
         <Link to="/movies" className="admin__nav-link admin__back">

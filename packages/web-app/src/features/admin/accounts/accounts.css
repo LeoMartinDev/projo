@@ -240,20 +240,6 @@
     0 0 0 4px var(--color-text);
 }
 
-.acc-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  min-width: 0;
-}
-
-.acc-head .acc-activity {
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-}
-
 .acc-settings {
   display: flex;
   flex-direction: column;
@@ -278,24 +264,12 @@
   font-size: 13px;
 }
 
-.acc-profiles-section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .acc-section-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-.acc-section-head__title {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
 }
 
 .acc-section-head__count {
@@ -423,6 +397,15 @@
 
 .acc-create--page {
   max-width: 560px;
+}
+
+.acc-dialog__skeleton {
+  height: 320px;
+}
+
+/* The activity of an account: its last activity reads left to right, like the other values. */
+.adm-details .acc-activity {
+  align-items: flex-start;
 }
 
 .invites {

@@ -3,16 +3,19 @@ import { useTranslation } from 'react-i18next'
 
 import { useErrorMessage } from '../i18n/errors.ts'
 
+/** `compact`: one muted line, for a table or a block of a page (the admin's). */
 export const EmptyState = ({
   title,
   text,
   action,
+  compact = false,
 }: {
   title: string
   text?: string
   action?: ReactNode
+  compact?: boolean
 }) => (
-  <div className="state">
+  <div className={compact ? 'state state--compact' : 'state'}>
     <p className="state__title">{title}</p>
     {text === undefined ? undefined : <p className="state__text">{text}</p>}
     {action}

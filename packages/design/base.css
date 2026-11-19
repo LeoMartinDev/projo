@@ -1296,6 +1296,21 @@ select.field__input {
   font-size: 15px;
 }
 
+.state--compact {
+  flex-direction: row;
+  justify-content: flex-start;
+  min-height: 56px;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.state--compact .state__title {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
 .state--error .state__title {
   color: var(--color-error-soft);
 }
@@ -1402,10 +1417,40 @@ select.field__input {
   padding: 22px 18px 10px 28px;
 }
 
+.dialog__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
 .dialog__title {
   font-size: 20px;
   font-weight: 600;
   letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.dialog__subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-height: 22px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.dialog__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+}
+
+.dialog__tabs {
+  flex: 0 0 auto;
+  padding: 0 28px;
 }
 
 .dialog__body {
@@ -1424,6 +1469,40 @@ select.field__input {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+}
+
+/* A record's details: wider, the same height on every tab and in every state, its body scrolling. */
+.dialog--large {
+  width: min(880px, calc(100vw - 32px));
+  height: min(760px, calc(100dvh - 32px));
+  max-height: none;
+}
+
+.dialog--large .dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: 20px;
+  overscroll-behavior: contain;
+}
+
+@media (--compact) {
+  .dialog--large {
+    width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    border-radius: 20px;
+  }
+
+  .dialog--large .dialog__header,
+  .dialog--large .dialog__tabs,
+  .dialog--large .dialog__body,
+  .dialog--large .dialog__footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .dialog--large .dialog__header {
+    padding-right: 8px;
+  }
 }
 
 .dialog__footer {

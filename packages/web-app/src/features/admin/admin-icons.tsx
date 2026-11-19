@@ -69,13 +69,6 @@ export const GlobeIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-export const UpdateIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
-    <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" />
-  </Icon>
-)
-
 export const DashboardIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="4" width="7" height="8" rx="1.5" />
@@ -85,35 +78,11 @@ export const DashboardIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-export const PendingIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <path d="M7 4h10M7 20h10" />
-    <path d="M8 4c0 4 8 4.5 8 8s-8 4-8 8M16 4c0 4-8 4.5-8 8s8 4 8 8" />
-  </Icon>
-)
-
-export const MissingIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <path
-      d="M14 4H7.5A1.5 1.5 0 0 0 6 5.5v13A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V8z"
-      strokeDasharray="2.5 2.5"
-    />
-    <path d="M10 12l4 4M14 12l-4 4" />
-  </Icon>
-)
-
 export const JobsIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <rect x="4" y="5" width="16" height="4" rx="1.5" />
     <rect x="4" y="10.5" width="11" height="4" rx="1.5" />
     <rect x="4" y="16" width="7" height="4" rx="1.5" />
-  </Icon>
-)
-
-export const LogsIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <path d="M7 4.5h10A1.5 1.5 0 0 1 18.5 6v12a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5z" />
-    <path d="M8.5 9h1M11.5 9h4M8.5 12h1M11.5 12h4M8.5 15h1M11.5 15h2.5" />
   </Icon>
 )
 
@@ -131,24 +100,10 @@ export const BellIcon = ({ size }: IconProps) => (
   </Icon>
 )
 
-export const PlaybackIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <rect x="3.5" y="5" width="17" height="14" rx="2" />
-    <path d="M10.5 9.5v5l4-2.5z" />
-  </Icon>
-)
-
 export const SkipIcon = ({ size }: IconProps) => (
   <Icon size={size ?? 18}>
     <path d="M5 6.5v11l8-5.5z" />
     <path d="M13 6.5v11l6-5.5z" />
-  </Icon>
-)
-
-export const TagIcon = ({ size }: IconProps) => (
-  <Icon size={size ?? 18}>
-    <path d="M4 12.2V5.5A1.5 1.5 0 0 1 5.5 4h6.7l7.3 7.3a1.5 1.5 0 0 1 0 2.1l-6.1 6.1a1.5 1.5 0 0 1-2.1 0z" />
-    <circle cx="8.5" cy="8.5" r="1.3" />
   </Icon>
 )
 

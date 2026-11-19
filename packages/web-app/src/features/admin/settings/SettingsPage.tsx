@@ -2,116 +2,104 @@ import { useQuery } from '@tanstack/react-query'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import type { AdminSettingsDto } from '@projo/shared/api/settings'
+import { ok } from '@projo/shared/result'
+
 import { currentLocale } from '../../../shared/i18n/index.ts'
-import { ValidMark } from '../../../shared/ui/controls.tsx'
 import { SelectField } from '../../../shared/ui/Select.tsx'
-import { ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
+import { ErrorState } from '../../../shared/ui/states.tsx'
 import { GlobeIcon } from '../admin-icons.tsx'
+import { SettingsSection } from '../admin-sections.tsx'
 import { languageLabel, metadataLanguages } from '../languages.ts'
-import { RefreshLibrarySetting } from '../metadata/RefreshLibrary.tsx'
 import { ApiKeySetting } from './ApiKeySetting.tsx'
-import { settingsQuery, tmdbKeyPageUrl, useUpdateSettings } from './queries.ts'
+import { settingsQuery, tmdbKeyPageUrl } from './queries.ts'
+import { SaveBar } from './SaveBar.tsx'
 import { SegmentSettings } from './SegmentSettings.tsx'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SettingsSkeleton } from './SettingsSkeleton.tsx'
+import { useSettingsForm } from './use-settings-form.ts'
 import '../admin.css'
 import './settings.css'
 
-const MetadataLanguage = ({ language }: { language: string }) => {
+type MetadataDraft = { language: string }
+
+const languageChanges = (draft: MetadataDraft, changed: Partial<MetadataDraft>) =>
+  ok(changed.language === undefined ? {} : { metadata: { language: draft.language } })
+
+const MetadataSettings = ({ metadata }: { metadata: AdminSettingsDto['metadata'] }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const id = useId()
-  const update = useUpdateSettings()
+  const form = useSettingsForm<MetadataDraft, never>({
+    saved: { language: metadata.language },
+    changes: languageChanges,
+  })
+  const language = form.draft.language
   const known = metadataLanguages.some((code) => code === language)
   return (
-    <div className="settings-block">
-      <SelectField<string>
-        id={`${id}-language`}
-        label={t('admin.settings.language')}
-        icon={<GlobeIcon />}
-        trail={
-          <>
-            {update.isSuccess ? <ValidMark label={t('admin.settings.saved')} /> : undefined}
-            {update.isPending ? (
-              <span className="spinner settings-spinner" aria-hidden="true" />
-            ) : undefined}
-          </>
-        }
-        value={language}
-        disabled={update.isPending}
-        options={(known ? metadataLanguages : [language, ...metadataLanguages]).map((code) => ({
-          value: code,
-          label: languageLabel(code, locale),
-        }))}
-        onChange={(next) => update.mutate({ metadata: { language: next } })}
-      />
-      {update.isError ? <ErrorAlert error={update.error} /> : undefined}
-    </div>
+    <>
+      <section className="settings-section" aria-label={t('admin.tabs.metadata')}>
+        <div className="settings-block">
+          <SelectField<string>
+            id={`${id}-language`}
+            label={t('admin.settings.language')}
+            icon={<GlobeIcon />}
+            value={language}
+            options={(known ? metadataLanguages : [language, ...metadataLanguages]).map((code) => ({
+              value: code,
+              label: languageLabel(code, locale),
+            }))}
+            onChange={(next) => form.set('language', next)}
+          />
+        </div>
+        <ApiKeySetting
+          label={t('admin.settings.tmdbKey')}
+          status={{
+            configured: metadata.tmdbApiKey.configured,
+            rejected: metadata.tmdbApiKey.state === 'rejected',
+            ...(metadata.tmdbApiKey.last4 === undefined
+              ? {}
+              : { last4: metadata.tmdbApiKey.last4 }),
+          }}
+          minLength={16}
+          toBody={(tmdbApiKey) => ({ metadata: { tmdbApiKey } })}
+          removeTitle={t('admin.settings.removeTitle')}
+          removeText={t('admin.settings.removeText')}
+          link={{ href: tmdbKeyPageUrl, label: t('admin.settings.createKey') }}
+        />
+      </section>
+      <SaveBar form={form} />
+    </>
   )
 }
 
-const SettingsSkeleton = () => (
-  <>
-    <span className="skeleton settings-skeleton" aria-hidden="true" />
-    <span className="skeleton settings-skeleton" aria-hidden="true" />
-  </>
-)
-
+/** Settings › Metadata (§15): the language, the TMDB key (replaced at once by its "Validate"). */
 export const MetadataSettingsPage = () => {
-  const { t } = useTranslation()
   const settings = useQuery(settingsQuery)
   return (
-    <div className="admin-page">
-      <AdminPageHeader title={t('admin.settings.metadata')} />
+    <SettingsSection>
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
+      ) : settings.data === undefined ? (
+        <SettingsSkeleton />
       ) : (
-        <section className="settings-section" aria-label={t('admin.settings.metadata')}>
-          {settings.isPending ? (
-            <SettingsSkeleton />
-          ) : (
-            <>
-              <ApiKeySetting
-                label={t('admin.settings.tmdbKey')}
-                status={{
-                  configured: settings.data.metadata.tmdbApiKey.configured,
-                  rejected: settings.data.metadata.tmdbApiKey.state === 'rejected',
-                  ...(settings.data.metadata.tmdbApiKey.last4 === undefined
-                    ? {}
-                    : { last4: settings.data.metadata.tmdbApiKey.last4 }),
-                }}
-                minLength={16}
-                toBody={(tmdbApiKey) => ({ metadata: { tmdbApiKey } })}
-                removeTitle={t('admin.settings.removeTitle')}
-                removeText={t('admin.settings.removeText')}
-                link={{ href: tmdbKeyPageUrl, label: t('admin.settings.createKey') }}
-              />
-              <MetadataLanguage language={settings.data.metadata.language} />
-              <RefreshLibrarySetting />
-            </>
-          )}
-        </section>
+        <MetadataSettings metadata={settings.data.metadata} />
       )}
-    </div>
+    </SettingsSection>
   )
 }
 
+/** Settings › Intros and credits (§15). */
 export const SegmentsSettingsPage = () => {
-  const { t } = useTranslation()
   const settings = useQuery(settingsQuery)
   return (
-    <div className="admin-page">
-      <AdminPageHeader title={t('admin.settings.segments.title')} />
+    <SettingsSection>
       {settings.isError ? (
         <ErrorState error={settings.error} onRetry={() => void settings.refetch()} />
+      ) : settings.data === undefined ? (
+        <SettingsSkeleton />
       ) : (
-        <section className="settings-section" aria-label={t('admin.settings.segments.title')}>
-          {settings.isPending ? (
-            <SettingsSkeleton />
-          ) : (
-            <SegmentSettings segments={settings.data.segments} />
-          )}
-        </section>
+        <SegmentSettings segments={settings.data.segments} />
       )}
-    </div>
+    </SettingsSection>
   )
 }

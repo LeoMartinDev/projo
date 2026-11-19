@@ -20,14 +20,9 @@ import { useNow } from '../../../shared/ui/use-now.ts'
 import { reviewQueryKey } from '../identify/queries.ts'
 import { HideSourceDialog } from '../review/HideSourceDialog.tsx'
 import { fileName } from '../review/parsed.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { FilesSection } from '../admin-sections.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
-import {
-  sourcesByStateQuery,
-  sourcesByStateQueryKey,
-  statsQueryKey,
-  useLiveSources,
-} from './queries.ts'
+import { sourcesByStateQuery, sourcesByStateQueryKey, statsQueryKey } from './queries.ts'
 import '../admin.css'
 import '../admin-table.css'
 import './operations.css'
@@ -84,26 +79,15 @@ export const PendingPage = () => {
   const queryClient = useQueryClient()
   const list = useInfiniteQuery(sourcesByStateQuery('pending'))
   const [hiding, setHiding] = useState<SourceDto>()
-  useLiveSources()
   const recheck = useMutation({
     mutationFn: (id: string) =>
       request(() => api.admin.sources[':id'].recheck.$post({ param: { id } })),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: sourcesByStateQueryKey }),
   })
   const sources = list.data?.pages.flatMap((page) => page.items) ?? []
-  const total = list.data?.pages[0]?.total ?? 0
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.pending.title')}
-        summary={
-          total > 0
-            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
-            : undefined
-        }
-      />
-
+    <FilesSection>
       {recheck.isError ? <ErrorAlert error={recheck.error} /> : undefined}
 
       <div className="adm-table" role="table" aria-label={t('admin.pending.title')}>
@@ -127,7 +111,7 @@ export const PendingPage = () => {
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
           {list.isSuccess && sources.length === 0 ? (
-            <EmptyState title={t('admin.pending.empty')} />
+            <EmptyState compact title={t('admin.pending.empty')} />
           ) : undefined}
           {sources.map((source) => {
             const busy = recheck.isPending && recheck.variables === source.id
@@ -189,7 +173,7 @@ export const PendingPage = () => {
       {hiding === undefined ? undefined : (
         <HideSourceDialog key={hiding.id} source={hiding} onClose={() => setHiding(undefined)} />
       )}
-    </div>
+    </FilesSection>
   )
 }
 
@@ -234,36 +218,24 @@ const PurgeDialog = ({ purging, onClose }: { purging: Purging; onClose: () => vo
 
 export const MissingPage = () => {
   const { t } = useTranslation()
-  const locale = currentLocale()
   const list = useInfiniteQuery(sourcesByStateQuery('missing'))
   const [purging, setPurging] = useState<Purging | undefined>()
-  useLiveSources()
   const sources = list.data?.pages.flatMap((page) => page.items) ?? []
   const total = list.data?.pages[0]?.total ?? 0
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.missing.title')}
-        summary={
-          total > 0
-            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
-            : undefined
-        }
-        actions={
-          <>
-            <button
-              type="button"
-              className="button button--glass"
-              disabled={total === 0}
-              onClick={() => setPurging({ kind: 'all', count: total })}
-            >
-              {t('admin.missing.purgeAll')}
-            </button>
-          </>
-        }
-      />
-
+    <FilesSection
+      actions={
+        <button
+          type="button"
+          className="button button--glass button--small"
+          disabled={total === 0}
+          onClick={() => setPurging({ kind: 'all', count: total })}
+        >
+          {t('admin.missing.purgeAll')}
+        </button>
+      }
+    >
       <div className="adm-table" role="table" aria-label={t('admin.missing.title')}>
         <div className="adm-tr missing-tr adm-tr--head" role="row">
           <span role="columnheader">{t('admin.pending.columns.file')}</span>
@@ -279,7 +251,7 @@ export const MissingPage = () => {
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
           {list.isSuccess && sources.length === 0 ? (
-            <EmptyState title={t('admin.missing.empty')} />
+            <EmptyState compact title={t('admin.missing.empty')} />
           ) : undefined}
           {sources.map((source) => {
             const item = source.items.map((entry) => itemWithSeriesLabel(t, entry)).join(', ')
@@ -321,7 +293,7 @@ export const MissingPage = () => {
       {purging === undefined ? undefined : (
         <PurgeDialog purging={purging} onClose={() => setPurging(undefined)} />
       )}
-    </div>
+    </FilesSection>
   )
 }
 
@@ -340,19 +312,9 @@ export const HiddenPage = () => {
     },
   })
   const sources = list.data?.pages.flatMap((page) => page.items) ?? []
-  const total = list.data?.pages[0]?.total ?? 0
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.hidden.title')}
-        summary={
-          total > 0
-            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
-            : undefined
-        }
-      />
-
+    <FilesSection>
       {restore.isError ? <ErrorAlert error={restore.error} /> : undefined}
 
       <div className="adm-table" role="table" aria-label={t('admin.hidden.title')}>
@@ -369,7 +331,7 @@ export const HiddenPage = () => {
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
           {list.isSuccess && sources.length === 0 ? (
-            <EmptyState title={t('admin.hidden.empty')} />
+            <EmptyState compact title={t('admin.hidden.empty')} />
           ) : undefined}
           {sources.map((source) => {
             const busy = restore.isPending && restore.variables === source.id
@@ -404,6 +366,6 @@ export const HiddenPage = () => {
         fetching={list.isFetchingNextPage}
         onMore={() => void list.fetchNextPage()}
       />
-    </div>
+    </FilesSection>
   )
 }

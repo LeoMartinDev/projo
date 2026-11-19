@@ -49,9 +49,14 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
     await page.getByRole('link', { name: fr.shell.admin }).click()
     await page
       .getByRole('navigation', { name: fr.admin.title })
-      .getByRole('link', { name: startsWith(fr.admin.review.title) })
+      .getByRole('link', { name: startsWith(fr.admin.nav.files) })
       .click()
-    await expect(page.getByRole('heading', { name: fr.admin.review.title, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: fr.admin.nav.files, level: 1 })).toBeVisible()
+    await expect(
+      page
+        .getByRole('navigation', { name: fr.admin.nav.files })
+        .getByRole('link', { name: startsWith(fr.admin.tabs.review) }),
+    ).toHaveAttribute('aria-current', 'page')
     await expect(entry).toBeVisible({ timeout: 60_000 })
     await expect(entry).toContainText(fr.admin.review.reason.no_match)
     await expect(entry).toContainText(fr.admin.review.classification.movie)
@@ -92,15 +97,18 @@ test('correction: unidentified file, TMDB search and assignment, survives a full
   await test.step('the admin runs a full scan of the library', async () => {
     await page
       .getByRole('navigation', { name: fr.admin.title })
-      .getByRole('link', { name: fr.admin.libraries.title })
+      .getByRole('link', { name: fr.admin.nav.media })
       .click()
     const row = page.getByRole('row').filter({ hasText: libraryDir })
-    await row.getByRole('button', { name: startsWith(fr.admin.libraries.more) }).click()
-    await row.getByRole('link', { name: fr.admin.libraries.edit }).click()
-    const history = page.getByRole('region', { name: fr.admin.history.title }).getByRole('listitem')
+    await row.getByRole('link').first().click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('tab', { name: fr.admin.libraries.tabs.history }).click()
+    const history = dialog.getByRole('list', { name: fr.admin.history.title }).getByRole('listitem')
     const fullScans = history.filter({ hasText: fr.admin.scanKind.manual_full })
+    await expect(history.first()).toBeVisible()
     await expect(fullScans).toHaveCount(0)
-    await page.getByRole('button', { name: fr.admin.libraries.fullScan }).click()
+    await dialog.getByRole('button', { name: startsWith(fr.admin.libraries.more) }).click()
+    await dialog.getByRole('button', { name: fr.admin.libraries.fullScan }).click()
     await expect(fullScans).toHaveCount(1)
     await expect(fullScans).toContainText(matching(fr.admin.history.stats), { timeout: 60_000 })
   })

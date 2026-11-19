@@ -12,7 +12,7 @@ import { AlertIcon, PlusIcon } from '../../../shared/ui/icons.tsx'
 import { SelectField } from '../../../shared/ui/Select.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { MediaSection } from '../admin-sections.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
 import { tvSourcesQuery, useCreateTvSource, useLiveTv } from './queries.ts'
 import {
@@ -182,14 +182,12 @@ const SourceRow = ({ source, onOpen }: { source: AdminTvSourceDto; onOpen: () =>
 
 export const TvSourcesPage = () => {
   const { t } = useTranslation()
-  const locale = currentLocale()
   const sources = useQuery(tvSourcesQuery)
   const [adding, setAdding] = useState(false)
   const [openedId, setOpenedId] = useState<string>()
   useLiveTv()
   const items = sources.data?.items ?? []
   const opened = items.find((source) => source.id === openedId)
-  const enabled = items.reduce((total, source) => total + source.enabledChannelCount, 0)
 
   const addButton = (
     <button
@@ -203,20 +201,7 @@ export const TvSourcesPage = () => {
   )
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.tv.title')}
-        summary={
-          sources.isSuccess && items.length > 0
-            ? t('admin.tv.summary', {
-                count: items.length,
-                channels: formatNumber(enabled, locale),
-              })
-            : undefined
-        }
-        actions={addButton}
-      />
-
+    <MediaSection actions={addButton}>
       <div className="adm-table" role="table" aria-label={t('admin.tv.list')}>
         <div className="adm-tr tv-tr adm-tr--head" role="row">
           <span role="columnheader">{t('admin.tv.columns.name')}</span>
@@ -235,7 +220,7 @@ export const TvSourcesPage = () => {
             <ErrorState error={sources.error} onRetry={() => void sources.refetch()} />
           ) : undefined}
           {sources.isSuccess && items.length === 0 ? (
-            <EmptyState title={t('admin.tv.empty')} />
+            <EmptyState compact title={t('admin.tv.empty')} />
           ) : undefined}
           {items.map((source) => (
             <SourceRow key={source.id} source={source} onOpen={() => setOpenedId(source.id)} />
@@ -247,6 +232,6 @@ export const TvSourcesPage = () => {
       {opened === undefined ? undefined : (
         <TvSourceDialog key={opened.id} source={opened} onClose={() => setOpenedId(undefined)} />
       )}
-    </div>
+    </MediaSection>
   )
 }

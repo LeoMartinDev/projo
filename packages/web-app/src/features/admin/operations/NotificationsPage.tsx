@@ -9,6 +9,7 @@ import { api, request } from '../../../shared/api/client.ts'
 import { formatDateTime, formatRelative } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
+import { CheckIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { useNow } from '../../../shared/ui/use-now.ts'
 import { Segmented } from '../../../shared/ui/Segmented.tsx'
@@ -18,9 +19,10 @@ import {
   notificationsQueryKey,
   statsQueryKey,
   useLiveNotifications,
+  useMarkNotificationsRead,
 } from './queries.ts'
 import { formatContext } from './stored-error.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { ActivitySection } from '../admin-sections.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
@@ -177,21 +179,31 @@ export const NotificationsPage = () => {
   const [opened, setOpened] = useState<NotificationDto | undefined>()
   const list = useInfiniteQuery(notificationsQuery(filter === 'all' ? undefined : filter))
   const markRead = useMarkRead()
+  const markAll = useMarkNotificationsRead()
   useLiveNotifications()
   const items = list.data?.pages.flatMap((page) => page.items) ?? []
   const unread = list.data?.pages[0]?.unreadCount
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.notificationCenter.title')}
-        summary={
-          unread === undefined || unread === 0
-            ? undefined
-            : t('admin.notificationCenter.unread', { count: unread })
-        }
-      />
-
+    <ActivitySection
+      actions={
+        unread === undefined || unread === 0 ? undefined : (
+          <button
+            type="button"
+            className="button button--glass button--small"
+            disabled={markAll.isPending}
+            onClick={() => markAll.mutate(undefined)}
+          >
+            {markAll.isPending ? (
+              <span className="spinner" aria-hidden="true" />
+            ) : (
+              <CheckIcon size={16} />
+            )}
+            {t('admin.notificationCenter.markAllRead')}
+          </button>
+        )
+      }
+    >
       <div className="adm-toolbar">
         <Segmented
           role="toggle"
@@ -206,6 +218,7 @@ export const NotificationsPage = () => {
       </div>
 
       {markRead.isError ? <ErrorAlert error={markRead.error} /> : undefined}
+      {markAll.isError ? <ErrorAlert error={markAll.error} /> : undefined}
 
       <div className="adm-table" role="table" aria-label={t('admin.notificationCenter.title')}>
         <div className="adm-tr notif-tr adm-tr--head" role="row">
@@ -222,7 +235,7 @@ export const NotificationsPage = () => {
             <ErrorState error={list.error} onRetry={() => void list.refetch()} />
           ) : undefined}
           {list.isSuccess && items.length === 0 ? (
-            <EmptyState title={t('admin.notificationCenter.empty')} />
+            <EmptyState compact title={t('admin.notificationCenter.empty')} />
           ) : undefined}
           {items.map((notification) => (
             <NotificationRow
@@ -255,6 +268,6 @@ export const NotificationsPage = () => {
           onClose={() => setOpened(undefined)}
         />
       )}
-    </div>
+    </ActivitySection>
   )
 }

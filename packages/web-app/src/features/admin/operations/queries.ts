@@ -2,13 +2,14 @@ import {
   infiniteQueryOptions,
   keepPreviousData,
   queryOptions,
+  useMutation,
   useQueryClient,
 } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 
 import type { JobStateDto, JobTypeDto } from '@projo/shared/api/jobs'
 import type { LogFilters } from '@projo/shared/api/logs'
-import type { NotificationStatus } from '@projo/shared/api/notifications'
+import type { NotificationKind, NotificationStatus } from '@projo/shared/api/notifications'
 
 import { api, request } from '../../../shared/api/client.ts'
 import { refreshLive } from '../../../shared/api/live-refresh.ts'
@@ -16,7 +17,11 @@ import { useServerEvent } from '../../../shared/events/events.ts'
 import { createThrottle } from '../live-scans.ts'
 import { notificationsQueryKey } from './unread.ts'
 
-export { notificationsQueryKey, unreadNotificationsQuery } from './unread.ts'
+export {
+  notificationsQueryKey,
+  unreadNotificationsListQuery,
+  unreadNotificationsQuery,
+} from './unread.ts'
 
 const pageSize = 50
 
@@ -122,6 +127,17 @@ export const sourcesByStateQuery = (state: 'pending' | 'missing' | 'rejected') =
     getNextPageParam: (page) => page.nextCursor,
   })
 
+/** How many sources are in `state` (a tab's count); refreshed with the lists. */
+export const sourceCountQuery = (state: 'pending' | 'missing' | 'rejected') =>
+  queryOptions({
+    queryKey: [...sourcesByStateQueryKey, 'count', state],
+    queryFn: async () => {
+      const page = await request(() => api.admin.sources.$get({ query: { state, limit: '1' } }))
+      return page.total
+    },
+    staleTime: 30_000,
+  })
+
 const refreshIntervalMs = 2000
 
 const useThrottledInvalidation = (queryKey: readonly string[]) => {
@@ -156,6 +172,21 @@ export const useLiveNotifications = () => {
   useServerEvent('notification.created', () => {
     void queryClient.invalidateQueries({ queryKey: notificationsQueryKey })
     void queryClient.invalidateQueries({ queryKey: statsQueryKey })
+  })
+}
+
+/** Marks every unread notification read, or those of one kind ("Ignore" on the overview). */
+export const useMarkNotificationsRead = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (kind: NotificationKind | undefined) =>
+      request(() =>
+        api.admin.notifications.read.$post({ json: kind === undefined ? {} : { kind } }),
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: notificationsQueryKey })
+      void queryClient.invalidateQueries({ queryKey: statsQueryKey })
+    },
   })
 }
 

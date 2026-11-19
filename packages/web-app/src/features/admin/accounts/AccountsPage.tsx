@@ -8,12 +8,13 @@ import type { AdminAccountDto } from '@projo/shared/api/accounts'
 import { ChevronRightIcon, PlusIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { AccountActivity } from './AccountActivity.tsx'
+import { AccountDialog, NewAccountDialog } from './AccountDialog.tsx'
 import { InvitationCreatedDialog, Invitations, useCreateInvitation } from './Invitations.tsx'
 import { AdminAvatar, useRatingLabel } from './parts.tsx'
 import { librariesQuery } from '../queries.ts'
 import { accountsQuery } from './queries.ts'
 import { profileSummary } from './summary.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { AdminSection } from '../AdminSection.tsx'
 import '../admin.css'
 import './accounts.css'
 
@@ -70,11 +71,7 @@ const AccountRow = ({ account, libraries }: { account: AdminAccountDto; librarie
     <div className="acc-tr" role="row" data-disabled={account.disabledAt !== undefined}>
       <div className="acc-tr__name" role="cell">
         <AdminAvatar name={account.username} color="neutral" />
-        <Link
-          to="/admin/accounts/$accountId"
-          params={{ accountId: account.id }}
-          className="acc-tr__link"
-        >
+        <Link to="/admin/accounts" search={{ account: account.id }} className="acc-tr__link">
           {account.username}
         </Link>
         {account.disabledAt === undefined ? undefined : (
@@ -97,7 +94,17 @@ const AccountRow = ({ account, libraries }: { account: AdminAccountDto; librarie
   )
 }
 
-export const AccountsPage = () => {
+/**
+ * The accounts (§15): a table whose row opens the account's dialog, then the pending invitations.
+ * `opened` is the `account` search parameter (an id, or `new`); `onOpen` replaces it.
+ */
+export const AccountsPage = ({
+  opened,
+  onOpen,
+}: {
+  opened: string | undefined
+  onOpen: (opened: string | undefined) => void
+}) => {
   const { t } = useTranslation()
   const accounts = useQuery(accountsQuery)
   const libraries = useQuery(librariesQuery)
@@ -105,44 +112,37 @@ export const AccountsPage = () => {
   const invite = useCreateInvitation(setToken)
 
   const items = accounts.data?.items ?? []
-  const profileCount = items.reduce((total, account) => total + account.profiles.length, 0)
 
   return (
-    <div className="admin-page acc-page">
-      <AdminPageHeader
-        title={t('admin.accounts.title')}
-        summary={
-          accounts.isSuccess
-            ? [
-                t('admin.accounts.summaryAccounts', { count: items.length }),
-                t('admin.accounts.summaryProfiles', { count: profileCount }),
-              ].join(' · ')
-            : undefined
-        }
-        actions={
-          <>
-            <Link to="/admin/accounts/new" className="button button--glass button--small">
-              {t('admin.accounts.create')}
-            </Link>
-            <button
-              type="button"
-              className="button button--primary button--small"
-              disabled={invite.isPending}
-              onClick={() => invite.mutate()}
-            >
-              {invite.isPending ? <span className="spinner" aria-hidden="true" /> : <PlusIcon />}
-              {t('admin.accounts.invite')}
-            </button>
-          </>
-        }
-      />
-
+    <AdminSection
+      title={t('admin.nav.accounts')}
+      actions={
+        <>
+          <Link
+            to="/admin/accounts"
+            search={{ account: 'new' }}
+            className="button button--glass button--small"
+          >
+            {t('admin.accounts.create')}
+          </Link>
+          <button
+            type="button"
+            className="button button--primary button--small"
+            disabled={invite.isPending}
+            onClick={() => invite.mutate()}
+          >
+            {invite.isPending ? <span className="spinner" aria-hidden="true" /> : <PlusIcon />}
+            {t('admin.accounts.invite')}
+          </button>
+        </>
+      }
+    >
       {invite.isError ? <ErrorAlert error={invite.error} /> : undefined}
 
       {accounts.isError ? (
         <ErrorState error={accounts.error} onRetry={() => void accounts.refetch()} />
       ) : accounts.isSuccess && items.length === 0 ? (
-        <EmptyState title={t('admin.accounts.empty')} />
+        <EmptyState compact title={t('admin.accounts.empty')} />
       ) : (
         <div className="acc-table" role="table" aria-label={t('admin.accounts.list')}>
           <div className="acc-tr acc-tr--head" role="row">
@@ -165,9 +165,15 @@ export const AccountsPage = () => {
 
       <Invitations />
 
+      {opened === 'new' ? (
+        <NewAccountDialog onClose={() => onOpen(undefined)} onCreated={onOpen} />
+      ) : opened === undefined ? undefined : (
+        <AccountDialog key={opened} accountId={opened} onClose={() => onOpen(undefined)} />
+      )}
+
       {token === undefined ? undefined : (
         <InvitationCreatedDialog token={token} onClose={() => setToken(undefined)} />
       )}
-    </div>
+    </AdminSection>
   )
 }

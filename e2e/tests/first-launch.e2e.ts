@@ -75,11 +75,18 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     })
     expect(settings.ok(), `settings: ${await settings.text()}`).toBe(true)
     const row = page.getByRole('row').filter({ hasText: libraryDir })
-    await row.getByRole('button', { name: startsWith(fr.admin.libraries.more) }).click()
-    await row.getByRole('link', { name: fr.admin.libraries.edit }).click()
-    await expect(page.getByLabel(fr.admin.form.quietPeriod)).toHaveValue('120')
-    await page.getByLabel(fr.admin.form.quietPeriod).fill('0')
-    await page.getByRole('button', { name: fr.common.save }).click()
+    await row.getByRole('link').first().click()
+    await expect(page).toHaveURL(/\/admin\/libraries\?library=/)
+    const dialog = page.getByRole('dialog')
+    await expect(
+      dialog.getByRole('tab', { name: fr.admin.libraries.tabs.settings }),
+    ).toHaveAttribute('aria-selected', 'true')
+    const save = dialog.getByRole('button', { name: fr.common.save })
+    await expect(save).toBeDisabled()
+    await expect(dialog.getByLabel(fr.admin.form.quietPeriod)).toHaveValue('120')
+    await dialog.getByLabel(fr.admin.form.quietPeriod).fill('0')
+    await save.click()
+    await expect(dialog).toBeHidden()
   })
 
   await test.step('scan: every source becomes ready', async () => {
@@ -96,10 +103,13 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
     const banner = page.getByRole('status').filter({ hasText: fr.admin.banner.tmdbKeyMissing })
     await banner.getByRole('link', { name: fr.admin.banner.configure }).click()
     await expect(page).toHaveURL(/\/admin\/settings\/metadata$/)
+    await expect(page.getByRole('heading', { name: fr.admin.nav.settings, level: 1 })).toBeVisible()
     await expect(
-      page.getByRole('heading', { name: fr.admin.settings.metadata, level: 1 }),
-    ).toBeVisible()
-    const metadata = page.getByRole('region', { name: fr.admin.settings.metadata })
+      page
+        .getByRole('navigation', { name: fr.admin.nav.settings })
+        .getByRole('link', { name: fr.admin.tabs.metadata }),
+    ).toHaveAttribute('aria-current', 'page')
+    const metadata = page.getByRole('region', { name: fr.admin.tabs.metadata })
     await metadata.getByLabel(fr.admin.settings.tmdbKey).fill(TEST_TMDB_KEY)
     await metadata.getByRole('button', { name: fr.admin.settings.validateKey }).click()
     await expect(
@@ -110,9 +120,14 @@ test('first launch: wizard, library from the folder explorer, TMDB key, titles w
   await test.step('identification: what TMDB does not know waits in "To review"', async () => {
     await page
       .getByRole('navigation', { name: fr.admin.title })
-      .getByRole('link', { name: startsWith(fr.admin.review.title) })
+      .getByRole('link', { name: startsWith(fr.admin.nav.files) })
       .click()
-    await expect(page.getByRole('heading', { name: fr.admin.review.title, level: 1 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: fr.admin.nav.files, level: 1 })).toBeVisible()
+    await expect(
+      page
+        .getByRole('navigation', { name: fr.admin.nav.files })
+        .getByRole('link', { name: startsWith(fr.admin.tabs.review) }),
+    ).toHaveAttribute('aria-current', 'page')
     const queue = page
       .getByRole('table', { name: fr.admin.review.title })
       .getByRole('row')

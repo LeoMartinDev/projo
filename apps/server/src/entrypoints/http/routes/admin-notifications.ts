@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 
 import {
+  markNotificationsReadBodySchema,
   type NotificationDto,
   type NotificationsPage,
   notificationsQuerySchema,
@@ -8,9 +9,11 @@ import {
 
 import type { ListNotifications } from '../../../application/operations/list-notifications.ts'
 import type { MarkNotificationRead } from '../../../application/operations/mark-notification-read.ts'
+import type { MarkNotificationsRead } from '../../../application/operations/mark-notifications-read.ts'
 import type { Notification } from '../../../core/notifications/notification.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
+import { noContent } from '../responses.ts'
 import { validate } from '../validation.ts'
 
 export const toNotificationDto = (notification: Notification): NotificationDto => ({
@@ -29,9 +32,11 @@ export const toNotificationDto = (notification: Notification): NotificationDto =
 export const adminNotificationsRoutes = ({
   listNotifications,
   markNotificationRead,
+  markNotificationsRead,
 }: {
   listNotifications: ListNotifications
   markNotificationRead: MarkNotificationRead
+  markNotificationsRead: MarkNotificationsRead
 }) =>
   new Hono<AppEnv>()
     .get('/notifications', validate('query', notificationsQuerySchema), (c) => {
@@ -47,6 +52,11 @@ export const adminNotificationsRoutes = ({
         ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }),
       }
       return c.json(body, 200)
+    })
+    .post('/notifications/read', validate('json', markNotificationsReadBodySchema), (c) => {
+      const { kind } = c.req.valid('json')
+      markNotificationsRead(kind === undefined ? {} : { kind })
+      return noContent(c)
     })
     .post('/notifications/:id/read', (c) => {
       const result = markNotificationRead({ id: c.req.param('id') })

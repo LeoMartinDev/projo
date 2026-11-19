@@ -179,7 +179,7 @@ export const IdentifyForm = ({
           <div className="identify__state identify__state--error">
             <ErrorAlert error={search.error} />
             {keyMissing ? (
-              <Link to="/admin/settings" className="button button--glass button--small">
+              <Link to="/admin/settings/metadata" className="button button--glass button--small">
                 {t('admin.identify.openSettings')}
               </Link>
             ) : undefined}

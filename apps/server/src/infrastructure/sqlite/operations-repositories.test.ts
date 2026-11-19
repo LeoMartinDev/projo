@@ -108,6 +108,26 @@ describe('notification repository (§15 "Notifications")', () => {
     expect(repository.unreadCount()).toBe(0)
     expect(repository.markRead({ id: 'nope', at: t0 })).toBeUndefined()
   })
+
+  test('marks every unread read, or those of one kind; read and resolved ones are kept', () => {
+    insert(1, 'job/failed')
+    insert(2, 'job/failed', { readAt: iso(10) })
+    insert(3, 'job/failed', { resolvedAt: iso(20) })
+    insert(4, 'cache/disk_low')
+    insert(5, 'job/failed')
+    const repository = createSqliteNotificationRepository({ db })
+    expect(repository.markAllRead({ kind: 'job/failed', at: t0 })).toBe(2)
+    expect(repository.list({ status: 'unread', limit: 10 }).items.map((n) => n.id)).toEqual([
+      uuid(4),
+    ])
+    expect(repository.list({ status: 'read', limit: 10 }).items).toContainEqual(
+      expect.objectContaining({ id: uuid(2), readAt: new Date(iso(10)) }),
+    )
+    expect(repository.list({ status: 'resolved', limit: 10 }).items[0]?.readAt).toBeUndefined()
+    expect(repository.markAllRead({ at: t0 })).toBe(1)
+    expect(repository.unreadCount()).toBe(0)
+    expect(repository.markAllRead({ at: t0 })).toBe(0)
+  })
 })
 
 describe('job admin repository (§15 "Jobs")', () => {

@@ -254,19 +254,182 @@
   }
 }
 
-.admin-page__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.admin-page__heading {
+/* A section's header (AdminSection): the same height with or without actions, then its tabs. */
+.admin-head {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 20px;
+}
+
+.admin-head__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  min-height: 40px;
+}
+
+.admin-head__top > .admin-page__title {
   min-width: 0;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 4px;
+  max-width: 1180px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  box-shadow: inset 0 -1px 0 var(--color-border-subtle);
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+@media (--compact) {
+  .admin-tabs {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent);
+  }
+}
+
+.admin-tabs__tab {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--duration-fast) ease;
+}
+
+.admin-tabs__tab:first-child {
+  padding-left: 0;
+}
+
+.admin-tabs__tab:hover {
+  color: var(--color-text-strong);
+}
+
+.admin-tabs__tab[aria-current='page'] {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.admin-tabs__tab[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  left: 12px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+}
+
+.admin-tabs__tab:first-child[aria-current='page']::after {
+  left: 0;
+}
+
+/* The same tabs in a record's dialog (DialogTabs): buttons of a tablist. */
+button.admin-tabs__tab {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+
+.admin-tabs__tab[aria-selected='true'] {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.admin-tabs__tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  left: 12px;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+}
+
+.admin-tabs__tab:first-child[aria-selected='true']::after {
+  left: 0;
+}
+
+.admin-tabs__tab:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+  border-radius: var(--radius-card);
+}
+
+.dialog-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dialog-panel[hidden] {
+  display: none;
+}
+
+.dialog-panel > .state {
+  flex: 1 1 auto;
+}
+
+/* The library's state under its name, on one line. */
+.dialog__subtitle .lib-status {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  height: auto;
+}
+
+.dialog__subtitle .lib-status__progress {
+  flex: 0 1 200px;
+}
+
+.lib-dialog__notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted-strong);
+}
+
+.dialog .library-form {
+  max-width: none;
+}
+
+.lib-dialog__skeleton {
+  height: 320px;
+}
+
+.dialog-panel > .adm-pager {
+  justify-content: flex-start;
+}
+
+.admin-tabs__count {
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-2);
+  color: var(--color-text-muted-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 18px;
+  text-align: center;
 }
 
 .admin-page__title {
@@ -276,49 +439,28 @@
   overflow-wrap: anywhere;
 }
 
-.admin-page__summary {
-  font-size: 14px;
-  color: var(--color-text-muted);
-}
-
 .admin-page__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.admin-page__skeleton-title {
-  width: 240px;
-  height: 28px;
-}
+/* A secondary action of a section's header: its icon alone on a phone, so the actions keep to
+   one line. */
+@media (--phone) {
+  .admin-action--squeeze {
+    width: var(--control-height-sm);
+    padding: 0;
+  }
 
-.admin-page__skeleton-block {
-  height: 320px;
-  max-width: 720px;
-}
-
-.admin-page__title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.admin-back {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-pill);
-  background: var(--fill-2);
-  color: var(--color-text);
-  transition: background-color var(--duration-fast) ease;
-}
-
-.admin-back:hover {
-  background: var(--fill-3);
+  .admin-action--squeeze > .admin-action__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
 }
 
 .lib-table {
@@ -327,6 +469,7 @@
 }
 
 .lib-row {
+  position: relative;
   display: grid;
   grid-template-columns:
     minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.4fr)
@@ -402,6 +545,22 @@
   text-underline-offset: 3px;
 }
 
+/* The whole row opens the library's dialog; its buttons stay above the link. */
+.lib-row__title::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+}
+
+.lib-row__title:focus-visible {
+  outline: none;
+}
+
+.lib-row:has(.lib-row__title:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
 .lib-row__paths {
   direction: rtl;
   text-align: left;
@@ -426,6 +585,8 @@
 }
 
 .lib-row__actions {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   gap: 4px;
@@ -557,25 +718,6 @@
   white-space: nowrap;
 }
 
-.admin-section {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  max-width: 720px;
-  padding-top: 32px;
-  border-top: 1px solid var(--color-border);
-}
-
-.admin-section .history {
-  align-self: stretch;
-}
-
-.admin-section > .hint {
-  padding: 0;
-  font-size: 14px;
-}
-
 .history__item {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 2fr);
@@ -648,16 +790,6 @@
 .library-form__options {
   gap: 0;
   padding: 16px 0;
-}
-
-.library-form__actions,
-.admin-form__actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .choices {

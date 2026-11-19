@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, type ReactNode, useId, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { LibraryDto, LibraryHint } from '@projo/shared/api/libraries'
@@ -32,21 +32,34 @@ const toggles: readonly Toggle[] = [
   'preExtractSubtitles',
 ]
 
+/** Where a library form stands, for the buttons outside it (a dialog's footer). */
+export type LibraryFormStatus = { dirty: boolean; pending: boolean }
+
+const sameList = (a: readonly string[], b: readonly string[]) =>
+  a.length === b.length && a.every((value, index) => value === b[index])
+
+const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>) =>
+  a.size === b.size && [...a].every((value) => b.has(value))
+
+/**
+ * A library's settings and the profiles that see it (new when `library` is absent). The form has
+ * no buttons: `id` names it for the submit button of the dialog holding it, which
+ * `onStatusChange` keeps told whether there is something to save.
+ */
 export const LibraryForm = ({
+  id: formId,
   library,
-  submitLabel,
-  cancel,
+  onStatusChange,
   onSaved,
 }: {
+  id: string
   library?: LibraryDto
-  submitLabel: string
-  cancel: ReactNode
+  onStatusChange?: (status: LibraryFormStatus) => void
   onSaved: (library: LibraryDto) => void
 }) => {
   const { t } = useTranslation()
   const locale = currentLocale()
   const queryClient = useQueryClient()
-  const formId = useId()
   const [name, setName] = useState(library?.name ?? '')
   const [hint, setHint] = useState<LibraryHint>(library?.hint ?? 'auto')
   const [roots, setRoots] = useState<string[]>(library?.roots.map((root) => root.path) ?? [])
@@ -129,6 +142,26 @@ export const LibraryForm = ({
     },
   })
 
+  const dirty =
+    library === undefined ||
+    name !== library.name ||
+    hint !== library.hint ||
+    !sameList(
+      roots,
+      library.roots.map((root) => root.path),
+    ) ||
+    metadataLanguage !== (library.metadataLanguage ?? '') ||
+    ratingCountry !== library.ratingCountry ||
+    toggles.some((key) => options[key] !== library[key]) ||
+    scanIntervalMinutes !== library.scanIntervalMinutes ||
+    quietPeriodSeconds !== library.quietPeriodSeconds ||
+    (profileChoice !== undefined &&
+      (access.initial === undefined || !sameSet(profileChoice, access.initial)))
+
+  useEffect(() => {
+    onStatusChange?.({ dirty, pending: save.isPending })
+  }, [onStatusChange, dirty, save.isPending])
+
   const submit = (event: FormEvent) => {
     event.preventDefault()
     setTouched(true)
@@ -149,7 +182,7 @@ export const LibraryForm = ({
 
   return (
     <>
-      <form className="library-form" onSubmit={submit} noValidate>
+      <form id={formId} className="library-form" onSubmit={submit} noValidate>
         {save.isError ? <ErrorAlert error={save.error} /> : undefined}
 
         <fieldset className="library-form__section library-form__section--first">
@@ -264,14 +297,6 @@ export const LibraryForm = ({
           selected={selectedProfiles}
           onChange={setProfileChoice}
         />
-
-        <div className="library-form__actions">
-          {cancel}
-          <button type="submit" className="button button--primary" disabled={save.isPending}>
-            {save.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {submitLabel}
-          </button>
-        </div>
       </form>
 
       {browserOpen ? (

@@ -11,6 +11,7 @@ import { getServerSettingsFactory } from '../../application/operations/get-serve
 import { listJobsFactory } from '../../application/operations/list-jobs.ts'
 import { listNotificationsFactory } from '../../application/operations/list-notifications.ts'
 import { markNotificationReadFactory } from '../../application/operations/mark-notification-read.ts'
+import { markNotificationsReadFactory } from '../../application/operations/mark-notifications-read.ts'
 import { measureStorageFactory } from '../../application/operations/measure-storage.ts'
 import { purgeAllMissingSourcesFactory } from '../../application/operations/purge-all-missing-sources.ts'
 import { purgeExpiredMissingFactory } from '../../application/operations/purge-expired-missing.ts'
@@ -183,6 +184,11 @@ export const buildOperationsModule = (platform: Platform, deps: OperationsModule
         notifications: adminNotificationsRoutes({
           listNotifications: listNotificationsFactory({ notificationRepository }),
           markNotificationRead: markNotificationReadFactory({ notificationRepository, clock }),
+          markNotificationsRead: markNotificationsReadFactory({
+            notificationRepository,
+            clock,
+            logger: log,
+          }),
         }),
         system: adminSystemRoutes({
           getStats: getAdminStatsFactory({

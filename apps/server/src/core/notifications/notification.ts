@@ -26,6 +26,8 @@ export type NotificationRepository = {
   }
   unreadCount: () => number
   markRead: (input: { id: string; at: Date }) => Notification | undefined
+  /** Marks every unread notification (of `kind` when given) read; returns how many. */
+  markAllRead: (input: { kind?: NotificationKind; at: Date }) => number
 }
 
 export type NotificationPurge = {

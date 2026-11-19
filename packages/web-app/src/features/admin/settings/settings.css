@@ -75,10 +75,6 @@
   color: var(--color-text-strong);
 }
 
-.settings-spinner {
-  margin-right: 8px;
-}
-
 .settings-skeleton {
   height: 58px;
   border-radius: var(--radius-field);
@@ -166,16 +162,72 @@
   grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
 }
 
-.assistants__head {
+/* The save bar of a Settings tab (§15): in the page's flow after the tab, so it never covers its
+   end, and stuck to the bottom of the window while the tab is longer than it. */
+.save-bar {
+  position: sticky;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px 16px;
+  max-width: 720px;
+  padding: 10px 10px 10px 18px;
+  border-radius: var(--radius-well);
+  /* Opaque: it carries text over the text of the tab. */
+  background: var(--material-opaque);
+  box-shadow: var(--shadow-panel);
 }
 
-.assistants .adm-table__body {
-  min-height: 192px;
+.save-bar__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.save-bar__text--error {
+  color: var(--color-error-soft);
+}
+
+.save-bar__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  margin-left: auto;
+}
+
+@media (--compact) {
+  .save-bar {
+    padding: 12px;
+  }
+
+  .save-bar__text {
+    padding: 0 6px;
+  }
+
+  .save-bar__actions {
+    flex: 1 1 100%;
+  }
+
+  .save-bar__actions > .button {
+    flex: 1 1 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .save-bar {
+    animation: save-bar-in var(--duration-fast) ease-out;
+  }
+}
+
+@keyframes save-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 .assistant-tr {

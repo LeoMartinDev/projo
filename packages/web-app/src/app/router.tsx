@@ -78,14 +78,6 @@ const LibrariesPage = lazyRouteComponent(
   () => import('../features/admin/LibrariesPage.tsx'),
   'LibrariesPage',
 )
-const NewLibraryPage = lazyRouteComponent(
-  () => import('../features/admin/LibraryPages.tsx'),
-  'NewLibraryPage',
-)
-const EditLibraryPage = lazyRouteComponent(
-  () => import('../features/admin/LibraryPages.tsx'),
-  'EditLibraryPage',
-)
 const TvSourcesPage = lazyRouteComponent(
   () => import('../features/admin/tv/TvSourcesPage.tsx'),
   'TvSourcesPage',
@@ -94,25 +86,21 @@ const AccountsPage = lazyRouteComponent(
   () => import('../features/admin/accounts/AccountsPage.tsx'),
   'AccountsPage',
 )
-const NewAccountPage = lazyRouteComponent(
-  () => import('../features/admin/accounts/NewAccountPage.tsx'),
-  'NewAccountPage',
-)
-const AccountDetailPage = lazyRouteComponent(
-  () => import('../features/admin/accounts/AccountDetailPage.tsx'),
-  'AccountDetailPage',
-)
 const ReviewPage = lazyRouteComponent(
   () => import('../features/admin/review/ReviewPage.tsx'),
   'ReviewPage',
 )
-const SessionsPage = lazyRouteComponent(
-  () => import('../features/admin/sessions/SessionsPage.tsx'),
-  'SessionsPage',
-)
 const UpdatesPage = lazyRouteComponent(
   () => import('../features/admin/updates/UpdatesPage.tsx'),
   'UpdatesPage',
+)
+const GeneralSettingsPage = lazyRouteComponent(
+  () => import('../features/admin/settings/GeneralSettingsPage.tsx'),
+  'GeneralSettingsPage',
+)
+const AssistantsSettingsPage = lazyRouteComponent(
+  () => import('../features/admin/settings/AssistantsSettingsPage.tsx'),
+  'AssistantsSettingsPage',
 )
 const MetadataSettingsPage = lazyRouteComponent(
   () => import('../features/admin/settings/SettingsPage.tsx'),
@@ -126,13 +114,9 @@ const PlaybackSettingsPage = lazyRouteComponent(
   () => import('../features/admin/settings/PlaybackSettingsPage.tsx'),
   'PlaybackSettingsPage',
 )
-const ServerPage = lazyRouteComponent(
-  () => import('../features/admin/settings/ServerPage.tsx'),
-  'ServerPage',
-)
-const DashboardPage = lazyRouteComponent(
-  () => import('../features/admin/operations/DashboardPage.tsx'),
-  'DashboardPage',
+const OverviewPage = lazyRouteComponent(
+  () => import('../features/admin/overview/OverviewPage.tsx'),
+  'OverviewPage',
 )
 const JobsPage = lazyRouteComponent(
   () => import('../features/admin/operations/JobsPage.tsx'),
@@ -465,28 +449,42 @@ const adminRoute = createRoute({
 const adminIndexRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/',
-  component: DashboardPage,
+  component: OverviewPage,
 })
+
+// A record of a collection opens in a dialog over its table: `?library=<id>` (or `new`).
+const recordParam = (value: unknown): string | undefined =>
+  typeof value === 'string' && value !== '' ? value : undefined
 
 const adminLibrariesRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/libraries',
-  component: LibrariesPage,
+  validateSearch: (search: Record<string, unknown>): { library?: string } => {
+    const library = recordParam(search['library'])
+    return library === undefined ? {} : { library }
+  },
+  component: function AdminLibraries() {
+    const { library } = adminLibrariesRoute.useSearch()
+    const navigate = adminLibrariesRoute.useNavigate()
+    return (
+      <LibrariesPage
+        opened={library}
+        onClose={() => void navigate({ search: {}, replace: true })}
+      />
+    )
+  },
 })
 
-const adminNewLibraryRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: '/libraries/new',
-  component: NewLibraryPage,
-})
-
+// The library's page of old (and `/libraries/new`): its dialog.
 const adminLibraryRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/libraries/$libraryId',
-  loader: () => EditLibraryPage.preload?.(),
-  component: function AdminLibrary() {
-    const { libraryId } = adminLibraryRoute.useParams()
-    return <EditLibraryPage key={libraryId} libraryId={libraryId} />
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/admin/libraries',
+      search: { library: params.libraryId },
+      replace: true,
+    })
   },
 })
 
@@ -499,22 +497,34 @@ const adminTvRoute = createRoute({
 const adminAccountsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/accounts',
-  component: AccountsPage,
+  validateSearch: (search: Record<string, unknown>): { account?: string } => {
+    const account = recordParam(search['account'])
+    return account === undefined ? {} : { account }
+  },
+  component: function AdminAccounts() {
+    const { account } = adminAccountsRoute.useSearch()
+    const navigate = adminAccountsRoute.useNavigate()
+    return (
+      <AccountsPage
+        opened={account}
+        onOpen={(opened) =>
+          void navigate({ search: opened === undefined ? {} : { account: opened }, replace: true })
+        }
+      />
+    )
+  },
 })
 
-const adminNewAccountRoute = createRoute({
-  getParentRoute: () => adminRoute,
-  path: '/accounts/new',
-  component: NewAccountPage,
-})
-
+// The account's page of old (and `/accounts/new`): its dialog.
 const adminAccountRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/accounts/$accountId',
-  loader: () => AccountDetailPage.preload?.(),
-  component: function AdminAccount() {
-    const { accountId } = adminAccountRoute.useParams()
-    return <AccountDetailPage key={accountId} accountId={accountId} />
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/admin/accounts',
+      search: { account: params.accountId },
+      replace: true,
+    })
   },
 })
 
@@ -524,24 +534,48 @@ const adminReviewRoute = createRoute({
   component: ReviewPage,
 })
 
+// The sessions now play on the overview.
 const adminSessionsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/sessions',
-  component: SessionsPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/admin', replace: true })
+  },
 })
 
+// Settings (§15): one tab per route; the old paths lead to their tab.
 const adminUpdatesRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/updates',
-  component: UpdatesPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/settings/updates', replace: true })
+  },
 })
 
 const adminSettingsRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/settings',
   beforeLoad: () => {
-    throw redirect({ to: '/admin/settings/metadata', replace: true })
+    throw redirect({ to: '/admin/settings/general', replace: true })
   },
+})
+
+const adminGeneralSettingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/settings/general',
+  component: GeneralSettingsPage,
+})
+
+const adminAssistantsSettingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/settings/assistants',
+  component: AssistantsSettingsPage,
+})
+
+const adminUpdatesSettingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/settings/updates',
+  component: UpdatesPage,
 })
 
 const adminMetadataSettingsRoute = createRoute({
@@ -565,7 +599,9 @@ const adminPlaybackSettingsRoute = createRoute({
 const adminServerRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/server',
-  component: ServerPage,
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/settings/general', replace: true })
+  },
 })
 
 const adminPendingRoute = createRoute({
@@ -649,16 +685,17 @@ export const routeTree = rootRoute.addChildren([
     adminRoute.addChildren([
       adminIndexRoute,
       adminLibrariesRoute,
-      adminNewLibraryRoute,
       adminLibraryRoute,
       adminTvRoute,
       adminAccountsRoute,
-      adminNewAccountRoute,
       adminAccountRoute,
       adminReviewRoute,
       adminSessionsRoute,
       adminUpdatesRoute,
       adminSettingsRoute,
+      adminGeneralSettingsRoute,
+      adminAssistantsSettingsRoute,
+      adminUpdatesSettingsRoute,
       adminMetadataSettingsRoute,
       adminSegmentsSettingsRoute,
       adminPlaybackSettingsRoute,

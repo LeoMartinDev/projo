@@ -28,7 +28,7 @@ import { CopyIcon } from '../admin-icons.tsx'
 import { useStoredError } from '../operations/stored-error.ts'
 import { updatesQuery, updatesQueryKey, useLiveUpdates } from './queries.ts'
 import { parseInline, parseReleaseNotes } from './release-notes.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { SettingsSection } from '../admin-sections.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
@@ -313,6 +313,7 @@ const ConfirmUpdateDialog = ({
   )
 }
 
+/** Settings › Updates (§15, §16.4). */
 export const UpdatesPage = () => {
   const { t } = useTranslation()
   const host = useHost()
@@ -335,47 +336,44 @@ export const UpdatesPage = () => {
 
   if (status.isError && data === undefined)
     return (
-      <div className="admin-page">
+      <SettingsSection>
         <ErrorState error={status.error} onRetry={() => void status.refetch()} />
-      </div>
+      </SettingsSection>
     )
 
   const busy = data !== undefined && (BUSY.has(data.state) || restarting)
   const checking = check.isPending || data?.state === 'checking'
 
   return (
-    <div className="admin-page upd-page">
-      <AdminPageHeader
-        title={t('admin.updates.title')}
-        actions={
-          <>
-            {host.uiFromServer ? (
-              <button
-                type="button"
-                className="button button--glass"
-                disabled={reloading || restarting}
-                onClick={() => {
-                  setReloading(true)
-                  void host.reloadFresh()
-                }}
-              >
-                {reloading ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
-                {t('admin.updates.reloadApp')}
-              </button>
-            ) : undefined}
+    <SettingsSection
+      actions={
+        <>
+          {host.uiFromServer ? (
             <button
               type="button"
-              className="button button--glass"
-              disabled={data === undefined || !data.enabled || checking || busy}
-              onClick={() => check.mutate()}
+              className="button button--glass button--small upd-action"
+              disabled={reloading || restarting}
+              onClick={() => {
+                setReloading(true)
+                void host.reloadFresh()
+              }}
             >
-              {checking ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
-              {checking ? t('admin.updates.state.checking') : t('admin.updates.check')}
+              {reloading ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
+              {t('admin.updates.reloadApp')}
             </button>
-          </>
-        }
-      />
-
+          ) : undefined}
+          <button
+            type="button"
+            className="button button--glass button--small upd-action"
+            disabled={data === undefined || !data.enabled || checking || busy}
+            onClick={() => check.mutate()}
+          >
+            {checking ? <span className="spinner" aria-hidden="true" /> : <SyncIcon />}
+            {checking ? t('admin.updates.state.checking') : t('admin.updates.check')}
+          </button>
+        </>
+      }
+    >
       {data !== undefined && !data.enabled ? (
         <p className="upd-notice">{t('errors.update/disabled')}</p>
       ) : undefined}
@@ -482,10 +480,10 @@ export const UpdatesPage = () => {
             </span>
             <span role="columnheader" />
           </div>
-          <div className="upd-table__body upd-table__body--versions">
+          <div className="upd-table__body">
             {data === undefined ? <SkeletonRows count={2} row="upd-tr" /> : undefined}
             {data !== undefined && data.versions.length === 0 ? (
-              <EmptyState title={t('admin.updates.versionsEmpty')} />
+              <EmptyState compact title={t('admin.updates.versionsEmpty')} />
             ) : undefined}
             {data?.versions.map((version) => (
               <VersionRow
@@ -513,7 +511,7 @@ export const UpdatesPage = () => {
           <div className="upd-table__body">
             {data === undefined ? <SkeletonRows count={3} row="upd-tr" /> : undefined}
             {data !== undefined && data.runs.length === 0 ? (
-              <EmptyState title={t('admin.updates.logEmpty')} />
+              <EmptyState compact title={t('admin.updates.logEmpty')} />
             ) : undefined}
             {data?.runs.map((run) => (
               <RunRow key={run.id} run={run} />
@@ -530,6 +528,6 @@ export const UpdatesPage = () => {
           onRestarting={watchRestart}
         />
       )}
-    </div>
+    </SettingsSection>
   )
 }

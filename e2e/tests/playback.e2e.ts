@@ -257,7 +257,7 @@ test('parts: a movie in two parts shows their total and chains them without a cl
   })
 })
 
-test('admin sessions: the playback shows up in "Sessions actives", "Arrêter" stops it', async ({
+test('admin sessions: the playback shows up on the overview, "Arrêter" stops it', async ({
   page,
   adminRequest,
   adminState,
@@ -270,13 +270,10 @@ test('admin sessions: the playback shows up in "Sessions actives", "Arrêter" st
 
   const adminContext = await browser.newContext({ storageState: adminState })
   const adminPage = await adminContext.newPage()
-  await adminPage.goto('/admin')
-  await adminPage
-    .getByRole('navigation', { name: fr.admin.title })
-    .getByRole('link', { name: fr.admin.sessions.title })
-    .click()
+  await adminPage.goto('/admin/sessions')
+  await expect(adminPage).toHaveURL(/\/admin$/)
   await expect(
-    adminPage.getByRole('heading', { name: fr.admin.sessions.title, level: 1 }),
+    adminPage.getByRole('heading', { name: fr.admin.nav.overview, level: 1 }),
   ).toBeVisible()
   const row = adminPage
     .getByRole('table', { name: fr.admin.sessions.list })

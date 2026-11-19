@@ -17,7 +17,7 @@ import {
 } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorState } from '../../../shared/ui/states.tsx'
 import { SearchIcon } from '../admin-icons.tsx'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { FilesSection } from '../admin-sections.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
 import { HideGroupDialog } from './HideGroupDialog.tsx'
 import { HideSourceDialog } from './HideSourceDialog.tsx'
@@ -251,10 +251,8 @@ const GroupRow = ({
 
 export const ReviewPage = () => {
   const { t } = useTranslation()
-  const locale = currentLocale()
   const queue = useInfiniteQuery(reviewGroupsQuery)
   const groups = queue.data?.pages.flatMap((page) => page.items) ?? []
-  const total = queue.data?.pages[0]?.total ?? 0
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [acting, setActing] = useState<Acting>()
   const close = () => setActing(undefined)
@@ -267,16 +265,7 @@ export const ReviewPage = () => {
     })
 
   return (
-    <div className="admin-page">
-      <AdminPageHeader
-        title={t('admin.review.title')}
-        summary={
-          queue.isSuccess && groups.length > 0
-            ? t('admin.review.summary', { count: total, formatted: formatNumber(total, locale) })
-            : undefined
-        }
-      />
-
+    <FilesSection>
       <div className="adm-table review-table" role="table" aria-label={t('admin.review.title')}>
         <div className="adm-tr review-tr adm-tr--head" role="row">
           <span role="columnheader" />
@@ -291,7 +280,7 @@ export const ReviewPage = () => {
             <ErrorState error={queue.error} onRetry={() => void queue.refetch()} />
           ) : undefined}
           {queue.isSuccess && groups.length === 0 ? (
-            <EmptyState title={t('admin.review.empty')} />
+            <EmptyState compact title={t('admin.review.empty')} />
           ) : undefined}
           {groups.map((group) => {
             if (!isSeriesGroup(group))
@@ -336,6 +325,6 @@ export const ReviewPage = () => {
       {acting?.kind === 'hide-group' ? (
         <HideGroupDialog key={acting.group.id} group={acting.group} onClose={close} />
       ) : undefined}
-    </div>
+    </FilesSection>
   )
 }

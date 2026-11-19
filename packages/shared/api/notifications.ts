@@ -52,5 +52,9 @@ export const notificationsPageSchema = z.object({
 })
 export type NotificationsPage = z.infer<typeof notificationsPageSchema>
 
+/** `POST /admin/notifications/read`: every unread notification, or those of `kind`, marked read. */
+export const markNotificationsReadBodySchema = z.object({ kind: notificationKindSchema.optional() })
+export type MarkNotificationsReadBody = z.infer<typeof markNotificationsReadBodySchema>
+
 export const notificationResponseSchema = notificationDtoSchema
 export type NotificationResponse = NotificationDto

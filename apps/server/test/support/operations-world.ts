@@ -128,16 +128,30 @@ export const notification: Notification = {
   createdAt: t0,
 }
 
-/** One notification, `n1`, read at most once. */
-export const notificationRepository = (): NotificationRepository => {
-  let current = notification
+/** Notifications in memory (by default `n1` alone), each read at most once. */
+export const notificationRepository = (
+  initial: readonly Notification[] = [notification],
+): NotificationRepository => {
+  let all = [...initial]
+  const isUnread = (entry: Notification) =>
+    entry.readAt === undefined && entry.resolvedAt === undefined
   return {
-    list: () => ({ items: [current] }),
-    unreadCount: () => (current.readAt === undefined ? 1 : 0),
+    list: () => ({ items: all }),
+    unreadCount: () => all.filter(isUnread).length,
     markRead: ({ id, at }) => {
-      if (id !== current.id) return undefined
-      current = { ...current, readAt: current.readAt ?? at }
-      return current
+      all = all.map((entry) =>
+        entry.id === id && entry.readAt === undefined ? { ...entry, readAt: at } : entry,
+      )
+      return all.find((entry) => entry.id === id)
+    },
+    markAllRead: ({ kind, at }) => {
+      let marked = 0
+      all = all.map((entry) => {
+        if (!isUnread(entry) || (kind !== undefined && entry.kind !== kind)) return entry
+        marked += 1
+        return { ...entry, readAt: at }
+      })
+      return marked
     },
   }
 }

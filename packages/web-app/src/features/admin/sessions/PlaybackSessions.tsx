@@ -18,7 +18,6 @@ import {
   playbackSessionsQueryKey,
 } from './queries.ts'
 import { clockTime } from '../../tv/guide-format.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
 import '../admin.css'
 import '../accounts/accounts.css'
 import './sessions.css'
@@ -191,7 +190,8 @@ const LiveSessionRow = ({
   )
 }
 
-export const SessionsPage = () => {
+/** What plays now (§15): playback and live TV sessions, refreshed every 5 s, each with "Stop". */
+export const PlaybackSessions = () => {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const sessions = useQuery(playbackSessionsQuery)
@@ -213,12 +213,7 @@ export const SessionsPage = () => {
   const loaded = sessions.isSuccess && !live.isPending
 
   return (
-    <div className="admin-page ses-page">
-      <AdminPageHeader
-        title={t('admin.sessions.title')}
-        summary={loaded && count > 0 ? t('admin.sessions.summary', { count }) : undefined}
-      />
-
+    <>
       {stop.isError ? <ErrorAlert error={stop.error} /> : undefined}
       {stopLive.isError ? <ErrorAlert error={stopLive.error} /> : undefined}
       {live.isError ? <ErrorAlert error={live.error} /> : undefined}
@@ -236,7 +231,9 @@ export const SessionsPage = () => {
         </div>
         <div className="ses-table__body">
           {sessions.isPending ? <SkeletonRows /> : undefined}
-          {loaded && count === 0 ? <EmptyState title={t('admin.sessions.empty')} /> : undefined}
+          {loaded && count === 0 ? (
+            <EmptyState compact title={t('admin.sessions.empty')} />
+          ) : undefined}
           {sessions.isError ? (
             <ErrorState error={sessions.error} onRetry={() => void sessions.refetch()} />
           ) : undefined}
@@ -262,6 +259,6 @@ export const SessionsPage = () => {
           ) : undefined}
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -116,10 +116,10 @@ export const notificationTarget = (
   | '/admin/review'
   | '/admin/missing'
   | '/admin/jobs'
-  | '/admin/updates'
+  | '/admin/settings/updates'
   | '/admin/settings/metadata'
   | '/admin/settings/playback'
-  | '/admin/server'
+  | '/admin/settings/general'
   | '/admin/tv' => {
   switch (kind) {
     case 'library/root_unreachable':
@@ -137,12 +137,12 @@ export const notificationTarget = (
     case 'update/runtime_too_old':
     case 'update/failed':
     case 'update/rolled_back':
-      return '/admin/updates'
+      return '/admin/settings/updates'
     case 'metadata/tmdb_key_missing':
     case 'tmdb/unauthorized':
       return '/admin/settings/metadata'
     case 'cache/disk_low':
-      return '/admin/server'
+      return '/admin/settings/general'
     case 'playback/hw_accel_failed':
       return '/admin/settings/playback'
     case 'tv/source_unreachable':

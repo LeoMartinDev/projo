@@ -243,17 +243,13 @@ button.edit-item__tile:disabled {
   margin-right: auto;
 }
 
-.settings-block.refresh-library {
+.settings-block.optimize-images {
   flex-flow: row wrap;
   align-items: center;
   gap: 12px;
 }
 
-.settings-block.refresh-library > .field {
-  flex: 1 1 260px;
-}
-
-.settings-block.refresh-library > .alert {
+.settings-block.optimize-images > .alert {
   flex-basis: 100%;
   margin: 0;
 }

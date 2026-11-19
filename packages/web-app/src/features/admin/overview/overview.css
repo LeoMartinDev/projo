@@ -1,0 +1,149 @@
+@import '@projo/design/media.css';
+
+.overview__block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 1180px;
+}
+
+.overview__title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.todo-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border-subtle);
+  list-style: none;
+}
+
+.todo-list > .adm-tr,
+.todo-list > .state {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.todo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: 14px;
+}
+
+.todo__dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+}
+
+.todo__dot[data-severity='warning'] {
+  background: var(--color-warning);
+}
+
+.todo__dot[data-severity='error'] {
+  background: var(--color-error-soft);
+}
+
+.todo__text {
+  display: flex;
+  flex: 1 1 160px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.todo__detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.todo__title {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.todo__detail {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.todo__count {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.todo__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.todo__ignore {
+  background: none;
+  color: var(--color-text-secondary);
+}
+
+.todo__ignore:hover {
+  background: var(--fill-1);
+  color: var(--color-text);
+}
+
+.overview-scan {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+}
+
+.overview-scan__name {
+  text-decoration: none;
+}
+
+.overview-scan__name:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.overview-scan .bar {
+  width: 100%;
+  height: 4px;
+}
+
+.overview__catalog {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+@media (--compact) {
+  .overview-scan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .todo {
+    padding: 12px 4px;
+  }
+
+  .todo__actions {
+    padding-left: 22px;
+    margin-left: 0;
+  }
+}
+
+.overview-scans {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.overview-scans .state--compact {
+  border-bottom: 1px solid var(--color-border-subtle);
+}

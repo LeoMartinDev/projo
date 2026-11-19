@@ -8,13 +8,6 @@
 .ses-table__body {
   display: flex;
   flex-direction: column;
-  height: 456px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.ses-table__body > .state {
-  flex: 1;
 }
 
 .ses-tr {

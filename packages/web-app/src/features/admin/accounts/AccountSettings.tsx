@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { type FormEvent, useId, useState } from 'react'
+import { type FormEvent, useEffect, useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { AccountRole } from '@projo/shared/api/auth'
@@ -148,23 +148,66 @@ const DeleteAccountDialog = ({
   )
 }
 
+/** Where the account's form stands, for the buttons outside it (its dialog's footer). */
+export type AccountFormStatus = { dirty: boolean; pending: boolean }
+
+type Draft = { role: AccountRole; disabled: boolean }
+
+const changesOf = (account: AdminAccountDto, draft: Draft): UpdateAccountBody | undefined => {
+  const role = draft.role === account.role ? {} : { role: draft.role }
+  const disabled =
+    draft.disabled === (account.disabledAt !== undefined) ? {} : { disabled: draft.disabled }
+  return role.role === undefined && disabled.disabled === undefined
+    ? undefined
+    : { ...role, ...disabled }
+}
+
+/**
+ * The account itself (§15): its role and whether it is disabled, a form saved by the submit button
+ * of the dialog holding it (`formId`, told by `onStatusChange`); resetting the password, revoking
+ * its sessions and deleting it act at once, after their confirmation.
+ */
 export const AccountSettings = ({
   account,
+  formId,
+  onStatusChange,
+  onSaved,
   onDeleted,
 }: {
   account: AdminAccountDto
+  formId: string
+  onStatusChange: (status: AccountFormStatus) => void
+  onSaved: () => void
   onDeleted: () => void
 }) => {
   const { t } = useTranslation()
   const ids = useId()
   const queryClient = useQueryClient()
   const [dialog, setDialog] = useState<'reset' | 'delete'>()
+  const [draft, setDraft] = useState<Draft>(() => ({
+    role: account.role,
+    disabled: account.disabledAt !== undefined,
+  }))
 
   const update = useMutation({
     mutationFn: (body: UpdateAccountBody) =>
       request(() => api.admin.accounts[':id'].$patch({ param: { id: account.id }, json: body })),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: accountsQueryKey }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
+      onSaved()
+    },
   })
+  const changes = changesOf(account, draft)
+  const dirty = changes !== undefined
+
+  useEffect(() => {
+    onStatusChange({ dirty, pending: update.isPending })
+  }, [onStatusChange, dirty, update.isPending])
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (changes !== undefined && !update.isPending) update.mutate(changes)
+  }
   const revoke = useMutation({
     mutationFn: () =>
       request(() =>
@@ -173,12 +216,11 @@ export const AccountSettings = ({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: accountsQueryKey }),
   })
 
-  const disabled = account.disabledAt !== undefined
   const error = update.isError ? update.error : revoke.isError ? revoke.error : undefined
 
   return (
-    <section className="acc-settings" aria-label={t('admin.accounts.columns.account')}>
-      <div className="acc-settings__grid">
+    <div className="acc-settings">
+      <form id={formId} className="acc-settings__grid" onSubmit={submit} noValidate>
         <div className="acc-group-field">
           <span id={`${ids}-role`} className="acc-label">
             {t('admin.accounts.roleLabel')}
@@ -190,17 +232,17 @@ export const AccountSettings = ({
               value: role,
               label: t(`admin.accounts.role.${role}`),
             }))}
-            value={account.role}
+            value={draft.role}
             disabled={update.isPending}
-            onChange={(role) => update.mutate({ role })}
+            onChange={(role) => setDraft({ ...draft, role })}
           />
         </div>
 
         <div className="acc-prefs">
           <SwitchSetting
             label={t('admin.accounts.account.disable')}
-            checked={disabled}
-            onChange={(value) => update.mutate({ disabled: value })}
+            checked={draft.disabled}
+            onChange={(disabled) => setDraft({ ...draft, disabled })}
           />
           <Setting label={t('admin.accounts.account.password')}>
             <button
@@ -245,7 +287,7 @@ export const AccountSettings = ({
             </button>
           </Setting>
         </div>
-      </div>
+      </form>
 
       {error === undefined ? undefined : <ErrorAlert error={error} />}
 
@@ -259,6 +301,6 @@ export const AccountSettings = ({
           onDeleted={onDeleted}
         />
       ) : undefined}
-    </section>
+    </div>
   )
 }

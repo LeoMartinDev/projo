@@ -22,7 +22,7 @@ import {
 } from './log-filters.ts'
 import { formatContext } from './stored-error.ts'
 import { logsExportUrl, logsFilterQuery, logsQuery, logsQueryKey } from './queries.ts'
-import { AdminPageHeader } from '../AdminPageHeader.tsx'
+import { ActivitySection } from '../admin-sections.tsx'
 import { useHost } from '../../../host.ts'
 import { PagedTable } from '../PagedTable.tsx'
 import { SkeletonRows } from '../SkeletonRows.tsx'
@@ -184,32 +184,30 @@ export const LogsPage = () => {
   }
 
   return (
-    <div className="admin-page admin-page--fill">
-      <AdminPageHeader
-        title={t('admin.logs.title')}
-        actions={
-          <>
-            <button
-              type="button"
-              className="button button--glass button--small"
-              disabled={list.isFetching}
-              onClick={refresh}
-            >
-              <SyncIcon size={16} />
-              {t('admin.logs.refresh')}
-            </button>
-            <button
-              type="button"
-              className="button button--glass button--small"
-              onClick={() => download(logsExportUrl(filters), 'projo-logs.ndjson')}
-            >
-              <DownloadIcon size={16} />
-              {t('admin.logs.export')}
-            </button>
-          </>
-        }
-      />
-
+    <ActivitySection
+      fill
+      actions={
+        <>
+          <button
+            type="button"
+            className="button button--glass button--small"
+            disabled={list.isFetching}
+            onClick={refresh}
+          >
+            <SyncIcon size={16} />
+            {t('admin.logs.refresh')}
+          </button>
+          <button
+            type="button"
+            className="button button--glass button--small"
+            onClick={() => download(logsExportUrl(filters), 'projo-logs.ndjson')}
+          >
+            <DownloadIcon size={16} />
+            {t('admin.logs.export')}
+          </button>
+        </>
+      }
+    >
       <div className="adm-toolbar">
         <Segmented<LogLevelFilter>
           role="toggle"
@@ -289,7 +287,7 @@ export const LogsPage = () => {
           <ErrorState error={list.error} onRetry={() => void list.refetch()} />
         ) : undefined}
         {list.isSuccess && entries.length === 0 ? (
-          <EmptyState title={t('admin.logs.empty')} />
+          <EmptyState compact title={t('admin.logs.empty')} />
         ) : undefined}
         {entries.map((entry) => (
           <LogRow key={entry.id} entry={entry} onOpen={() => setOpened(entry)} />
@@ -299,6 +297,6 @@ export const LogsPage = () => {
       {opened === undefined ? undefined : (
         <LogDetails key={opened.id} entry={opened} onClose={() => setOpened(undefined)} />
       )}
-    </div>
+    </ActivitySection>
   )
 }

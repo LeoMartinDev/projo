@@ -9,11 +9,14 @@
 .adm-table__body {
   display: flex;
   flex-direction: column;
-  min-height: 320px;
 }
 
 .adm-table__body > .state {
   flex: 1;
+}
+
+.adm-table__body > .state--compact {
+  flex: 0 0 auto;
 }
 
 .adm-tr {
