@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
 import type { PlayableSource } from '../catalog/catalog.ts'
-import { chapterSegments, chapterType, itemTimeline } from './chapters.ts'
+import { chapterSegments, chapterType, itemTimeline, segmentsForVersion } from './chapters.ts'
 
 describe('chapterType (§12.2 row 2)', () => {
   test.each([
@@ -142,5 +142,29 @@ describe('itemTimeline (§7.7 stacks)', () => {
 
   test('unknown duration: no total', () => {
     expect(itemTimeline([source('a', {})])).toEqual({ chapters: [] })
+  })
+})
+
+describe('segmentsForVersion', () => {
+  const minute = 60_000
+  const stored = [
+    { type: 'recap', startMs: 0, endMs: 60_000 },
+    { type: 'preview', startMs: 60_000, endMs: 90_000 },
+    { type: 'intro', startMs: 2 * minute, endMs: 3 * minute },
+    { type: 'credits', startMs: 55 * minute, endMs: 58 * minute },
+  ]
+
+  test('drops credits or a preview starting in the first half of the file (§12.4)', () => {
+    expect(
+      segmentsForVersion(stored, { referenceMs: 58 * minute, playedMs: 58 * minute }).map(
+        (segment) => segment.type,
+      ),
+    ).toEqual(['recap', 'intro', 'credits'])
+  })
+
+  test('another cut of the title gets no segment', () => {
+    expect(segmentsForVersion(stored, { referenceMs: 58 * minute, playedMs: 50 * minute })).toEqual(
+      [],
+    )
   })
 })

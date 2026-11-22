@@ -29,6 +29,29 @@ export type Segment = {
 
 export type SegmentCandidate = Pick<Segment, 'type' | 'startMs' | 'endMs'> & { confidence?: number }
 
+/**
+ * `credits` and `preview` close the file (§12.4: entering them offers the next
+ * episode and marks the item watched). One that starts in the first half of the
+ * file is a mislabelled community submission (a cold open or a "previously on"
+ * sent as `preview`): it is never stored from a chapter or a provider, and never
+ * served to a player nor used for progress.
+ */
+export const closesTheFile = (type: string): boolean => type === 'credits' || type === 'preview'
+
+export const isPlausiblyPlaced = (
+  segment: { type: string; startMs: number },
+  durationMs: number | undefined,
+): boolean =>
+  !closesTheFile(segment.type) ||
+  durationMs === undefined ||
+  durationMs <= 0 ||
+  segment.startMs >= durationMs / 2
+
+export const plausiblyPlaced = <S extends { type: string; startMs: number }>(
+  segments: readonly S[],
+  durationMs: number | undefined,
+): S[] => segments.filter((segment) => isPlausiblyPlaced(segment, durationMs))
+
 const originRank: Record<SegmentOrigin, number> = {
   manual: 3,
   chapter: 2,

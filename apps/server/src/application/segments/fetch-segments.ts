@@ -6,6 +6,7 @@ import type { Logger } from '../../core/logger.ts'
 import { chapterSegments } from '../../core/segments/chapters.ts'
 import {
   isLookupFresh,
+  isPlausiblyPlaced,
   type SegmentCandidate,
   type SegmentItemRef,
   type SegmentOrigin,
@@ -44,7 +45,10 @@ const withinFile = (
 ): SegmentCandidate | undefined => {
   const startMs = Math.max(0, candidate.startMs)
   const endMs = durationMs === undefined ? candidate.endMs : Math.min(candidate.endMs, durationMs)
-  return Number.isFinite(startMs) && Number.isFinite(endMs) && endMs > startMs
+  return Number.isFinite(startMs) &&
+    Number.isFinite(endMs) &&
+    endMs > startMs &&
+    isPlausiblyPlaced({ type: candidate.type, startMs }, durationMs)
     ? { ...candidate, startMs, endMs }
     : undefined
 }
@@ -73,7 +77,10 @@ export const fetchSegmentsFactory =
     const isManual = (type: SegmentType) => before.get(type)?.origin === 'manual'
 
     const fromChapters = chapterSegments(timeline.chapters, timeline.durationMs).filter(
-      (candidate) => !negative.has(candidate.type) && !isManual(candidate.type),
+      (candidate) =>
+        !negative.has(candidate.type) &&
+        !isManual(candidate.type) &&
+        isPlausiblyPlaced(candidate, timeline.durationMs ?? ref.durationMs),
     )
     for (const candidate of fromChapters) {
       segmentRepository.save({ itemId, origin: 'chapter', candidate })

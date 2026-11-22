@@ -1,7 +1,7 @@
 import type { PlayableSource } from '../catalog/catalog.ts'
 import type { ChapterInfo } from '../playback/media-info.ts'
 import { groupVersions, rankVersions } from '../playback/versions.ts'
-import type { SegmentCandidate, SegmentType } from './segment.ts'
+import { plausiblyPlaced, type SegmentCandidate, type SegmentType } from './segment.ts'
 
 const maxWords = 3
 
@@ -84,12 +84,12 @@ export const itemTimeline = (sources: readonly PlayableSource[]): ItemTimeline =
 
 const SAME_CUT_TOLERANCE_MS = 5_000
 
-export const segmentsForVersion = <S>(
+export const segmentsForVersion = <S extends { type: string; startMs: number }>(
   segments: S[],
   { referenceMs, playedMs }: { referenceMs: number | undefined; playedMs: number | undefined },
 ): S[] =>
   referenceMs === undefined ||
   playedMs === undefined ||
   Math.abs(referenceMs - playedMs) <= SAME_CUT_TOLERANCE_MS
-    ? segments
+    ? plausiblyPlaced(segments, referenceMs ?? playedMs)
     : []

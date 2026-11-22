@@ -245,6 +245,29 @@ describe('fetch_segments (§12.2)', () => {
     ])
   })
 
+  test('credits or a preview in the first half of the file is mislabelled: never stored (§12.4)', async () => {
+    sources['e1'] = [
+      readySource('f1', durationMs, [
+        { startMs: 0, endMs: 60_000, title: 'Preview' },
+        { startMs: 60_000, endMs: 44 * minute, title: 'Chapter 2' },
+        { startMs: 44 * minute, endMs: durationMs, title: 'Chapter 3' },
+      ]),
+    ]
+    const { fetch } = build({
+      theintrodb: found(
+        intro,
+        { type: 'preview', startMs: 30_000, endMs: 90_000 },
+        { type: 'credits', startMs: 2 * minute, endMs: durationMs },
+      ),
+      introdb: found(credits),
+    })
+    await fetch()
+    expect(types()).toEqual([
+      ['intro', 'theintrodb'],
+      ['credits', 'introdb'],
+    ])
+  })
+
   test('an episode left without intro or credits goes to fingerprint_season', async () => {
     const { fetch } = build({ theintrodb: found(intro) })
     await fetch()
