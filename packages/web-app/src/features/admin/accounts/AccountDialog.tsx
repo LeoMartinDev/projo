@@ -323,7 +323,6 @@ export const NewAccountDialog = ({
   return (
     <Dialog
       open
-      large
       title={t('admin.accounts.createAccount.title')}
       onClose={onClose}
       footer={
@@ -343,7 +342,7 @@ export const NewAccountDialog = ({
         </>
       }
     >
-      <form id={`${id}-form`} className="acc-create acc-create--page" onSubmit={submit} noValidate>
+      <form id={`${id}-form`} className="acc-create" onSubmit={submit} noValidate>
         {create.isError ? <ErrorAlert error={create.error} /> : undefined}
         <div className="form-row">
           <Field

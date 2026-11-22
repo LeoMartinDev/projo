@@ -1395,7 +1395,7 @@ select.field__input {
   background: var(--material-panel);
   -webkit-backdrop-filter: var(--blur-panel);
   backdrop-filter: var(--blur-panel);
-  box-shadow: var(--shadow-panel);
+  box-shadow: var(--shadow-dialog);
   color: var(--color-text);
 }
 
@@ -1407,6 +1407,8 @@ select.field__input {
 
 .dialog::backdrop {
   background: var(--color-scrim);
+  -webkit-backdrop-filter: var(--blur-scrim);
+  backdrop-filter: var(--blur-scrim);
 }
 
 .dialog__header {

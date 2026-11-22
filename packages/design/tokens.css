@@ -28,6 +28,8 @@
    *   takes --blur-glass-dim: identical on the dark UI, darker over a bright frame.
    * - panel: dialogs, menus, sheets, cards that float (background + --blur-panel
    *   + --shadow-panel). --material-opaque is its stand-in where blur cannot run.
+   *   A modal dialog takes --shadow-dialog: the scrim already sets it apart, so a
+   *   deep drop shadow would only read as a dark block around it.
    * - scrim: what sits behind a modal (--color-scrim + --blur-scrim).
    */
   --material-glass: rgba(40, 40, 44, 0.42);
@@ -104,6 +106,9 @@
   --shadow-panel:
     inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.09),
     0 60px 120px -40px rgba(0, 0, 0, 0.9);
+  --shadow-dialog:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 24px 48px -28px rgba(0, 0, 0, 0.6);
   --shadow-well: inset 0 0 0 1px rgba(255, 255, 255, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.04);
   --shadow-glass:
     inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.14),
