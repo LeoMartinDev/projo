@@ -6,6 +6,8 @@ import {
   contentRatingTiers,
 } from '@projo/shared/api/profiles'
 
+import type { SummaryLabels } from './summary.ts'
+
 export const avatarColors: readonly AvatarColor[] = [
   'blue',
   'terracotta',
@@ -62,4 +64,17 @@ export const useRatingLabel = () => {
   const { t } = useTranslation()
   return (tier: ContentRatingTier | undefined): string =>
     tier === undefined ? t('admin.accounts.rating.none') : t(`admin.accounts.rating.${tier}`)
+}
+
+/** The labels of a profile's summary ("Movies, Shows · 16 and over · PIN", `profileSummary`). */
+export const useSummaryLabels = (): SummaryLabels => {
+  const { t } = useTranslation()
+  const ratingLabel = useRatingLabel()
+  return {
+    allLibraries: t('admin.accounts.allLibraries'),
+    noLibrary: t('admin.accounts.noLibrary'),
+    noLimit: t('admin.accounts.noLimit'),
+    rating: ratingLabel,
+    pin: t('admin.accounts.pinSummary'),
+  }
 }

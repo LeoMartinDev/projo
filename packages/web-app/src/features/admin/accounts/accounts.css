@@ -264,43 +264,122 @@
   font-size: 13px;
 }
 
-.acc-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.acc-section-head__count {
-  color: var(--color-text-muted);
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.acc-cards {
+.acc-profiles {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.acc-card {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  padding: 24px;
-  border-radius: 22px;
-}
-
-.acc-card__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
   min-width: 0;
 }
 
-.acc-card__title {
+/* The Profiles tab's list: one row per profile, then "Add a profile". */
+.acc-profiles__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acc-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition: background-color var(--duration-fast) ease;
+}
+
+.acc-profile-row:hover:not(:disabled) {
+  background: var(--fill-1);
+}
+
+.acc-profile-row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.acc-profile-row:disabled {
+  cursor: default;
+}
+
+.acc-profile-row--add {
+  border-bottom: 0;
+}
+
+.acc-profile-row__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.acc-profile-row__name,
+.acc-profile-row__facts {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.acc-profile-row__name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.acc-profile-row__facts {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.acc-profile-row--add .acc-profile-row__name {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.acc-profile-row--add:disabled .acc-profile-row__name {
+  color: var(--color-text-muted);
+}
+
+.acc-profile-row__chevron {
+  display: flex;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.acc-avatar--add {
+  border: 1px dashed var(--color-border-strong);
+  background: none;
+  color: var(--color-text-secondary);
+}
+
+.acc-profile-row--add:disabled .acc-avatar--add {
+  color: var(--color-text-muted);
+}
+
+/* One profile, opened in place: a back button, its avatar and name, then its form. */
+.acc-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-left: -10px;
+}
+
+.acc-profile-head .acc-avatar {
+  margin-right: 4px;
+}
+
+.acc-profile-head__name {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   font-size: 18px;
   font-weight: 600;
@@ -309,27 +388,74 @@
   white-space: nowrap;
 }
 
-.acc-card__body {
+.acc-profile-head .acc-activity__when {
+  margin-left: auto;
+}
+
+.acc-profile-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.acc-profile-form > .alert {
+  margin-bottom: 20px;
+}
+
+.acc-profile-form__section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  margin: 0;
+  padding: 26px 0;
+  border: 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.acc-profile-form__section--first {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.acc-profile-form__section:last-child {
+  padding-bottom: 0;
+}
+
+.acc-profile-form__legend {
+  float: left;
+  width: 100%;
+  padding: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.acc-profile-form__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 22px 40px;
   align-items: start;
 }
 
-.acc-card__column {
+.acc-profile-form__column {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 14px;
   min-width: 0;
 }
 
-.acc-card__footer {
+.acc-profile-form__rows {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  flex-direction: column;
+}
+
+.acc-profile-form__rows .setting {
+  padding: 10px 0;
+}
+
+.acc-profile-form__rows .setting__label {
+  color: var(--color-text-muted-strong);
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .acc-group-field {
@@ -472,7 +598,7 @@
     display: none;
   }
 
-  .acc-card__body,
+  .acc-profile-form__grid,
   .acc-settings__grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -517,9 +643,5 @@
 
   .acc-tr__chevron {
     grid-area: chevron;
-  }
-
-  .acc-card {
-    padding: 18px;
   }
 }

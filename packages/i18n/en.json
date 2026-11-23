@@ -853,7 +853,8 @@
         "activity": "Activity"
       },
       "addProfile": "Add a profile",
-      "addProfileTitle": "New profile for {{username}}",
+      "profileLimit_one": "{{count}} profile at most",
+      "profileLimit_other": "{{count}} profiles at most",
       "profilesOf": "Profiles of {{username}}",
       "empty": "No accounts",
       "notFound": "This account no longer exists.",
@@ -910,7 +911,13 @@
         "delete": "Delete profile",
         "deleteTitle": "Delete the profile “{{name}}”?",
         "deleteText": "Its progress and list are lost.",
-        "liveTv": "Live TV"
+        "liveTv": "Live TV",
+        "back": "Back to profiles",
+        "newTitle": "New profile",
+        "create": "Create profile",
+        "access": "Access",
+        "playback": "Playback",
+        "deleteShort": "Delete"
       },
       "account": {
         "disable": "Disable the account",

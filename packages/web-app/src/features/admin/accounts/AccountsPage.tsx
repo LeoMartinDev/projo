@@ -10,7 +10,7 @@ import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.ts
 import { AccountActivity } from './AccountActivity.tsx'
 import { AccountDialog, NewAccountDialog } from './AccountDialog.tsx'
 import { InvitationCreatedDialog, Invitations, useCreateInvitation } from './Invitations.tsx'
-import { AdminAvatar, useRatingLabel } from './parts.tsx'
+import { AdminAvatar, useSummaryLabels } from './parts.tsx'
 import { librariesQuery } from '../queries.ts'
 import { accountsQuery } from './queries.ts'
 import { profileSummary } from './summary.ts'
@@ -39,14 +39,7 @@ const ProfileStack = ({
   libraries: Libraries
 }) => {
   const { t } = useTranslation()
-  const ratingLabel = useRatingLabel()
-  const labels = {
-    allLibraries: t('admin.accounts.allLibraries'),
-    noLibrary: t('admin.accounts.noLibrary'),
-    noLimit: t('admin.accounts.noLimit'),
-    rating: ratingLabel,
-    pin: t('admin.accounts.pinSummary'),
-  }
+  const labels = useSummaryLabels()
   return (
     <ul
       className="acc-stack"

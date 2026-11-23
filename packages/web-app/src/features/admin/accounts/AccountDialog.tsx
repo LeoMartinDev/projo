@@ -11,140 +11,24 @@ import { formatDateTime } from '../../../shared/format/format.ts'
 import { currentLocale } from '../../../shared/i18n/index.ts'
 import { Field, RevealButton } from '../../../shared/ui/controls.tsx'
 import { Dialog } from '../../../shared/ui/Dialog.tsx'
-import { LockIcon, PlusIcon, UserIcon } from '../../../shared/ui/icons.tsx'
+import { LockIcon, UserIcon } from '../../../shared/ui/icons.tsx'
 import { Segmented } from '../../../shared/ui/Segmented.tsx'
 import { EmptyState, ErrorAlert, ErrorState } from '../../../shared/ui/states.tsx'
 import { DialogTabPanel, DialogTabs } from '../DialogTabs.tsx'
-import { librariesQuery } from '../queries.ts'
 import { AccountActivity } from './AccountActivity.tsx'
 import { type AccountFormStatus, AccountSettings } from './AccountSettings.tsx'
-import { avatarColors, ColorPicker } from './parts.tsx'
-import { ProfileCard } from './ProfileCard.tsx'
+import { AccountProfiles, type ProfileView, showsProfileForm } from './AccountProfiles.tsx'
+import { ColorPicker } from './parts.tsx'
+import type { ProfileFormStatus } from './ProfileForm.tsx'
 import { accountsQuery, accountsQueryKey } from './queries.ts'
 import '../admin.css'
 import '../admin-table.css'
 import './accounts.css'
 
-const maxProfiles = 5
 const roles: readonly AccountRole[] = ['user', 'admin']
-const idle: AccountFormStatus = { dirty: false, pending: false }
+const idle: AccountFormStatus & ProfileFormStatus = { dirty: false, pending: false }
 
 type Tab = 'account' | 'profiles' | 'activity'
-
-const nextColor = (account: AdminAccountDto): AvatarColor =>
-  avatarColors.find((color) => !account.profiles.some((p) => p.avatarColor === color)) ?? 'blue'
-
-const AddProfileDialog = ({
-  account,
-  onClose,
-}: {
-  account: AdminAccountDto
-  onClose: () => void
-}) => {
-  const { t } = useTranslation()
-  const id = useId()
-  const queryClient = useQueryClient()
-  const [name, setName] = useState('')
-  const [avatarColor, setAvatarColor] = useState<AvatarColor>(() => nextColor(account))
-  const [touched, setTouched] = useState(false)
-  const valid = name.trim().length > 0 && name.trim().length <= 32
-  const create = useMutation({
-    mutationFn: () =>
-      request(() =>
-        api.admin.accounts[':id'].profiles.$post({
-          param: { id: account.id },
-          json: { name: name.trim(), avatarColor },
-        }),
-      ),
-    onSuccess: async () => {
-      onClose()
-      await queryClient.invalidateQueries({ queryKey: accountsQueryKey })
-    },
-  })
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    setTouched(true)
-    if (valid && !create.isPending) create.mutate()
-  }
-  return (
-    <Dialog
-      open
-      title={t('admin.accounts.addProfileTitle', { username: account.username })}
-      onClose={onClose}
-      footer={
-        <>
-          <button type="button" className="button" onClick={onClose}>
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            form={`${id}-form`}
-            className="button button--primary"
-            disabled={create.isPending}
-          >
-            {create.isPending ? <span className="spinner" aria-hidden="true" /> : undefined}
-            {t('admin.accounts.addProfile')}
-          </button>
-        </>
-      }
-    >
-      <form id={`${id}-form`} className="acc-create" onSubmit={submit} noValidate>
-        <Field
-          id={`${id}-name`}
-          label={t('admin.accounts.profile.name')}
-          invalid={touched && !valid}
-        >
-          <input
-            id={`${id}-name`}
-            className="field__input"
-            value={name}
-            maxLength={32}
-            autoComplete="off"
-            aria-invalid={touched && !valid}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </Field>
-        <div className="acc-group-field">
-          <span id={`${id}-color`} className="acc-label">
-            {t('admin.accounts.profile.color')}
-          </span>
-          <ColorPicker value={avatarColor} labelId={`${id}-color`} onChange={setAvatarColor} />
-        </div>
-      </form>
-      {create.isError ? <ErrorAlert error={create.error} /> : undefined}
-    </Dialog>
-  )
-}
-
-const Profiles = ({ account }: { account: AdminAccountDto }) => {
-  const { t } = useTranslation()
-  const libraries = useQuery(librariesQuery)
-  const [adding, setAdding] = useState(false)
-  return (
-    <>
-      <div className="acc-section-head">
-        <span className="acc-section-head__count">
-          {account.profiles.length} / {maxProfiles}
-        </span>
-        <button
-          type="button"
-          className="button button--glass button--small"
-          disabled={account.profiles.length >= maxProfiles}
-          onClick={() => setAdding(true)}
-        >
-          <PlusIcon />
-          {t('admin.accounts.addProfile')}
-        </button>
-      </div>
-      <div className="acc-cards">
-        {account.profiles.map((profile) => (
-          <ProfileCard key={profile.id} profile={profile} libraries={libraries.data?.items ?? []} />
-        ))}
-      </div>
-      {adding ? <AddProfileDialog account={account} onClose={() => setAdding(false)} /> : undefined}
-    </>
-  )
-}
 
 const Activity = ({ account }: { account: AdminAccountDto }) => {
   const { t } = useTranslation()
@@ -171,7 +55,9 @@ const Activity = ({ account }: { account: AdminAccountDto }) => {
 
 /**
  * An account's details (§15): its role and state under its name, then tabs: the account (its
- * settings and the actions on it), its profiles (each card saved on its own), its activity.
+ * settings and the actions on it), its profiles (a list whose row opens the profile's settings in
+ * place), its activity. The footer saves what the current tab shows: the account, or the opened
+ * profile ("Cancel" then goes back to the list).
  */
 export const AccountDialog = ({
   accountId,
@@ -183,10 +69,24 @@ export const AccountDialog = ({
   const { t } = useTranslation()
   const ids = useId()
   const formId = `${ids}-form`
+  const profileFormId = `${ids}-profile-form`
   const accounts = useQuery(accountsQuery)
   const [tab, setTab] = useState<Tab>('account')
   const [status, setStatus] = useState<AccountFormStatus>(idle)
+  const [profileView, setProfileView] = useState<ProfileView>({ kind: 'list' })
+  const [profileStatus, setProfileStatus] = useState<ProfileFormStatus>(idle)
   const account = accounts.data?.items.find((candidate) => candidate.id === accountId)
+  const profileOpen =
+    tab === 'profiles' && account !== undefined && showsProfileForm(account, profileView)
+  const showProfiles = (view: ProfileView) => {
+    setProfileStatus(idle)
+    setProfileView(view)
+  }
+  const backToProfiles = () =>
+    showProfiles({
+      kind: 'list',
+      focus: profileView.kind === 'profile' ? profileView.id : profileView.kind,
+    })
 
   return (
     <Dialog
@@ -233,6 +133,21 @@ export const AccountDialog = ({
               {t('common.save')}
             </button>
           </>
+        ) : profileOpen ? (
+          <>
+            <button type="button" className="button" onClick={backToProfiles}>
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              form={profileFormId}
+              className="button button--primary"
+              disabled={!profileStatus.dirty || profileStatus.pending}
+            >
+              {profileStatus.pending ? <span className="spinner" aria-hidden="true" /> : undefined}
+              {profileView.kind === 'new' ? t('admin.accounts.profile.create') : t('common.save')}
+            </button>
+          </>
         ) : (
           <button type="button" className="button" onClick={onClose}>
             {t('common.close')}
@@ -258,7 +173,13 @@ export const AccountDialog = ({
             />
           </DialogTabPanel>
           <DialogTabPanel idPrefix={ids} value="profiles" current={tab}>
-            <Profiles account={account} />
+            <AccountProfiles
+              account={account}
+              view={profileView}
+              formId={profileFormId}
+              onView={showProfiles}
+              onStatusChange={setProfileStatus}
+            />
           </DialogTabPanel>
           <DialogTabPanel idPrefix={ids} value="activity" current={tab}>
             <Activity account={account} />
