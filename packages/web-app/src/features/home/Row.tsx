@@ -93,7 +93,8 @@ export const Row = ({
   useEffect(() => {
     if (viewport === undefined || track === undefined) return
     const observer = new ResizeObserver(() =>
-      setSize({ view: viewport.clientWidth, content: track.scrollWidth }),
+      // The track's width, not the viewport's: the viewport's padding is bleed.
+      setSize({ view: track.clientWidth, content: track.scrollWidth }),
     )
     observer.observe(viewport)
     observer.observe(track)

@@ -263,7 +263,12 @@
   min-width: 0;
 }
 
+/* The clip reaches a little past the cards (still short of the next page's,
+   a gap away), so a hovered card at either end grows without being cut. */
 .row__viewport--paged {
+  --row-bleed: 8px;
+  margin-inline: calc(-1 * var(--row-bleed));
+  padding-inline: var(--row-bleed);
   overflow-x: clip;
   overflow-y: visible;
 }
