@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useRouterState } from '@tanstack/react-router'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { eventHub } from '../../shared/events/events.ts'
@@ -195,7 +195,10 @@ export const AdminLayout = () => {
       </aside>
       <main id="main" className="admin__main" tabIndex={-1}>
         <TmdbKeyBanner />
-        <Outlet />
+        {/* A page still loading its chunk leaves the sidebar in place, never the whole app blank. */}
+        <Suspense fallback={undefined}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

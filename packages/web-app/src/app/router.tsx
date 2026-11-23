@@ -463,6 +463,9 @@ const adminLibrariesRoute = createRoute({
     const library = recordParam(search['library'])
     return library === undefined ? {} : { library }
   },
+  // The component is a wrapper, so the router cannot see the lazy page it renders: load its
+  // chunk with the route, or it suspends on first render and blanks the whole app meanwhile.
+  loader: () => LibrariesPage.preload?.(),
   component: function AdminLibraries() {
     const { library } = adminLibrariesRoute.useSearch()
     const navigate = adminLibrariesRoute.useNavigate()
@@ -501,6 +504,7 @@ const adminAccountsRoute = createRoute({
     const account = recordParam(search['account'])
     return account === undefined ? {} : { account }
   },
+  loader: () => AccountsPage.preload?.(),
   component: function AdminAccounts() {
     const { account } = adminAccountsRoute.useSearch()
     const navigate = adminAccountsRoute.useNavigate()

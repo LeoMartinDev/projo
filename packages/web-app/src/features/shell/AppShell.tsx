@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router'
-import { type MouseEvent, useEffect, useState, useSyncExternalStore } from 'react'
+import { type MouseEvent, Suspense, useEffect, useState, useSyncExternalStore } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { MeResponse } from '@projo/shared/api/auth'
@@ -338,7 +338,10 @@ export const AppShell = ({ me: initial }: { me: MeResponse }) => {
       </header>
       <main id="main" className="shell__main" tabIndex={-1}>
         <KeptTabs />
-        <Outlet />
+        {/* A page still loading its chunk leaves the header in place, never the whole app blank. */}
+        <Suspense fallback={undefined}>
+          <Outlet />
+        </Suspense>
       </main>
       <SearchOverlay open={searching} onClose={() => setSearching(false)} />
     </div>
