@@ -365,69 +365,8 @@
   animation: rise 0.3s var(--ease) both;
 }
 
-.title-menu {
-  position: relative;
-  align-self: center;
-}
-
 .detail-hero__actions .title-menu {
   display: contents;
-}
-
-.title-menu__icon-button {
-  display: grid;
-  width: 32px;
-  height: 40px;
-  place-items: center;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease;
-}
-
-.title-menu__icon-button:hover,
-.title-menu:has(.title-menu__menu:popover-open) .title-menu__icon-button {
-  background: var(--color-glass);
-  color: var(--color-text);
-}
-
-.title-menu__menu {
-  inset: 0;
-  width: max-content;
-  height: max-content;
-  margin: auto;
-}
-
-@supports (position-area: bottom) {
-  .title-menu__menu {
-    inset: auto;
-    margin: 6px 0;
-    position-area: bottom span-right;
-    position-try-fallbacks: flip-block;
-  }
-
-  .title-menu--end .title-menu__menu {
-    position-area: bottom span-left;
-  }
-}
-
-.title-menu__spinner {
-  width: 16px;
-  height: 16px;
-}
-
-.title-menu__error {
-  max-width: 260px;
-  margin: 0;
-  padding: 2px 12px 8px;
-  color: var(--color-error-soft);
-  font-size: 13px;
-  line-height: 1.4;
-  white-space: normal;
 }
 
 .episode-list {

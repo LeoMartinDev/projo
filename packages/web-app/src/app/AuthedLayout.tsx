@@ -19,6 +19,7 @@ export const AuthedLayout = (_props: { me: MeResponse }) => {
       timer = setTimeout(() => {
         timer = undefined
         refreshLive(queryClient, ['catalog'])
+        refreshLive(queryClient, ['admin', 'catalog'])
       }, catalogRefreshMs)
     })
     return () => {

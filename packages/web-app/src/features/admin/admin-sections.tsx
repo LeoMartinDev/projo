@@ -9,7 +9,7 @@ import { useUpdateSummary } from './updates/queries.ts'
 
 type SectionProps = { actions?: ReactNode; fill?: boolean; children: ReactNode }
 
-/** Media: the libraries and the live TV sources. */
+/** Media: the libraries, the titles they hold and the live TV sources. */
 export const MediaSection = ({ actions, children }: SectionProps) => {
   const { t } = useTranslation()
   return (
@@ -17,6 +17,7 @@ export const MediaSection = ({ actions, children }: SectionProps) => {
       title={t('admin.nav.media')}
       tabs={[
         { to: '/admin/libraries', label: t('admin.tabs.libraries') },
+        { to: '/admin/catalogue', label: t('admin.tabs.catalogue') },
         { to: '/admin/tv', label: t('admin.tabs.tv') },
       ]}
       {...(actions === undefined ? {} : { actions })}

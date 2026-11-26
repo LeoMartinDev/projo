@@ -7,6 +7,7 @@ import {
   pageNumber,
   pagesFor,
   previousPage,
+  storedPages,
 } from './cursor-pages.ts'
 
 test('starts on the first page, without a cursor', () => {
@@ -33,4 +34,13 @@ test('keeps the pages for the same filters and starts again for others', () => {
   const second = nextPage(firstPage('all'), 'c1')
   expect(pagesFor(second, 'all')).toBe(second)
   expect(pagesFor(second, 'failed')).toEqual(firstPage('failed'))
+})
+
+test('pages read back from a history entry, anything else ignored', () => {
+  const second = nextPage(firstPage('all'), 'c1')
+  expect(storedPages(structuredClone(second))).toEqual(second)
+  expect(storedPages(undefined)).toBeUndefined()
+  expect(storedPages({ key: 'all', cursors: [] })).toBeUndefined()
+  expect(storedPages({ key: 'all', cursors: ['c1'] })).toBeUndefined()
+  expect(storedPages({ key: 'all', cursors: ['', 2] })).toBeUndefined()
 })

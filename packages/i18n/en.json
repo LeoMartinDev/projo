@@ -701,6 +701,49 @@
         "history": "History"
       }
     },
+    "catalogue": {
+      "title": "Catalogue",
+      "search": "Search a title",
+      "kindLabel": "Type",
+      "kinds": {
+        "all": "All",
+        "movie": "Movies",
+        "series": "Shows"
+      },
+      "kind": {
+        "movie": "Movie",
+        "series": "Show"
+      },
+      "library": "Library",
+      "allLibraries": "All libraries",
+      "sort": "Sort",
+      "sorts": {
+        "title": "Title",
+        "added": "Recently added",
+        "year": "Year"
+      },
+      "columns": {
+        "title": "Title",
+        "kind": "Type",
+        "libraries": "Libraries",
+        "content": "Content",
+        "added": "Added"
+      },
+      "episodes_one": "{{formatted}} episode",
+      "episodes_other": "{{formatted}} episodes",
+      "noFile": "No file",
+      "edited": "Edited: {{fields}}",
+      "empty": "No title",
+      "noMatch": "No title matches",
+      "openTitle": "Open the title page",
+      "episodeColumns": {
+        "number": "No.",
+        "title": "Title",
+        "airDate": "Aired",
+        "files": "Files"
+      },
+      "noEpisodes": "No episode"
+    },
     "counts": {
       "ready_one": "{{formatted}} file",
       "ready_other": "{{formatted}} files",
@@ -1209,6 +1252,7 @@
     },
     "tabs": {
       "libraries": "Libraries",
+      "catalogue": "Catalogue",
       "tv": "Live TV",
       "review": "To review",
       "pending": "Pending",

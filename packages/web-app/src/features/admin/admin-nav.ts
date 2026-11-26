@@ -10,7 +10,7 @@ export const adminNavEntries = [
 export type AdminNavEntry = (typeof adminNavEntries)[number]
 
 const sectionPaths: Record<Exclude<AdminNavEntry, 'overview'>, readonly string[]> = {
-  media: ['/admin/libraries', '/admin/tv'],
+  media: ['/admin/libraries', '/admin/catalogue', '/admin/tv'],
   files: ['/admin/review', '/admin/pending', '/admin/missing', '/admin/hidden'],
   accounts: ['/admin/accounts'],
   activity: ['/admin/notifications', '/admin/jobs', '/admin/logs'],

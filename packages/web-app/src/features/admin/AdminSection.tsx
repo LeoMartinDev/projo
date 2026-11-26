@@ -10,6 +10,7 @@ import './admin.css'
 export type AdminTab = {
   to:
     | '/admin/libraries'
+    | '/admin/catalogue'
     | '/admin/tv'
     | '/admin/review'
     | '/admin/pending'

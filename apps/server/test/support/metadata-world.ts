@@ -73,7 +73,7 @@ export const createMetadataWorld = ({
     .route('/api/v1/admin', settings.routes)
 
   const ours =
-    /^\/(settings|tmdb\/|items\/|images\/optimize|sources\/(review-groups|[^/]+\/(assign|reject|reject-group|review-group|restore))|libraries\/[^/]+\/refresh-metadata)/u
+    /^\/(settings|tmdb\/|items(\/|\?|$)|images\/optimize|sources\/(review-groups|[^/]+\/(assign|reject|reject-group|review-group|restore))|libraries\/[^/]+\/refresh-metadata)/u
   const request = async (path: string, init: RequestInit & { json?: unknown } = {}) => {
     if (!ours.test(path)) return scanner.request(path, init)
     const { json, ...rest } = init

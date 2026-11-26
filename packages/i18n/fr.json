@@ -701,6 +701,49 @@
         "history": "Historique"
       }
     },
+    "catalogue": {
+      "title": "Catalogue",
+      "search": "Rechercher un titre",
+      "kindLabel": "Type",
+      "kinds": {
+        "all": "Tout",
+        "movie": "Films",
+        "series": "Séries"
+      },
+      "kind": {
+        "movie": "Film",
+        "series": "Série"
+      },
+      "library": "Bibliothèque",
+      "allLibraries": "Toutes les bibliothèques",
+      "sort": "Tri",
+      "sorts": {
+        "title": "Titre",
+        "added": "Ajouts récents",
+        "year": "Année"
+      },
+      "columns": {
+        "title": "Titre",
+        "kind": "Type",
+        "libraries": "Bibliothèques",
+        "content": "Contenu",
+        "added": "Ajout"
+      },
+      "episodes_one": "{{formatted}} épisode",
+      "episodes_other": "{{formatted}} épisodes",
+      "noFile": "Aucun fichier",
+      "edited": "Modifié : {{fields}}",
+      "empty": "Aucun titre",
+      "noMatch": "Aucun titre ne correspond",
+      "openTitle": "Ouvrir la fiche",
+      "episodeColumns": {
+        "number": "N°",
+        "title": "Titre",
+        "airDate": "Diffusion",
+        "files": "Fichiers"
+      },
+      "noEpisodes": "Aucun épisode"
+    },
     "counts": {
       "ready_one": "{{formatted}} fichier",
       "ready_other": "{{formatted}} fichiers",
@@ -1209,6 +1252,7 @@
     },
     "tabs": {
       "libraries": "Bibliothèques",
+      "catalogue": "Catalogue",
       "tv": "TV en direct",
       "review": "À vérifier",
       "pending": "En attente",

@@ -3,6 +3,8 @@ import { describe, expect, test } from 'bun:test'
 import { createAuthTestApp, sessionCookieOf } from '../../../../test/support/auth-app.ts'
 
 const editingRoutes: [string, string, unknown?][] = [
+  ['GET', '/api/v1/admin/items?q=alien'],
+  ['GET', '/api/v1/admin/items/item-1/seasons'],
   ['GET', '/api/v1/admin/items/item-1'],
   ['PATCH', '/api/v1/admin/items/item-1', { title: 'Titre' }],
   ['DELETE', '/api/v1/admin/items/item-1/overrides/title'],

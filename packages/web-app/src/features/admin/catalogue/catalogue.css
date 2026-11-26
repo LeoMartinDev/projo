@@ -1,0 +1,197 @@
+@import '@projo/design/media.css';
+
+.cat-tr {
+  grid-template-columns:
+    minmax(0, 2.4fr) minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 0.8fr)
+    32px;
+}
+
+.cat-title {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.cat-title__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cat-title__line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cat-content {
+  font-size: 13px;
+}
+
+.cat-poster {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  background: var(--fill-2);
+  color: var(--color-text-muted);
+}
+
+.cat-poster--small {
+  width: 32px;
+}
+
+.cat-poster--large {
+  width: 88px;
+  border-radius: var(--radius-card);
+}
+
+.cat-poster__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cat-edited {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.cat-files {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+/* A show (`/admin/catalogue/<id>`): its head, then a block per season. */
+.cat-series {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.cat-series__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.cat-series__back {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--color-glass);
+  color: var(--color-text);
+  transition: background-color 0.2s ease;
+}
+
+.cat-series__back:hover {
+  background: var(--color-glass-strong);
+}
+
+.cat-series__text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cat-series__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.cat-series__skeleton {
+  width: min(240px, 100%);
+  height: 26px;
+}
+
+.cat-series__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cat-season {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cat-season__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.cat-season__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cat-season__edit {
+  margin-left: auto;
+}
+
+.cat-episode-tr {
+  grid-template-columns: 40px minmax(0, 3fr) minmax(0, 1fr) minmax(0, 1.2fr) 32px;
+  min-height: 52px;
+}
+
+.cat-episode__title[data-generic='true'] {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+@media (--compact) {
+  .cat-tr {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .cat-content {
+    grid-row: 2;
+    grid-column: 1;
+    padding-left: 44px;
+  }
+
+  .cat-episode-tr {
+    grid-template-columns: 28px minmax(0, 1fr) auto 32px;
+  }
+
+  .cat-series__head {
+    flex-wrap: wrap;
+  }
+
+  .cat-series__text {
+    flex-basis: calc(100% - 156px);
+  }
+
+  .cat-series__actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}

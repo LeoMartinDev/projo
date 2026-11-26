@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { homeCategorySlugSchema } from '@projo/shared/api/home'
 
+import { parseCatalogueSearch } from '../features/admin/catalogue/catalogue-search.ts'
 import { parseCatalogSearch } from '../features/catalog/catalog-state.ts'
 import { CatalogSkeleton } from '../features/catalog/CatalogPage.tsx'
 import { arriveOnCatalog, loadCatalog, loadWatchlist } from '../features/catalog/load-catalog.ts'
@@ -77,6 +78,14 @@ const AdminLayout = lazyRouteComponent(
 const LibrariesPage = lazyRouteComponent(
   () => import('../features/admin/LibrariesPage.tsx'),
   'LibrariesPage',
+)
+const CataloguePage = lazyRouteComponent(
+  () => import('../features/admin/catalogue/CataloguePage.tsx'),
+  'CataloguePage',
+)
+const CatalogueSeriesPage = lazyRouteComponent(
+  () => import('../features/admin/catalogue/SeriesPage.tsx'),
+  'CatalogueSeriesPage',
 )
 const TvSourcesPage = lazyRouteComponent(
   () => import('../features/admin/tv/TvSourcesPage.tsx'),
@@ -491,6 +500,34 @@ const adminLibraryRoute = createRoute({
   },
 })
 
+// Media › Catalogue (§15): its filters in the address, a show on a page of its own.
+const adminCatalogueRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/catalogue',
+  validateSearch: parseCatalogueSearch,
+  loader: () => CataloguePage.preload?.(),
+  component: function AdminCatalogue() {
+    const search = adminCatalogueRoute.useSearch()
+    const navigate = adminCatalogueRoute.useNavigate()
+    return (
+      <CataloguePage
+        search={search}
+        onSearch={(next) => void navigate({ search: next, replace: true })}
+      />
+    )
+  },
+})
+
+const adminCatalogueSeriesRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/catalogue/$itemId',
+  loader: () => CatalogueSeriesPage.preload?.(),
+  component: function AdminCatalogueSeries() {
+    const { itemId } = adminCatalogueSeriesRoute.useParams()
+    return <CatalogueSeriesPage key={itemId} itemId={itemId} />
+  },
+})
+
 const adminTvRoute = createRoute({
   getParentRoute: () => adminRoute,
   path: '/tv',
@@ -690,6 +727,8 @@ export const routeTree = rootRoute.addChildren([
       adminIndexRoute,
       adminLibrariesRoute,
       adminLibraryRoute,
+      adminCatalogueRoute,
+      adminCatalogueSeriesRoute,
       adminTvRoute,
       adminAccountsRoute,
       adminAccountRoute,

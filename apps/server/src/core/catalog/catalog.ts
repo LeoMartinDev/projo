@@ -194,7 +194,7 @@ export type MediaSegment = {
 export const missingSortValue = (order: SortOrder): number => (order === 'desc' ? -1 : 1_000_000)
 
 export const sortKeys = (
-  item: CatalogItem,
+  item: Pick<CatalogItem, 'sortTitle' | 'addedAt' | 'createdAt' | 'year' | 'voteAverage'>,
   sort: CatalogSort,
   order: SortOrder,
 ): (string | number)[] => {

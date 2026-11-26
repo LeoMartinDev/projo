@@ -5,6 +5,12 @@ import { appError, type AppError, err, fromPromise, ok, type Result } from '@pro
 import type { JobRef } from '@projo/shared/api/jobs'
 import {
   assignBodySchema,
+  type CatalogEpisodeDto,
+  type CatalogFilesDto,
+  type CatalogItemDto,
+  type CatalogItemsPage,
+  catalogItemsQuerySchema,
+  type CatalogSeasonsResponse,
   chooseItemImageBodySchema,
   imageAlternativesQuerySchema,
   type ImageAlternativesResponse,
@@ -20,7 +26,12 @@ import {
 } from '@projo/shared/api/metadata'
 
 import type { GetItemMetadata } from '../../../application/metadata/get-item-metadata.ts'
+import type {
+  CatalogItemsPage as CatalogItemsResult,
+  ListCatalogItems,
+} from '../../../application/metadata/list-catalog-items.ts'
 import type { ListImageAlternatives } from '../../../application/metadata/list-image-alternatives.ts'
+import type { ListSeriesSeasons } from '../../../application/metadata/list-series-seasons.ts'
 import type { RematchItem } from '../../../application/metadata/rematch-item.ts'
 import type { RemoveItemOverride } from '../../../application/metadata/remove-item-override.ts'
 import type { RequestItemRefresh } from '../../../application/metadata/request-item-refresh.ts'
@@ -29,6 +40,11 @@ import type { SearchTmdb } from '../../../application/metadata/search-tmdb.ts'
 import type { ImageChoice, SetItemImage } from '../../../application/metadata/set-item-image.ts'
 import type { SetItemOverrides } from '../../../application/metadata/set-item-overrides.ts'
 import type { ItemMetadataView } from '../../../application/metadata/shared/item-metadata-view.ts'
+import type {
+  CatalogEpisodeRow,
+  CatalogSeasonRow,
+  FileCounts,
+} from '../../../core/metadata/catalog-items.ts'
 import type { TmdbError } from '../../../core/metadata/tmdb.ts'
 import type { AppEnv } from '../context.ts'
 import { respondError } from '../errors.ts'
@@ -71,6 +87,53 @@ export const toItemMetadataDto = (item: ItemMetadataView): ItemMetadataDto => {
       : { metadataRefreshedAt: item.metadataRefreshedAt.toISOString() }),
   }
 }
+
+const toFilesDto = ({ ready, missing }: FileCounts): CatalogFilesDto => ({ ready, missing })
+
+const toCatalogItemsPage = ({ items, nextCursor }: CatalogItemsResult): CatalogItemsPage => ({
+  items: items.map((item): CatalogItemDto => {
+    const poster = imageUrl(item.posterImageId)
+    return {
+      id: item.id,
+      kind: item.kind,
+      title: item.title,
+      ...(item.year === undefined ? {} : { year: item.year }),
+      ...(poster === undefined ? {} : { poster }),
+      ...(item.tmdbId === undefined ? {} : { tmdbId: item.tmdbId }),
+      libraries: item.libraries,
+      files: toFilesDto(item.files),
+      ...(item.seasons === undefined ? {} : { seasons: item.seasons }),
+      ...(item.episodes === undefined ? {} : { episodes: item.episodes }),
+      ...(item.episodeCountTmdb === undefined ? {} : { episodesTmdb: item.episodeCountTmdb }),
+      locked: item.locked,
+      addedAt: (item.addedAt ?? item.createdAt).toISOString(),
+    }
+  }),
+  ...(nextCursor === undefined ? {} : { nextCursor }),
+})
+
+const toEpisodeDto = (episode: CatalogEpisodeRow): CatalogEpisodeDto => {
+  const still = imageUrl(episode.stillImageId)
+  return {
+    id: episode.id,
+    ...(episode.episodeNumber === undefined ? {} : { episodeNumber: episode.episodeNumber }),
+    ...(episode.title === undefined ? {} : { title: episode.title }),
+    ...(episode.airDate === undefined ? {} : { airDate: episode.airDate }),
+    ...(still === undefined ? {} : { still }),
+    files: toFilesDto(episode.files),
+    locked: episode.locked,
+  }
+}
+
+const toSeasonsResponse = (seasons: CatalogSeasonRow[]): CatalogSeasonsResponse => ({
+  seasons: seasons.map((season) => ({
+    id: season.id,
+    ...(season.seasonNumber === undefined ? {} : { seasonNumber: season.seasonNumber }),
+    ...(season.title === undefined ? {} : { title: season.title }),
+    locked: season.locked,
+    episodes: season.episodes.map(toEpisodeDto),
+  })),
+})
 
 type ChoiceError = AppError<'common/validation_failed' | 'image/too_large'>
 
@@ -128,6 +191,8 @@ const readImageChoice = async (request: Request): Promise<Result<ImageChoice, Ch
 }
 
 export const adminItemsRoutes = ({
+  listCatalogItems,
+  listSeriesSeasons,
   searchTmdb,
   rematchItem,
   tmdbPoster,
@@ -140,6 +205,8 @@ export const adminItemsRoutes = ({
   requestLibraryRefresh,
   optimizeImages,
 }: {
+  listCatalogItems: ListCatalogItems
+  listSeriesSeasons: ListSeriesSeasons
   searchTmdb: SearchTmdb
   rematchItem: RematchItem
   tmdbPoster: TmdbPosterProxy
@@ -205,6 +272,26 @@ export const adminItemsRoutes = ({
         accountId: account.id,
       })
       return result.ok ? c.json(toAssignResponse(result.value), 200) : respondError(c, result.error)
+    })
+    .get('/items', validate('query', catalogItemsQuerySchema), (c) => {
+      const { q, kind, libraryId, sort, cursor, limit } = c.req.valid('query')
+      const result = listCatalogItems({
+        sort,
+        limit,
+        ...(q === undefined || q === '' ? {} : { query: q }),
+        ...(kind === undefined ? {} : { kind }),
+        ...(libraryId === undefined ? {} : { libraryId }),
+        ...(cursor === undefined ? {} : { cursor }),
+      })
+      return result.ok
+        ? c.json(toCatalogItemsPage(result.value), 200)
+        : respondError(c, result.error)
+    })
+    .get('/items/:id/seasons', (c) => {
+      const result = listSeriesSeasons({ itemId: c.req.param('id') })
+      return result.ok
+        ? c.json(toSeasonsResponse(result.value), 200)
+        : respondError(c, result.error)
     })
     .get('/items/:id', (c) => {
       const result = getItemMetadata({ itemId: c.req.param('id') })

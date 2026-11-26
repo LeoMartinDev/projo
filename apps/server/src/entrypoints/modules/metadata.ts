@@ -7,6 +7,8 @@ import { fetchImagesFactory } from '../../application/metadata/fetch-images.ts'
 import { generateImageVariantsFactory } from '../../application/metadata/generate-image-variants.ts'
 import { getImageFactory } from '../../application/metadata/get-image.ts'
 import { getItemMetadataFactory } from '../../application/metadata/get-item-metadata.ts'
+import { listCatalogItemsFactory } from '../../application/metadata/list-catalog-items.ts'
+import { listSeriesSeasonsFactory } from '../../application/metadata/list-series-seasons.ts'
 import { getReviewGroupFactory } from '../../application/metadata/get-review-group.ts'
 import { getMetadataSettingsFactory } from '../../application/metadata/get-metadata-settings.ts'
 import { listImageAlternativesFactory } from '../../application/metadata/list-image-alternatives.ts'
@@ -45,6 +47,7 @@ import type { PlaybackSessionTerminator } from '../../core/playback/session.ts'
 import { createImageFiles } from '../../infrastructure/fs/image-files.ts'
 import { createFfmpegImageReencoder } from '../../infrastructure/media/ffmpeg-image-reencoder.ts'
 import { createFfmpegImageVariants } from '../../infrastructure/media/ffmpeg-image-variants.ts'
+import { createSqliteCatalogItems } from '../../infrastructure/sqlite/catalog-items.ts'
 import { createSqliteImageRepository } from '../../infrastructure/sqlite/image-repository.ts'
 import { createSqliteLibraryRepository } from '../../infrastructure/sqlite/library-repository.ts'
 import { createSqliteManualMatchRepository } from '../../infrastructure/sqlite/manual-match-repository.ts'
@@ -123,6 +126,7 @@ export const buildMetadataModule = (
   const resolveMatch = resolveMatchFactory({ tmdb, clock })
   const tmdbDetails = tmdbDetailsFactory({ tmdb })
   const overrides = createSqliteItemOverrideRepository({ db })
+  const catalogItems = createSqliteCatalogItems({ db })
   const applyMatch = applyMatchFactory({
     items,
     overrides,
@@ -303,6 +307,8 @@ export const buildMetadataModule = (
           canView: canViewImage,
         }),
         adminItems: adminItemsRoutes({
+          listCatalogItems: listCatalogItemsFactory({ catalogItems }),
+          listSeriesSeasons: listSeriesSeasonsFactory({ catalogItems }),
           searchTmdb,
           rematchItem,
           tmdbPoster: (path, size) => tmdb.downloadImage({ path, size }),

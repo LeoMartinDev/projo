@@ -49,11 +49,14 @@ import {
 } from './schema/libraries.ts'
 import { segments } from './schema/playback.ts'
 
-const searchDocuments = sqliteTable('search_documents', {
+export const searchDocuments = sqliteTable('search_documents', {
   id: integer().primaryKey(),
   itemId: text().notNull(),
 })
-const itemsFts = sqliteTable('items_fts', { rowid: integer().notNull(), rank: real().notNull() })
+export const itemsFts = sqliteTable('items_fts', {
+  rowid: integer().notNull(),
+  rank: real().notNull(),
+})
 
 const genresSchema = z.array(genreIdSchema)
 
@@ -85,9 +88,9 @@ export const toCatalogItem = (row: ItemRow): CatalogItem => {
 const addedKey = sql`coalesce(${items.addedAt}, ${items.createdAt})`
 const titleKey = sql`${items.sortTitle} COLLATE NOCASE`
 
-type SortKey = { expr: SQL; descending: boolean }
+export type SortKey = { expr: SQL; descending: boolean }
 
-const sortColumns = (sort: CatalogSort, order: SortOrder): SortKey[] => {
+export const sortColumns = (sort: CatalogSort, order: SortOrder): SortKey[] => {
   const descending = order === 'desc'
   const missing = missingSortValue(order)
   switch (sort) {
@@ -114,7 +117,7 @@ const sortColumns = (sort: CatalogSort, order: SortOrder): SortKey[] => {
   }
 }
 
-const afterPosition = (columns: SortKey[], position: CatalogPosition): SQL => {
+export const afterPosition = (columns: SortKey[], position: CatalogPosition): SQL => {
   const values = [...position.keys, position.id]
   const branches = columns.map((column, index) => {
     const equal = columns
@@ -126,7 +129,7 @@ const afterPosition = (columns: SortKey[], position: CatalogPosition): SQL => {
   return sql`(${sql.join(branches, sql` OR `)})`
 }
 
-const orderBy = (columns: SortKey[]): SQL[] =>
+export const orderBy = (columns: SortKey[]): SQL[] =>
   columns.map((column) => sql`${column.expr} ${column.descending ? sql`DESC` : sql`ASC`}`)
 
 const watchState = (alias: SQL, profileId: string): SQL =>

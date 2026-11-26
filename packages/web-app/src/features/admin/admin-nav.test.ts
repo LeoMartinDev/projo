@@ -9,6 +9,8 @@ describe('admin navigation (§15)', () => {
     expect(adminNavEntryOf('/admin/libraries')).toBe('media')
     expect(adminNavEntryOf('/admin/libraries/new')).toBe('media')
     expect(adminNavEntryOf('/admin/tv')).toBe('media')
+    expect(adminNavEntryOf('/admin/catalogue')).toBe('media')
+    expect(adminNavEntryOf('/admin/catalogue/abc')).toBe('media')
     expect(adminNavEntryOf('/admin/review')).toBe('files')
     expect(adminNavEntryOf('/admin/hidden')).toBe('files')
     expect(adminNavEntryOf('/admin/accounts/abc')).toBe('accounts')

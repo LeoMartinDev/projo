@@ -62,6 +62,10 @@ export const formatPercent = (ratio: number, locale: string): string =>
 export const formatDate = (iso: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(iso))
 
+/** A calendar day (`2024-01-05`, an air date): the same day whatever the time zone. */
+export const formatDay = (day: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(new Date(day))
+
 export const formatDateTime = (iso: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso))
 

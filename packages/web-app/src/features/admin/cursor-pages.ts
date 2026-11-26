@@ -1,3 +1,5 @@
+import { z } from 'zod'
+
 /**
  * Pages of a cursor-paginated list (`?cursor=&limit=`): the cursors of the pages from the
  * first one ('') to the shown one, so "previous" goes back without the server knowing pages.
@@ -23,3 +25,14 @@ export const nextPage = (pages: CursorPages, nextCursor: string): CursorPages =>
 
 export const previousPage = (pages: CursorPages): CursorPages =>
   pages.cursors.length <= 1 ? pages : { key: pages.key, cursors: pages.cursors.slice(0, -1) }
+
+const storedPagesSchema = z.object({
+  key: z.string(),
+  cursors: z.tuple([z.literal('')], z.string()),
+})
+
+/** Pages kept in a history entry (`remember` of `useCursorPages`), or nothing if they are not. */
+export const storedPages = (value: unknown): CursorPages | undefined => {
+  const parsed = storedPagesSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}

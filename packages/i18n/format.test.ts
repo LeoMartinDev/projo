@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test'
 import {
   formatBytes,
   formatClock,
+  formatDay,
   formatDuration,
   formatPercent,
   formatRelative,
@@ -101,5 +102,12 @@ describe('formatScore', () => {
   test('no score without votes', () => {
     expect(formatScore(undefined, 'fr')).toBeUndefined()
     expect(formatScore(0, 'fr')).toBeUndefined()
+  })
+})
+
+describe('formatDay', () => {
+  test('the calendar day as written, whatever the time zone', () => {
+    expect(formatDay('2024-01-05', 'en-US')).toBe('Jan 5, 2024')
+    expect(formatDay('2024-12-31', 'fr-FR')).toBe('31 déc. 2024')
   })
 })

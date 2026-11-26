@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { pageSchema, paginationQuerySchema } from './common.ts'
 import { genreIdSchema, MAX_ITEM_GENRES } from './genres.ts'
 
 export const reviewReasonSchema = z.enum([
@@ -141,3 +142,69 @@ export const uploadItemImageFormSchema = z.object({
   file: z.instanceof(File),
 })
 export type UploadItemImageForm = z.infer<typeof uploadItemImageFormSchema>
+
+/** Media › Catalogue (§15): the movies and shows, filtered and sorted, in pages. */
+export const catalogItemKindSchema = z.enum(['movie', 'series'])
+export type CatalogItemKind = z.infer<typeof catalogItemKindSchema>
+
+export const catalogItemsSortSchema = z.enum(['title', 'added', 'year'])
+export type CatalogItemsSort = z.infer<typeof catalogItemsSortSchema>
+
+export const catalogItemsQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().max(200).optional(),
+  kind: catalogItemKindSchema.optional(),
+  libraryId: z.string().min(1).optional(),
+  sort: catalogItemsSortSchema.default('title'),
+})
+export type CatalogItemsQuery = z.infer<typeof catalogItemsQuerySchema>
+
+/** Files of a title: `ready` play, `missing` are gone from the disk (§7.5). */
+export const catalogFilesDtoSchema = z.object({
+  ready: z.number().int(),
+  missing: z.number().int(),
+})
+export type CatalogFilesDto = z.infer<typeof catalogFilesDtoSchema>
+
+export const catalogItemDtoSchema = z.object({
+  id: z.string(),
+  kind: catalogItemKindSchema,
+  title: z.string(),
+  year: z.number().int().optional(),
+  poster: z.string().optional(),
+  tmdbId: z.number().int().optional(),
+  libraries: z.array(z.object({ id: z.string(), name: z.string() })),
+  files: catalogFilesDtoSchema,
+  /** A show: its seasons and episodes with a file, and TMDB's episode count. */
+  seasons: z.number().int().optional(),
+  episodes: z.number().int().optional(),
+  episodesTmdb: z.number().int().optional(),
+  locked: z.array(editableFieldSchema),
+  addedAt: z.string(),
+})
+export type CatalogItemDto = z.infer<typeof catalogItemDtoSchema>
+
+export const catalogItemsPageSchema = pageSchema(catalogItemDtoSchema)
+export type CatalogItemsPage = z.infer<typeof catalogItemsPageSchema>
+
+export const catalogEpisodeDtoSchema = z.object({
+  id: z.string(),
+  episodeNumber: z.number().int().optional(),
+  title: z.string().optional(),
+  airDate: z.string().optional(),
+  still: z.string().optional(),
+  files: catalogFilesDtoSchema,
+  locked: z.array(editableFieldSchema),
+})
+export type CatalogEpisodeDto = z.infer<typeof catalogEpisodeDtoSchema>
+
+export const catalogSeasonDtoSchema = z.object({
+  id: z.string(),
+  seasonNumber: z.number().int().optional(),
+  title: z.string().optional(),
+  locked: z.array(editableFieldSchema),
+  episodes: z.array(catalogEpisodeDtoSchema),
+})
+export type CatalogSeasonDto = z.infer<typeof catalogSeasonDtoSchema>
+
+export const catalogSeasonsResponseSchema = z.object({ seasons: z.array(catalogSeasonDtoSchema) })
+export type CatalogSeasonsResponse = z.infer<typeof catalogSeasonsResponseSchema>

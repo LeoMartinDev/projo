@@ -49,11 +49,14 @@ export const RematchDialog = ({
   kind,
   open,
   onClose,
+  onMoved,
 }: {
   itemId: string
   kind: 'movie' | 'series' | 'episode'
   open: boolean
   onClose: () => void
+  /** The title now lives in another item: its title page unless told otherwise. */
+  onMoved?: (itemId: string) => void
 }) => {
   const { t } = useTranslation()
   const formId = useId()
@@ -82,7 +85,9 @@ export const RematchDialog = ({
       if (review > 0) setLeftForReview(review)
       else onClose()
       if (movedTo !== undefined) {
-        await navigate({ to: '/items/$itemId', params: { itemId: movedTo } })
+        if (onMoved === undefined) {
+          await navigate({ to: '/items/$itemId', params: { itemId: movedTo } })
+        } else onMoved(movedTo)
       }
       await invalidateAfterIdentify(queryClient)
     },

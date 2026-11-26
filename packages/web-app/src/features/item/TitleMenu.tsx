@@ -8,6 +8,7 @@ import { RematchDialog } from '../admin/identify/RematchDialog.tsx'
 import { EditItemDialog } from '../admin/metadata/EditItemDialog.tsx'
 import { useRefreshItem } from '../admin/metadata/queries.ts'
 import { MarkersDialog } from './markers/MarkersDialog.tsx'
+import './title-menu.css'
 
 /** What the admin entries of a title's menu act on. */
 export type AdminTarget = {
@@ -162,15 +163,23 @@ const AdminDialogs = ({
   target,
   open,
   onClose,
+  onMoved,
 }: {
   target: AdminTarget
   open: AdminDialog | undefined
   onClose: () => void
+  onMoved?: ((itemId: string) => void) | undefined
 }) => {
   const { itemId, kind, name, durationMs, season } = target
   return (
     <>
-      <RematchDialog itemId={itemId} kind={kind} open={open === 'rematch'} onClose={onClose} />
+      <RematchDialog
+        itemId={itemId}
+        kind={kind}
+        open={open === 'rematch'}
+        onClose={onClose}
+        {...(onMoved === undefined ? {} : { onMoved })}
+      />
       <EditItemDialog
         itemId={itemId}
         {...(name === undefined ? {} : { name })}
@@ -211,11 +220,15 @@ const useAdminDialog = () => {
   }
 }
 
-/** The admin-only "⋮" of an episode row. */
+/**
+ * The admin-only "⋮" of an episode row (and of a row of the admin's catalogue). `onMoved`: where
+ * to go once a correction moved the title to another item (its title page by default).
+ */
 export const AdminMenu = ({
   align = 'start',
+  onMoved,
   ...target
-}: AdminTarget & { align?: 'start' | 'end' }) => {
+}: AdminTarget & { align?: 'start' | 'end'; onMoved?: (itemId: string) => void }) => {
   const { t } = useTranslation()
   const popover = usePopoverMenu()
   const admin = useAdminDialog()
@@ -236,7 +249,7 @@ export const AdminMenu = ({
       <div className="menu title-menu__menu" {...popover.menu}>
         <AdminItems target={target} choose={admin.choose} />
       </div>
-      <AdminDialogs target={target} open={admin.dialog} onClose={admin.close} />
+      <AdminDialogs target={target} open={admin.dialog} onClose={admin.close} onMoved={onMoved} />
     </div>
   )
 }

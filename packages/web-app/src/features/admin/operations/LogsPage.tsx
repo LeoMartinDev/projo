@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { LogEntryDto, LogLevelDto } from '@projo/shared/api/logs'
@@ -11,6 +11,7 @@ import { Dialog } from '../../../shared/ui/Dialog.tsx'
 import { SyncIcon } from '../../../shared/ui/icons.tsx'
 import { EmptyState, ErrorState } from '../../../shared/ui/states.tsx'
 import { Segmented } from '../../../shared/ui/Segmented.tsx'
+import { useDebounced } from '../../../shared/ui/use-debounced.ts'
 import { DownloadIcon, SearchIcon } from '../admin-icons.tsx'
 import {
   type LogFilterState,
@@ -46,15 +47,6 @@ const formatRowTime = (iso: string, locale: string): string =>
     fractionalSecondDigits: 3,
     hourCycle: 'h23',
   }).format(new Date(iso))
-
-const useDebounced = (value: string, delayMs: number): string => {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs)
-    return () => clearTimeout(timer)
-  }, [value, delayMs])
-  return debounced
-}
 
 const LevelTag = ({ level }: { level: LogLevelDto }) => {
   const { t } = useTranslation()

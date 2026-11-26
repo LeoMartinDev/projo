@@ -64,7 +64,9 @@ export const invalidateAfterIdentify = (queryClient: QueryClient) =>
     predicate: (query) => {
       const [root, second] = query.queryKey
       if (root === 'session' || root === 'setup-status') return false
-      if (root === 'admin') return second === 'review' || second === 'identify-item'
+      if (root === 'admin') {
+        return second === 'review' || second === 'identify-item' || second === 'catalog'
+      }
       return true
     },
   })

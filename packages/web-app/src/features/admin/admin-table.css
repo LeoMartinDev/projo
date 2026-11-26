@@ -230,6 +230,7 @@
   font-size: 15px;
   font-weight: 600;
   text-align: left;
+  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

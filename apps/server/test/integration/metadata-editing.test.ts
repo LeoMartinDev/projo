@@ -4,7 +4,12 @@ import { join } from 'node:path'
 
 import { ok } from '@projo/shared'
 import type { JobRef } from '@projo/shared/api/jobs'
-import type { ImageAlternativesResponse, ItemMetadataDto } from '@projo/shared/api/metadata'
+import type {
+  CatalogItemsPage,
+  CatalogSeasonsResponse,
+  ImageAlternativesResponse,
+  ItemMetadataDto,
+} from '@projo/shared/api/metadata'
 
 import type { ImageReencoder } from '../../src/core/metadata/editing.ts'
 import { insertItem, insertLibrary, insertSource } from '../support/catalog-fixtures.ts'
@@ -374,5 +379,78 @@ describe('refresh (§9.4)', () => {
     expect(
       items(`SELECT payload FROM jobs WHERE type = 'refresh_metadata' AND state = 'queued'`),
     ).toEqual([{ payload: JSON.stringify({ itemId: 'series' }) }])
+  })
+})
+
+describe('Media › Catalogue (§15)', () => {
+  const page = async (query: string) => {
+    const response = await world.request(`/items${query}`)
+    expect(response.status).toBe(200)
+    return (await response.json()) as CatalogItemsPage
+  }
+
+  test('an edited title is found by its new name, locked, with its files and library', async () => {
+    insertItem(world.db, { id: 'movie', kind: 'movie', tmdbId: 27205, title: 'Inception' })
+    insertSource(world.db, { id: 'src-movie', itemId: 'movie' })
+    seedSeries()
+    expect((await send('PATCH', '/items/movie', { title: 'Origine' })).status).toBe(200)
+
+    const found = await page('?q=orig')
+    expect(found).toEqual({
+      items: [
+        {
+          id: 'movie',
+          kind: 'movie',
+          title: 'Origine',
+          tmdbId: 27205,
+          libraries: [{ id: 'library-1', name: 'library-1' }],
+          files: { ready: 1, missing: 0 },
+          locked: ['title'],
+          addedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+    })
+    expect((await page('?q=inception')).items).toEqual([])
+    expect((await page('?kind=series')).items).toMatchObject([
+      { id: 'series', seasons: 1, episodes: 2, files: { ready: 2, missing: 0 } },
+    ])
+  })
+
+  test('pages of the size asked, the next through its cursor', async () => {
+    for (const id of ['a', 'b', 'c']) insertItem(world.db, { id, kind: 'movie' })
+    const first = await page('?limit=2')
+    expect(first.items.map((item) => item.id)).toEqual(['a', 'b'])
+    const next = first.nextCursor ?? ''
+    const second = await page(`?limit=2&cursor=${encodeURIComponent(next)}`)
+    expect(second).toMatchObject({ items: [{ id: 'c' }] })
+    expect(second.nextCursor).toBeUndefined()
+    const refused = await world.request(`/items?sort=added&cursor=${encodeURIComponent(next)}`)
+    expect([refused.status, await errorCode(refused)]).toEqual([400, 'catalog/invalid_cursor'])
+  })
+
+  test("a show's seasons and episodes; a movie has none", async () => {
+    seedSeries()
+    const response = await world.request('/items/series/seasons')
+    expect(response.status).toBe(200)
+    expect((await response.json()) as CatalogSeasonsResponse).toEqual({
+      seasons: [
+        {
+          id: 's1',
+          seasonNumber: 1,
+          locked: [],
+          episodes: [1, 2].map((n) => ({
+            id: `e${n}`,
+            episodeNumber: n,
+            files: { ready: 1, missing: 0 },
+            locked: [],
+          })),
+        },
+      ],
+    })
+    insertItem(world.db, { id: 'movie', kind: 'movie' })
+    const movie = await world.request('/items/movie/seasons')
+    expect([movie.status, await errorCode(movie)]).toEqual([400, 'item/invalid_kind'])
+    const unknown = await world.request('/items/nope/seasons')
+    expect([unknown.status, await errorCode(unknown)]).toEqual([404, 'item/not_found'])
   })
 })
